@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://claudecommunitykenya.com/sitemap.xml
