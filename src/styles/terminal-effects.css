@@ -1,0 +1,76 @@
+/* ─── Terminal Effects CSS ─── */
+/* Phase 2: Additional animations and styles for terminal components */
+
+/* ─── Matrix Rain Canvas ─── */
+.matrix-rain-canvas {
+  image-rendering: pixelated;
+}
+
+/* ─── Terminal Window ─── */
+.terminal-window {
+  font-variant-ligatures: none;
+}
+
+/* ─── Loading Bar Animation ─── */
+@keyframes loading-bar-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.loading-bar-indeterminate {
+  animation: loading-bar-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* ─── Scanline Flicker (very subtle) ─── */
+@keyframes scanline-flicker {
+  0%, 100% {
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.05;
+  }
+}
+
+/* ─── CRT Glow Pulse ─── */
+@keyframes crt-glow-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.02);
+  }
+}
+
+/* ─── Text Typing Reveal ─── */
+@keyframes text-reveal {
+  from {
+    max-width: 0;
+  }
+  to {
+    max-width: 100%;
+  }
+}
+
+/* ─── Responsive: Disable heavy effects on mobile ─── */
+@media (max-width: 768px) {
+  .matrix-rain-canvas {
+    display: none;
+  }
+}
+
+/* ─── Reduced Motion: Disable all custom animations ─── */
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar-indeterminate,
+  .crt-glow-pulse,
+  .scanline-flicker {
+    animation: none;
+  }
+
+  .matrix-rain-canvas {
+    display: none;
+  }
+}

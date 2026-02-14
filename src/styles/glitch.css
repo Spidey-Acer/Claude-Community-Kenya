@@ -1,0 +1,112 @@
+/* ─── Glitch Animation ─── */
+@keyframes glitch {
+  0% {
+    text-shadow:
+      2px 0 var(--red),
+      -2px 0 var(--cyan);
+    transform: translate(0);
+  }
+  20% {
+    text-shadow:
+      -2px 0 var(--red),
+      2px 0 var(--cyan);
+    transform: translate(-2px, 1px);
+  }
+  40% {
+    text-shadow:
+      2px 0 var(--red),
+      -2px 0 var(--cyan);
+    transform: translate(2px, -1px);
+  }
+  60% {
+    text-shadow:
+      -1px 0 var(--red),
+      1px 0 var(--cyan);
+    transform: translate(-1px, 0);
+  }
+  80% {
+    text-shadow:
+      1px 0 var(--red),
+      -1px 0 var(--cyan);
+    transform: translate(1px, 1px);
+  }
+  100% {
+    text-shadow:
+      0 0 var(--red),
+      0 0 var(--cyan);
+    transform: translate(0);
+  }
+}
+
+@keyframes glitch-skew {
+  0% {
+    clip-path: inset(40% 0 61% 0);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+  }
+  40% {
+    clip-path: inset(43% 0 1% 0);
+  }
+  60% {
+    clip-path: inset(25% 0 58% 0);
+  }
+  80% {
+    clip-path: inset(54% 0 7% 0);
+  }
+  100% {
+    clip-path: inset(58% 0 43% 0);
+  }
+}
+
+/* Hover-triggered glitch effect */
+.glitch-hover:hover {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Continuous subtle glitch */
+.glitch-continuous {
+  animation: glitch 2s infinite steps(1);
+}
+
+/* ─── Terminal Cursor Blink ─── */
+@keyframes cursor-blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ─── CRT Flicker ─── */
+@keyframes crt-flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.98; }
+  15% { opacity: 0.96; }
+  20% { opacity: 0.99; }
+  100% { opacity: 1; }
+}
+
+.crt-flicker {
+  animation: crt-flicker 0.15s infinite;
+}
+
+/* ─── Green Glow Pulse ─── */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
