@@ -27,16 +27,9 @@ export default function ProjectsPage() {
           </section>
         </ScrollReveal>
 
-        {/* Projects grid */}
-        <ScrollReveal stagger={100} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </ScrollReveal>
-
-        {/* Submit Project Section */}
-        <ScrollReveal delay={200}>
-          <section className="mt-20 border border-border-default bg-bg-card p-8 text-center">
+        {/* Submit Project Section — pinned at top */}
+        <ScrollReveal>
+          <section className="mb-12 border border-border-default bg-bg-card p-8 text-center">
             <div className="flex items-center justify-center gap-1.5 mb-4">
               <span className="h-2.5 w-2.5 rounded-full bg-red" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber" />
@@ -59,6 +52,13 @@ export default function ProjectsPage() {
               SUBMIT_PROJECT
             </a>
           </section>
+        </ScrollReveal>
+
+        {/* Projects grid */}
+        <ScrollReveal stagger={100} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
         </ScrollReveal>
       </div>
     </main>
