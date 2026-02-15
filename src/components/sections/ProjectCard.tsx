@@ -90,7 +90,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         {/* Links or CTA */}
         {isPlaceholder ? (
           <a
-            href="https://discord.gg/claude-community-ke"
+            href="https://discord.gg/MdEhxH88"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 font-mono text-sm font-medium text-amber hover:text-green-primary transition-colors duration-200"

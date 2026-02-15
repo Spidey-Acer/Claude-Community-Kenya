@@ -12,9 +12,11 @@ export const SITE_CONFIG = {
   social: {
     twitter: "https://twitter.com/ClaudeCommunityKE",
     github: "https://github.com/claude-community-kenya",
-    discord: "https://discord.gg/claude-community-ke",
+    discord: "https://discord.gg/MdEhxH88",
     linkedin: "https://linkedin.com/company/claude-community-kenya",
-    luma: "https://lu.ma/claude-community-kenya",
+    lumaNairobi: "https://luma.com/sbsa789m",
+    lumaMombasa: "https://luma.com/vsf5re14",
+    lumaGlobal: "https://luma.com/claudecommunity",
     instagram: "https://instagram.com/claudecommunitykenya",
     facebook: "https://facebook.com/claudecommunitykenya",
   },
@@ -39,9 +41,11 @@ export const NAV_LINKS = [
 export const SOCIAL_LINKS = {
   twitter: "https://twitter.com/ClaudeCommunityKE",
   github: "https://github.com/claude-community-kenya",
-  discord: "https://discord.gg/claude-community-ke",
+  discord: "https://discord.gg/MdEhxH88",
   linkedin: "https://linkedin.com/company/claude-community-kenya",
-  luma: "https://lu.ma/claude-community-kenya",
+  lumaNairobi: "https://luma.com/sbsa789m",
+  lumaMombasa: "https://luma.com/vsf5re14",
+  lumaGlobal: "https://luma.com/claudecommunity",
 } as const;
 
 // ─── API Endpoints (v1 placeholders) ───

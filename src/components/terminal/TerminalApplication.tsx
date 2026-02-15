@@ -796,7 +796,7 @@ export function TerminalApplication() {
         {
           id: uid(),
           type: "system",
-          content: "  1. Join our Discord → discord.gg/claude-community-ke",
+          content: "  1. Join our Discord → discord.gg/MdEhxH88",
           color: "cyan",
         },
         {

@@ -13,8 +13,8 @@ interface Stat {
 const stats: Stat[] = [
   { target: 50, suffix: "+", label: "Members" },
   { target: 2, suffix: "", label: "Cities" },
-  { target: 3, suffix: "", label: "Events Hosted" },
-  { target: 1, suffix: "", label: "Ambassador Program" },
+  { target: 1, suffix: "", label: "Events Hosted" },
+  { target: 4, suffix: "", label: "Team Members" },
 ];
 
 export function StatsBar() {

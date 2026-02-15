@@ -78,7 +78,7 @@ const jsonLd = {
   sameAs: [
     "https://twitter.com/ClaudeCommunityKE",
     "https://github.com/claude-community-kenya",
-    "https://discord.gg/claude-community-ke",
+    "https://discord.gg/MdEhxH88",
     "https://linkedin.com/company/claude-community-kenya",
   ],
   contactPoint: {

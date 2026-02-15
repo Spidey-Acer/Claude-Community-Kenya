@@ -51,7 +51,7 @@ const steps = [
     description: "Try Claude Code for terminal-based development",
   },
   {
-    command: "join --community discord.gg/claude-community-ke",
+    command: "join --community discord.gg/MdEhxH88",
     description: "Join Claude Community Kenya on Discord",
   },
 ];

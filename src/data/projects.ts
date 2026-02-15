@@ -12,14 +12,14 @@ export interface Project {
 
 export const projects: Project[] = [
   {
-    id: "mulinga",
-    name: "Mulinga Farm Management System",
-    builder: "Peter Kibet",
+    id: "cck-website",
+    name: "Claude Community Kenya Website",
+    builder: "Claude Community Kenya",
     description:
-      "A comprehensive farm management platform tracking 26,000+ coffee plants and poultry operations across multiple farms in Kenya. Manages growth cycles, harvest yields, worker assignments, and financial records — all built with Claude Code.",
-    stack: ["Next.js", "TypeScript", "PostgreSQL", "Claude Code"],
-    status: "in-production",
-    demoUrl: "#",
+      "This website. Built entirely with Claude Code as a showcase of AI-assisted development. Terminal-noir design, interactive animations, and community content.",
+    stack: ["Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
+    status: "live",
+    demoUrl: "https://claudecommunitykenya.com",
     featured: true,
   },
   {
@@ -30,18 +30,18 @@ export const projects: Project[] = [
       "An AI-powered Discord bot for the community server. Handles FAQs, event reminders, and resource lookups.",
     stack: ["Node.js", "Discord.js", "Claude API"],
     status: "in-development",
-    featured: false,
+    featured: true,
   },
   {
-    id: "cck-website",
-    name: "Claude Community Kenya Website",
+    id: "mulinga",
+    name: "Mulinga Farm Management System",
     builder: "Peter Kibet",
     description:
-      "This website. Built entirely with Claude Code as a showcase of AI-assisted development. Terminal-noir design, interactive animations, and community content.",
-    stack: ["Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
-    status: "live",
-    demoUrl: "https://claudecommunitykenya.com",
-    featured: true,
+      "A farm management platform tracking 26,000+ coffee plants and poultry operations across multiple farms in Kenya. Built with Claude Code as a personal project and demoed at the first community meetup.",
+    stack: ["Next.js", "TypeScript", "PostgreSQL", "Claude Code"],
+    status: "in-production",
+    demoUrl: "#",
+    featured: false,
   },
   {
     id: "your-project",
