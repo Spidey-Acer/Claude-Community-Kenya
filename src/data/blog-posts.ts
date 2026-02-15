@@ -11,184 +11,269 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
-    slug: "how-kenyas-first-claude-code-meetup-happened",
-    title: "How Kenya's First Claude Code Meetup Happened",
-    date: "2026-02-01",
-    author: "Peter Kibet",
-    tags: ["meetup", "community", "nairobi"],
-    excerpt:
-      "The story of how 50+ developers gathered in Nairobi for East Africa's first-ever Claude Code meetup — and what happened next.",
-    content: `It started with a simple idea: what if Kenyan developers could experience Claude Code together, in person?
-
-On January 25, 2026, that idea became reality. Over 50 developers from across Nairobi packed into iHiT Events Space in Westlands for what would become a historic afternoon — Kenya's very first Claude Code meetup.
-
-## The Setup
-
-We didn't know what to expect. Would people show up? Would they care about Claude Code? We booked the venue, set up the projector, and hoped for the best.
-
-By 2:00 PM, the room was full. Developers of all backgrounds — from university students to senior engineers, from solo freelancers to startup CTOs — all curious about this new way of building software.
-
-## The Demo That Changed Everything
-
-The centerpiece of the event was a live demo: building a full-stack application from scratch using Claude Code. No slides, no theory — just a terminal, Claude Code, and a real project taking shape in real-time.
-
-The audience watched as a complete Next.js application materialized through natural language conversations with Claude. Features were added, bugs were fixed, and the codebase grew — all through the terminal.
-
-The energy in the room was electric. Developers who had been skeptical walked away as believers.
-
-## Mulinga: A Real-World Showcase
-
-We also showcased Mulinga, a farm management system built entirely with Claude Code. This wasn't a toy project — it manages over 26,000 coffee plants across multiple farms in Kenya, tracking growth cycles, harvest yields, and worker assignments.
-
-Seeing a production system built with Claude Code — solving a real African problem — inspired the room. This wasn't just about technology; it was about possibility.
-
-## What Happened Next
-
-By the end of the meetup, three things had happened:
-
-1. **A Discord community was born** — we launched the Claude Community Kenya Discord server, and members started joining before the event even ended.
-
-2. **Collaborations sparked** — developers exchanged contacts, formed project teams, and started planning what they'd build together.
-
-3. **A movement began** — Claude Community Kenya wasn't just an event anymore. It was a community with momentum, ambition, and a shared vision for AI development in East Africa.
-
-## Looking Forward
-
-That first meetup taught us something important: Kenyan developers are hungry for AI tools that actually help them build. Claude Code isn't just another AI product — it's a paradigm shift in how software gets made.
-
-We're now planning monthly meetups in Nairobi, expanding to Mombasa, and building partnerships with universities across Kenya. The first meetup was just the beginning.
-
-If you missed it, don't worry. The next one is coming soon. Join our Discord to stay in the loop.
-
----
-
-*Kenya's developer community is ready for AI. We're just getting started.*`,
-    readingTime: 5,
-  },
-  {
-    slug: "what-is-claude-code-kenyan-developers-guide",
-    title: "What is Claude Code? A Kenyan Developer's Guide",
+    slug: "getting-started-with-claude-code",
+    title: "Getting Started with Claude Code: A Developer's Guide",
     date: "2026-02-10",
-    author: "Peter Kibet",
-    tags: ["claude-code", "tutorial", "guide"],
+    author: "Claude Community Kenya",
+    tags: ["claude-code", "tutorial", "getting-started"],
     excerpt:
-      "A practical guide to Claude Code for Kenyan developers — what it is, how to install it, and why it's changing how we build software.",
-    content: `If you've been hearing about Claude Code but aren't sure what it is or how to get started, this guide is for you.
+      "A practical, hands-on guide to installing Claude Code, setting up your first project, and understanding the workflows that make AI-assisted development so powerful.",
+    content: `Claude Code is changing how developers build software. Instead of switching between your editor and a chat window, you work directly in your terminal — describing what you want to build and watching Claude implement it across your codebase in real time.
+
+This guide walks you through everything you need to get started.
 
 ## What is Claude Code?
 
-Claude Code is Anthropic's official command-line tool that lets you build software with Claude AI directly in your terminal. Think of it as having a senior developer pair-programming with you — one who can read your entire codebase, understand your architecture, and help you build features, fix bugs, and refactor code.
+Claude Code is Anthropic's agentic coding tool that lives in your terminal. It can read your entire project, understand your architecture, create and edit files, run commands, and help you build features end-to-end — all through natural language.
 
-Unlike chat-based AI tools where you copy-paste code snippets, Claude Code works directly in your project. It reads your files, understands your conventions, and makes changes right where they need to happen.
+It is not a code completion tool or a chatbot with a code window. Claude Code operates as a full development partner that understands your project context and can take multi-step actions across your codebase.
 
-## Why Kenyan Developers Should Care
+## Prerequisites
 
-Here's the thing: Claude Code isn't just a productivity tool. It's a force multiplier. For solo developers and small teams — which describes most of Kenya's tech ecosystem — it means you can build at the speed and quality of a much larger team.
+Before you begin, you will need:
 
-We've seen this firsthand. The Mulinga farm management system, which manages 26,000+ coffee plants, was built by a single developer using Claude Code. That's the kind of leverage we're talking about.
+- **Node.js 18+** installed on your machine
+- A **Claude Pro, Team, or API** account (Claude Code requires authentication)
+- A terminal you are comfortable working in (bash, zsh, PowerShell, etc.)
 
-## Getting Started
+## Installation
 
-### Step 1: Get Claude Access
-Visit [claude.ai](https://claude.ai) and create an account. You'll need a Pro or Team plan to use Claude Code.
-
-### Step 2: Install Claude Code
-Open your terminal and run:
+Install Claude Code globally via npm:
 
 \`\`\`bash
 npm install -g @anthropic-ai/claude-code
 \`\`\`
 
-### Step 3: Authenticate
-Run \`claude\` in your terminal and follow the authentication prompts.
+Once installed, navigate to any project directory and run:
 
-### Step 4: Start Building
-Navigate to your project directory and run \`claude\`. That's it — you're pair-programming with Claude.
+\`\`\`bash
+claude
+\`\`\`
+
+You will be prompted to authenticate on your first run. Follow the instructions to connect your Anthropic account.
+
+## Your First Session
+
+Once authenticated, Claude Code drops you into an interactive session. You can now give Claude tasks in plain English:
+
+\`\`\`
+> Create a REST API endpoint for user registration with email validation
+\`\`\`
+
+Claude will read your project structure, understand what frameworks and patterns you are using, and implement the feature accordingly. It creates files, modifies existing ones, and can even run your tests to verify everything works.
+
+## Key Concepts
+
+### The CLAUDE.md File
+
+One of the most powerful features is the \`CLAUDE.md\` file. Place this in your project root to give Claude persistent context about your project:
+
+- Your tech stack and conventions
+- File structure and naming patterns
+- Testing preferences
+- Any project-specific rules
+
+Think of it as onboarding documentation for your AI pair programmer. The better your CLAUDE.md, the better Claude Code performs.
+
+### Plan Mode
+
+For complex features that touch multiple files, use plan mode:
+
+\`\`\`
+> /plan Add a complete authentication system with JWT tokens and refresh token rotation
+\`\`\`
+
+Claude will first outline its approach, show you which files it plans to create or modify, and wait for your approval before making changes. This is invaluable for architectural decisions.
+
+### Multi-File Awareness
+
+Unlike code completion tools that only see the current file, Claude Code has full project awareness. It can:
+
+- Read and understand your entire codebase
+- Follow import chains and understand dependencies
+- Maintain consistency across files when making changes
+- Run terminal commands to test and verify its work
 
 ## Essential Commands
 
-Here are the commands every developer should know:
+Inside a Claude Code session, these commands will serve you well:
 
-- \`claude\` — Start an interactive session
-- \`claude "build a login page"\` — Give Claude a direct task
-- \`claude --plan\` — Use plan mode for complex tasks
-- \`/help\` — See all available commands inside a session
+- \`/help\` — View all available commands
+- \`/plan\` — Enter plan mode for complex tasks
+- \`/clear\` — Clear conversation history
+- \`/cost\` — Check your token usage for the session
 
-## Tips for Getting the Most Out of Claude Code
+## Tips for Effective Use
 
-1. **Set up a CLAUDE.md file** — This tells Claude about your project conventions, tech stack, and preferences. It's like onboarding a new team member.
+**Be specific with context.** Instead of "fix the bug," try "the login form submits but the API returns a 401 — check the authentication middleware and token validation logic."
 
-2. **Use plan mode for big features** — For anything that touches multiple files, start with \`--plan\` to let Claude think through the approach first.
+**Use iterative development.** Start with a basic implementation, test it, then ask Claude to enhance it. This mirrors how experienced developers work and produces better results.
 
-3. **Be specific with your prompts** — Instead of "make it better," try "refactor the authentication middleware to use JWT tokens with refresh token rotation."
+**Review everything.** Claude Code is remarkably capable, but you are the architect. Always review the changes, understand the approach, and verify the implementation meets your requirements.
 
-4. **Trust but verify** — Claude is incredibly capable, but always review the changes it makes. You're the architect; Claude is the builder.
+**Leverage your CLAUDE.md.** The more context you provide about your project conventions, the more consistent and high-quality the output will be.
 
-## Join the Community
+## Next Steps
 
-The best way to level up your Claude Code skills is to learn alongside other developers. Join Claude Community Kenya on Discord — we have channels dedicated to Claude Code tips, project showcases, and help desk support.
+The best way to learn Claude Code is to use it. Pick a feature you have been putting off, open your terminal, and let Claude help you build it.
 
-See you in the terminal.`,
+If you want to learn alongside other developers, join the Claude Community Kenya Discord. We have dedicated channels for Claude Code tips, project showcases, and troubleshooting.
+
+Welcome to the future of development.`,
+    readingTime: 6,
+  },
+  {
+    slug: "what-is-claude-community-kenya",
+    title: "What is Claude Community Kenya?",
+    date: "2026-02-01",
+    author: "Claude Community Kenya",
+    tags: ["community", "introduction", "kenya"],
+    excerpt:
+      "An introduction to Claude Community Kenya — who we are, what we do, and why we are building East Africa's first Claude developer community.",
+    content: `On January 24, 2026, over 30 developers gathered at iHiT Events Space in Westlands, Nairobi for a simple reason: to explore what it means to build software with Claude. That afternoon marked the birth of Claude Community Kenya.
+
+## Who We Are
+
+Claude Community Kenya (CCK) is a developer community focused on building with Claude and Anthropic's tools. We bring together software developers, students, and tech professionals across Kenya who are interested in AI-assisted development.
+
+We are based in Nairobi with a growing presence in Mombasa, and we are part of the global network of Claude developer communities.
+
+## What We Do
+
+### In-Person Meetups
+
+Our core activity is regular meetups where developers come together to learn, share, and build. These are not lecture-style events — they are hands-on sessions where people demo their work, share workflows, and help each other level up.
+
+Our first meetup featured a Claude Code workflow demo and open community interaction. Future meetups will include workshops, project showcases, and collaborative building sessions.
+
+### University Partnerships
+
+We believe the next generation of Kenyan developers should have access to the best AI tools from day one. We are partnering with universities — starting with the Technical University of Mombasa — to bring AI development workshops and career talks directly to students.
+
+### Online Community
+
+Between meetups, our Discord server is where the community stays connected. Members share projects, ask for help, discuss the latest Claude features, and collaborate on community initiatives.
+
+### Knowledge Sharing
+
+Through blog posts, resource guides, and our website, we create learning materials tailored for the Kenyan and East African developer context. From getting started guides to advanced workflow tutorials, we are building a knowledge base that helps developers at every level.
+
+## Why Claude?
+
+Claude, built by Anthropic, represents a new approach to AI — one focused on safety, helpfulness, and honesty. For developers, Claude Code is a particularly exciting tool because it works directly in your development environment, understanding your entire codebase and helping you build features, fix bugs, and ship faster.
+
+We chose to build our community around Claude because we believe it is the most developer-friendly AI tool available, and because Anthropic's values around safety and responsibility align with how we think about technology.
+
+## Why Kenya?
+
+Kenya has one of the most dynamic tech ecosystems in Africa. From M-Pesa revolutionizing mobile payments to a thriving startup scene in Nairobi, Kenyan developers have consistently shown they can build world-class products.
+
+AI-assisted development is the next frontier, and we want to make sure Kenyan developers are not just consumers of AI tools but leaders in how these tools are used. By building a strong local community, we create the support network that helps developers go from curious to capable to shipping.
+
+## How to Get Involved
+
+There are several ways to join the community:
+
+- **Join our Discord** — This is the quickest way to connect with other members, ask questions, and stay updated on events.
+- **Attend a meetup** — Check our events page for upcoming gatherings in Nairobi and Mombasa.
+- **Share your work** — Built something with Claude? We want to hear about it. Community projects get featured on our website.
+- **Contribute** — Help us create learning resources, organize events, or improve our open-source projects.
+
+## What is Next
+
+We are just getting started. In the coming months, expect:
+
+- Monthly meetups in Nairobi
+- Our first university event in Mombasa
+- More learning resources and tutorials
+- Community project showcases
+- Hackathons and collaborative building events
+
+Claude Community Kenya exists because we believe that when developers come together, learn together, and build together, incredible things happen. We are building that space for Kenya and East Africa.
+
+Come build with us.`,
     readingTime: 5,
   },
   {
-    slug: "joining-claude-community-ambassadors-program",
-    title: "We're Official: Joining the Claude Community Ambassadors Program",
+    slug: "ai-developer-communities-shaping-kenyas-tech-scene",
+    title: "How AI Developer Communities Are Shaping Kenya's Tech Scene",
     date: "2026-02-14",
-    author: "Peter Kibet",
-    tags: ["ambassador", "anthropic", "announcement"],
+    author: "Claude Community Kenya",
+    tags: ["ai", "kenya", "developer-community", "tech-ecosystem"],
     excerpt:
-      "Claude Community Kenya is now part of the official Claude Community Ambassadors program — the first in East Africa. Here's what this means for our community.",
-    content: `Today, we're thrilled to share some exciting news: Claude Community Kenya has been accepted into the official Claude Community Ambassadors program by Anthropic.
+      "AI is transforming software development worldwide. In Kenya, developer communities are playing a critical role in making sure local developers are not left behind.",
+    content: `The global software industry is undergoing its most significant shift in decades. AI-assisted development tools are changing not just how code gets written, but who can write it and how fast they can ship. For Kenya's tech ecosystem — already one of Africa's most dynamic — this shift presents both an enormous opportunity and an urgent challenge.
 
-## What This Means
+## The AI Development Revolution
 
-The Claude Community Ambassadors program is Anthropic's way of supporting and empowering community leaders around the world who are building vibrant developer communities around Claude. Being part of this program means:
+In the past two years, AI coding tools have evolved from autocomplete suggestions to full development partners. Tools like Claude Code can understand entire codebases, implement features across multiple files, run tests, and iterate on feedback — all from natural language instructions.
 
-- **Official Recognition** — We're now an officially recognized Claude community, backed by Anthropic.
-- **Event Sponsorship** — Support for our meetups, workshops, and events across Kenya.
-- **API Credits** — Credits for community projects and demonstrations.
-- **Direct Access** — A direct line to the Anthropic team through the Ambassador Slack channel.
-- **Global Network** — Connection with other Claude community leaders worldwide.
-- **Early Access** — First look at new features and products.
+This is not incremental improvement. It is a fundamental change in developer productivity. Tasks that previously took days can now be completed in hours. Solo developers can build and maintain systems that would have required small teams.
 
-## First in East Africa
+## Why This Matters for Kenya
 
-We're proud to be the first Claude Community Ambassadors in East Africa. This isn't just about Kenya — it's about proving that world-class AI developer communities can thrive anywhere, including right here in East Africa.
+Kenya's tech ecosystem has several characteristics that make AI-assisted development particularly impactful:
 
-When we hosted Kenya's first Claude Code meetup in January, we showed that the appetite for AI development tools is massive here. The Ambassador program gives us the resources and backing to turn that appetite into a movement.
+### A Young, Growing Developer Population
 
-## What's Next
+Kenya has one of the youngest populations in the world, and interest in software development is surging. University computer science programs are oversubscribed, and coding bootcamps are expanding rapidly. AI tools can dramatically accelerate the learning curve for these new developers.
 
-With Ambassador status comes bigger plans:
+### A Strong Freelance and Startup Culture
 
-1. **Monthly Meetups** — Regular events in both Nairobi and Mombasa.
-2. **University Partnerships** — Starting with the Technical University of Mombasa, bringing AI education directly to students.
-3. **Hackathons** — Community hackathons where developers build real solutions for real problems.
-4. **Online Content** — Tutorials, guides, and resources specifically for Kenyan and East African developers.
-5. **Project Incubation** — Supporting community members in building and shipping AI-powered products.
+Many Kenyan developers work as freelancers or in small startup teams. When a single developer can produce the output of a team, it changes the economics of building software products. This is especially significant in a market where venture capital is scarce and bootstrapping is the norm.
 
-## How You Can Be Part of This
+### Real Problems to Solve
 
-The Ambassador program is about community, and community is about people. Here's how you can get involved:
+From agriculture to financial services to healthcare, Kenya has no shortage of problems that software can address. AI-assisted development makes it faster and cheaper to build solutions for these challenges, which means more problems get solved.
 
-- **Join our Discord** — Our home base for daily discussions, help, and collaboration.
-- **Attend a meetup** — Our next event is on February 20 in Nairobi.
-- **Share your projects** — Built something with Claude? We want to feature it.
-- **Spread the word** — Tell a friend, share on social media, invite your study group.
+## The Role of Developer Communities
 
-## A Message to Kenyan Developers
+Technology alone does not drive adoption. Communities do. This is a pattern we have seen repeatedly in Kenya's tech history:
 
-To every developer in Kenya who has ever wondered whether AI tools are "for us" — yes, they are. Claude Code doesn't care where you're based. It cares about what you're building.
+- M-Pesa succeeded partly because of the community of agents and merchants who spread the technology
+- Kenya's open data movement was driven by a community of civic technologists
+- Nairobi's startup ecosystem grew through shared spaces, meetups, and peer networks
 
-We're here to make sure every Kenyan developer has the skills, community, and opportunity to build world-class AI-powered products. The Ambassador program is a big step in that direction.
+AI development tools follow the same pattern. Having access to Claude Code is not the same as knowing how to use it effectively. Communities provide:
 
-Let's build something amazing together.
+### Practical Knowledge Transfer
 
----
+The gap between reading documentation and being productive with a new tool is often bridged by watching someone else use it. At our first Claude Code meetup in Nairobi, developers who were skeptical about AI coding tools left as practitioners — because they saw real workflows in action.
 
-*Asante sana to Anthropic for believing in what we're building. This is just the beginning.*`,
-    readingTime: 5,
+### Context-Specific Learning
+
+Global tutorials and documentation are valuable, but they rarely address the specific challenges Kenyan developers face. A community can create learning materials that account for local internet speeds, preferred tech stacks, and the types of problems developers here are solving.
+
+### Accountability and Motivation
+
+Learning new tools in isolation is hard. A community creates natural accountability — when you know you will demo your project at the next meetup, you actually build it.
+
+### Professional Networks
+
+In Kenya's tech scene, who you know often matters as much as what you know. Developer communities create the networks that lead to collaborations, job opportunities, and partnerships.
+
+## Building for the Long Term
+
+The communities that will have the most impact are those that focus on practical outcomes rather than hype. For AI developer communities in Kenya, this means:
+
+**Hands-on, not theoretical.** Meetups should involve actual coding, real demos, and practical workshops — not just slide decks about the future of AI.
+
+**Inclusive by design.** The benefits of AI tools should reach developers at all levels — from university students to senior engineers, from Nairobi to Mombasa and beyond.
+
+**Project-oriented.** The ultimate measure of a developer community is what its members ship. Community projects, hackathons, and showcases keep the focus on building real things.
+
+**Connected globally, rooted locally.** Being part of global networks provides resources and recognition, but the real value is in solving local problems and strengthening the local ecosystem.
+
+## Looking Ahead
+
+We are still in the early days of AI-assisted development. The tools will continue to improve, and new use cases will emerge that we cannot predict today. What we can predict is that developers who build skills in this space now — and communities that support them — will have a significant advantage.
+
+Kenya has always punched above its weight in technology. From being the birthplace of mobile money to producing world-class software engineers, this is a country that knows how to adopt and adapt technology. AI-assisted development is the next chapter of that story.
+
+The communities being built today — in coworking spaces in Nairobi, university halls in Mombasa, and Discord servers connecting developers across the country — are laying the foundation for that next chapter.
+
+The question is not whether Kenyan developers will adopt AI tools. The question is whether they will be among the leaders in defining how these tools are used. We are betting yes.`,
+    readingTime: 7,
   },
 ];
 
