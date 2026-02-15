@@ -14,7 +14,7 @@ export const team: TeamMember[] = [
     id: "peter-kibet",
     name: "Peter Kibet",
     role: "Founder & Lead Organizer",
-    bio: "BSIT student and founder of NexaForge. Organized Kenya's first Claude Code meetup and built Mulinga, a farm management system tracking 26,000+ coffee plants. Passionate about bringing AI-powered development tools to every Kenyan developer.",
+    bio: "Founder and lead organizer of Claude Community Kenya. Organized Kenya's first Claude Code meetup and is passionate about bringing AI-powered development tools to every Kenyan developer.",
     twitter: "https://twitter.com/peterkilbet",
     github: "https://github.com/peterkilbet",
     linkedIn: "https://linkedin.com/in/peterkilbet",

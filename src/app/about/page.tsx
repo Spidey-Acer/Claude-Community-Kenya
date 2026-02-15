@@ -24,25 +24,11 @@ export const metadata: Metadata = {
 
 const timelineEntries = [
   {
-    date: "Jan 25, 2026",
+    date: "Jan 24, 2026",
     title: "Kenya's First Claude Code Meetup",
     description:
-      "50+ developers gathered at iHiT Events Space in Westlands, Nairobi for the historic first-ever Claude Code meetup in East Africa. The Mulinga farm management system was showcased and the community Discord was launched.",
+      "30+ developers gathered at iHiT Events Space in Westlands, Nairobi for the historic first-ever Claude Code meetup in East Africa. Peter Kibet showcased his Claude Code workflow and the community began to take shape.",
     hash: "a1b2c3d",
-  },
-  {
-    date: "Jan 2026",
-    title: "Claude Community Ambassadors Invitation",
-    description:
-      "Anthropic recognized the momentum of Claude Community Kenya and invited the founding team to join the Claude Community Ambassadors program, connecting us with a global network of community builders.",
-    hash: "d4e5f6a",
-  },
-  {
-    date: "Feb 11, 2026",
-    title: "Official Ambassador Program Application",
-    description:
-      "The community formally applied to the Claude Community Ambassadors program, solidifying our partnership with Anthropic and unlocking resources for growth across Kenya.",
-    hash: "b7c8d9e",
   },
   {
     date: "Feb 20, 2026",
@@ -90,27 +76,22 @@ export default function AboutPage() {
             <p>
               It started with a simple idea: what if Kenya&apos;s developers had a
               dedicated space to explore, build, and ship with Claude? On January
-              25, 2026, that idea became reality when over 50 developers packed
-              into iHiT Events Space in Westlands, Nairobi for what would become
+              24, 2026, that idea became reality when over 30 developers gathered
+              at iHiT Events Space in Westlands, Nairobi for what would become
               Kenya&apos;s very first Claude Code meetup.
             </p>
             <p>
-              The energy in the room was electric. A live demo showed Claude Code
-              building a full-stack application from scratch. Then came the moment
-              that brought it all home: a showcase of{" "}
-              <span className="font-mono text-amber">Mulinga</span>, a farm
-              management system tracking over 26,000 coffee plants across multiple
-              farms in Kenya — built entirely with Claude Code. It wasn&apos;t just
-              a tech demo. It was proof that AI-powered development tools could
-              solve real problems, right here in East Africa.
+              The meetup was a community gathering where developers talked,
+              connected, and explored the possibilities of AI-assisted development.
+              Peter Kibet showcased his Claude Code workflow using the{" "}
+              <span className="font-mono text-amber">Mulinga Farm Management System</span>{" "}
+              as a demo — showing how AI-powered tools can help solve real problems
+              right here in East Africa.
             </p>
             <p>
-              By the end of the afternoon, the Discord server was live, new
-              collaborations had formed, and something bigger was clearly underway.
-              Within days, Anthropic invited the founding team to join the
-              <span className="font-mono text-cyan"> Claude Community Ambassadors</span>{" "}
-              program — recognizing that what started in a Nairobi coworking space
-              had the potential to grow across the continent.
+              By the end of the afternoon, new connections had formed and something
+              bigger was clearly underway. What started in a Nairobi coworking
+              space had the potential to grow across the continent.
             </p>
             <p>
               Today, Claude Community Kenya is expanding to Mombasa, partnering

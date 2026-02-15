@@ -12,7 +12,7 @@ export const faqs: FAQ[] = [
     category: "general",
     question: "What is Claude Community Kenya?",
     answer:
-      "East Africa's first official Claude developer community, backed by Anthropic through the Claude Community Ambassadors program. We organize meetups, workshops, and career talks focused on building with Claude AI across Kenya.",
+      "East Africa's first Claude developer community. We organize meetups, workshops, and career talks focused on building with Claude AI across Kenya.",
   },
   {
     id: "gen-2",
@@ -40,7 +40,7 @@ export const faqs: FAQ[] = [
     category: "general",
     question: "How is this related to Anthropic?",
     answer:
-      "Claude Community Kenya is part of Anthropic's official Claude Community Ambassadors program. We're recognized by Anthropic as the official Claude developer community for Kenya.",
+      "Claude Community Kenya is a community of developers building with Claude and Anthropic's tools. We are part of the broader global Claude developer community ecosystem.",
   },
   {
     id: "gen-6",
