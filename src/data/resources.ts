@@ -72,12 +72,12 @@ export const resources: Resource[] = [
       "Code examples and guides from basic API usage to advanced patterns like RAG and agents.",
   },
   {
-    id: "anthropic-courses",
-    title: "Anthropic Courses",
-    url: "https://github.com/anthropics/courses",
+    id: "anthropic-skills",
+    title: "Anthropic Agent Skills",
+    url: "https://github.com/anthropics/skills",
     category: "Official Anthropic",
     description:
-      "Free educational courses from Anthropic covering prompt engineering, tool use, and more.",
+      "Official skill templates for Claude — document creation, MCP servers, web testing, and more.",
   },
 
   // ─── SDKs & Developer Tools ───
@@ -227,6 +227,48 @@ export const resources: Resource[] = [
     url: "https://swahilipothub.co.ke",
     category: "Kenya Tech",
     description: "Mombasa's technology and innovation community hub.",
+  },
+
+  // ─── Courses & Learning Paths ───
+  {
+    id: "course-api-fundamentals",
+    title: "Course 1: Anthropic API Fundamentals",
+    url: "https://github.com/anthropics/courses/tree/master/anthropic_api_fundamentals",
+    category: "Courses & Learning Paths",
+    description:
+      "Start here. Learn to work with the Claude SDK — API keys, messages format, model parameters, streaming, and vision.",
+  },
+  {
+    id: "course-prompt-engineering",
+    title: "Course 2: Prompt Engineering Interactive Tutorial",
+    url: "https://github.com/anthropics/courses/tree/master/prompt_engineering_interactive_tutorial",
+    category: "Courses & Learning Paths",
+    description:
+      "Comprehensive 9-chapter guide covering role prompting, chain-of-thought, few-shot examples, and avoiding hallucinations.",
+  },
+  {
+    id: "course-real-world-prompting",
+    title: "Course 3: Real World Prompting",
+    url: "https://github.com/anthropics/courses/tree/master/real_world_prompting",
+    category: "Courses & Learning Paths",
+    description:
+      "Apply prompting techniques to complex real-world domains — medical, customer support, and call summarization.",
+  },
+  {
+    id: "course-prompt-evaluations",
+    title: "Course 4: Prompt Evaluations",
+    url: "https://github.com/anthropics/courses/tree/master/prompt_evaluations",
+    category: "Courses & Learning Paths",
+    description:
+      "Learn to measure prompt quality in production with code-graded, model-graded, and promptfoo evaluations.",
+  },
+  {
+    id: "course-tool-use",
+    title: "Course 5: Tool Use",
+    url: "https://github.com/anthropics/courses/tree/master/tool_use",
+    category: "Courses & Learning Paths",
+    description:
+      "Everything you need to implement tool use (function calling) — from basics to multi-tool chatbots.",
   },
 
   // ─── AI Safety & Ethics ───

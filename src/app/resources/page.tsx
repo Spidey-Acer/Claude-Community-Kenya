@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Rocket, Terminal, GitBranch, Link as LinkIcon } from "lucide-react";
+import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap } from "lucide-react";
 import { CommandPrefix } from "@/components/terminal";
 
 export const metadata: Metadata = {
@@ -30,6 +30,13 @@ const resourceCards = [
     icon: GitBranch,
     description:
       "Agentic patterns, plan mode, git worktrees, and production strategies.",
+  },
+  {
+    title: "Courses & Learning Paths",
+    href: "/resources/courses",
+    icon: GraduationCap,
+    description:
+      "Free structured courses from Anthropic — from API basics to advanced tool use.",
   },
   {
     title: "Curated Links",

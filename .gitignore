@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# External repos (reference via links, don't bundle)
+/courses/
+.claude/skills/
+.claude/spec/
+.claude/template/
+.claude/.claude-plugin/
+.claude/README.md
+.claude/THIRD_PARTY_NOTICES.md

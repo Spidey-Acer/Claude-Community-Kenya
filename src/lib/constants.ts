@@ -80,7 +80,7 @@ export const FOOTER_SECTIONS = [
     links: [
       { label: "Getting Started", href: "/resources/getting-started" },
       { label: "Claude Code", href: "/resources/claude-code" },
-      { label: "Workflows", href: "/resources/workflows" },
+      { label: "Courses", href: "/resources/courses" },
       { label: "Useful Links", href: "/resources/links" },
     ],
   },
