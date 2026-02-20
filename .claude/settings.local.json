@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx create-next-app:*)",
-      "Bash(npx next build:*)"
+      "Bash(npx next build:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

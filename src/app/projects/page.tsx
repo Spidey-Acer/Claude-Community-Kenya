@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
   description:
     "Community-built projects powered by Claude. Explore what Kenyan developers are building with AI.",
+  openGraph: {
+    title: `Projects | ${SITE_CONFIG.name}`,
+    description:
+      "Community-built projects powered by Claude. Explore what Kenyan developers are building with AI.",
+    url: `${SITE_CONFIG.url}/projects`,
+    siteName: SITE_CONFIG.name,
+    type: "website",
+  },
 };
 
 export default function ProjectsPage() {
