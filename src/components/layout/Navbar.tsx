@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Search } from "lucide-react";
@@ -11,7 +11,12 @@ import { CommandPalette } from "@/components/terminal/CommandPalette";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().includes("MAC"));
+  }, []);
 
   return (
     <>
@@ -24,11 +29,11 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="font-mono text-lg font-bold text-green-primary transition-colors hover:text-green-dim"
+            className="group font-mono text-lg font-bold text-green-primary transition-colors hover:text-green-dim"
             aria-label="Claude Community Kenya — Home"
           >
             <span className="text-text-dim">~/</span>
-            <span className="text-green-primary">CCK</span>
+            <span className="text-green-primary group-hover:drop-shadow-[0_0_6px_rgba(0,255,65,0.4)]">CCK</span>
             <span className="cursor-blink text-green-primary">▊</span>
           </Link>
 
@@ -48,7 +53,7 @@ export function Navbar() {
                   )}
                 >
                   {isActive && (
-                    <span className="text-green-dim">&gt; </span>
+                    <span className="text-green-dim" aria-hidden="true">&gt; </span>
                   )}
                   {link.label.toUpperCase()}
                   {isActive && (
@@ -62,18 +67,20 @@ export function Navbar() {
             <button
               onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
               className="ml-2 flex items-center gap-1.5 px-2 py-1.5 font-mono text-xs text-text-dim transition-colors hover:text-text-secondary"
-              aria-label="Open command palette (Ctrl+K)"
+              aria-label="Open command palette"
             >
               <Search size={14} />
-              <kbd className="rounded border border-border-default px-1 text-[10px]">⌘K</kbd>
+              <kbd className="rounded border border-border-default px-1 text-[10px]">
+                {isMac ? "⌘" : "Ctrl+"}K
+              </kbd>
             </button>
 
             {/* Join CTA */}
             <Link
               href="/join"
-              className="ml-2 border border-green-primary px-4 py-1.5 font-mono text-sm text-green-primary transition-all hover:bg-green-primary hover:text-bg-primary"
+              className="ml-2 border border-green-primary px-4 py-1.5 font-mono text-sm text-green-primary transition-all hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
             >
-              &gt; JOIN
+              <span aria-hidden="true">&gt; </span>JOIN
             </Link>
           </div>
 
