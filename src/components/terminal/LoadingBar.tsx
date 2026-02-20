@@ -14,8 +14,11 @@ export function LoadingBar() {
 
   useEffect(() => {
     if (pathname !== prevPathname.current) {
-      // Route changed — animate progress bar
       prevPathname.current = pathname;
+
+      // Skip animation for reduced motion
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
       setIsLoading(true);
       setVisible(true);
       setProgress(0);
@@ -60,6 +63,11 @@ export function LoadingBar() {
         "fixed top-16 left-0 right-0 z-40 transition-opacity duration-300",
         isLoading ? "opacity-100" : "opacity-0"
       )}
+      role="progressbar"
+      aria-valuenow={Math.round(progress)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Page loading"
     >
       {/* Progress bar */}
       <div

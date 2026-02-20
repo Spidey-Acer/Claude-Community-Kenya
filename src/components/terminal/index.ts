@@ -6,6 +6,5 @@ export { CommandPalette } from "./CommandPalette";
 export { GlitchText } from "./GlitchText";
 export { CRTGlow } from "./CRTGlow";
 export { LoadingBar } from "./LoadingBar";
-export { Scanlines } from "./Scanlines";
 export { ScrollReveal } from "./ScrollReveal";
 export { CommandPrefix } from "./CommandPrefix";

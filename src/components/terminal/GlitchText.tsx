@@ -34,15 +34,29 @@ export function GlitchText({
   trigger = "hover",
   className,
 }: GlitchTextProps) {
-  const [isActive, setIsActive] = useState(trigger === "always");
+  const [isActive, setIsActive] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const config = intensityConfig[intensity];
 
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (trigger === "always" && !reducedMotion) {
+      setIsActive(true);
+    }
+  }, [trigger, reducedMotion]);
+
   // "once" trigger: play on first visibility
   useEffect(() => {
-    if (trigger !== "once" || hasPlayed) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (trigger !== "once" || hasPlayed || reducedMotion) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -59,18 +73,15 @@ export function GlitchText({
     const el = ref.current;
     if (el) observer.observe(el);
     return () => observer.disconnect();
-  }, [trigger, hasPlayed, config.duration]);
+  }, [trigger, hasPlayed, config.duration, reducedMotion]);
+
+  const showGlitch = isActive && !reducedMotion;
 
   return (
     <div
       ref={ref}
-      className={cn(
-        "relative inline-block",
-        trigger === "hover" && "glitch-hover",
-        trigger === "always" && "glitch-continuous",
-        className
-      )}
-      onMouseEnter={trigger === "hover" ? () => setIsActive(true) : undefined}
+      className={cn("relative inline-block", className)}
+      onMouseEnter={trigger === "hover" && !reducedMotion ? () => setIsActive(true) : undefined}
       onMouseLeave={trigger === "hover" ? () => setIsActive(false) : undefined}
       style={
         {
@@ -82,10 +93,10 @@ export function GlitchText({
       <div className="relative">{children}</div>
 
       {/* Glitch layers — only visible when active */}
-      {isActive && (
+      {showGlitch && (
         <>
           <div
-            className="pointer-events-none absolute inset-0 opacity-80"
+            className="pointer-events-none absolute inset-0 opacity-70"
             style={{
               color: "var(--red)",
               clipPath: "inset(40% 0 60% 0)",
@@ -97,7 +108,7 @@ export function GlitchText({
             {children}
           </div>
           <div
-            className="pointer-events-none absolute inset-0 opacity-80"
+            className="pointer-events-none absolute inset-0 opacity-70"
             style={{
               color: "var(--cyan)",
               clipPath: "inset(60% 0 20% 0)",

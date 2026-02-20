@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface CRTGlowProps {
@@ -22,43 +23,39 @@ const intensityMap = {
   intense: { spread1: 15, spread2: 35, alpha1: 0.3, alpha2: 0.15 },
 };
 
+function buildShadow(r: number, g: number, b: number, spread1: number, spread2: number, alpha1: number, alpha2: number) {
+  return [
+    `0 0 ${spread1}px rgba(${r}, ${g}, ${b}, ${alpha1})`,
+    `0 0 ${spread2}px rgba(${r}, ${g}, ${b}, ${alpha2})`,
+    `inset 0 0 ${spread1}px rgba(${r}, ${g}, ${b}, ${alpha2 * 0.5})`,
+  ].join(", ");
+}
+
 export function CRTGlow({
   children,
   intensity = "subtle",
   color = "green",
   className,
 }: CRTGlowProps) {
+  const [hovered, setHovered] = useState(false);
   const { r, g, b } = colorMap[color];
   const { spread1, spread2, alpha1, alpha2 } = intensityMap[intensity];
 
-  const boxShadow = [
-    `0 0 ${spread1}px rgba(${r}, ${g}, ${b}, ${alpha1})`,
-    `0 0 ${spread2}px rgba(${r}, ${g}, ${b}, ${alpha2})`,
-    `inset 0 0 ${spread1}px rgba(${r}, ${g}, ${b}, ${alpha2 * 0.5})`,
-  ].join(", ");
-
-  const hoverBoxShadow = [
-    `0 0 ${spread1 * 1.5}px rgba(${r}, ${g}, ${b}, ${alpha1 * 1.5})`,
-    `0 0 ${spread2 * 1.5}px rgba(${r}, ${g}, ${b}, ${alpha2 * 1.5})`,
-    `inset 0 0 ${spread1 * 1.5}px rgba(${r}, ${g}, ${b}, ${alpha2 * 0.8})`,
-  ].join(", ");
+  const multiplier = hovered ? 1.5 : 1;
+  const boxShadow = buildShadow(
+    r, g, b,
+    spread1 * multiplier,
+    spread2 * multiplier,
+    alpha1 * multiplier,
+    alpha2 * multiplier
+  );
 
   return (
     <div
       className={cn("transition-shadow duration-500", className)}
-      style={
-        {
-          boxShadow,
-          "--hover-glow": hoverBoxShadow,
-        } as React.CSSProperties
-      }
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow =
-          getComputedStyle(e.currentTarget).getPropertyValue("--hover-glow");
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow = boxShadow;
-      }}
+      style={{ boxShadow }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {children}
     </div>

@@ -60,7 +60,7 @@ function buildSearchIndex(): SearchResult[] {
       id: `faq-${faq.id}`,
       label: faq.question,
       category: "FAQ",
-      path: `/about#${faq.id}`,
+      path: `/faq#${faq.id}`,
       description: faq.answer.slice(0, 80) + "...",
     });
   });
