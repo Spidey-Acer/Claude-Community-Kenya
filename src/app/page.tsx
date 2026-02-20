@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Claude Community Kenya | East Africa's First Claude Developer Community",
     description:
       "Kenya's official Anthropic developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
-    url: "https://claudecommunity.co.ke",
+    url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
     type: "website",
