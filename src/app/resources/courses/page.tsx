@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   title: "Courses & Learning Paths | Claude Community Kenya",
   description:
     "Free structured courses from Anthropic covering API fundamentals, prompt engineering, real-world prompting, evaluations, and tool use.",
+  openGraph: {
+    title: "Courses & Learning Paths | Claude Community Kenya",
+    description:
+      "Free structured courses from Anthropic covering API fundamentals, prompt engineering, real-world prompting, evaluations, and tool use.",
+    url: "https://www.claudekenya.org/resources/courses",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 const courses = [

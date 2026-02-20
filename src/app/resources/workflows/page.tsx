@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix } from "@/components/terminal";
+import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
 
 export const metadata: Metadata = {
   title: "Advanced Workflows | Claude Community Kenya",
   description:
     "Agentic development patterns, plan mode, git worktrees, and production strategies for building with Claude Code.",
+  openGraph: {
+    title: "Advanced Workflows | Claude Community Kenya",
+    description:
+      "Agentic development patterns, plan mode, git worktrees, and production strategies for building with Claude Code.",
+    url: "https://www.claudekenya.org/resources/workflows",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 export default function WorkflowsPage() {
@@ -22,18 +30,21 @@ export default function WorkflowsPage() {
       </Link>
 
       {/* Header */}
-      <section className="py-16">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          cat advanced-workflows.md
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-          Level up your development with agentic patterns, parallel workflows,
-          and production-grade strategies.
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="py-16">
+          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
+            <CommandPrefix symbol="$" />
+            cat advanced-workflows.md
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
+            Level up your development with agentic patterns, parallel workflows,
+            and production-grade strategies.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* Agentic Development Patterns */}
+      <ScrollReveal delay={100}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -106,8 +117,10 @@ export default function WorkflowsPage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
 
       {/* Plan Mode */}
+      <ScrollReveal delay={200}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -157,8 +170,10 @@ export default function WorkflowsPage() {
           </p>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* Git Worktree Strategy */}
+      <ScrollReveal delay={300}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -221,8 +236,10 @@ export default function WorkflowsPage() {
           </ul>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* Building Production Systems */}
+      <ScrollReveal delay={400}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -288,6 +305,7 @@ export default function WorkflowsPage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
     </main>
   );
 }

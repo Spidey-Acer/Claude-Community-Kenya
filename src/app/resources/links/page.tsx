@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CommandPrefix } from "@/components/terminal";
+import { CommandPrefix, ScrollReveal } from "@/components/terminal";
 import {
   getResourceCategories,
   getResourcesByCategory,
@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: "Curated Links | Claude Community Kenya",
   description:
     "A comprehensive directory of Claude AI resources, tools, communities, and learning materials curated for Kenyan developers.",
+  openGraph: {
+    title: "Curated Links | Claude Community Kenya",
+    description:
+      "A comprehensive directory of Claude AI resources, tools, communities, and learning materials curated for Kenyan developers.",
+    url: "https://www.claudekenya.org/resources/links",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 export default function LinksPage() {
@@ -28,18 +36,21 @@ export default function LinksPage() {
       </Link>
 
       {/* Header */}
-      <section className="py-16">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          tree ./resources --links
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-          A comprehensive directory of resources, tools, and communities — curated
-          by Claude Community Kenya.
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="py-16">
+          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
+            <CommandPrefix symbol="$" />
+            tree ./resources --links
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
+            A comprehensive directory of resources, tools, and communities — curated
+            by Claude Community Kenya.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* File tree listing */}
+      <ScrollReveal delay={100}>
       <section className="py-20">
         <div className="border border-border-default bg-bg-card">
           {/* Title bar */}
@@ -121,8 +132,10 @@ export default function LinksPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* Contribute CTA */}
+      <ScrollReveal delay={200}>
       <section className="py-20">
         <div className="border border-border-default bg-bg-card p-6">
           <h2 className="font-mono text-lg font-bold text-text-primary">
@@ -154,6 +167,7 @@ export default function LinksPage() {
           </p>
         </div>
       </section>
+      </ScrollReveal>
     </main>
   );
 }

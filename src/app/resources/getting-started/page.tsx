@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix } from "@/components/terminal";
+import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
 import { Card } from "@/components/ui/Card";
 
 export const metadata: Metadata = {
   title: "Getting Started with Claude | Claude Community Kenya",
   description:
     "New to Claude? Learn what Claude is, explore its products, and get started building in minutes.",
+  openGraph: {
+    title: "Getting Started with Claude | Claude Community Kenya",
+    description:
+      "New to Claude? Learn what Claude is, explore its products, and get started building in minutes.",
+    url: "https://www.claudekenya.org/resources/getting-started",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 const products = [
@@ -76,17 +84,20 @@ export default function GettingStartedPage() {
       </Link>
 
       {/* Header */}
-      <section className="py-16">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          cat getting-started.md
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-          Your guide to getting started with Claude AI — from zero to building.
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="py-16">
+          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
+            <CommandPrefix symbol="$" />
+            cat getting-started.md
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
+            Your guide to getting started with Claude AI — from zero to building.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* What is Claude? */}
+      <ScrollReveal delay={100}>
       <section className="py-20">
         <TerminalWindow title="what-is-claude.md" variant="default">
           <h2 className="font-mono text-xl font-bold text-amber">
@@ -119,8 +130,10 @@ export default function GettingStartedPage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
 
       {/* Claude Products Overview */}
+      <ScrollReveal delay={200}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -141,8 +154,10 @@ export default function GettingStartedPage() {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* How to Get Started */}
+      <ScrollReveal delay={300}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -185,8 +200,10 @@ export default function GettingStartedPage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
 
       {/* Pricing Overview */}
+      <ScrollReveal delay={400}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -218,6 +235,7 @@ export default function GettingStartedPage() {
           for latest pricing.
         </p>
       </section>
+      </ScrollReveal>
     </main>
   );
 }

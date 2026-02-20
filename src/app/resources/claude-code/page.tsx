@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix } from "@/components/terminal";
+import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
 
 export const metadata: Metadata = {
   title: "Claude Code Guide | Claude Community Kenya",
   description:
     "Master Claude Code — Anthropic's CLI tool for building software with Claude directly in your terminal.",
+  openGraph: {
+    title: "Claude Code Guide | Claude Community Kenya",
+    description:
+      "Master Claude Code — Anthropic's CLI tool for building software with Claude directly in your terminal.",
+    url: "https://www.claudekenya.org/resources/claude-code",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 export default function ClaudeCodePage() {
@@ -22,18 +30,21 @@ export default function ClaudeCodePage() {
       </Link>
 
       {/* Header */}
-      <section className="py-16">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          man claude-code
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-          The complete guide to Anthropic&apos;s CLI for building software with
-          Claude.
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="py-16">
+          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
+            <CommandPrefix symbol="$" />
+            man claude-code
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
+            The complete guide to Anthropic&apos;s CLI for building software with
+            Claude.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* What is Claude Code? */}
+      <ScrollReveal delay={100}>
       <section className="py-20">
         <TerminalWindow title="about-claude-code.md" variant="default">
           <h2 className="font-mono text-xl font-bold text-amber">
@@ -58,8 +69,10 @@ export default function ClaudeCodePage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
 
       {/* Installation Guide */}
+      <ScrollReveal delay={200}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -81,8 +94,10 @@ export default function ClaudeCodePage() {
           Requires Node.js 18+ and an Anthropic API key or active Claude Pro/Team subscription.
         </p>
       </section>
+      </ScrollReveal>
 
       {/* Essential Commands */}
+      <ScrollReveal delay={300}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -125,8 +140,10 @@ export default function ClaudeCodePage() {
           </div>
         </TerminalWindow>
       </section>
+      </ScrollReveal>
 
       {/* Setting Up CLAUDE.md */}
+      <ScrollReveal delay={400}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -165,8 +182,10 @@ export default function ClaudeCodePage() {
           </TerminalWindow>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* Multi-Instance Development */}
+      <ScrollReveal delay={500}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -220,8 +239,10 @@ export default function ClaudeCodePage() {
           </p>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* Resources */}
+      <ScrollReveal delay={600}>
       <section className="py-20">
         <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
           <CommandPrefix symbol="$" />
@@ -285,6 +306,7 @@ export default function ClaudeCodePage() {
           </ul>
         </div>
       </section>
+      </ScrollReveal>
     </main>
   );
 }

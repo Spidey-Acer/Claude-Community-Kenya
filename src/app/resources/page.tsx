@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap } from "lucide-react";
-import { CommandPrefix } from "@/components/terminal";
+import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -51,19 +51,24 @@ export default function ResourcesPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-20">
       {/* Header */}
-      <section className="py-16 text-center">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          man claude --resources
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-text-secondary">
-          Everything you need to start building with Claude
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="py-16 text-center">
+          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
+            <CommandPrefix symbol="$" />
+            man claude --resources
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-text-secondary">
+            Everything you need to start building with Claude
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* Navigation Cards Grid */}
-      <section className="py-20">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <section className="py-12">
+        <ScrollReveal
+          stagger={100}
+          className="grid grid-cols-1 gap-6 md:grid-cols-2"
+        >
           {resourceCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -87,10 +92,10 @@ export default function ResourcesPage() {
                 {/* Card content */}
                 <div className="p-6">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center border border-border-default bg-bg-elevated">
+                    <div className="flex h-10 w-10 items-center justify-center border border-border-default bg-bg-elevated transition-colors duration-300 group-hover:border-green-primary/30 group-hover:bg-green-primary/10">
                       <Icon className="h-5 w-5 text-green-primary transition-colors duration-300 group-hover:text-amber" />
                     </div>
-                    <h2 className="font-mono text-lg font-bold text-text-primary group-hover:text-green-primary transition-colors duration-300">
+                    <h2 className="font-mono text-lg font-bold text-text-primary transition-colors duration-300 group-hover:text-green-primary">
                       {card.title}
                     </h2>
                   </div>
@@ -104,7 +109,7 @@ export default function ResourcesPage() {
               </Link>
             );
           })}
-        </div>
+        </ScrollReveal>
       </section>
     </main>
   );
