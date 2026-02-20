@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: `Join | ${SITE_CONFIG.name}`,
   description:
     "Join Claude Community Kenya. Connect with developers, attend events, and build with Claude.",
+  openGraph: {
+    title: `Join | ${SITE_CONFIG.name}`,
+    description:
+      "Join Claude Community Kenya. Connect with developers, attend events, and build with Claude.",
+    url: `${SITE_CONFIG.url}/join`,
+    siteName: SITE_CONFIG.name,
+    type: "website",
+  },
 };
 
 export default function JoinPage() {
@@ -33,8 +41,8 @@ export default function JoinPage() {
                     •
                   </span>
                   <span>
-                    <CountUp target={3} className="font-bold text-amber" />{" "}
-                    events
+                    <CountUp target={1} className="font-bold text-amber" />{" "}
+                    event hosted
                   </span>
                   <span className="text-text-dim" aria-hidden="true">
                     •

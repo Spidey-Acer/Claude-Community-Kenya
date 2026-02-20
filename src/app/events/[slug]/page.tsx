@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug, events } from "@/data/events";
 import { Badge } from "@/components/ui/Badge";
 import { Timeline } from "@/components/ui/Timeline";
-import { TerminalWindow } from "@/components/terminal";
+import { TerminalWindow, ScrollReveal } from "@/components/terminal";
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import {
@@ -116,8 +116,41 @@ export default async function EventDetailPage({
     eventUrl
   )}`;
 
+  const eventJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.title,
+    description: event.description,
+    startDate: event.date,
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    eventStatus:
+      event.status === "completed"
+        ? "https://schema.org/EventScheduled"
+        : "https://schema.org/EventScheduled",
+    location: {
+      "@type": "Place",
+      name: event.venue,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: event.city,
+        addressCountry: "KE",
+      },
+    },
+    organizer: {
+      "@type": "Organization",
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.url,
+    },
+    url: eventUrl,
+    ...(event.registrationUrl && { offers: { "@type": "Offer", url: event.registrationUrl, price: "0", priceCurrency: "KES" } }),
+  };
+
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+      />
       <div className="mx-auto max-w-4xl">
         {/* Back link */}
         <Link
@@ -129,54 +162,58 @@ export default async function EventDetailPage({
         </Link>
 
         {/* Header section */}
-        <header className="mb-10">
-          <div className="mb-4">
-            <Badge variant={event.status}>
-              {statusLabels[event.status]}
-            </Badge>
-          </div>
+        <ScrollReveal>
+          <header className="mb-10">
+            <div className="mb-4">
+              <Badge variant={event.status}>
+                {statusLabels[event.status]}
+              </Badge>
+            </div>
 
-          <h1 className="mb-6 font-mono text-3xl font-bold text-text-primary sm:text-4xl lg:text-5xl">
-            {event.title}
-          </h1>
+            <h1 className="mb-6 font-mono text-3xl font-bold text-text-primary sm:text-4xl lg:text-5xl">
+              {event.title}
+            </h1>
 
-          {/* Meta info */}
-          <div className="flex flex-wrap gap-6 text-text-secondary">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-green-dim" aria-hidden="true" />
-              <span className="font-sans text-sm">{formatDate(event.date)}</span>
+            {/* Meta info */}
+            <div className="flex flex-wrap gap-6 text-text-secondary">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-green-dim" aria-hidden="true" />
+                <span className="font-sans text-sm">{formatDate(event.date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-green-dim" aria-hidden="true" />
+                <span className="font-sans text-sm">{event.time}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-green-dim" aria-hidden="true" />
+                <span className="font-sans text-sm">
+                  {event.venue}, {event.city}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-green-dim" aria-hidden="true" />
+                <span className="font-mono text-xs uppercase tracking-wider">
+                  {typeLabels[event.type]}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-green-dim" aria-hidden="true" />
-              <span className="font-sans text-sm">{event.time}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-green-dim" aria-hidden="true" />
-              <span className="font-sans text-sm">
-                {event.venue}, {event.city}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-green-dim" aria-hidden="true" />
-              <span className="font-mono text-xs uppercase tracking-wider">
-                {typeLabels[event.type]}
-              </span>
-            </div>
-          </div>
-        </header>
+          </header>
+        </ScrollReveal>
 
         {/* Description */}
-        <section className="mb-10">
-          <TerminalWindow title={`cat events/${event.slug}/README.md`} variant="default">
-            <div className="space-y-4">
-              {descriptionParagraphs.map((paragraph, i) => (
-                <p key={i} className="text-text-secondary leading-relaxed">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </TerminalWindow>
-        </section>
+        <ScrollReveal delay={100}>
+          <section className="mb-10">
+            <TerminalWindow title={`cat events/${event.slug}/README.md`} variant="default">
+              <div className="space-y-4">
+                {descriptionParagraphs.map((paragraph, i) => (
+                  <p key={i} className="text-text-secondary leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </TerminalWindow>
+          </section>
+        </ScrollReveal>
 
         {/* Agenda */}
         {agendaEntries && agendaEntries.length > 0 && (

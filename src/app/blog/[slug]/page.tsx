@@ -36,6 +36,15 @@ export async function generateMetadata({
   return {
     title: `${post.title} | ${SITE_CONFIG.name}`,
     description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      url: `${SITE_CONFIG.url}/blog/${post.slug}`,
+      siteName: SITE_CONFIG.name,
+      type: "article",
+      publishedTime: post.date,
+      authors: [post.author],
+    },
   };
 }
 
@@ -259,8 +268,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_CONFIG.url}/blog/${post.slug}`)}`;
   const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${SITE_CONFIG.url}/blog/${post.slug}`)}`;
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.date,
+    author: {
+      "@type": "Organization",
+      name: post.author,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.url,
+    },
+    url: `${SITE_CONFIG.url}/blog/${post.slug}`,
+    keywords: post.tags,
+  };
+
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <div className="mx-auto max-w-3xl">
         {/* Back link */}
         <ScrollReveal>

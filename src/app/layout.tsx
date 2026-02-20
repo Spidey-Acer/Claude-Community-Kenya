@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
+import { PageTransition } from "@/components/layout/PageTransition";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -20,7 +21,7 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://claudecommunitykenya.com"),
+  metadataBase: new URL("https://www.claudekenya.org"),
   title: {
     default: "Claude Community Kenya",
     template: "%s | Claude Community Kenya",
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
     title: "Claude Community Kenya",
     description:
       "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
-    url: "https://claudecommunitykenya.com",
+    url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
     type: "website",
@@ -71,8 +72,8 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Claude Community Kenya",
-  url: "https://claudecommunitykenya.com",
-  logo: "https://claudecommunitykenya.com/logo.svg",
+  url: "https://www.claudekenya.org",
+  logo: "https://www.claudekenya.org/logo.svg",
   description:
     "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
   sameAs: [
@@ -113,7 +114,9 @@ export default function RootLayout({
         </a>
         <Navbar />
         <LoadingBar />
-        <main id="main-content">{children}</main>
+        <main id="main-content">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <Footer />
         <EasterEggs />
       </body>
