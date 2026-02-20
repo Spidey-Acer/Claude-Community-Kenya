@@ -29,6 +29,7 @@ export function CountUp({
       ([entry]) => {
         if (entry.isIntersecting && !hasStarted) {
           setHasStarted(true);
+          observer.disconnect();
         }
       },
       { threshold: 0.3 }
@@ -41,7 +42,13 @@ export function CountUp({
   useEffect(() => {
     if (!hasStarted) return;
 
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(target);
+      return;
+    }
+
     const startTime = performance.now();
+    let frameId: number;
 
     function animate(currentTime: number) {
       const elapsed = currentTime - startTime;
@@ -52,11 +59,12 @@ export function CountUp({
       setCount(Math.floor(eased * target));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        frameId = requestAnimationFrame(animate);
       }
     }
 
-    requestAnimationFrame(animate);
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
   }, [hasStarted, target, duration]);
 
   return (

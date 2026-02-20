@@ -25,7 +25,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "border border-border-default bg-bg-card transition-all duration-300 hover:border-border-hover hover:shadow-[0_0_20px_rgba(0,255,65,0.05)]",
+        "border border-border-default bg-bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_0_20px_rgba(0,255,65,0.08)]",
         className
       )}
     >

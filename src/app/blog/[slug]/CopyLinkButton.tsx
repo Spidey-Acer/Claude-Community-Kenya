@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LinkIcon, Check } from "lucide-react";
 
 interface CopyLinkButtonProps {
   url: string;
@@ -18,11 +19,25 @@ export function CopyLinkButton({ url }: CopyLinkButtonProps) {
 
   return (
     <button
-      className="border border-border-default px-4 py-2 font-mono text-xs text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
+      className={`inline-flex items-center gap-2 border px-4 py-2 font-mono text-xs transition-all duration-200 ${
+        copied
+          ? "border-green-primary/40 bg-green-primary/10 text-green-primary"
+          : "border-border-default text-text-secondary hover:border-border-hover hover:text-text-primary"
+      }`}
       onClick={handleCopy}
       aria-label="Copy link to clipboard"
     >
-      {copied ? "Copied!" : "Copy Link"}
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5" />
+          Copied!
+        </>
+      ) : (
+        <>
+          <LinkIcon className="h-3.5 w-3.5" />
+          Copy Link
+        </>
+      )}
     </button>
   );
 }
