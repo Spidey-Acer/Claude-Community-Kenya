@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { TerminalWindow, CommandPrefix } from "@/components/terminal";
-import { CONTACT, SOCIAL_LINKS } from "@/lib/constants";
+import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { TerminalWindow } from "@/components/terminal";
+import { CONTACT } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Code of Conduct | Claude Community Kenya",
   description:
     "Our community code of conduct — ensuring a welcoming, inclusive, and harassment-free experience for everyone.",
+  openGraph: {
+    title: "Code of Conduct | Claude Community Kenya",
+    description:
+      "Our community code of conduct — ensuring a welcoming, inclusive, and harassment-free experience for everyone.",
+    url: "https://www.claudekenya.org/code-of-conduct",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 const expectedBehaviors = [
@@ -37,158 +46,162 @@ export default function CodeOfConductPage() {
     <main className="min-h-screen bg-bg-primary">
       {/* Header */}
       <section className="py-20">
-        <div className="max-w-6xl mx-auto px-4">
-          <h1 className="font-mono text-2xl md:text-3xl text-text-primary">
-            <CommandPrefix />
-            cat CODE_OF_CONDUCT.md
-          </h1>
+        <div className="mx-auto max-w-6xl px-4">
+          <ScrollReveal>
+            <h1 className="font-mono text-2xl font-bold text-green-primary md:text-3xl">
+              <CommandPrefix />
+              cat CODE_OF_CONDUCT.md
+            </h1>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Full Document */}
       <section className="pb-20">
-        <div className="max-w-6xl mx-auto px-4">
-          <TerminalWindow
-            title="CODE_OF_CONDUCT.md"
-            variant="command"
-          >
-            <div className="space-y-10">
-              {/* Our Pledge */}
-              <div>
-                <h2 className="font-mono text-lg text-green-primary mb-3">
-                  ## Our Pledge
-                </h2>
-                <p className="font-sans text-text-secondary leading-relaxed">
-                  We pledge to make participation in Claude Community Kenya a
-                  harassment-free experience for everyone, regardless of age, body
-                  size, disability, ethnicity, gender identity, level of experience,
-                  nationality, personal appearance, race, religion, or sexual
-                  identity and orientation.
-                </p>
-              </div>
+        <div className="mx-auto max-w-6xl px-4">
+          <ScrollReveal>
+            <TerminalWindow
+              title="CODE_OF_CONDUCT.md"
+              variant="command"
+            >
+              <div className="space-y-10">
+                {/* Our Pledge */}
+                <div>
+                  <h2 className="mb-3 font-mono text-lg text-green-primary">
+                    ## Our Pledge
+                  </h2>
+                  <p className="font-sans leading-relaxed text-text-secondary">
+                    We pledge to make participation in Claude Community Kenya a
+                    harassment-free experience for everyone, regardless of age, body
+                    size, disability, ethnicity, gender identity, level of experience,
+                    nationality, personal appearance, race, religion, or sexual
+                    identity and orientation.
+                  </p>
+                </div>
 
-              {/* Expected Behavior */}
-              <div>
-                <h2 className="font-mono text-lg text-green-primary mb-4">
-                  ## Expected Behavior
-                </h2>
-                <ul className="space-y-2">
-                  {expectedBehaviors.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="text-green-primary mt-0.5 shrink-0" aria-hidden="true">
-                        +
-                      </span>
-                      <span className="font-sans text-text-secondary">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {/* Expected Behavior */}
+                <div>
+                  <h2 className="mb-4 font-mono text-lg text-green-primary">
+                    ## Expected Behavior
+                  </h2>
+                  <ul className="space-y-2">
+                    {expectedBehaviors.map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <span className="mt-0.5 shrink-0 text-green-primary" aria-hidden="true">
+                          +
+                        </span>
+                        <span className="font-sans text-text-secondary">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-              {/* Unacceptable Behavior */}
-              <div>
-                <h2 className="font-mono text-lg text-red mb-4">
-                  ## Unacceptable Behavior
-                </h2>
-                <ul className="space-y-2">
-                  {unacceptableBehaviors.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="text-red mt-0.5 shrink-0" aria-hidden="true">
-                        -
-                      </span>
-                      <span className="font-sans text-text-secondary">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {/* Unacceptable Behavior */}
+                <div>
+                  <h2 className="mb-4 font-mono text-lg text-red">
+                    ## Unacceptable Behavior
+                  </h2>
+                  <ul className="space-y-2">
+                    {unacceptableBehaviors.map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <span className="mt-0.5 shrink-0 text-red" aria-hidden="true">
+                          -
+                        </span>
+                        <span className="font-sans text-text-secondary">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-              {/* Reporting */}
-              <div>
-                <h2 className="font-mono text-lg text-amber mb-4">
-                  ## Reporting
-                </h2>
-                <p className="font-sans text-text-secondary mb-4 leading-relaxed">
-                  If you experience or witness unacceptable behavior, please report
-                  it through any of the following channels:
-                </p>
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-3">
-                    <span className="text-green-dim shrink-0 font-mono" aria-hidden="true">$</span>
-                    <span className="font-sans text-text-secondary">
-                      Discord: DM any community organizer
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-green-dim shrink-0 font-mono" aria-hidden="true">$</span>
-                    <span className="font-sans text-text-secondary">
-                      Email:{" "}
-                      <a
-                        href={`mailto:${CONTACT.email}`}
-                        className="text-cyan hover:text-green-primary transition-colors underline underline-offset-2"
-                      >
-                        {CONTACT.email}
-                      </a>
-                    </span>
-                  </li>
-                </ul>
-                <p className="font-sans text-text-dim mt-4 text-sm">
-                  All reports will be reviewed and investigated promptly and fairly.
-                </p>
-              </div>
-
-              {/* Enforcement */}
-              <div>
-                <h2 className="font-mono text-lg text-green-primary mb-4">
-                  ## Enforcement
-                </h2>
-                <ul className="space-y-2">
-                  {enforcementSteps.map((step) => (
-                    <li key={step.level} className="flex items-start gap-3">
-                      <span className="text-amber mt-0.5 shrink-0 font-mono" aria-hidden="true">
-                        &gt;
-                      </span>
+                {/* Reporting */}
+                <div className="border border-amber/20 bg-amber/5 p-6">
+                  <h2 className="mb-4 font-mono text-lg text-amber">
+                    ## Reporting
+                  </h2>
+                  <p className="mb-4 font-sans leading-relaxed text-text-secondary">
+                    If you experience or witness unacceptable behavior, please report
+                    it through any of the following channels:
+                  </p>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-3">
+                      <span className="shrink-0 font-mono text-green-dim" aria-hidden="true">$</span>
                       <span className="font-sans text-text-secondary">
-                        <span className="text-text-primary font-medium">
-                          {step.level}:
-                        </span>{" "}
-                        {step.action}
+                        Discord: DM any community organizer
                       </span>
                     </li>
-                  ))}
-                </ul>
-                <p className="font-sans text-text-dim mt-4 text-sm">
-                  Organizers reserve the right to remove anyone violating this code
-                  of conduct.
-                </p>
-              </div>
+                    <li className="flex items-start gap-3">
+                      <span className="shrink-0 font-mono text-green-dim" aria-hidden="true">$</span>
+                      <span className="font-sans text-text-secondary">
+                        Email:{" "}
+                        <a
+                          href={`mailto:${CONTACT.email}`}
+                          className="text-cyan underline underline-offset-2 transition-colors hover:text-green-primary"
+                        >
+                          {CONTACT.email}
+                        </a>
+                      </span>
+                    </li>
+                  </ul>
+                  <p className="mt-4 font-sans text-sm text-text-dim">
+                    All reports will be reviewed and investigated promptly and fairly.
+                  </p>
+                </div>
 
-              {/* Scope */}
-              <div>
-                <h2 className="font-mono text-lg text-green-primary mb-3">
-                  ## Scope
-                </h2>
-                <p className="font-sans text-text-secondary leading-relaxed">
-                  This code of conduct applies to all community spaces including
-                  Discord, in-person events, social media, and GitHub repositories.
-                </p>
-              </div>
+                {/* Enforcement */}
+                <div>
+                  <h2 className="mb-4 font-mono text-lg text-green-primary">
+                    ## Enforcement
+                  </h2>
+                  <div className="space-y-3">
+                    {enforcementSteps.map((step, index) => (
+                      <div key={step.level} className="flex items-center gap-4">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-amber/30 font-mono text-sm text-amber">
+                          {index + 1}
+                        </span>
+                        <span className="font-sans text-text-secondary">
+                          <span className="font-medium text-text-primary">
+                            {step.level}:
+                          </span>{" "}
+                          {step.action}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-4 font-sans text-sm text-text-dim">
+                    Organizers reserve the right to remove anyone violating this code
+                    of conduct.
+                  </p>
+                </div>
 
-              {/* Attribution */}
-              <div className="border-t border-border-default pt-6">
-                <p className="font-mono text-xs text-text-dim">
-                  # Adapted from the{" "}
-                  <a
-                    href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-cyan hover:text-green-primary transition-colors underline underline-offset-2"
-                  >
-                    Contributor Covenant
-                  </a>
-                  , version 2.1
-                </p>
+                {/* Scope */}
+                <div>
+                  <h2 className="mb-3 font-mono text-lg text-green-primary">
+                    ## Scope
+                  </h2>
+                  <p className="font-sans leading-relaxed text-text-secondary">
+                    This code of conduct applies to all community spaces including
+                    Discord, in-person events, social media, and GitHub repositories.
+                  </p>
+                </div>
+
+                {/* Attribution */}
+                <div className="border-t border-border-default pt-6">
+                  <p className="font-mono text-xs text-text-dim">
+                    # Adapted from the{" "}
+                    <a
+                      href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan underline underline-offset-2 transition-colors hover:text-green-primary"
+                    >
+                      Contributor Covenant
+                    </a>
+                    , version 2.1
+                  </p>
+                </div>
               </div>
-            </div>
-          </TerminalWindow>
+            </TerminalWindow>
+          </ScrollReveal>
         </div>
       </section>
     </main>

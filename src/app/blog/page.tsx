@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   title: `Blog | ${SITE_CONFIG.name}`,
   description:
     "Updates, recaps, and thoughts from the Claude Community Kenya. Read about meetups, tutorials, and announcements.",
+  openGraph: {
+    title: `Blog | ${SITE_CONFIG.name}`,
+    description:
+      "Updates, recaps, and thoughts from the Claude Community Kenya. Read about meetups, tutorials, and announcements.",
+    url: `${SITE_CONFIG.url}/blog`,
+    siteName: SITE_CONFIG.name,
+    type: "website",
+  },
 };
 
 export default function BlogPage() {

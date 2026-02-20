@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: "About | Claude Community Kenya",
     description:
       "The story of East Africa's first Claude developer community. Learn about our mission, team, and journey building Claude Community Kenya.",
-    url: "https://claudecommunity.co.ke/about",
+    url: "https://www.claudekenya.org/about",
   },
 };
 
