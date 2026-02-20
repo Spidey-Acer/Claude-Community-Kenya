@@ -105,10 +105,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 href={project.demoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"
+                className="group/link inline-flex items-center gap-1.5 font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"
                 aria-label={`View demo of ${project.name}`}
               >
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4 transition-transform duration-200 group-hover/link:scale-110" aria-hidden="true" />
                 Demo
               </a>
             )}
@@ -117,10 +117,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 href={project.repoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"
+                className="group/link inline-flex items-center gap-1.5 font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"
                 aria-label={`View source code of ${project.name}`}
               >
-                <Github className="h-4 w-4" aria-hidden="true" />
+                <Github className="h-4 w-4 transition-transform duration-200 group-hover/link:scale-110" aria-hidden="true" />
                 Repo
               </a>
             )}

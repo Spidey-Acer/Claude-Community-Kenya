@@ -11,7 +11,7 @@ interface Stat {
 }
 
 const stats: Stat[] = [
-  { target: 50, suffix: "+", label: "Members" },
+  { target: 30, suffix: "+", label: "Members" },
   { target: 2, suffix: "", label: "Cities" },
   { target: 1, suffix: "", label: "Events Hosted" },
   { target: 4, suffix: "", label: "Team Members" },

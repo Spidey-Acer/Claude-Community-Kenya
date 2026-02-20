@@ -16,7 +16,7 @@ const heroLines = [
   "$ status --check",
   "> \u{1F7E2} ACTIVE",
   "> Cities: Nairobi, Mombasa",
-  "> Members: 50+",
+  "> Members: 30+",
   "> Next event: Feb 20, 2026",
   "",
   "$ join --now",
