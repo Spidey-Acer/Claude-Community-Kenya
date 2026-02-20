@@ -12,6 +12,16 @@ export function KonamiOverlay({ visible, onClose }: KonamiOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showMessage, setShowMessage] = useState(false);
 
+  // Close on Escape
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [visible, onClose]);
+
   useEffect(() => {
     if (!visible) {
       setShowMessage(false);
@@ -25,12 +35,19 @@ export function KonamiOverlay({ visible, onClose }: KonamiOverlayProps) {
   useEffect(() => {
     if (!visible || !canvasRef.current) return;
 
+    // Skip animation for reduced motion
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
 
     const columns = Math.floor(canvas.width / 14);
     const drops = new Array(columns).fill(1);
@@ -59,7 +76,10 @@ export function KonamiOverlay({ visible, onClose }: KonamiOverlayProps) {
 
     draw();
 
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", resize);
+    };
   }, [visible]);
 
   return (
@@ -73,9 +93,10 @@ export function KonamiOverlay({ visible, onClose }: KonamiOverlayProps) {
           className="fixed inset-0 z-[9999] flex items-center justify-center"
           onClick={onClose}
           role="dialog"
+          aria-modal="true"
           aria-label="Easter egg overlay"
         >
-          <canvas ref={canvasRef} className="absolute inset-0" />
+          <canvas ref={canvasRef} className="absolute inset-0" aria-hidden="true" />
           <AnimatePresence>
             {showMessage && (
               <motion.div

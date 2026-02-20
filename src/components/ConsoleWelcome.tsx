@@ -12,7 +12,7 @@ export function ConsoleWelcome() {
 │   East Africa's Claude Dev Community     │
 │                                          │
 │   Built with Claude Code                 │
-│   https://claudecommunitykenya.com       │
+│   https://www.claudekenya.org       │
 │                                          │
 │   Join us: discord.gg/MdEhxH88           │
 │                                          │
