@@ -19,7 +19,7 @@ export const projects: Project[] = [
       "This website. Built entirely with Claude Code as a showcase of AI-assisted development. Terminal-noir design, interactive animations, and community content.",
     stack: ["Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
     status: "live",
-    demoUrl: "https://claudecommunitykenya.com",
+    demoUrl: "https://www.claudekenya.org",
     featured: true,
   },
   {
