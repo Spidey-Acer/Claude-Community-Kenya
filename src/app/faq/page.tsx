@@ -8,11 +8,14 @@ import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "FAQ | Claude Community Kenya",
   description:
-    "Frequently asked questions about Claude Community Kenya, our events, and getting started with Claude AI.",
+    "Answers to common questions about Claude Code, our events in Nairobi and Mombasa, joining the community, and getting started with Claude AI.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/faq",
+  },
   openGraph: {
     title: "FAQ | Claude Community Kenya",
     description:
-      "Frequently asked questions about Claude Community Kenya, our events, and getting started with Claude AI.",
+      "Answers to common questions about Claude Code, our events in Nairobi and Mombasa, joining the community, and getting started with Claude AI.",
     url: "https://www.claudekenya.org/faq",
     siteName: "Claude Community Kenya",
     type: "website",

@@ -7,11 +7,14 @@ import { SITE_CONFIG } from "@/lib/constants";
 export const metadata: Metadata = {
   title: `Blog | ${SITE_CONFIG.name}`,
   description:
-    "Updates, recaps, and thoughts from the Claude Community Kenya. Read about meetups, tutorials, and announcements.",
+    "Claude Code tutorials, meetup recaps, and developer insights from Kenya's Claude community. Learn to build with Claude in East Africa.",
+  alternates: {
+    canonical: `${SITE_CONFIG.url}/blog`,
+  },
   openGraph: {
     title: `Blog | ${SITE_CONFIG.name}`,
     description:
-      "Updates, recaps, and thoughts from the Claude Community Kenya. Read about meetups, tutorials, and announcements.",
+      "Claude Code tutorials, meetup recaps, and developer insights from Kenya's Claude community. Learn to build with Claude in East Africa.",
     url: `${SITE_CONFIG.url}/blog`,
     siteName: SITE_CONFIG.name,
     type: "website",

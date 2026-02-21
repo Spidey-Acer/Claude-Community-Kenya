@@ -44,7 +44,10 @@ export async function generateMetadata({
 
   return {
     title: `${event.title} | Claude Community Kenya`,
-    description: event.description,
+    description: `${event.description} — Claude developer meetup in ${event.city}, Kenya.`,
+    alternates: {
+      canonical: `${SITE_CONFIG.url}/events/${event.slug}`,
+    },
     openGraph: {
       title: event.title,
       description: event.description,

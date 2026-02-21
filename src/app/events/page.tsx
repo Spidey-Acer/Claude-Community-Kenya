@@ -4,11 +4,14 @@ import { EventsContent } from "./EventsContent";
 export const metadata: Metadata = {
   title: "Events | Claude Community Kenya",
   description:
-    "Upcoming meetups, workshops, and career talks across Kenya. Join the Claude developer community.",
+    "Claude developer meetups, workshops, and career talks in Nairobi and Mombasa. Join Kenya's official Claude community events.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/events",
+  },
   openGraph: {
     title: "Events | Claude Community Kenya",
     description:
-      "Upcoming meetups, workshops, and career talks across Kenya. Join the Claude developer community.",
+      "Claude developer meetups, workshops, and career talks in Nairobi and Mombasa. Join Kenya's official Claude community events.",
     url: "https://www.claudekenya.org/events",
     siteName: "Claude Community Kenya",
     type: "website",

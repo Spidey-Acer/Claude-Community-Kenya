@@ -11,14 +11,19 @@ import { team } from "@/data/team";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "About | Claude Community Kenya",
   description:
-    "The story of East Africa's first Claude developer community. Learn about our mission, team, and journey building Claude Community Kenya.",
+    "East Africa's first Claude Code developer community. Founded January 2026, 30+ members building with Claude across Nairobi and Mombasa.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/about",
+  },
   openGraph: {
     title: "About | Claude Community Kenya",
     description:
-      "The story of East Africa's first Claude developer community. Learn about our mission, team, and journey building Claude Community Kenya.",
+      "East Africa's first Claude Code developer community. Founded January 2026, 30+ members building with Claude across Nairobi and Mombasa.",
     url: "https://www.claudekenya.org/about",
+    siteName: "Claude Community Kenya",
+    type: "website",
   },
 };
 
