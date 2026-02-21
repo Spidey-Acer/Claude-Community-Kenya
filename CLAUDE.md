@@ -85,11 +85,10 @@ src/
 - First meetup: **January 24, 2026** (NOT January 25)
 - Venue: iHiT Events Space, Westlands, Nairobi
 - Attendees at first meetup: **30+** (NOT 50+)
-- What happened: Community gathering, networking, Peter Kibet demoed Claude Code workflow using Mulinga Farm Management System
+- What happened: Community gathering, networking, Peter Kibet demoed his Claude Code workflow with a live project demo
 - What did NOT happen: No "building a full-stack application from scratch", no Discord bot demo
-- Events hosted so far: **1** (as of Feb 2026)
+- Events hosted so far: **2** (Nairobi #1 Jan 24, Nairobi #2 Feb 20)
 - Cities: Nairobi + Mombasa (expanding)
-- Mulinga Farm Management System: Personal project by Peter Kibet, NOT a community project. Keep it in projects list but NOT featured
 
 ## Build & Verification
 ```bash
@@ -99,8 +98,6 @@ npx tsc --noEmit       # Must pass with zero type errors
 
 ## Known Issues / TODO
 - Team avatars reference `/images/team/*.jpg` — files may not exist yet
-- Edwin Lungatso's social links are "#" placeholders
-- Mulinga project demoUrl is "#"
 - CommandPalette FAQ links may point to wrong route (/about#id instead of /faq)
 - TerminalApplication.tsx is 1,218 lines — could benefit from refactoring into sub-components
 - No sitemap.xml or robots.txt generation configured

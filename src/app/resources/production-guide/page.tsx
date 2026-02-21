@@ -432,45 +432,6 @@ export default function ProductionGuidePage() {
         </section>
       </ScrollReveal>
 
-      {/* Case Study */}
-      <ScrollReveal delay={450}>
-        <section id="case-study" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            cat case-studies/mulinga.md
-          </h2>
-          <TerminalWindow title="mulinga-farm-system.md" variant="default">
-            <h3 className="font-mono text-base font-bold text-amber">
-              // Case Study: Mulinga Farm Management System
-            </h3>
-            <div className="mt-4 space-y-3 text-text-secondary">
-              <p>
-                At the first Claude Community Kenya meetup in January 2026, Peter Kibet
-                demonstrated how he used Claude Code to build the{" "}
-                <span className="text-green-primary">Mulinga Farm Management System</span> — a
-                real application for managing agricultural operations in Kenya.
-              </p>
-              <p>
-                The project showcased what a single developer can build with Claude Code as a
-                development partner: a full-stack application with complex domain logic, built
-                faster than traditional development approaches would allow.
-              </p>
-              <p>
-                This is the kind of project that inspires our community. When you see a Kenyan
-                developer ship a production-grade system solving a real local problem, it makes
-                the technology tangible.
-              </p>
-              <p>
-                See it and other community projects on our{" "}
-                <Link href="/projects" className="text-green-primary hover:underline">
-                  Projects page
-                </Link>
-                .
-              </p>
-            </div>
-          </TerminalWindow>
-        </section>
-      </ScrollReveal>
 
       {/* Production Checklist */}
       <ScrollReveal delay={500}>

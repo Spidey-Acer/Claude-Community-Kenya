@@ -88,9 +88,8 @@ export default function AboutPage() {
             <p>
               The meetup was a community gathering where developers talked,
               connected, and explored the possibilities of AI-assisted development.
-              Peter Kibet showcased his Claude Code workflow using the{" "}
-              <span className="font-mono text-amber">Mulinga Farm Management System</span>{" "}
-              as a demo — showing how AI-powered tools can help solve real problems
+              Peter Kibet showcased his Claude Code workflow with a live project demo —
+              showing how AI-powered tools can help solve real problems
               right here in East Africa.
             </p>
             <p>
