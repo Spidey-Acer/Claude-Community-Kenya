@@ -185,6 +185,13 @@ export const resources: Resource[] = [
     description: "Our home base — join the conversation.",
   },
   {
+    id: "cck-whatsapp",
+    title: "CCK WhatsApp Group",
+    url: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
+    category: "Community & Social",
+    description: "Join the community WhatsApp group for quick updates and discussion.",
+  },
+  {
     id: "cck-luma-nairobi",
     title: "CCK Nairobi Events (Luma)",
     url: "https://luma.com/sbsa789m",
