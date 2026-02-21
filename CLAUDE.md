@@ -25,6 +25,7 @@ Tailwind theme tokens are registered in the `@theme inline` block in globals.css
 
 ## Critical Links (ALWAYS USE THESE)
 - **Discord:** https://discord.gg/NSB9AsCm
+- **WhatsApp:** https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
 - **Nairobi Events (Luma):** https://luma.com/sbsa789m
 - **Mombasa Events (Luma):** https://luma.com/vsf5re14
 - **Global Claude Community Events:** https://luma.com/claudecommunity

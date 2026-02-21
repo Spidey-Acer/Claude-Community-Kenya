@@ -5,7 +5,8 @@
       "Bash(npx next build:*)",
       "Bash(git rm:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(cd:*)"
     ]
   }
 }
