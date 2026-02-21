@@ -153,8 +153,17 @@ export default function LinksPage() {
               className="text-cyan hover:underline"
             >
               Discord server
-            </a>{" "}
-            or open a pull request on{" "}
+            </a>
+            {", "}
+            <a
+              href="https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan hover:underline"
+            >
+              WhatsApp group
+            </a>
+            {", or open a pull request on "}
             <a
               href="https://github.com/Spidey-Acer/Claude-Community-Kenya"
               target="_blank"

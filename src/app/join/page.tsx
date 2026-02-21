@@ -9,11 +9,14 @@ import { SITE_CONFIG, SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 export const metadata: Metadata = {
   title: `Join | ${SITE_CONFIG.name}`,
   description:
-    "Join Claude Community Kenya. Connect with developers, attend events, and build with Claude.",
+    "Join East Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
+  alternates: {
+    canonical: `${SITE_CONFIG.url}/join`,
+  },
   openGraph: {
     title: `Join | ${SITE_CONFIG.name}`,
     description:
-      "Join Claude Community Kenya. Connect with developers, attend events, and build with Claude.",
+      "Join East Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
     url: `${SITE_CONFIG.url}/join`,
     siteName: SITE_CONFIG.name,
     type: "website",

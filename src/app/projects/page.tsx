@@ -7,11 +7,14 @@ import { SITE_CONFIG, SOCIAL_LINKS } from "@/lib/constants";
 export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
   description:
-    "Community-built projects powered by Claude. Explore what Kenyan developers are building with AI.",
+    "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in East Africa.",
+  alternates: {
+    canonical: `${SITE_CONFIG.url}/projects`,
+  },
   openGraph: {
     title: `Projects | ${SITE_CONFIG.name}`,
     description:
-      "Community-built projects powered by Claude. Explore what Kenyan developers are building with AI.",
+      "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in East Africa.",
     url: `${SITE_CONFIG.url}/projects`,
     siteName: SITE_CONFIG.name,
     type: "website",

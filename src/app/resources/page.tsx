@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap } from "lucide-react";
+import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap, Code2, Zap } from "lucide-react";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
   description:
-    "Everything you need to start building with Claude. Guides, tutorials, tools, and curated links for the Kenyan developer community.",
+    "Master Claude Code, the Claude API, and AI workflows. Free tutorials, courses, and learning paths curated for Kenyan developers.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/resources",
+  },
+  openGraph: {
+    title: "Resources | Claude Community Kenya",
+    description:
+      "Master Claude Code, the Claude API, and AI workflows. Free tutorials, courses, and learning paths curated for Kenyan developers.",
+    url: "https://www.claudekenya.org/resources",
+    siteName: "Claude Community Kenya",
+    type: "website",
+  },
 };
 
 const resourceCards = [
@@ -37,6 +48,20 @@ const resourceCards = [
     icon: GraduationCap,
     description:
       "Free structured courses from Anthropic — from API basics to advanced tool use.",
+  },
+  {
+    title: "Claude API Guide",
+    href: "/resources/api-guide",
+    icon: Code2,
+    description:
+      "Complete API reference — authentication, models, streaming, tool use, and code examples.",
+  },
+  {
+    title: "Production Guide",
+    href: "/resources/production-guide",
+    icon: Zap,
+    description:
+      "Deploy Claude to production — error handling, rate limits, cost optimization, and security.",
   },
   {
     title: "Curated Links",

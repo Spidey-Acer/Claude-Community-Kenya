@@ -95,6 +95,15 @@ export function Footer() {
             >
               Discord
             </a>
+            <a
+              href={SOCIAL_LINKS.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-text-dim transition-colors hover:text-cyan"
+              aria-label="WhatsApp"
+            >
+              WhatsApp
+            </a>
           </div>
 
           {/* Exit easter egg */}
