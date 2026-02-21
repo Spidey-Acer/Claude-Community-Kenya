@@ -20,6 +20,7 @@ export const projects: Project[] = [
     stack: ["Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
     status: "live",
     demoUrl: "https://www.claudekenya.org",
+    repoUrl: "https://github.com/Spidey-Acer/Claude-Community-Kenya",
     featured: true,
   },
   {
@@ -30,6 +31,7 @@ export const projects: Project[] = [
       "An AI-powered Discord bot for the community server. Handles FAQs, event reminders, and resource lookups.",
     stack: ["Node.js", "Discord.js", "Claude API"],
     status: "in-development",
+    repoUrl: "https://github.com/Spidey-Acer/CCK-Discord-Bot",
     featured: true,
   },
   {
@@ -40,7 +42,7 @@ export const projects: Project[] = [
       "A farm management platform tracking 26,000+ coffee plants and poultry operations across multiple farms in Kenya. Built with Claude Code as a personal project and demoed at the first community meetup.",
     stack: ["Next.js", "TypeScript", "PostgreSQL", "Claude Code"],
     status: "in-production",
-    demoUrl: "#",
+    demoUrl: "https://www.mulinga.farm",
     featured: false,
   },
   {

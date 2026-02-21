@@ -147,7 +147,7 @@ export default function LinksPage() {
             or tutorial to share? We welcome contributions from the community.
             Reach out on our{" "}
             <a
-              href="https://discord.gg/MdEhxH88"
+              href="https://discord.gg/NSB9AsCm"
               target="_blank"
               rel="noopener noreferrer"
               className="text-cyan hover:underline"
@@ -156,7 +156,7 @@ export default function LinksPage() {
             </a>{" "}
             or open a pull request on{" "}
             <a
-              href="https://github.com/claude-community-kenya"
+              href="https://github.com/Spidey-Acer/Claude-Community-Kenya"
               target="_blank"
               rel="noopener noreferrer"
               className="text-cyan hover:underline"
