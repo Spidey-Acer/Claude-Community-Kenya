@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx create-next-app:*)",
       "Bash(npx next build:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

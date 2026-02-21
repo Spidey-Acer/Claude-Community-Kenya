@@ -14,7 +14,7 @@ export function ConsoleWelcome() {
 │   Built with Claude Code                 │
 │   https://www.claudekenya.org       │
 │                                          │
-│   Join us: discord.gg/MdEhxH88           │
+│   Join us: discord.gg/NSB9AsCm           │
 │                                          │
 └──────────────────────────────────────────┘
 `,

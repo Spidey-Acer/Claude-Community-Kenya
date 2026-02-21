@@ -24,7 +24,7 @@ All colors use CSS custom properties defined in `src/app/globals.css`:
 Tailwind theme tokens are registered in the `@theme inline` block in globals.css (e.g., `bg-green-primary`, `text-amber`).
 
 ## Critical Links (ALWAYS USE THESE)
-- **Discord:** https://discord.gg/MdEhxH88
+- **Discord:** https://discord.gg/NSB9AsCm
 - **Nairobi Events (Luma):** https://luma.com/sbsa789m
 - **Mombasa Events (Luma):** https://luma.com/vsf5re14
 - **Global Claude Community Events:** https://luma.com/claudecommunity
