@@ -32,7 +32,7 @@ export const events: Event[] = [
     description:
       "The one that started it all. 30 developers in a room, one CLI, and a lot of curiosity.",
     fullDescription:
-      "On January 24, 2026, history was made as Kenya hosted its very first Claude Code meetup. Over 30 developers from across Nairobi gathered at iHiT Events Space in Westlands for an afternoon of networking, interaction, and a live Claude Code demo.\n\nThe event was a community gathering where members talked, connected, and explored the possibilities of AI-assisted development. Peter Kibet showcased his Claude Code workflow using the Mulinga Farm Management System as a demonstration of what developers can build with these tools.\n\nThis meetup marked the birth of Claude Community Kenya and set the foundation for what would become East Africa's most vibrant AI developer community.",
+      "On January 24, 2026, history was made as Kenya hosted its very first Claude Code meetup. Over 30 developers from across Nairobi gathered at iHiT Events Space in Westlands for an afternoon of networking, interaction, and a live Claude Code demo.\n\nThe event was a community gathering where members talked, connected, and explored the possibilities of AI-assisted development. Peter Kibet showcased his Claude Code workflow with a live project demo — showing what developers can build with these tools.\n\nThis meetup marked the birth of Claude Community Kenya and set the foundation for what would become East Africa's most vibrant AI developer community.",
     agenda: [
       "2:00 PM — Doors Open & Registration",
       "2:30 PM — Welcome & Community Introduction",
@@ -57,14 +57,14 @@ export const events: Event[] = [
     title: "Nairobi Meetup #2 — Deep Dive",
     date: "2026-02-20",
     time: "2:00 PM - 5:00 PM EAT",
-    venue: "TBA",
+    venue: "Nairobi",
     city: "Nairobi",
     type: "meetup",
-    status: "registration-open",
+    status: "completed",
     description:
       "Our second Nairobi meetup! Deep dive into Claude Code workflows, multi-instance development, and community project updates.",
     fullDescription:
-      "Join us for the second Claude Community Kenya meetup in Nairobi! This time we're going deeper into Claude Code with hands-on workshops covering multi-instance development, agentic patterns, and real-world project building.\n\nWhether you attended our first meetup or are joining for the first time, this event is designed for developers at all levels. Bring your laptop, your ideas, and your curiosity.",
+      "The second Claude Community Kenya meetup in Nairobi brought developers together for a deeper look at Claude Code workflows, multi-instance development, and agentic patterns.\n\nBuilding on the momentum from the first meetup, this session featured hands-on exploration and real-world project discussions from community members.",
     agenda: [
       "2:00 PM — Doors Open & Networking",
       "2:30 PM — Welcome & Community Updates",
@@ -73,9 +73,14 @@ export const events: Event[] = [
       "4:30 PM — Open Networking & Collaboration",
       "5:00 PM — Close",
     ],
-    registrationUrl: "https://luma.com/sbsa789m",
     lumaUrl: "https://luma.com/sbsa789m",
-    host: "Peter Kibet & Edwin Lungatso",
+    host: "Peter Kibet",
+    highlights: [
+      "Second CCK Nairobi meetup",
+      "Deep dive into Claude Code workflows",
+      "Community project showcases",
+    ],
+    photosUrl: "#",
   },
   {
     slug: "mombasa-ai-career-talk",

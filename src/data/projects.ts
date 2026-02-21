@@ -35,17 +35,6 @@ export const projects: Project[] = [
     featured: true,
   },
   {
-    id: "mulinga",
-    name: "Mulinga Farm Management System",
-    builder: "Peter Kibet",
-    description:
-      "A farm management platform tracking 26,000+ coffee plants and poultry operations across multiple farms in Kenya. Built with Claude Code as a personal project and demoed at the first community meetup.",
-    stack: ["Next.js", "TypeScript", "PostgreSQL", "Claude Code"],
-    status: "in-production",
-    demoUrl: "https://www.mulinga.farm",
-    featured: false,
-  },
-  {
     id: "your-project",
     name: "Your Project Here",
     builder: "You?",
