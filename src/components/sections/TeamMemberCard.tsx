@@ -1,6 +1,6 @@
 import type { TeamMember } from "@/data/team";
 import { cn } from "@/lib/utils";
-import { Linkedin, Github, Twitter } from "lucide-react";
+import { Linkedin, Github, Twitter, Globe } from "lucide-react";
 
 interface TeamMemberCardProps {
   member: TeamMember;
@@ -16,7 +16,7 @@ function getInitials(name: string): string {
 }
 
 export function TeamMemberCard({ member }: TeamMemberCardProps) {
-  const hasSocials = member.linkedIn || member.github || member.twitter;
+  const hasSocials = member.linkedIn || member.github || member.twitter || member.website;
 
   return (
     <div
@@ -99,6 +99,17 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
                 aria-label={`${member.name} on Twitter`}
               >
                 <Twitter className="h-4 w-4" />
+              </a>
+            )}
+            {member.website && (
+              <a
+                href={member.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text-dim hover:text-green-primary transition-colors duration-200"
+                aria-label={`${member.name}'s website`}
+              >
+                <Globe className="h-4 w-4" />
               </a>
             )}
           </div>
