@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -37,6 +38,13 @@ const checklist = [
 export default function ProductionGuidePage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-20">
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Resources", url: "/resources" },
+          { name: "Production Deployment Guide" },
+        ]}
+      />
       {/* Back link */}
       <Link
         href="/resources"

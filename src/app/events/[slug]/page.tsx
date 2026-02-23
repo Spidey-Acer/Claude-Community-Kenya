@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEventBySlug, events } from "@/data/events";
 import { Badge } from "@/components/ui/Badge";
 import { Timeline } from "@/components/ui/Timeline";
@@ -152,6 +153,13 @@ export default async function EventDetailPage({
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Events", url: "/events" },
+          { name: event.title },
+        ]}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
