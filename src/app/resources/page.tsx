@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap, Code2, Zap } from "lucide-react";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -75,6 +76,7 @@ const resourceCards = [
 export default function ResourcesPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-20">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Resources" }]} />
       {/* Header */}
       <ScrollReveal>
         <section className="py-16 text-center">

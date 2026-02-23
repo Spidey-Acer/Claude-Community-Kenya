@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -42,6 +43,13 @@ const models = [
 export default function ApiGuidePage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-20">
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Resources", url: "/resources" },
+          { name: "Claude API Guide" },
+        ]}
+      />
       {/* Back link */}
       <Link
         href="/resources"

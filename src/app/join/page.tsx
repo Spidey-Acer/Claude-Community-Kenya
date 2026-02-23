@@ -4,6 +4,7 @@ import { TerminalApplication } from "@/components/terminal/TerminalApplication";
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
 import { CountUp } from "@/components/ui/CountUp";
 import { Card } from "@/components/ui/Card";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG, SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
 export default function JoinPage() {
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Join" }]} />
       <div className="mx-auto max-w-6xl">
         {/* ── Section 1: Community Pulse Header ── */}
         <ScrollReveal>

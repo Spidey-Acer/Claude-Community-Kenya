@@ -111,7 +111,7 @@ export default function Home() {
     <div>
       {/* ─── Hero Section ─── */}
       <section
-        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4"
+        className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden px-4"
         aria-label="Hero"
       >
         <MatrixRain opacity={0.05} density={0.2} />

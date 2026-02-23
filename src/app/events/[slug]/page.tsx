@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEventBySlug, events } from "@/data/events";
 import { Badge } from "@/components/ui/Badge";
 import { Timeline } from "@/components/ui/Timeline";
@@ -17,6 +18,8 @@ import {
   Building2,
   Link as LinkIcon,
   CheckCircle2,
+  Trophy,
+  Shield,
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
 
@@ -150,6 +153,13 @@ export default async function EventDetailPage({
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Events", url: "/events" },
+          { name: event.title },
+        ]}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
@@ -253,6 +263,53 @@ export default async function EventDetailPage({
                 <p className="font-sans text-text-primary">{event.partnerOrg}</p>
               </div>
             )}
+          </section>
+        )}
+
+        {/* Prizes (hackathon / upcoming) */}
+        {event.prizes && event.prizes.length > 0 && (
+          <section className="mb-10">
+            <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+              <span className="text-text-dim">## </span>Prizes & Swag
+            </h2>
+            <TerminalWindow title="prizes.md" variant="command">
+              <ul className="space-y-3">
+                {event.prizes.map((prize, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <Trophy
+                      className="mt-0.5 h-4 w-4 shrink-0 text-amber"
+                      aria-hidden="true"
+                    />
+                    <span className="text-text-secondary">{prize}</span>
+                  </li>
+                ))}
+              </ul>
+            </TerminalWindow>
+          </section>
+        )}
+
+        {/* Rules */}
+        {event.rules && event.rules.length > 0 && (
+          <section className="mb-10">
+            <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+              <span className="text-text-dim">## </span>Rules
+            </h2>
+            <TerminalWindow title="rules.md" variant="default">
+              <ul className="space-y-3">
+                {event.rules.map((rule, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <Shield
+                      className="mt-0.5 h-4 w-4 shrink-0 text-cyan"
+                      aria-hidden="true"
+                    />
+                    <span className="font-mono text-sm text-text-secondary">
+                      <span className="text-green-dim mr-2">{String(i + 1).padStart(2, "0")}.</span>
+                      {rule}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </TerminalWindow>
           </section>
         )}
 

@@ -17,6 +17,8 @@ export interface Event {
   highlights?: string[];
   attendeeCount?: number;
   photosUrl?: string;
+  prizes?: string[];
+  rules?: string[];
 }
 
 export const events: Event[] = [
@@ -107,6 +109,48 @@ export const events: Event[] = [
     lumaUrl: "https://luma.com/vsf5re14",
     host: "Dr. Fullgence Mwakondo & Joshua Wekesa",
     partnerOrg: "Technical University of Mombasa, Swahilipot Hub Foundation",
+  },
+  {
+    slug: "claude-code-hackathon-nairobi-1",
+    title: "Claude Code Hackathon — Nairobi",
+    date: "2026-04-04",
+    time: "8:00 AM – 6:00 PM EAT",
+    venue: "TBA — Nairobi",
+    city: "Nairobi",
+    type: "hackathon",
+    status: "upcoming",
+    description:
+      "East Africa's first Claude hackathon — build anything with Claude in one day, solo or as a team of up to three.",
+    fullDescription:
+      "Claude Community Kenya presents its first-ever hackathon — a full-day, in-person building sprint for developers across Nairobi. Whether you're coming solo or with a team of up to three, this is your chance to ship something real using Claude's API and Claude Code in a single day.\n\nThe build is open — no prescribed theme, no prescribed industry. If you can use Claude to solve a problem, tell a story, automate a workflow, or create something entirely new, it qualifies. Projects will be judged on real-world impact, technical execution, innovation, and how well teams demo their work.\n\nThe winner walks away with a Claude Code Max subscription. All registered participants receive CCK T-shirts and stickers. This isn't just a competition — it's a statement that Nairobi developers are building with the world's most capable AI, not just reading about it.",
+    agenda: [
+      "08:00 AM — Registration & Check-in",
+      "08:30 AM — Opening Remarks + Rules Briefing",
+      "09:00 AM — Claude API / Claude Code Quick-Start Orientation",
+      "09:15 AM — Build Sprint Part 1 Begins",
+      "02:00 PM — Lunch Break",
+      "02:30 PM — Build Sprint Part 2",
+      "04:30 PM — Project Submission Cutoff",
+      "05:00 PM — Live Demos & Judging",
+      "06:00 PM — Awards, Closing Remarks & Networking",
+    ],
+    host: "Peter Kibet",
+    highlights: [
+      "East Africa's first Claude hackathon",
+      "Open build format — any domain, as long as Claude powers it",
+      "Winner takes home a Claude Code Max subscription",
+    ],
+    prizes: [
+      "🥇 1st Place — Claude Code Max subscription",
+      "👕 All Participants — CCK T-shirt + stickers",
+    ],
+    rules: [
+      "All projects must use the Claude API or Claude Code",
+      "Solo participants or teams of up to 3 people",
+      "Projects must be demoed live at the end of the day",
+      "All intellectual property remains fully owned by the builder(s)",
+      "CCK Code of Conduct applies — respectful behaviour, zero harassment",
+    ],
   },
 ];
 
