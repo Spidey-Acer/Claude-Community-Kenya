@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { EventsContent } from "./EventsContent";
 
 export const metadata: Metadata = {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { Accordion } from "@/components/ui/Accordion";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { faqs, getFaqsByCategory } from "@/data/faq";
 import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 
@@ -56,6 +57,7 @@ const faqJsonLd = {
 export default function FaqPage() {
   return (
     <main className="min-h-screen bg-bg-primary">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "FAQ" }]} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

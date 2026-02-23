@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getSortedBlogPosts } from "@/data/blog-posts";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function BlogPage() {
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Blog" }]} />
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <ScrollReveal>

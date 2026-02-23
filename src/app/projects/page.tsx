@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { projects } from "@/data/projects";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG, SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 export default function ProjectsPage() {
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Projects" }]} />
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <ScrollReveal>

@@ -7,6 +7,7 @@ import { GlitchText } from "@/components/terminal";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { TeamMemberCard } from "@/components/sections/TeamMemberCard";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { team } from "@/data/team";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
@@ -54,6 +55,7 @@ const timelineEntries = [
 export default function AboutPage() {
   return (
     <div>
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "About" }]} />
       {/* ─── Hero ─── */}
       <section className="mx-auto max-w-6xl px-4 pb-12 pt-24" aria-label="About hero">
         <ScrollReveal>

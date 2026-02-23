@@ -4,6 +4,7 @@ import { useState } from "react";
 import { events } from "@/data/events";
 import { EventCard } from "@/components/sections/EventCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "all" | "upcoming" | "past" | "nairobi" | "mombasa";
@@ -39,6 +40,7 @@ export function EventsContent() {
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Events" }]} />
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <ScrollReveal>
