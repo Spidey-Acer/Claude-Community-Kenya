@@ -274,10 +274,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: post.title,
     description: post.excerpt,
+    image: `${SITE_CONFIG.url}/og-image.png`,
     datePublished: post.date,
+    dateModified: post.date,
     author: {
       "@type": "Organization",
       name: post.author,
@@ -288,6 +290,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       url: SITE_CONFIG.url,
     },
     url: `${SITE_CONFIG.url}/blog/${post.slug}`,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE_CONFIG.url}/blog/${post.slug}`,
+    },
     keywords: post.tags,
   };
 
