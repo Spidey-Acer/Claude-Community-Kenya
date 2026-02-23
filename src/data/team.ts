@@ -20,6 +20,6 @@ export const team: TeamMember[] = [
     github: "https://github.com/Spidey-Acer",
     linkedIn: "https://linkedin.com/in/peterkilbet",
     website: "https://www.peterkibet.co.ke",
-    avatar: "/images/team/peter-kibet.jpg",
+    avatar: "/images/peter-professional.png",
   },
 ];
