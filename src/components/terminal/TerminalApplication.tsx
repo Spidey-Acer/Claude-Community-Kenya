@@ -639,6 +639,7 @@ export function TerminalApplication() {
   const [bootDone, setBootDone] = useState(false);
   const [promptReady, setPromptReady] = useState(false);
   const [reApply, setReApply] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -649,6 +650,14 @@ export function TerminalApplication() {
     prefersReducedMotion.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
+  }, []);
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    fetch("/api/csrf-token")
+      .then((r) => r.json())
+      .then((d) => setCsrfToken(d.csrfToken as string))
+      .catch(() => {});
   }, []);
 
   // Auto-scroll
@@ -740,7 +749,7 @@ export function TerminalApplication() {
   const handleProcessingComplete = useCallback(() => {
     const { responses, easterEggsFound } = state;
 
-    // Save to localStorage
+    // Save to localStorage (for returning user detection)
     try {
       localStorage.setItem(
         "cck-application",
@@ -757,6 +766,24 @@ export function TerminalApplication() {
       );
     } catch {
       // ignore
+    }
+
+    // Submit to API (fire and forget — UX shows success regardless)
+    if (csrfToken) {
+      fetch("/api/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+        body: JSON.stringify({
+          name: responses.name,
+          email: responses.email,
+          experience: responses.experience || "Not specified",
+          interests: [responses.role, responses.city].filter(Boolean),
+          reason: responses.why || "Joined via terminal application",
+          heardFrom: responses.referral || undefined,
+        }),
+      }).catch(() => {
+        // Fail silently — localStorage already saved, UX shows success
+      });
     }
 
     dispatch({
@@ -796,7 +823,7 @@ export function TerminalApplication() {
         {
           id: uid(),
           type: "system",
-          content: "  1. Join our Discord → discord.gg/NSB9AsCm",
+          content: "  1. Join our Discord → discord.gg/AVAyYCbJ",
           color: "cyan",
         },
         {

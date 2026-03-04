@@ -180,7 +180,7 @@ export const resources: Resource[] = [
   {
     id: "cck-discord",
     title: "CCK Discord Server",
-    url: "https://discord.gg/NSB9AsCm",
+    url: "https://discord.gg/AVAyYCbJ",
     category: "Community & Social",
     description: "Our home base — join the conversation.",
   },

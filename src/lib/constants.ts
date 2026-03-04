@@ -26,7 +26,7 @@ export const NAV_LINKS = [
 export const SOCIAL_LINKS = {
   twitter: "https://twitter.com/ClaudeCommunityKE",
   github: "https://github.com/claude-community-kenya",
-  discord: "https://discord.gg/NSB9AsCm",
+  discord: "https://discord.gg/AVAyYCbJ",
   whatsapp: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
   linkedin: "https://linkedin.com/company/claude-community-kenya",
   lumaNairobi: "https://luma.com/sbsa789m",
