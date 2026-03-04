@@ -30,6 +30,12 @@ Tailwind theme tokens are registered in the `@theme inline` block in globals.css
 - **Mombasa Events (Luma):** https://luma.com/vsf5re14
 - **Global Claude Community Events:** https://luma.com/claudecommunity
 
+## Git & Commits
+- Conventional commits required: `type(scope): description`
+- When using `/batch-commit`, commits are created **without co-authorship signatures** unless explicitly requested
+- All batch commits must be logically grouped by feature/fix area, not by commit count
+- Always verify changes with `npm run build` and `npx tsc --noEmit` before committing
+
 ## Project Conventions
 - Use `"use client"` only on components that require interactivity (state, effects, event handlers)
 - Import paths use `@/` alias (maps to `./src/`)
