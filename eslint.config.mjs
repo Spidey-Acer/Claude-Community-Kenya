@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate project — not part of CCK website
+    "ack-kitale-diocese-system/**",
   ]),
 ]);
 

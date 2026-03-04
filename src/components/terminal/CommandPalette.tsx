@@ -100,7 +100,7 @@ export function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const searchIndex = useMemo(buildSearchIndex, []);
+  const searchIndex = useMemo(() => buildSearchIndex(), []);
 
   const results = useMemo(() => {
     if (!query.trim()) return searchIndex.slice(0, 8);
@@ -168,6 +168,7 @@ export function CommandPalette() {
 
   // Reset selected index on query change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(0);
   }, [query]);
 

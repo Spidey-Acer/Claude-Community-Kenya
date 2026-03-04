@@ -8,6 +8,7 @@ import {
   useCallback,
   type KeyboardEvent,
 } from "react";
+import Link from "next/link";
 import { TypingAnimation } from "./TypingAnimation";
 import { TypingCursor } from "./TypingCursor";
 
@@ -579,6 +580,7 @@ function useReturningUser() {
       const saved = localStorage.getItem("cck-application");
       if (saved) {
         const data = JSON.parse(saved);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (data?.name) setReturning({ name: data.name });
       }
     } catch {
@@ -693,6 +695,7 @@ export function TerminalApplication() {
         })),
       });
       dispatch({ type: "ADD_LINES", lines: [{ id: uid(), type: "system", content: "", color: "dim" }] });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootDone(true);
       dispatch({ type: "SET_STEP", step: "name" });
     } else {
@@ -729,6 +732,7 @@ export function TerminalApplication() {
       return;
 
     const config = getStepConfig(state.currentStep, state.responses);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptReady(false);
     dispatch({ type: "SET_TYPING", isTyping: true });
     dispatch({ type: "ADD_LINES", lines: config.promptLines });
@@ -746,6 +750,7 @@ export function TerminalApplication() {
   }, []);
 
   // Processing
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleProcessingComplete = useCallback(() => {
     const { responses, easterEggsFound } = state;
 
@@ -855,7 +860,7 @@ export function TerminalApplication() {
       ],
     });
     dispatch({ type: "SET_STEP", step: "complete" });
-  }, [state.responses, state.easterEggsFound]);
+  }, [state.responses, state.easterEggsFound, csrfToken]);
 
   useProgressAnimation(
     state.currentStep === "processing",
@@ -1006,12 +1011,12 @@ export function TerminalApplication() {
               >
                 $ ./apply.sh --force
               </button>
-              <a
+              <Link
                 href="/events"
                 className="border border-border-default px-4 py-2 font-mono text-sm text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
               >
                 $ cd /events
-              </a>
+              </Link>
             </div>
           </div>
         </div>

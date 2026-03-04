@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalApplication } from "@/components/terminal/TerminalApplication";
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
@@ -107,12 +108,12 @@ export default function JoinPage() {
               >
                 Twitter / X
               </a>
-              <a
+              <Link
                 href="/events"
                 className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
               >
                 Events
-              </a>
+              </Link>
             </div>
           </section>
         </ScrollReveal>

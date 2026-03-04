@@ -43,6 +43,7 @@ export function CountUp({
     if (!hasStarted) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCount(target);
       return;
     }

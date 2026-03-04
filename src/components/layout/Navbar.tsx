@@ -15,6 +15,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMac(navigator.platform.toUpperCase().includes("MAC"));
   }, []);
 

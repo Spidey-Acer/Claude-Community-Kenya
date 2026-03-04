@@ -132,7 +132,7 @@ export default function AboutPage() {
               >
                 <div className="space-y-3">
                   <h3 className="font-mono text-base font-bold text-amber">
-                    // MISSION
+                    {"// MISSION"}
                   </h3>
                   <p className="text-sm text-text-secondary leading-relaxed">
                     To empower every Kenyan developer with the tools, knowledge,
@@ -151,7 +151,7 @@ export default function AboutPage() {
               >
                 <div className="space-y-3">
                   <h3 className="font-mono text-base font-bold text-amber">
-                    // VISION
+                    {"// VISION"}
                   </h3>
                   <p className="text-sm text-text-secondary leading-relaxed">
                     To make Kenya and East Africa a global hub for AI-first
@@ -171,7 +171,7 @@ export default function AboutPage() {
               >
                 <div className="space-y-3">
                   <h3 className="font-mono text-base font-bold text-amber">
-                    // VALUES
+                    {"// VALUES"}
                   </h3>
                   <ul className="space-y-2 text-sm text-text-secondary">
                     <li className="flex items-start gap-2">
