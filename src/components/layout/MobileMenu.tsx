@@ -12,11 +12,25 @@ interface MobileMenuProps {
   onClose: () => void;
 }
 
+const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Close on Escape key
+  // Save focus target + focus first element on open
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      const focusable = menuRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
+      focusable?.[0]?.focus();
+    } else {
+      previousFocusRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  // Keyboard handling: Escape + focus trap
   useEffect(() => {
     if (!isOpen) return;
 
@@ -24,6 +38,25 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focusable = menuRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
 
