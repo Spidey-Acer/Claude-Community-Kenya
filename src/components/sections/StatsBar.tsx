@@ -11,10 +11,10 @@ interface Stat {
 }
 
 const stats: Stat[] = [
-  { target: 30, suffix: "+", label: "Members" },
+  { target: 30, suffix: "+", label: "Developers" },
+  { target: 3, suffix: "", label: "Events Hosted" },
   { target: 2, suffix: "", label: "Cities" },
-  { target: 1, suffix: "", label: "Events Hosted" },
-  { target: 4, suffix: "", label: "Team Members" },
+  { target: 33, suffix: "", label: "Resources Curated" },
 ];
 
 export function StatsBar() {
@@ -30,13 +30,17 @@ export function StatsBar() {
           padding="sm"
           className="text-center"
         >
-          <div className="py-2">
+          <div
+            className="py-2"
+            aria-label={`${stat.target}${stat.suffix} ${stat.label}`}
+          >
             <CountUp
               target={stat.target}
               suffix={stat.suffix}
               className="block font-mono text-3xl font-bold text-green-primary"
+              aria-hidden="true"
             />
-            <span className="mt-1 block font-mono text-xs uppercase tracking-wider text-text-dim">
+            <span className="mt-1 block font-mono text-xs uppercase tracking-wider text-text-dim" aria-hidden="true">
               {stat.label}
             </span>
           </div>
