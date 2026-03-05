@@ -22,12 +22,7 @@ import {
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
 
-export const revalidate = 60;
-
-export async function generateStaticParams() {
-  const slugs = await getEventSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

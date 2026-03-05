@@ -100,7 +100,7 @@ const partners = [
   "Technical University of Mombasa",
 ];
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [upcomingEvents, featuredProjects] = await Promise.all([
