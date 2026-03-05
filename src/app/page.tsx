@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Terminal, Code, GraduationCap, MessageSquare, Users, Calendar, Share2 } from "lucide-react";
+import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { EventCard } from "@/components/sections/EventCard";
@@ -8,10 +8,8 @@ import { ProjectCard } from "@/components/sections/ProjectCard";
 import { MatrixRain } from "@/components/terminal";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
-import { GlitchText } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
-import { getUpcomingEvents } from "@/data/events";
-import { getFeaturedProjects } from "@/data/projects";
+import { getUpcomingEvents, getFeaturedProjects } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -102,9 +100,13 @@ const partners = [
   "Technical University of Mombasa",
 ];
 
-export default function Home() {
-  const upcomingEvents = getUpcomingEvents();
-  const featuredProjects = getFeaturedProjects();
+export const revalidate = 60;
+
+export default async function Home() {
+  const [upcomingEvents, featuredProjects] = await Promise.all([
+    getUpcomingEvents(),
+    getFeaturedProjects(),
+  ]);
 
   return (
     <div>
@@ -148,11 +150,10 @@ export default function Home() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+        <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 sm:block">
           <ScrollReveal delay={2000}>
-            <div className="flex flex-col items-center gap-2 text-text-dim">
-              <span className="font-mono text-xs">scroll</span>
-              <div className="h-8 w-px bg-border-default" />
+            <div className="flex flex-col items-center gap-1 text-text-dim">
+              <ChevronDown className="h-5 w-5 animate-bounce opacity-60" aria-hidden="true" />
             </div>
           </ScrollReveal>
         </div>
@@ -258,7 +259,7 @@ export default function Home() {
           className="grid gap-6 lg:grid-cols-2"
         >
           {featuredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.name} project={project} />
           ))}
         </ScrollReveal>
 
