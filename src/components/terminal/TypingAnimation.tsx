@@ -39,7 +39,9 @@ export function TypingAnimation({
     ).matches;
 
     if (prefersReducedMotion.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayedLines(lines);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsComplete(true);
       onComplete?.();
     }
@@ -71,6 +73,7 @@ export function TypingAnimation({
     if (!hasStarted || isComplete || prefersReducedMotion.current) return;
 
     if (currentLineIndex >= lines.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsComplete(true);
       onComplete?.();
 

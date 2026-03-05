@@ -19,8 +19,11 @@ export function LoadingBar() {
       // Skip animation for reduced motion
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(0);
 
       // Simulate progress

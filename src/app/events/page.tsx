@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { EventsContent } from "./EventsContent";
+import { getEvents } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Events | Claude Community Kenya",
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function EventsPage() {
-  return <EventsContent />;
+export default async function EventsPage() {
+  const events = await getEvents();
+  return <EventsContent events={events} />;
 }

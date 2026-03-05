@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalApplication } from "@/components/terminal/TerminalApplication";
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
@@ -39,15 +40,15 @@ export default function JoinPage() {
                 </h1>
                 <div className="mb-4 flex flex-wrap items-center justify-center gap-4 font-mono text-lg text-text-primary sm:gap-6 sm:text-xl">
                   <span>
-                    <CountUp target={30} suffix="+" className="font-bold text-green-primary" />{" "}
+                    <CountUp target={50} suffix="+" className="font-bold text-green-primary" />{" "}
                     members
                   </span>
                   <span className="text-text-dim" aria-hidden="true">
                     •
                   </span>
                   <span>
-                    <CountUp target={1} className="font-bold text-amber" />{" "}
-                    event hosted
+                    <CountUp target={3} className="font-bold text-amber" />{" "}
+                    meetups held
                   </span>
                   <span className="text-text-dim" aria-hidden="true">
                     •
@@ -60,8 +61,8 @@ export default function JoinPage() {
                     •
                   </span>
                   <span>
-                    <CountUp target={1} className="font-bold text-text-primary" />{" "}
-                    mission
+                    <CountUp target={33} className="font-bold text-text-primary" />{" "}
+                    resources
                   </span>
                 </div>
                 <p className="font-mono text-sm text-text-secondary">
@@ -107,12 +108,12 @@ export default function JoinPage() {
               >
                 Twitter / X
               </a>
-              <a
+              <Link
                 href="/events"
                 className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
               >
                 Events
-              </a>
+              </Link>
             </div>
           </section>
         </ScrollReveal>

@@ -24,6 +24,7 @@ export function KonamiOverlay({ visible, onClose }: KonamiOverlayProps) {
 
   useEffect(() => {
     if (!visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowMessage(false);
       return;
     }

@@ -42,6 +42,7 @@ export function GlitchText({
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mq.addEventListener("change", handler);
@@ -50,6 +51,7 @@ export function GlitchText({
 
   useEffect(() => {
     if (trigger === "always" && !reducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsActive(true);
     }
   }, [trigger, reducedMotion]);

@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import {
   getBlogPostBySlug,
-  blogPosts,
-  getSortedBlogPosts,
-} from "@/data/blog-posts";
+  getBlogSlugs,
+  getBlogPosts,
+} from "@/lib/data";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { Badge } from "@/components/ui/Badge";
@@ -14,21 +14,22 @@ import { CopyLinkButton } from "./CopyLinkButton";
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return blogPosts.map((post) => ({
-    slug: post.slug,
-  }));
+  const slugs = await getBlogSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPostBySlug(slug);
 
   if (!post) {
     return { title: `Post Not Found | ${SITE_CONFIG.name}` };
@@ -258,13 +259,13 @@ function renderInlineMarkdown(text: string): React.ReactNode {
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPostBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
-  const allPosts = getSortedBlogPosts();
+  const allPosts = await getBlogPosts();
   const relatedPosts = allPosts
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);

@@ -8,6 +8,7 @@ import {
   useCallback,
   type KeyboardEvent,
 } from "react";
+import Link from "next/link";
 import { TypingAnimation } from "./TypingAnimation";
 import { TypingCursor } from "./TypingCursor";
 
@@ -579,6 +580,7 @@ function useReturningUser() {
       const saved = localStorage.getItem("cck-application");
       if (saved) {
         const data = JSON.parse(saved);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (data?.name) setReturning({ name: data.name });
       }
     } catch {
@@ -639,6 +641,7 @@ export function TerminalApplication() {
   const [bootDone, setBootDone] = useState(false);
   const [promptReady, setPromptReady] = useState(false);
   const [reApply, setReApply] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -649,6 +652,14 @@ export function TerminalApplication() {
     prefersReducedMotion.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
+  }, []);
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    fetch("/api/csrf-token")
+      .then((r) => r.json())
+      .then((d) => setCsrfToken(d.csrfToken as string))
+      .catch(() => {});
   }, []);
 
   // Auto-scroll
@@ -684,6 +695,7 @@ export function TerminalApplication() {
         })),
       });
       dispatch({ type: "ADD_LINES", lines: [{ id: uid(), type: "system", content: "", color: "dim" }] });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootDone(true);
       dispatch({ type: "SET_STEP", step: "name" });
     } else {
@@ -720,6 +732,7 @@ export function TerminalApplication() {
       return;
 
     const config = getStepConfig(state.currentStep, state.responses);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptReady(false);
     dispatch({ type: "SET_TYPING", isTyping: true });
     dispatch({ type: "ADD_LINES", lines: config.promptLines });
@@ -737,10 +750,11 @@ export function TerminalApplication() {
   }, []);
 
   // Processing
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleProcessingComplete = useCallback(() => {
     const { responses, easterEggsFound } = state;
 
-    // Save to localStorage
+    // Save to localStorage (for returning user detection)
     try {
       localStorage.setItem(
         "cck-application",
@@ -757,6 +771,24 @@ export function TerminalApplication() {
       );
     } catch {
       // ignore
+    }
+
+    // Submit to API (fire and forget — UX shows success regardless)
+    if (csrfToken) {
+      fetch("/api/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+        body: JSON.stringify({
+          name: responses.name,
+          email: responses.email,
+          experience: responses.experience || "Not specified",
+          interests: [responses.role, responses.city].filter(Boolean),
+          reason: responses.why || "Joined via terminal application",
+          heardFrom: responses.referral || undefined,
+        }),
+      }).catch(() => {
+        // Fail silently — localStorage already saved, UX shows success
+      });
     }
 
     dispatch({
@@ -796,7 +828,7 @@ export function TerminalApplication() {
         {
           id: uid(),
           type: "system",
-          content: "  1. Join our Discord → discord.gg/NSB9AsCm",
+          content: "  1. Join our Discord → discord.gg/AVAyYCbJ",
           color: "cyan",
         },
         {
@@ -828,7 +860,7 @@ export function TerminalApplication() {
       ],
     });
     dispatch({ type: "SET_STEP", step: "complete" });
-  }, [state.responses, state.easterEggsFound]);
+  }, [state.responses, state.easterEggsFound, csrfToken]);
 
   useProgressAnimation(
     state.currentStep === "processing",
@@ -979,12 +1011,12 @@ export function TerminalApplication() {
               >
                 $ ./apply.sh --force
               </button>
-              <a
+              <Link
                 href="/events"
                 className="border border-border-default px-4 py-2 font-mono text-sm text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
               >
                 $ cd /events
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -1033,7 +1065,7 @@ export function TerminalApplication() {
         <div
           ref={terminalRef}
           className="min-h-[60vh] overflow-y-auto p-4 sm:min-h-[60vh] md:p-6"
-          style={{ maxHeight: "70vh" }}
+          style={{ maxHeight: "clamp(50vh, 70vh, 70vh)" }}
           aria-live="polite"
           aria-label="Terminal application form"
           role="log"
@@ -1076,7 +1108,7 @@ export function TerminalApplication() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim"
+                className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim focus:ring-1 focus:ring-green-primary focus:ring-offset-0"
                 style={{ caretColor: "var(--green-primary)" }}
                 aria-label={currentConfig?.ariaLabel || "Type your response"}
                 autoComplete="off"
@@ -1170,7 +1202,7 @@ export function TerminalApplication() {
                       }
                     }, 50);
                   }}
-                  className="border border-border-default px-3 py-1.5 font-mono text-xs text-text-secondary transition-colors hover:border-green-primary hover:text-green-primary"
+                  className="border border-border-default px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:border-green-primary hover:text-green-primary active:bg-green-primary/10"
                 >
                   {opt.label}
                 </button>

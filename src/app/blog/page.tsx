@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { getSortedBlogPosts } from "@/data/blog-posts";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
+import { getBlogPosts } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `Blog | ${SITE_CONFIG.name}`,
@@ -22,8 +24,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogPage() {
-  const posts = getSortedBlogPosts();
+export default async function BlogPage() {
+  const posts = await getBlogPosts();
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">

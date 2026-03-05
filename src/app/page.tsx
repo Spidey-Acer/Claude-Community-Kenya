@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Terminal, Code, GraduationCap, MessageSquare, Users, Calendar, Share2 } from "lucide-react";
+import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { EventCard } from "@/components/sections/EventCard";
@@ -8,11 +8,8 @@ import { ProjectCard } from "@/components/sections/ProjectCard";
 import { MatrixRain } from "@/components/terminal";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
-import { GlitchText } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
-import { Button } from "@/components/ui/Button";
-import { getUpcomingEvents } from "@/data/events";
-import { getFeaturedProjects } from "@/data/projects";
+import { getUpcomingEvents, getFeaturedProjects } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -103,15 +100,19 @@ const partners = [
   "Technical University of Mombasa",
 ];
 
-export default function Home() {
-  const upcomingEvents = getUpcomingEvents();
-  const featuredProjects = getFeaturedProjects();
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [upcomingEvents, featuredProjects] = await Promise.all([
+    getUpcomingEvents(),
+    getFeaturedProjects(),
+  ]);
 
   return (
     <div>
       {/* ─── Hero Section ─── */}
       <section
-        className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden px-4"
+        className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden px-4"
         aria-label="Hero"
       >
         <MatrixRain opacity={0.05} density={0.2} />
@@ -132,22 +133,27 @@ export default function Home() {
                 href={SOCIAL_LINKS.discord}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
               >
-                <Button variant="primary">JOIN_DISCORD</Button>
+                <span className="text-current" aria-hidden="true">&gt;</span>
+                JOIN_DISCORD
               </a>
-              <Link href="/events">
-                <Button variant="secondary">VIEW_EVENTS</Button>
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+              >
+                <span className="text-current" aria-hidden="true">&gt;</span>
+                VIEW_EVENTS
               </Link>
             </div>
           </ScrollReveal>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+        <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 sm:block">
           <ScrollReveal delay={2000}>
-            <div className="flex flex-col items-center gap-2 text-text-dim">
-              <span className="font-mono text-xs">scroll</span>
-              <div className="h-8 w-px bg-border-default" />
+            <div className="flex flex-col items-center gap-1 text-text-dim">
+              <ChevronDown className="h-5 w-5 animate-bounce opacity-60" aria-hidden="true" />
             </div>
           </ScrollReveal>
         </div>
@@ -181,8 +187,9 @@ export default function Home() {
 
         <ScrollReveal delay={300}>
           <div className="mt-10 text-center">
-            <Link href="/events">
-              <Button variant="secondary">VIEW_ALL_EVENTS</Button>
+            <Link href="/events" className="inline-flex items-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary">
+              <span className="text-current" aria-hidden="true">&gt;</span>
+              VIEW_ALL_EVENTS
             </Link>
           </div>
         </ScrollReveal>
@@ -249,17 +256,18 @@ export default function Home() {
 
         <ScrollReveal
           stagger={150}
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-6 lg:grid-cols-2"
         >
           {featuredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.name} project={project} />
           ))}
         </ScrollReveal>
 
         <ScrollReveal delay={300}>
           <div className="mt-10 text-center">
-            <Link href="/projects">
-              <Button variant="secondary">VIEW_ALL_PROJECTS</Button>
+            <Link href="/projects" className="inline-flex items-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary">
+              <span className="text-current" aria-hidden="true">&gt;</span>
+              VIEW_ALL_PROJECTS
             </Link>
           </div>
         </ScrollReveal>
@@ -314,19 +322,22 @@ export default function Home() {
                     href={pathway.href}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className={`inline-flex w-full items-center justify-center gap-2 border px-5 py-2.5 font-mono text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary ${
+                      pathway.isPrimary
+                        ? "border-green-primary text-green-primary hover:bg-green-primary hover:text-bg-primary focus-visible:ring-green-primary"
+                        : "border-amber text-amber hover:bg-amber hover:text-bg-primary focus-visible:ring-amber"
+                    }`}
                   >
-                    <Button
-                      variant={pathway.isPrimary ? "primary" : "secondary"}
-                      className="w-full justify-center"
-                    >
-                      {pathway.cta}
-                    </Button>
+                    <span className="text-current" aria-hidden="true">&gt;</span>
+                    {pathway.cta}
                   </a>
                 ) : (
-                  <Link href={pathway.href}>
-                    <Button variant="secondary" className="w-full justify-center">
-                      {pathway.cta}
-                    </Button>
+                  <Link
+                    href={pathway.href}
+                    className="inline-flex w-full items-center justify-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+                  >
+                    <span className="text-current" aria-hidden="true">&gt;</span>
+                    {pathway.cta}
                   </Link>
                 )}
               </div>

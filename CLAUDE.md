@@ -24,11 +24,17 @@ All colors use CSS custom properties defined in `src/app/globals.css`:
 Tailwind theme tokens are registered in the `@theme inline` block in globals.css (e.g., `bg-green-primary`, `text-amber`).
 
 ## Critical Links (ALWAYS USE THESE)
-- **Discord:** https://discord.gg/NSB9AsCm
+- **Discord:** https://discord.gg/AVAyYCbJ
 - **WhatsApp:** https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
 - **Nairobi Events (Luma):** https://luma.com/sbsa789m
 - **Mombasa Events (Luma):** https://luma.com/vsf5re14
 - **Global Claude Community Events:** https://luma.com/claudecommunity
+
+## Git & Commits
+- Conventional commits required: `type(scope): description`
+- When using `/batch-commit`, commits are created **without co-authorship signatures** unless explicitly requested
+- All batch commits must be logically grouped by feature/fix area, not by commit count
+- Always verify changes with `npm run build` and `npx tsc --noEmit` before committing
 
 ## Project Conventions
 - Use `"use client"` only on components that require interactivity (state, effects, event handlers)

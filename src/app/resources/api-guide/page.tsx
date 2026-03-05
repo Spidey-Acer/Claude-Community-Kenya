@@ -91,10 +91,10 @@ export default function ApiGuidePage() {
             <div className="mt-4 space-y-3 text-text-secondary">
               <p>
                 The Claude API is a REST API provided by{" "}
-                <span className="text-cyan">Anthropic</span> that lets you integrate Claude's
+                <span className="text-cyan">Anthropic</span> that lets you integrate Claude&apos;s
                 intelligence into any application. Whether you are building a customer support bot,
                 a code review tool, a document analyzer, or a fully agentic system, the API gives
-                you direct access to Claude's capabilities.
+                you direct access to Claude&apos;s capabilities.
               </p>
               <p>
                 The API differs from{" "}
@@ -160,11 +160,11 @@ export default function ApiGuidePage() {
           <div className="mt-4">
             <TerminalWindow title="auth-header.ts" variant="code">
               <div className="space-y-1">
-                <p className="text-text-dim">// Correct: server-side only</p>
+                <p className="text-text-dim">{"// Correct: server-side only"}</p>
                 <p className="text-green-primary">
                   {"const apiKey = process.env.ANTHROPIC_API_KEY;"}
                 </p>
-                <p className="mt-4 text-text-dim">// Request header</p>
+                <p className="mt-4 text-text-dim">{"// Request header"}</p>
                 <p className="text-amber">
                   {'"x-api-key": apiKey,'}
                 </p>
@@ -222,7 +222,7 @@ export default function ApiGuidePage() {
 
           <TerminalWindow title="basic-request.ts" variant="code">
             <div className="space-y-1 font-mono text-sm">
-              <p className="text-text-dim">// Using the Anthropic TypeScript SDK</p>
+              <p className="text-text-dim">{"// Using the Anthropic TypeScript SDK"}</p>
               <p className="text-cyan">import Anthropic from &quot;@anthropic-ai/sdk&quot;;</p>
               <p className="mt-3 text-text-secondary">
                 {"const client = new Anthropic({"}
@@ -252,7 +252,7 @@ export default function ApiGuidePage() {
           <div className="mt-4">
             <TerminalWindow title="response-structure.json" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-text-dim">// Response object</p>
+                <p className="text-text-dim">{"// Response object"}</p>
                 <p className="text-text-secondary">{"{"}</p>
                 <p className="ml-4 text-green-primary">{'"id": "msg_01XFDUDYJgAACzvnptvVoYEL",'}</p>
                 <p className="ml-4 text-green-primary">{'"type": "message",'}</p>
@@ -299,7 +299,7 @@ export default function ApiGuidePage() {
           <div className="mt-4">
             <TerminalWindow title="streaming.ts" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-text-dim">// Stream responses token by token</p>
+                <p className="text-text-dim">{"// Stream responses token by token"}</p>
                 <p className="text-text-secondary">
                   {"const stream = client.messages.stream({"}
                 </p>
@@ -353,7 +353,7 @@ export default function ApiGuidePage() {
           <div className="mt-4">
             <TerminalWindow title="tool-definition.ts" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-text-dim">// Define a tool</p>
+                <p className="text-text-dim">{"// Define a tool"}</p>
                 <p className="text-text-secondary">{"const tools = [{"}</p>
                 <p className="ml-4 text-green-primary">{"name: \"get_weather\","}</p>
                 <p className="ml-4 text-green-primary">

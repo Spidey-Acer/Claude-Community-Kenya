@@ -147,7 +147,7 @@ export default function LinksPage() {
             or tutorial to share? We welcome contributions from the community.
             Reach out on our{" "}
             <a
-              href="https://discord.gg/NSB9AsCm"
+              href="https://discord.gg/AVAyYCbJ"
               target="_blank"
               rel="noopener noreferrer"
               className="text-cyan hover:underline"

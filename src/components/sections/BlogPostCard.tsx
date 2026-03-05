@@ -1,11 +1,11 @@
 import Link from "next/link";
-import type { BlogPost } from "@/data/blog-posts";
+import type { BlogPostView } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Calendar, Clock, User } from "lucide-react";
 
 interface BlogPostCardProps {
-  post: BlogPost;
+  post: BlogPostView;
 }
 
 export function BlogPostCard({ post }: BlogPostCardProps) {

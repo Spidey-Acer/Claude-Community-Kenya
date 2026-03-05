@@ -1,0 +1,294 @@
+// Claude Community Kenya — Prisma Schema
+// Prisma 7.x format: datasource URL configured in prisma.config.ts
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum SpeakerCategory {
+  FINTECH
+  TECHNICAL
+  CAREER
+  LIVE_DEMO
+  OTHER
+}
+
+enum ProjectStage {
+  IDEA
+  MVP
+  GROWING
+}
+
+enum EventType {
+  MEETUP
+  WORKSHOP
+  CAREER_TALK
+  HACKATHON
+  CONFERENCE
+}
+
+enum EventStatus {
+  UPCOMING
+  REGISTRATION_OPEN
+  SOLD_OUT
+  COMPLETED
+  CANCELLED
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+// ─── Users & Auth ────────────────────────────────────────────────────────────
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  role                 UserRole  @default(MEMBER)
+  firstName            String
+  lastName             String
+  phone                String?
+  imageUrl             String?
+  active               Boolean   @default(true)
+  emailVerified        Boolean   @default(false)
+  lastLogin            DateTime?
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@map("users")
+}
+
+// ─── Speaker Applications ────────────────────────────────────────────────────
+
+model SpeakerApplication {
+  id             String            @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  topic          String
+  abstract       String            @db.Text
+  bio            String            @db.Text
+  category       SpeakerCategory
+  preferredEvent String?
+  preferredCity  String?
+  linkedIn       String?
+  github         String?
+  portfolio      String?
+  website        String?
+  status         ApplicationStatus @default(PENDING)
+  reviewedBy     String?
+  reviewNotes    String?           @db.Text
+  reviewedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@map("speaker_applications")
+}
+
+// ─── Idea / Project Submissions ──────────────────────────────────────────────
+
+model IdeaSubmission {
+  id           String            @id @default(cuid())
+  title        String
+  description  String            @db.Text
+  stage        ProjectStage
+  seekingRoles Json              // Array: COFOUNDER | DEVELOPER | DESIGNER | MENTOR | FUNDER
+  techStack    Json?             // Array of strings
+  timeline     String?
+  contactName  String
+  contactEmail String
+  linkedIn     String?
+  github       String?
+  website      String?
+  status       ApplicationStatus @default(PENDING)
+  reviewedBy   String?
+  reviewNotes  String?           @db.Text
+  reviewedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("idea_submissions")
+}
+
+// ─── Join Applications ───────────────────────────────────────────────────────
+
+model JoinApplication {
+  id          String            @id @default(cuid())
+  name        String
+  email       String
+  github      String?
+  experience  String            @db.Text
+  interests   Json              // Array of strings
+  reason      String            @db.Text
+  heardFrom   String?
+  status      ApplicationStatus @default(PENDING)
+  reviewedBy  String?
+  reviewNotes String?           @db.Text
+  reviewedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("join_applications")
+}
+
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+model Event {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  title           String
+  description     String      @db.Text
+  fullDescription String?     @db.Text
+  date            DateTime
+  time            String
+  venue           String
+  city            String
+  type            EventType
+  status          EventStatus @default(UPCOMING)
+  registrationUrl String?
+  lumaUrl         String?
+  host            String?
+  partnerOrg      String?
+  highlights      Json?       // String[]
+  agenda          Json?       // String[]
+  attendeeCount   Int?
+  photosUrl       String?
+  prizes          Json?       // String[]
+  rules           Json?       // String[]
+  featured        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("events")
+}
+
+// ─── Blog Posts ──────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  excerpt     String     @db.Text
+  content     String     @db.Text
+  author      String
+  authorId    String?
+  tags        Json       // String[]
+  publishedAt DateTime?
+  featured    Boolean    @default(false)
+  status      BlogStatus @default(DRAFT)
+  views       Int        @default(0)
+  readingTime Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("blog_posts")
+}
+
+// ─── Projects ────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  builder     String
+  description String   @db.Text
+  stack       Json     // String[]
+  status      String?
+  demoUrl     String?
+  repoUrl     String?
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("projects")
+}
+
+// ─── Team Members ────────────────────────────────────────────────────────────
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  bio       String   @db.Text
+  linkedIn  String?
+  github    String?
+  twitter   String?
+  website   String?
+  avatar    String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("team_members")
+}
+
+// ─── Contact Messages ────────────────────────────────────────────────────────
+
+model ContactMessage {
+  id          String        @id @default(cuid())
+  name        String
+  email       String
+  subject     String
+  message     String        @db.Text
+  status      MessageStatus @default(UNREAD)
+  repliedAt   DateTime?
+  replyText   String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("contact_messages")
+}
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String   // Plain string — not a FK. May be "system" for automated actions.
+  userName  String?
+  userEmail String?
+  action    String
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
