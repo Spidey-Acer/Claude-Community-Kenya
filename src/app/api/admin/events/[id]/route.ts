@@ -6,6 +6,20 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { EventType, EventStatus } from "@/generated/prisma"
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const check = await checkApiPermission("events", "view")
+  if (!check.authorized) return check.response
+
+  const { id } = await params
+  const event = await prisma.event.findUnique({ where: { id } })
+  if (!event) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+
+  return NextResponse.json({ success: true, data: event })
+}
+
 const updateSchema = z.object({
   title: z.string().min(3).max(200).transform(zodSanitizeString).optional(),
   description: z.string().min(10).max(500).transform(zodSanitizeString).optional(),
