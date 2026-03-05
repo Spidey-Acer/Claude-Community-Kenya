@@ -1,51 +1,44 @@
 "use client";
 
-import { CountUp } from "@/components/ui/CountUp";
+import { TerminalWindow } from "@/components/terminal/TerminalWindow";
+import { TypingAnimation } from "@/components/terminal/TypingAnimation";
 import { ScrollReveal } from "@/components/terminal";
-import { Card } from "@/components/ui/Card";
+import { useState } from "react";
+import { TypingCursor } from "@/components/terminal/TypingCursor";
 
-interface Stat {
-  target: number;
-  suffix: string;
-  label: string;
-}
-
-const stats: Stat[] = [
-  { target: 30, suffix: "+", label: "Developers" },
-  { target: 3, suffix: "", label: "Events Hosted" },
-  { target: 2, suffix: "", label: "Cities" },
-  { target: 33, suffix: "", label: "Resources Curated" },
+const statsLines = [
+  "$ git log --stat --community",
+  "",
+  "  50+ members joined across Kenya",
+  "  3 meetups held \u00B7 Nairobi & Mombasa",
+  "  33 curated resources & tutorials",
+  "  Growing every week...",
+  "",
+  "  $ ",
 ];
 
 export function StatsBar() {
+  const [typingDone, setTypingDone] = useState(false);
+
   return (
-    <ScrollReveal
-      stagger={100}
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-    >
-      {stats.map((stat) => (
-        <Card
-          key={stat.label}
-          showDots={false}
-          padding="sm"
-          className="text-center"
-        >
-          <div
-            className="py-2"
-            aria-label={`${stat.target}${stat.suffix} ${stat.label}`}
-          >
-            <CountUp
-              target={stat.target}
-              suffix={stat.suffix}
-              className="block font-mono text-3xl font-bold text-green-primary"
-              aria-hidden="true"
-            />
-            <span className="mt-1 block font-mono text-xs uppercase tracking-wider text-text-dim" aria-hidden="true">
-              {stat.label}
-            </span>
-          </div>
-        </Card>
-      ))}
+    <ScrollReveal>
+      <TerminalWindow
+        title="community-stats"
+        variant="command"
+        className="mx-auto max-w-2xl"
+      >
+        <TypingAnimation
+          text={statsLines}
+          speed={30}
+          showCursor={!typingDone}
+          onComplete={() => setTypingDone(true)}
+        />
+        {typingDone && (
+          <span className="inline-flex items-center">
+            <TypingCursor />
+          </span>
+        )}
+      </TerminalWindow>
     </ScrollReveal>
   );
 }

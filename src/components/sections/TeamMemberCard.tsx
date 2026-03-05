@@ -1,9 +1,9 @@
-import type { TeamMember } from "@/data/team";
+import type { TeamMemberView } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Linkedin, Github, Twitter, Globe } from "lucide-react";
 
 interface TeamMemberCardProps {
-  member: TeamMember;
+  member: TeamMemberView;
 }
 
 function getInitials(name: string): string {
@@ -34,7 +34,7 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
           <span className="h-2.5 w-2.5 rounded-full bg-green-primary" />
         </div>
         <span className="ml-2 font-mono text-xs text-text-dim">
-          team/{member.id}
+          team/{member.name.toLowerCase().replace(/\s+/g, "-")}
         </span>
       </div>
 
