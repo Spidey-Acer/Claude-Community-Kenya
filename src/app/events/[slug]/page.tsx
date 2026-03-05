@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getEventBySlug, events } from "@/data/events";
+import { getEventBySlug, getEventSlugs } from "@/lib/data";
 import { Badge } from "@/components/ui/Badge";
 import { Timeline } from "@/components/ui/Timeline";
 import { TerminalWindow, ScrollReveal } from "@/components/terminal";
@@ -16,30 +16,26 @@ import {
   ArrowLeft,
   Users,
   Building2,
-  Link as LinkIcon,
   CheckCircle2,
   Trophy,
   Shield,
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
 
-// ---------------------------------------------------------------------------
-// Static params
-// ---------------------------------------------------------------------------
-export function generateStaticParams() {
-  return events.map((e) => ({ slug: e.slug }));
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const slugs = await getEventSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
-// ---------------------------------------------------------------------------
-// Dynamic metadata
-// ---------------------------------------------------------------------------
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
 
   if (!event) {
     return { title: "Event Not Found | Claude Community Kenya" };
@@ -61,9 +57,6 @@ export async function generateMetadata({
   };
 }
 
-// ---------------------------------------------------------------------------
-// Status helpers
-// ---------------------------------------------------------------------------
 const statusLabels: Record<string, string> = {
   upcoming: "Upcoming",
   "registration-open": "Registration Open",
@@ -78,16 +71,13 @@ const typeLabels: Record<string, string> = {
   hackathon: "Hackathon",
 };
 
-// ---------------------------------------------------------------------------
-// Page Component
-// ---------------------------------------------------------------------------
 export default async function EventDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
 
   if (!event) {
     notFound();
@@ -96,7 +86,6 @@ export default async function EventDetailPage({
   const isActionable =
     event.status === "upcoming" || event.status === "registration-open";
 
-  // Build agenda timeline entries
   const agendaEntries = event.agenda?.map((item, i) => {
     const dashIndex = item.indexOf("—");
     const time = dashIndex !== -1 ? item.slice(0, dashIndex).trim() : "";
@@ -109,11 +98,9 @@ export default async function EventDetailPage({
     };
   });
 
-  // Description text (preserve paragraph breaks)
   const descriptionText = event.fullDescription ?? event.description;
   const descriptionParagraphs = descriptionText.split("\n\n");
 
-  // Share URLs
   const eventUrl = `${SITE_CONFIG.url}/events/${event.slug}`;
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
     `${event.title} — ${SITE_CONFIG.name}`
@@ -129,10 +116,7 @@ export default async function EventDetailPage({
     description: event.description,
     startDate: event.date,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    eventStatus:
-      event.status === "completed"
-        ? "https://schema.org/EventScheduled"
-        : "https://schema.org/EventScheduled",
+    eventStatus: "https://schema.org/EventScheduled",
     location: {
       "@type": "Place",
       name: event.venue,
@@ -148,7 +132,14 @@ export default async function EventDetailPage({
       url: SITE_CONFIG.url,
     },
     url: eventUrl,
-    ...(event.registrationUrl && { offers: { "@type": "Offer", url: event.registrationUrl, price: "0", priceCurrency: "KES" } }),
+    ...(event.registrationUrl && {
+      offers: {
+        "@type": "Offer",
+        url: event.registrationUrl,
+        price: "0",
+        priceCurrency: "KES",
+      },
+    }),
   };
 
   return (
@@ -165,7 +156,6 @@ export default async function EventDetailPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
       />
       <div className="mx-auto max-w-4xl">
-        {/* Back link */}
         <Link
           href="/events"
           className="mb-8 inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
@@ -174,12 +164,11 @@ export default async function EventDetailPage({
           Back to Events
         </Link>
 
-        {/* Header section */}
         <ScrollReveal>
           <header className="mb-10">
             <div className="mb-4">
               <Badge variant={event.status}>
-                {statusLabels[event.status]}
+                {statusLabels[event.status] ?? event.status}
               </Badge>
             </div>
 
@@ -187,7 +176,6 @@ export default async function EventDetailPage({
               {event.title}
             </h1>
 
-            {/* Meta info */}
             <div className="flex flex-wrap gap-6 text-text-secondary">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-green-dim" aria-hidden="true" />
@@ -206,14 +194,13 @@ export default async function EventDetailPage({
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-green-dim" aria-hidden="true" />
                 <span className="font-mono text-xs uppercase tracking-wider">
-                  {typeLabels[event.type]}
+                  {typeLabels[event.type] ?? event.type}
                 </span>
               </div>
             </div>
           </header>
         </ScrollReveal>
 
-        {/* Description */}
         <ScrollReveal delay={100}>
           <section className="mb-10">
             <TerminalWindow title={`cat events/${event.slug}/README.md`} variant="default">
@@ -228,7 +215,6 @@ export default async function EventDetailPage({
           </section>
         </ScrollReveal>
 
-        {/* Agenda */}
         {agendaEntries && agendaEntries.length > 0 && (
           <section className="mb-10">
             <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
@@ -238,7 +224,6 @@ export default async function EventDetailPage({
           </section>
         )}
 
-        {/* Host & Partner */}
         {(event.host || event.partnerOrg) && (
           <section className="mb-10 grid gap-4 sm:grid-cols-2">
             {event.host && (
@@ -266,7 +251,6 @@ export default async function EventDetailPage({
           </section>
         )}
 
-        {/* Prizes (hackathon / upcoming) */}
         {event.prizes && event.prizes.length > 0 && (
           <section className="mb-10">
             <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
@@ -288,7 +272,6 @@ export default async function EventDetailPage({
           </section>
         )}
 
-        {/* Rules */}
         {event.rules && event.rules.length > 0 && (
           <section className="mb-10">
             <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
@@ -313,7 +296,6 @@ export default async function EventDetailPage({
           </section>
         )}
 
-        {/* Highlights (completed events only) */}
         {event.status === "completed" &&
           event.highlights &&
           event.highlights.length > 0 && (
@@ -345,7 +327,6 @@ export default async function EventDetailPage({
             </section>
           )}
 
-        {/* Registration CTA */}
         {isActionable && event.registrationUrl && (
           <section className="mb-10">
             <a
@@ -360,7 +341,6 @@ export default async function EventDetailPage({
           </section>
         )}
 
-        {/* Share section */}
         <section className="border-t border-border-default pt-8">
           <h2 className="mb-4 font-mono text-sm uppercase tracking-wider text-text-dim">
             Share this event
