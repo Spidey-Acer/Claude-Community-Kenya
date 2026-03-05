@@ -3,12 +3,11 @@ import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
-import { GlitchText } from "@/components/terminal";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { TeamMemberCard } from "@/components/sections/TeamMemberCard";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { team } from "@/data/team";
+import { getTeamMembers } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -38,21 +37,25 @@ const timelineEntries = [
   },
   {
     date: "Feb 20, 2026",
-    title: "Nairobi Meetup #2 [UPCOMING]",
+    title: "Nairobi Meetup #2",
     description:
       "Our second Nairobi meetup at iHiT Events Space. Deep dives into Claude Code workflows, multi-instance development, and community project updates.",
     hash: "f0a1b2c",
   },
   {
-    date: "Feb 28, 2026",
-    title: "First University Event [UPCOMING]",
+    date: "Feb 26, 2026",
+    title: "First Mombasa Meetup",
     description:
-      "Claude Community Kenya expands to Mombasa with a career talk at the Technical University of Mombasa, in partnership with Swahilipot Hub Foundation.",
+      "Claude Community Kenya expands to Mombasa with our first event at the Technical University of Mombasa. Bringing Claude Code to the coast.",
     hash: "c3d4e5f",
   },
 ];
 
-export default function AboutPage() {
+export const revalidate = 60;
+
+export default async function AboutPage() {
+  const team = await getTeamMembers();
+
   return (
     <div>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "About" }]} />
@@ -235,7 +238,7 @@ export default function AboutPage() {
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
         >
           {team.map((member) => (
-            <TeamMemberCard key={member.id} member={member} />
+            <TeamMemberCard key={member.name} member={member} />
           ))}
         </ScrollReveal>
 

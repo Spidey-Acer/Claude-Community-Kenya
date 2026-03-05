@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { events } from "@/data/events";
+import type { Event } from "@/data/events";
 import { EventCard } from "@/components/sections/EventCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
@@ -17,26 +17,26 @@ const filters: { key: FilterKey; label: string }[] = [
   { key: "mombasa", label: "Mombasa" },
 ];
 
-function filterEvents(key: FilterKey) {
+function applyFilter(allEvents: Event[], key: FilterKey) {
   switch (key) {
     case "upcoming":
-      return events.filter(
+      return allEvents.filter(
         (e) => e.status === "upcoming" || e.status === "registration-open"
       );
     case "past":
-      return events.filter((e) => e.status === "completed");
+      return allEvents.filter((e) => e.status === "completed");
     case "nairobi":
-      return events.filter((e) => e.city === "Nairobi");
+      return allEvents.filter((e) => e.city === "Nairobi");
     case "mombasa":
-      return events.filter((e) => e.city === "Mombasa");
+      return allEvents.filter((e) => e.city === "Mombasa");
     default:
-      return events;
+      return allEvents;
   }
 }
 
-export function EventsContent() {
+export function EventsContent({ events }: { events: Event[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
-  const filtered = filterEvents(activeFilter);
+  const filtered = applyFilter(events, activeFilter);
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
