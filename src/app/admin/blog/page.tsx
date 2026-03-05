@@ -3,6 +3,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { formatDate } from "@/lib/utils"
 import { FileText, Plus } from "lucide-react"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -29,11 +30,13 @@ export default async function BlogAdminPage() {
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs font-mono text-[#555]">{posts.length} posts total</p>
-          <div className="flex items-center gap-2 px-3 py-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] cursor-not-allowed opacity-60">
+          <Link
+            href="/admin/blog/new"
+            className="flex items-center gap-2 px-3 py-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors"
+          >
             <Plus className="w-3.5 h-3.5" />
             New Post
-            <span className="ml-1 text-[9px] text-[#00ff41]/60">(coming soon)</span>
-          </div>
+          </Link>
         </div>
 
         <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
@@ -59,9 +62,9 @@ export default async function BlogAdminPage() {
                 {posts.map((post) => {
                   const tags = Array.isArray(post.tags) ? (post.tags as string[]) : []
                   return (
-                    <tr key={post.id} className="hover:bg-[#111] transition-colors">
+                    <tr key={post.id} className="hover:bg-[#111] transition-colors group">
                       <td className="px-4 py-3">
-                        <div className="text-sm font-mono text-[#e0e0e0]">{post.title}</div>
+                        <Link href={`/admin/blog/${post.id}`} className="block text-sm font-mono text-[#e0e0e0] group-hover:text-[#00ff41] transition-colors">{post.title}</Link>
                         <div className="flex gap-1 mt-1">
                           {tags.slice(0, 3).map((tag) => (
                             <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#222] text-[#555]">
