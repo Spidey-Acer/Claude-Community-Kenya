@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { projects } from "@/data/projects";
+import { getProjects } from "@/lib/data";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
@@ -22,7 +22,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ProjectsPage() {
+export const revalidate = 60;
+
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Projects" }]} />
@@ -70,7 +74,7 @@ export default function ProjectsPage() {
         {/* Projects grid */}
         <ScrollReveal stagger={100} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.name} project={project} />
           ))}
         </ScrollReveal>
       </div>
