@@ -38,16 +38,16 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="w-64 min-h-screen bg-[#0d0d0d] border-r border-[#1e1e1e] flex flex-col">
+    <aside className="w-64 min-h-screen bg-bg-secondary border-r border-border-default flex flex-col">
       {/* Logo */}
-      <div className="p-5 border-b border-[#1e1e1e]">
+      <div className="p-5 border-b border-border-default">
         <Link href="/admin" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded bg-[#00ff41]/10 border border-[#00ff41]/30 flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-[#00ff41]" />
+          <div className="w-8 h-8 rounded bg-green-primary/10 border border-green-primary/30 flex items-center justify-center">
+            <Terminal className="w-4 h-4 text-green-primary" />
           </div>
           <div>
-            <div className="text-xs font-mono font-bold text-[#00ff41] leading-none">CCK</div>
-            <div className="text-[10px] font-mono text-[#666] leading-none mt-0.5">Admin Panel</div>
+            <div className="text-xs font-mono font-bold text-green-primary leading-none">CCK</div>
+            <div className="text-[10px] font-mono text-text-dim leading-none mt-0.5">Admin Panel</div>
           </div>
         </Link>
       </div>
@@ -63,30 +63,30 @@ export function AdminSidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded text-sm font-mono transition-all group",
                 active
-                  ? "bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20"
-                  : "text-[#888] hover:text-[#ccc] hover:bg-[#161616] border border-transparent"
+                  ? "bg-green-primary/10 text-green-primary border border-green-primary/20"
+                  : "text-text-secondary hover:text-text-primary hover:bg-bg-card border border-transparent"
               )}
             >
-              <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-[#00ff41]" : "text-current")} />
+              <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-green-primary" : "text-current")} />
               <span className="flex-1">{label}</span>
-              {active && <ChevronRight className="w-3 h-3 text-[#00ff41]" />}
+              {active && <ChevronRight className="w-3 h-3 text-green-primary" />}
             </Link>
           )
         })}
       </nav>
 
       {/* Sign Out */}
-      <div className="p-3 border-t border-[#1e1e1e]">
+      <div className="p-3 border-t border-border-default">
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-mono text-[#666] hover:text-[#ff3333] hover:bg-[#ff3333]/10 border border-transparent hover:border-[#ff3333]/20 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-mono text-text-dim hover:text-red hover:bg-red/10 border border-transparent hover:border-red/20 transition-all"
         >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>
         </button>
         <Link
           href="/"
-          className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded text-xs font-mono text-[#444] hover:text-[#666] transition-colors"
+          className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded text-xs font-mono text-text-dim hover:text-text-secondary transition-colors"
         >
           <span>← Back to site</span>
         </Link>
