@@ -16,10 +16,9 @@ const heroLines = [
   "$ status --check",
   "> \u{1F7E2} ACTIVE",
   "> Cities: Nairobi, Mombasa",
-  "> Developers: 30+",
-  "> Events: 3 held (Nairobi x2, Mombasa x1)",
+  "> Members: 50+",
+  "> Events: 3 held \u00B7 Nairobi & Mombasa",
   "> Resources: 33 curated",
-  "> Next event: Hackathon · April 4, 2026",
   "",
   "$ join --now",
 ];
