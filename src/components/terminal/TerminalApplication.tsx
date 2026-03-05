@@ -1065,7 +1065,7 @@ export function TerminalApplication() {
         <div
           ref={terminalRef}
           className="min-h-[60vh] overflow-y-auto p-4 sm:min-h-[60vh] md:p-6"
-          style={{ maxHeight: "70vh" }}
+          style={{ maxHeight: "clamp(50vh, 70vh, 70vh)" }}
           aria-live="polite"
           aria-label="Terminal application form"
           role="log"
@@ -1108,7 +1108,7 @@ export function TerminalApplication() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim"
+                className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim focus:ring-1 focus:ring-green-primary focus:ring-offset-0"
                 style={{ caretColor: "var(--green-primary)" }}
                 aria-label={currentConfig?.ariaLabel || "Type your response"}
                 autoComplete="off"
@@ -1202,7 +1202,7 @@ export function TerminalApplication() {
                       }
                     }, 50);
                   }}
-                  className="border border-border-default px-3 py-1.5 font-mono text-xs text-text-secondary transition-colors hover:border-green-primary hover:text-green-primary"
+                  className="border border-border-default px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:border-green-primary hover:text-green-primary active:bg-green-primary/10"
                 >
                   {opt.label}
                 </button>
