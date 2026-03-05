@@ -6,6 +6,20 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { BlogStatus } from "@/generated/prisma"
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const check = await checkApiPermission("blog", "view")
+  if (!check.authorized) return check.response
+
+  const { id } = await params
+  const post = await prisma.blogPost.findUnique({ where: { id } })
+  if (!post) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+
+  return NextResponse.json({ success: true, data: post })
+}
+
 const updateSchema = z.object({
   title: z.string().min(3).max(200).transform(zodSanitizeString).optional(),
   excerpt: z.string().min(10).max(500).transform(zodSanitizeString).optional(),
