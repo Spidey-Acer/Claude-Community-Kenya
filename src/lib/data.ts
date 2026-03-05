@@ -10,7 +10,7 @@ import type {
   BlogPost as PrismaBlogPost,
   Project as PrismaProject,
   TeamMember as PrismaTeamMember,
-} from "@/generated/prisma"
+} from "@/generated/prisma/client"
 
 // ─── Event Mappers ──────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendSpeakerApplicationNotification } from "@/lib/email"
-import { SpeakerCategory } from "@/generated/prisma"
+import { SpeakerCategory } from "@/generated/prisma/client"
 
 const speakerSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),

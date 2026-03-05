@@ -4,7 +4,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
-import { BlogStatus } from "@/generated/prisma"
+import { BlogStatus } from "@/generated/prisma/client"
 
 export async function GET(
   _request: NextRequest,

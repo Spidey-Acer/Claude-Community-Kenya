@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { toSlug } from "@/lib/utils"
-import { BlogStatus } from "@/generated/prisma"
+import { BlogStatus } from "@/generated/prisma/client"
 
 const blogSchema = z.object({
   title: z.string().min(3).max(200).transform(zodSanitizeString),
