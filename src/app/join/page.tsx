@@ -40,14 +40,14 @@ export default function JoinPage() {
                 </h1>
                 <div className="mb-4 flex flex-wrap items-center justify-center gap-4 font-mono text-lg text-text-primary sm:gap-6 sm:text-xl">
                   <span>
-                    <CountUp target={30} suffix="+" className="font-bold text-green-primary" />{" "}
-                    developers
+                    <CountUp target={50} suffix="+" className="font-bold text-green-primary" />{" "}
+                    members
                   </span>
                   <span className="text-text-dim" aria-hidden="true">
                     •
                   </span>
                   <span>
-                    <CountUp target={2} className="font-bold text-amber" />{" "}
+                    <CountUp target={3} className="font-bold text-amber" />{" "}
                     meetups held
                   </span>
                   <span className="text-text-dim" aria-hidden="true">

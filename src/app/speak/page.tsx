@@ -71,20 +71,20 @@ export default function SpeakPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-[#00ff41]/10 border border-[#00ff41]/30 flex items-center justify-center mx-auto mb-5">
-            <CheckCircle className="w-8 h-8 text-[#00ff41]" />
+          <div className="w-16 h-16 rounded-full bg-green-primary/10 border border-green-primary/30 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle className="w-8 h-8 text-green-primary" />
           </div>
-          <h1 className="text-xl font-mono font-bold text-[#e0e0e0] mb-3">Application Received!</h1>
-          <p className="text-sm font-mono text-[#888] leading-relaxed mb-6">
+          <h1 className="text-xl font-mono font-bold text-text-primary mb-3">Application Received!</h1>
+          <p className="text-sm font-mono text-text-secondary leading-relaxed mb-6">
             Thank you for applying to speak at a CCK event. We&apos;ll review your application and reach out within 2 weeks.
           </p>
           <div className="flex gap-3 justify-center">
-            <Link href="/events" className="px-4 py-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-xs font-mono font-semibold text-[#00ff41] hover:bg-[#00ff41]/20 transition-all">
+            <Link href="/events" className="px-4 py-2 bg-green-primary/10 border border-green-primary/30 rounded text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-all">
               View Events
             </Link>
-            <Link href="/" className="px-4 py-2 bg-[#161616] border border-[#222] rounded text-xs font-mono text-[#888] hover:text-[#ccc] transition-all">
+            <Link href="/" className="px-4 py-2 bg-bg-card border border-border-default rounded text-xs font-mono text-text-secondary hover:text-text-secondary transition-all">
               Back to Home
             </Link>
           </div>
@@ -94,25 +94,25 @@ export default function SpeakPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-bg-primary">
       {/* Hero */}
-      <section className="border-b border-[#1a1a1a] px-4 py-16 text-center">
+      <section className="border-b border-bg-elevated px-4 py-16 text-center">
         <div className="max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00ff41]/10 border border-[#00ff41]/20 rounded-full mb-5">
-            <Terminal className="w-3.5 h-3.5 text-[#00ff41]" />
-            <span className="text-xs font-mono text-[#00ff41]">Apply to Speak</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-primary/10 border border-green-primary/20 rounded-full mb-5">
+            <Terminal className="w-3.5 h-3.5 text-green-primary" />
+            <span className="text-xs font-mono text-green-primary">Apply to Speak</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-mono font-bold text-white mb-4">
             Share Your Knowledge<br />
-            <span className="text-[#00ff41]">with Kenya&apos;s AI Community</span>
+            <span className="text-green-primary">with Kenya&apos;s AI Community</span>
           </h1>
-          <p className="text-sm font-mono text-[#888] leading-relaxed max-w-lg mx-auto mb-6">
+          <p className="text-sm font-mono text-text-secondary leading-relaxed max-w-lg mx-auto mb-6">
             CCK events bring together Kenya&apos;s best developers. If you have insights on AI, Claude Code, engineering, fintech, or building in Kenya — we want to hear from you.
           </p>
-          <div className="flex items-center justify-center gap-6 text-[11px] font-mono text-[#555]">
+          <div className="flex items-center justify-center gap-6 text-[11px] font-mono text-text-dim">
             {["30–45 min slots", "Live demos welcome", "Nairobi & Mombasa events"].map((item) => (
               <div key={item} className="flex items-center gap-1.5">
-                <ChevronRight className="w-3 h-3 text-[#00ff41]" />
+                <ChevronRight className="w-3 h-3 text-green-primary" />
                 <span>{item}</span>
               </div>
             ))}
@@ -124,64 +124,64 @@ export default function SpeakPage() {
       <section className="max-w-2xl mx-auto px-4 py-12">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Info */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-6">
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-6">
             <div className="flex items-center gap-2 mb-5">
-              <Mic2 className="w-4 h-4 text-[#00ff41]" />
-              <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">About You</h2>
+              <Mic2 className="w-4 h-4 text-green-primary" />
+              <h2 className="text-sm font-mono font-semibold text-text-primary">About You</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Full Name *</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Full Name *</label>
                 <input name="name" type="text" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
                 {fieldErrors.name && <FieldError msg={fieldErrors.name} />}
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Email *</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Email *</label>
                 <input name="email" type="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
                 {fieldErrors.email && <FieldError msg={fieldErrors.email} />}
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Phone (optional)</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Phone (optional)</label>
                 <input name="phone" type="tel" className={inputCls()} placeholder="+254 ..." />
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">LinkedIn (optional)</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">LinkedIn (optional)</label>
                 <input name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">GitHub (optional)</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">GitHub (optional)</label>
                 <input name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Portfolio / Website (optional)</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Portfolio / Website (optional)</label>
                 <input name="portfolio" type="url" className={inputCls()} placeholder="https://..." />
               </div>
             </div>
           </div>
 
           {/* Talk Details */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-6">
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-6">
             <div className="flex items-center gap-2 mb-5">
-              <Send className="w-4 h-4 text-[#00d4ff]" />
-              <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Your Talk</h2>
+              <Send className="w-4 h-4 text-cyan" />
+              <h2 className="text-sm font-mono font-semibold text-text-primary">Your Talk</h2>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Talk Title *</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Talk Title *</label>
                 <input name="topic" type="text" required className={inputCls(fieldErrors.topic)} placeholder="e.g. Building a production RAG pipeline with Claude" />
                 {fieldErrors.topic && <FieldError msg={fieldErrors.topic} />}
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Category *</label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Category *</label>
                 <div className="grid grid-cols-1 gap-2">
                   {CATEGORIES.map(({ value, label, desc }) => (
-                    <label key={value} className="flex items-start gap-3 p-3 rounded border border-[#1e1e1e] hover:border-[#00ff41]/30 hover:bg-[#111] cursor-pointer transition-all has-[:checked]:border-[#00ff41]/50 has-[:checked]:bg-[#00ff41]/5">
-                      <input type="radio" name="category" value={value} required className="mt-0.5 accent-[#00ff41]" />
+                    <label key={value} className="flex items-start gap-3 p-3 rounded border border-border-default hover:border-green-primary/30 hover:bg-bg-card cursor-pointer transition-all has-[:checked]:border-green-primary/50 has-[:checked]:bg-green-primary/5">
+                      <input type="radio" name="category" value={value} required className="mt-0.5 accent-green-primary" />
                       <div>
-                        <div className="text-xs font-mono font-semibold text-[#ccc]">{label}</div>
-                        <div className="text-[10px] font-mono text-[#555] mt-0.5">{desc}</div>
+                        <div className="text-xs font-mono font-semibold text-text-secondary">{label}</div>
+                        <div className="text-[10px] font-mono text-text-dim mt-0.5">{desc}</div>
                       </div>
                     </label>
                   ))}
@@ -190,21 +190,21 @@ export default function SpeakPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-[#555] mb-1.5">Abstract * <span className="text-[#333]">(min 100 chars)</span></label>
+                <label className="block text-[11px] font-mono text-text-dim mb-1.5">Abstract * <span className="text-text-dim">(min 100 chars)</span></label>
                 <textarea name="abstract" required rows={4} className={inputCls(fieldErrors.abstract) + " resize-none"} placeholder="Brief summary of your talk — what attendees will learn, what you'll cover..." />
                 {fieldErrors.abstract && <FieldError msg={fieldErrors.abstract} />}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-mono text-[#555] mb-1.5">Preferred City</label>
+                  <label className="block text-[11px] font-mono text-text-dim mb-1.5">Preferred City</label>
                   <select name="preferredCity" className={inputCls()}>
                     <option value="">Any city</option>
                     {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-[#555] mb-1.5">Preferred Event Type</label>
+                  <label className="block text-[11px] font-mono text-text-dim mb-1.5">Preferred Event Type</label>
                   <input name="preferredEvent" type="text" className={inputCls()} placeholder="e.g. Meetup, Workshop, Hackathon" />
                 </div>
               </div>
@@ -212,14 +212,14 @@ export default function SpeakPage() {
           </div>
 
           {/* Bio */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-6">
-            <h2 className="text-sm font-mono font-semibold text-[#e0e0e0] mb-4">Speaker Bio *</h2>
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-6">
+            <h2 className="text-sm font-mono font-semibold text-text-primary mb-4">Speaker Bio *</h2>
             <textarea name="bio" required rows={4} className={inputCls(fieldErrors.bio) + " resize-none"} placeholder="Tell us about yourself — your background, what you build, what you're passionate about..." />
             {fieldErrors.bio && <FieldError msg={fieldErrors.bio} />}
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 p-4 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-sm font-mono text-[#ff3333]">
+            <div className="flex items-start gap-2.5 p-4 bg-red/10 border border-red/30 rounded text-sm font-mono text-red">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               {error}
             </div>
@@ -228,7 +228,7 @@ export default function SpeakPage() {
           <button
             type="submit"
             disabled={isPending || !csrfToken}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/40 hover:border-[#00ff41]/60 rounded text-sm font-mono font-bold text-[#00ff41] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-primary/10 hover:bg-green-primary/20 border border-green-primary/40 hover:border-green-primary/60 rounded text-sm font-mono font-bold text-green-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
@@ -236,9 +236,9 @@ export default function SpeakPage() {
               <><Send className="w-4 h-4" /> Submit Application</>
             )}
           </button>
-          <p className="text-center text-[10px] font-mono text-[#333]">
+          <p className="text-center text-[10px] font-mono text-text-dim">
             By submitting, you agree to the{" "}
-            <Link href="/code-of-conduct" className="text-[#444] hover:text-[#666] underline">CCK Code of Conduct</Link>
+            <Link href="/code-of-conduct" className="text-text-dim hover:text-text-dim underline">CCK Code of Conduct</Link>
           </p>
         </form>
       </section>
@@ -247,9 +247,9 @@ export default function SpeakPage() {
 }
 
 function inputCls(hasError?: string) {
-  return `w-full bg-[#111] border ${hasError ? "border-[#ff3333]/50" : "border-[#1e1e1e]"} rounded px-3 py-2.5 text-sm font-mono text-[#e0e0e0] placeholder:text-[#333] focus:outline-none focus:border-[#00ff41]/50 focus:ring-1 focus:ring-[#00ff41]/20 transition-colors`
+  return `w-full bg-bg-card border ${hasError ? "border-red/50" : "border-border-default"} rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors`
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 text-[10px] font-mono text-[#ff3333]">{msg}</p>
+  return <p className="mt-1 text-[10px] font-mono text-red">{msg}</p>
 }
