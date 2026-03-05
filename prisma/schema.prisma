@@ -146,17 +146,20 @@ model IdeaSubmission {
 // ─── Join Applications ───────────────────────────────────────────────────────
 
 model JoinApplication {
-  id         String            @id @default(cuid())
-  name       String
-  email      String
-  github     String?
-  experience String            @db.Text
-  interests  Json              // Array of strings
-  reason     String            @db.Text
-  heardFrom  String?
-  status     ApplicationStatus @default(PENDING)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  name        String
+  email       String
+  github      String?
+  experience  String            @db.Text
+  interests   Json              // Array of strings
+  reason      String            @db.Text
+  heardFrom   String?
+  status      ApplicationStatus @default(PENDING)
+  reviewedBy  String?
+  reviewNotes String?           @db.Text
+  reviewedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@map("join_applications")
 }
