@@ -62,14 +62,14 @@ export default async function AdminDashboard() {
       <AdminHeader title="Dashboard" />
       <div className="p-6 space-y-6">
         {/* Welcome */}
-        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4">
+        <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Activity className="w-4 h-4 text-[#00ff41]" />
-            <span className="text-sm font-mono text-[#e0e0e0] font-semibold">
+            <Activity className="w-4 h-4 text-green-primary" />
+            <span className="text-sm font-mono text-text-primary font-semibold">
               Welcome back, {user?.name?.split(" ")[0] ?? "Admin"}
             </span>
           </div>
-          <p className="text-xs font-mono text-[#555] pl-6">
+          <p className="text-xs font-mono text-text-dim pl-6">
             Here&apos;s what&apos;s waiting for your review.
           </p>
         </div>
@@ -80,7 +80,7 @@ export default async function AdminDashboard() {
             <Link
               key={label}
               href={href}
-              className="bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#2a2a2a] rounded-lg p-4 group transition-all"
+              className="bg-bg-secondary border border-border-default hover:border-border-hover rounded-lg p-4 group transition-all"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: `${color}15`, border: `1px solid ${color}30` }}>
@@ -92,30 +92,30 @@ export default async function AdminDashboard() {
                   </span>
                 )}
               </div>
-              <div className="text-2xl font-mono font-bold text-[#e0e0e0] group-hover:text-white transition-colors">{value}</div>
-              <div className="text-[11px] font-mono text-[#555] mt-0.5">{label}</div>
+              <div className="text-2xl font-mono font-bold text-text-primary group-hover:text-white transition-colors">{value}</div>
+              <div className="text-[11px] font-mono text-text-dim mt-0.5">{label}</div>
             </Link>
           ))}
         </div>
 
         {/* Content Stats Row */}
         <div className="grid grid-cols-2 gap-4">
-          <Link href="/admin/events" className="bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#2a2a2a] rounded-lg p-4 flex items-center gap-4 group transition-all">
-            <div className="w-10 h-10 rounded bg-[#00d4ff]/10 border border-[#00d4ff]/30 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-[#00d4ff]" />
+          <Link href="/admin/events" className="bg-bg-secondary border border-border-default hover:border-border-hover rounded-lg p-4 flex items-center gap-4 group transition-all">
+            <div className="w-10 h-10 rounded bg-cyan/10 border border-cyan/30 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-cyan" />
             </div>
             <div>
-              <div className="text-xl font-mono font-bold text-[#e0e0e0] group-hover:text-white transition-colors">{stats.events}</div>
-              <div className="text-[11px] font-mono text-[#555]">Events</div>
+              <div className="text-xl font-mono font-bold text-text-primary group-hover:text-white transition-colors">{stats.events}</div>
+              <div className="text-[11px] font-mono text-text-dim">Events</div>
             </div>
           </Link>
-          <Link href="/admin/blog" className="bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#2a2a2a] rounded-lg p-4 flex items-center gap-4 group transition-all">
-            <div className="w-10 h-10 rounded bg-[#ffb000]/10 border border-[#ffb000]/30 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#ffb000]" />
+          <Link href="/admin/blog" className="bg-bg-secondary border border-border-default hover:border-border-hover rounded-lg p-4 flex items-center gap-4 group transition-all">
+            <div className="w-10 h-10 rounded bg-amber/10 border border-amber/30 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-amber" />
             </div>
             <div>
-              <div className="text-xl font-mono font-bold text-[#e0e0e0] group-hover:text-white transition-colors">{stats.blogPosts}</div>
-              <div className="text-[11px] font-mono text-[#555]">Blog Posts</div>
+              <div className="text-xl font-mono font-bold text-text-primary group-hover:text-white transition-colors">{stats.blogPosts}</div>
+              <div className="text-[11px] font-mono text-text-dim">Blog Posts</div>
             </div>
           </Link>
         </div>
@@ -123,22 +123,22 @@ export default async function AdminDashboard() {
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Recent Speaker Apps */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4">
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] font-mono font-semibold text-[#888] uppercase tracking-wider">Recent Speaker Apps</h3>
-              <Link href="/admin/speakers" className="text-[10px] font-mono text-[#00ff41] hover:underline">View all</Link>
+              <h3 className="text-[11px] font-mono font-semibold text-text-secondary uppercase tracking-wider">Recent Speaker Apps</h3>
+              <Link href="/admin/speakers" className="text-[10px] font-mono text-green-primary hover:underline">View all</Link>
             </div>
             <div className="space-y-2">
               {stats.recentSpeakers.length === 0 && (
-                <p className="text-[11px] font-mono text-[#444]">No applications yet</p>
+                <p className="text-[11px] font-mono text-text-dim">No applications yet</p>
               )}
               {stats.recentSpeakers.map((app) => (
-                <Link key={app.id} href={`/admin/speakers/${app.id}`} className="flex items-start justify-between p-2 rounded hover:bg-[#161616] transition-colors">
+                <Link key={app.id} href={`/admin/speakers/${app.id}`} className="flex items-start justify-between p-2 rounded hover:bg-bg-card transition-colors">
                   <div className="min-w-0 mr-2">
-                    <div className="text-xs font-mono text-[#ccc] truncate">{app.name}</div>
-                    <div className="text-[10px] font-mono text-[#444] truncate">{app.topic}</div>
+                    <div className="text-xs font-mono text-text-secondary truncate">{app.name}</div>
+                    <div className="text-[10px] font-mono text-text-dim truncate">{app.topic}</div>
                   </div>
-                  <div className="text-[9px] font-mono text-[#333] whitespace-nowrap">
+                  <div className="text-[9px] font-mono text-text-dim whitespace-nowrap">
                     {formatDate(app.createdAt.toISOString())}
                   </div>
                 </Link>
@@ -147,22 +147,22 @@ export default async function AdminDashboard() {
           </div>
 
           {/* Recent Idea Submissions */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4">
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] font-mono font-semibold text-[#888] uppercase tracking-wider">Recent Ideas</h3>
-              <Link href="/admin/ideas" className="text-[10px] font-mono text-[#00ff41] hover:underline">View all</Link>
+              <h3 className="text-[11px] font-mono font-semibold text-text-secondary uppercase tracking-wider">Recent Ideas</h3>
+              <Link href="/admin/ideas" className="text-[10px] font-mono text-green-primary hover:underline">View all</Link>
             </div>
             <div className="space-y-2">
               {stats.recentIdeas.length === 0 && (
-                <p className="text-[11px] font-mono text-[#444]">No submissions yet</p>
+                <p className="text-[11px] font-mono text-text-dim">No submissions yet</p>
               )}
               {stats.recentIdeas.map((idea) => (
-                <Link key={idea.id} href={`/admin/ideas/${idea.id}`} className="flex items-start justify-between p-2 rounded hover:bg-[#161616] transition-colors">
+                <Link key={idea.id} href={`/admin/ideas/${idea.id}`} className="flex items-start justify-between p-2 rounded hover:bg-bg-card transition-colors">
                   <div className="min-w-0 mr-2">
-                    <div className="text-xs font-mono text-[#ccc] truncate">{idea.title}</div>
-                    <div className="text-[10px] font-mono text-[#444] truncate">{idea.stage}</div>
+                    <div className="text-xs font-mono text-text-secondary truncate">{idea.title}</div>
+                    <div className="text-[10px] font-mono text-text-dim truncate">{idea.stage}</div>
                   </div>
-                  <div className="text-[9px] font-mono text-[#333] whitespace-nowrap">
+                  <div className="text-[9px] font-mono text-text-dim whitespace-nowrap">
                     {formatDate(idea.createdAt.toISOString())}
                   </div>
                 </Link>
@@ -171,22 +171,22 @@ export default async function AdminDashboard() {
           </div>
 
           {/* Recent Join Applications */}
-          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4">
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] font-mono font-semibold text-[#888] uppercase tracking-wider">Recent Join Apps</h3>
-              <Link href="/admin/applications" className="text-[10px] font-mono text-[#00ff41] hover:underline">View all</Link>
+              <h3 className="text-[11px] font-mono font-semibold text-text-secondary uppercase tracking-wider">Recent Join Apps</h3>
+              <Link href="/admin/applications" className="text-[10px] font-mono text-green-primary hover:underline">View all</Link>
             </div>
             <div className="space-y-2">
               {stats.recentApplications.length === 0 && (
-                <p className="text-[11px] font-mono text-[#444]">No applications yet</p>
+                <p className="text-[11px] font-mono text-text-dim">No applications yet</p>
               )}
               {stats.recentApplications.map((app) => (
-                <Link key={app.id} href={`/admin/applications/${app.id}`} className="flex items-start justify-between p-2 rounded hover:bg-[#161616] transition-colors">
+                <Link key={app.id} href={`/admin/applications/${app.id}`} className="flex items-start justify-between p-2 rounded hover:bg-bg-card transition-colors">
                   <div className="min-w-0 mr-2">
-                    <div className="text-xs font-mono text-[#ccc] truncate">{app.name}</div>
-                    <div className="text-[10px] font-mono text-[#444] truncate">{app.email}</div>
+                    <div className="text-xs font-mono text-text-secondary truncate">{app.name}</div>
+                    <div className="text-[10px] font-mono text-text-dim truncate">{app.email}</div>
                   </div>
-                  <div className="text-[9px] font-mono text-[#333] whitespace-nowrap">
+                  <div className="text-[9px] font-mono text-text-dim whitespace-nowrap">
                     {formatDate(app.createdAt.toISOString())}
                   </div>
                 </Link>
