@@ -50,7 +50,9 @@ export async function PATCH(
     where: { id },
     data: {
       status: validation.data.status,
-      updatedAt: new Date(),
+      reviewNotes: validation.data.reviewNotes || null,
+      reviewedBy: check.user.email || check.user.name || null,
+      reviewedAt: new Date(),
     },
   })
 
