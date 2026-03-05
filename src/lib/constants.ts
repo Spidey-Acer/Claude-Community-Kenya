@@ -19,7 +19,6 @@ export const NAV_LINKS = [
   { label: "Resources", href: "/resources" },
   { label: "Projects", href: "/projects" },
   { label: "Blog", href: "/blog" },
-  { label: "Join", href: "/join" },
 ] as const;
 
 // ─── Social Links ───

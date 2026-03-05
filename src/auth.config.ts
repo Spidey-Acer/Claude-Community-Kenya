@@ -16,8 +16,10 @@ export const authConfig = {
         return false // Redirect to /admin/login
       }
 
+      // If already logged in and on login page, allow through —
+      // the login page component handles redirect via router.push
       if (isLoggedIn && isOnLoginPage) {
-        return Response.redirect(new URL("/admin", nextUrl))
+        return true
       }
 
       return true
