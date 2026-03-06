@@ -161,11 +161,6 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   return rows.map(mapPrismaEvent)
 }
 
-export async function getEventSlugs(): Promise<string[]> {
-  const rows = await prisma.event.findMany({ select: { slug: true } })
-  return rows.map((r) => r.slug)
-}
-
 export async function getBlogPosts(): Promise<BlogPostView[]> {
   const rows = await prisma.blogPost.findMany({
     where: { status: "PUBLISHED" },
@@ -180,14 +175,6 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | nu
   // Increment view count (non-blocking)
   prisma.blogPost.update({ where: { slug }, data: { views: { increment: 1 } } }).catch(() => {})
   return mapPrismaBlog(row)
-}
-
-export async function getBlogSlugs(): Promise<string[]> {
-  const rows = await prisma.blogPost.findMany({
-    where: { status: "PUBLISHED" },
-    select: { slug: true },
-  })
-  return rows.map((r) => r.slug)
 }
 
 export async function getProjects(): Promise<ProjectView[]> {
