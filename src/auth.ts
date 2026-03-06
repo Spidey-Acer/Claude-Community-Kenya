@@ -18,35 +18,51 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   providers: [
     Credentials({
       async authorize(credentials) {
-        const parsedCredentials = z
-          .object({
-            email: z.string().email(),
-            password: z.string().min(6),
-          })
-          .safeParse(credentials)
+        try {
+          const parsedCredentials = z
+            .object({
+              email: z.string().email(),
+              password: z.string().min(6),
+            })
+            .safeParse(credentials)
 
-        if (!parsedCredentials.success) return null
+          if (!parsedCredentials.success) {
+            console.error("[auth] Invalid credentials format")
+            return null
+          }
 
-        const { email, password } = parsedCredentials.data
+          const { email, password } = parsedCredentials.data
 
-        const prisma = await getPrisma()
-        const user = await prisma.user.findUnique({ where: { email } })
-        if (!user || !user.active) return null
+          console.log("[auth] Attempting login for:", email)
 
-        const passwordMatch = await bcrypt.compare(password, user.passwordHash)
-        if (!passwordMatch) return null
+          const prisma = await getPrisma()
+          console.log("[auth] Prisma client loaded")
 
-        // Update last login (non-blocking)
-        prisma.user.update({
-          where: { id: user.id },
-          data: { lastLogin: new Date() },
-        }).catch(console.error)
+          const user = await prisma.user.findUnique({ where: { email } })
+          console.log("[auth] User lookup result:", user ? "found" : "not found")
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          role: user.role,
+          if (!user || !user.active) return null
+
+          const passwordMatch = await bcrypt.compare(password, user.passwordHash)
+          console.log("[auth] Password match:", passwordMatch)
+
+          if (!passwordMatch) return null
+
+          // Update last login (non-blocking)
+          prisma.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() },
+          }).catch(console.error)
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            role: user.role,
+          }
+        } catch (error) {
+          console.error("[auth] Authorize error:", error)
+          return null
         }
       },
     }),
