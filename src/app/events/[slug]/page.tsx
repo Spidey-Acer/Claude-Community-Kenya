@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getEventBySlug, getEventSlugs } from "@/lib/data";
+import { getEventBySlug } from "@/lib/data";
 import { Badge } from "@/components/ui/Badge";
 import { Timeline } from "@/components/ui/Timeline";
 import { TerminalWindow, ScrollReveal } from "@/components/terminal";

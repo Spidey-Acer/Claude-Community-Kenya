@@ -3,7 +3,7 @@ import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { MessageStatus } from "@/generated/prisma"
+import { MessageStatus } from "@/generated/prisma/client"
 
 const updateSchema = z.object({
   status: z.nativeEnum(MessageStatus),

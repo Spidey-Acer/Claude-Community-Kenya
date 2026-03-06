@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import {
   getBlogPostBySlug,
-  getBlogSlugs,
   getBlogPosts,
 } from "@/lib/data";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
@@ -18,11 +17,6 @@ export const dynamic = "force-dynamic";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  const slugs = await getBlogSlugs();
-  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({

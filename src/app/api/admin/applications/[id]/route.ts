@@ -4,7 +4,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { sendApplicationReviewEmail } from "@/lib/email"
-import { ApplicationStatus } from "@/generated/prisma"
+import { ApplicationStatus } from "@/generated/prisma/client"
 
 const reviewSchema = z.object({
   status: z.nativeEnum(ApplicationStatus),

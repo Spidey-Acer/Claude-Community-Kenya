@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { ApplicationStatus } from "@/generated/prisma"
+import { ApplicationStatus } from "@/generated/prisma/client"
 
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("applications", "view")

@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendIdeaSubmissionNotification } from "@/lib/email"
-import { ProjectStage } from "@/generated/prisma"
+import { ProjectStage } from "@/generated/prisma/client"
 
 const SEEKING_ROLES = ["COFOUNDER", "DEVELOPER", "DESIGNER", "MENTOR", "FUNDER"] as const
 
