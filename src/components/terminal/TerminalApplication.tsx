@@ -12,7 +12,7 @@ import Link from "next/link";
 import { TypingAnimation } from "./TypingAnimation";
 import { TypingCursor } from "./TypingCursor";
 
-// ─── Types ───
+// ── Types ──
 
 type FormStep =
   | "boot"
@@ -117,10 +117,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
 }
 
 function buildProgressBar(percent: number): string {
-  const total = 24;
+  const total = 30;
   const filled = Math.round((percent / 100) * total);
   const empty = total - filled;
-  return `[${"█".repeat(filled)}${"░".repeat(empty)}] ${percent}%`;
+  return `[${"#".repeat(filled)}${"-".repeat(empty)}] ${percent}%`;
 }
 
 let lineIdCounter = 0;
@@ -128,7 +128,7 @@ function uid(): string {
   return `line-${++lineIdCounter}-${Date.now()}`;
 }
 
-// ─── Step Definitions ───
+// ── Step Definitions ──
 
 const STEP_ORDER: FormStep[] = [
   "name",
@@ -192,8 +192,8 @@ function getStepConfig(
           },
         ],
         ariaLabel: "Enter your full name",
-        validate: (v) => (v.trim() ? null : "bash: error — name is required"),
-        getFeedback: (v) => `Welcome, ${v.trim()}! 🤝`,
+        validate: (v) => (v.trim() ? null : "zsh: error -- name is required"),
+        getFeedback: (v) => `> Welcome, ${v.trim()}!`,
       };
     case "email":
       return {
@@ -208,7 +208,7 @@ function getStepConfig(
           {
             id: uid(),
             type: "system",
-            content: "(We'll send you community updates and event invites)",
+            content: "# We'll send you community updates and event invites",
             color: "dim",
           },
         ],
@@ -216,8 +216,8 @@ function getStepConfig(
         validate: (v) =>
           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
             ? null
-            : "bash: invalid email format",
-        getFeedback: () => "Email captured! 📧",
+            : "zsh: invalid email format",
+        getFeedback: () => "> Email locked in.",
       };
     case "city":
       return {
@@ -232,37 +232,19 @@ function getStepConfig(
           {
             id: uid(),
             type: "system",
-            content: "Options:",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  1. Nairobi",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  2. Mombasa",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  3. Other (type your city)",
+            content: "  [1] Nairobi  [2] Mombasa  [3] Other (type your city)",
             color: "dim",
           },
         ],
         ariaLabel: "Enter your city (1 for Nairobi, 2 for Mombasa, or type your city)",
-        validate: (v) => (v.trim() ? null : "bash: error — city is required"),
+        validate: (v) => (v.trim() ? null : "zsh: error -- city is required"),
         normalize: (v) => {
           const key = v.trim().toLowerCase();
           return CITY_OPTIONS[key] || v.trim();
         },
         getFeedback: (v) => {
           const city = CITY_OPTIONS[v.trim().toLowerCase()] || v.trim();
-          return `${city} — great! We're growing there. 🏙️`;
+          return `> ${city} -- we're growing there.`;
         },
       };
     case "role":
@@ -279,13 +261,13 @@ function getStepConfig(
             id: uid(),
             type: "system",
             content:
-              "(e.g., Student, Software Engineer, Data Scientist, Designer, Curious Human)",
+              "# e.g. Student, Software Engineer, Data Scientist, Designer",
             color: "dim",
           },
         ],
         ariaLabel: "Enter your role or occupation",
-        validate: (v) => (v.trim() ? null : "bash: error — role is required"),
-        getFeedback: (v) => `${v.trim()} — nice!`,
+        validate: (v) => (v.trim() ? null : "zsh: error -- role is required"),
+        getFeedback: (v) => `> ${v.trim()} -- noted.`,
       };
     case "experience":
       return {
@@ -300,31 +282,19 @@ function getStepConfig(
           {
             id: uid(),
             type: "system",
-            content: "  1. Never used it",
+            content: "  [1] Never used it    [2] Tried it a few times",
             color: "dim",
           },
           {
             id: uid(),
             type: "system",
-            content: "  2. Tried it a few times",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  3. Use it regularly",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  4. Can't code without it 😤",
+            content: "  [3] Use it regularly  [4] Can't code without it",
             color: "dim",
           },
         ],
         ariaLabel: "Rate your experience with Claude (1-4)",
         validate: (v) =>
-          v.trim() ? null : "bash: error — please pick an option",
+          v.trim() ? null : "zsh: error -- please pick an option",
         normalize: (v) => {
           const key = v.trim().toLowerCase();
           return EXPERIENCE_OPTIONS[key] || v.trim();
@@ -332,10 +302,10 @@ function getStepConfig(
         getFeedback: (v) => {
           const key = v.trim();
           if (key === "4" || key.toLowerCase().includes("can't"))
-            return "One of us! 🔥";
+            return "> One of us.";
           if (key === "1" || key === "2" || key.toLowerCase().includes("never") || key.toLowerCase().includes("tried"))
-            return "Perfect — we'll get you up to speed.";
-          return "Solid. You'll fit right in.";
+            return "> We'll get you up to speed.";
+          return "> Solid. You'll fit right in.";
         },
       };
     case "why":
@@ -351,15 +321,15 @@ function getStepConfig(
           {
             id: uid(),
             type: "system",
-            content: "(A brief answer is fine — or press Enter to skip)",
+            content: "# Brief answer or press Enter to skip",
             color: "dim",
           },
         ],
         ariaLabel: "Why do you want to join? (optional, press Enter to skip)",
         getFeedback: (v) =>
           v.trim()
-            ? "Thanks for sharing!"
-            : "No worries — actions speak louder. 💪",
+            ? "> Thanks for sharing."
+            : "> No worries -- actions speak louder.",
       };
     case "referral":
       return {
@@ -374,48 +344,24 @@ function getStepConfig(
           {
             id: uid(),
             type: "system",
-            content: "  1. Twitter/X",
+            content: "  [1] Twitter/X  [2] LinkedIn  [3] Discord",
             color: "dim",
           },
           {
             id: uid(),
             type: "system",
-            content: "  2. LinkedIn",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  3. Discord",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  4. Friend/colleague",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  5. Meetup event",
-            color: "dim",
-          },
-          {
-            id: uid(),
-            type: "system",
-            content: "  6. Other",
+            content: "  [4] Friend     [5] Meetup    [6] Other",
             color: "dim",
           },
         ],
         ariaLabel: "How did you hear about us? (1-6)",
         validate: (v) =>
-          v.trim() ? null : "bash: error — please pick an option",
+          v.trim() ? null : "zsh: error -- please pick an option",
         normalize: (v) => {
           const key = v.trim().toLowerCase();
           return REFERRAL_OPTIONS[key] || v.trim();
         },
-        getFeedback: () => "Got it!",
+        getFeedback: () => "> Got it.",
       };
     default:
       return {
@@ -426,17 +372,17 @@ function getStepConfig(
   }
 }
 
-// ─── Easter Eggs ───
+// ── Easter Eggs ──
 
 const EASTER_EGGS: Record<string, { response: string; egg: string }> = {
   help: {
     response:
-      "Available commands: name, email, city, role, experience, why, referral. Just answer the prompts!",
+      "Commands: name, email, city, role, experience, why, referral. Just answer the prompts.",
     egg: "help",
   },
   ls: {
     response:
-      "Steps: name → email → city → role → experience → why → referral → submit",
+      "name/ email/ city/ role/ experience/ why/ referral/ -> submit",
     egg: "ls",
   },
   clear: {
@@ -444,7 +390,7 @@ const EASTER_EGGS: Record<string, { response: string; egg: string }> = {
     egg: "clear",
   },
   exit: {
-    response: "No escape. You're one of us now. 🇰🇪",
+    response: "No escape. You're one of us now.",
     egg: "exit",
   },
   pwd: {
@@ -458,12 +404,12 @@ function checkEasterEgg(
 ): { response: string; egg: string } | null {
   const trimmed = input.trim().toLowerCase();
   if (trimmed.startsWith("sudo")) {
-    return { response: "Nice try. No root access here. 😏", egg: "sudo" };
+    return { response: "Nice try. No root access here.", egg: "sudo" };
   }
   return EASTER_EGGS[trimmed] || null;
 }
 
-// ─── Line Renderer ───
+// ── Line Renderer ──
 
 const colorClasses: Record<string, string> = {
   green: "text-green-primary",
@@ -474,7 +420,7 @@ const colorClasses: Record<string, string> = {
   primary: "text-text-primary",
 };
 
-function TerminalLine({
+function TerminalLineComponent({
   line,
   onAnimComplete,
 }: {
@@ -485,10 +431,10 @@ function TerminalLine({
 
   if (line.animate && line.type === "prompt") {
     return (
-      <div className="min-h-[1.5em] font-mono text-sm">
+      <div className="min-h-[1.5em] font-mono text-sm leading-relaxed">
         <TypingAnimation
           text={line.content}
-          speed={30}
+          speed={25}
           showCursor={false}
           onComplete={onAnimComplete}
           className={colorCls}
@@ -499,8 +445,11 @@ function TerminalLine({
 
   if (line.type === "input") {
     return (
-      <div className="min-h-[1.5em] font-mono text-sm">
-        <span className="text-green-dim">~/claude-community-kenya $ </span>
+      <div className="min-h-[1.5em] font-mono text-sm leading-relaxed">
+        <span className="text-cyan">cck</span>
+        <span className="text-text-dim">:</span>
+        <span className="text-amber">~</span>
+        <span className="text-text-primary"> $ </span>
         <span className="text-text-primary">{line.content}</span>
       </div>
     );
@@ -508,7 +457,7 @@ function TerminalLine({
 
   if (line.type === "ascii-art") {
     return (
-      <pre className={`font-mono text-sm whitespace-pre ${colorCls}`}>
+      <pre className={`font-mono text-xs leading-tight sm:text-sm whitespace-pre ${colorCls}`}>
         {line.content}
       </pre>
     );
@@ -516,7 +465,7 @@ function TerminalLine({
 
   if (line.type === "progress") {
     return (
-      <div className="min-h-[1.5em] font-mono text-sm">
+      <div className="min-h-[1.5em] font-mono text-sm leading-relaxed">
         <span className="text-green-primary">
           {line.content.split("]")[0]}]
         </span>
@@ -529,20 +478,20 @@ function TerminalLine({
 
   if (line.type === "feedback") {
     return (
-      <div className={`min-h-[1.5em] font-mono text-sm ${colorCls}`}>
+      <div className={`min-h-[1.5em] font-mono text-sm leading-relaxed ${colorCls}`}>
         {line.content}
       </div>
     );
   }
 
   return (
-    <div className={`min-h-[1.5em] font-mono text-sm ${colorCls}`}>
+    <div className={`min-h-[1.5em] font-mono text-sm leading-relaxed ${colorCls}`}>
       {line.content}
     </div>
   );
 }
 
-// ─── Progress Animation ───
+// ── Progress Animation ──
 
 function useProgressAnimation(
   active: boolean,
@@ -564,13 +513,13 @@ function useProgressAnimation(
         clearInterval(interval);
         setTimeout(onComplete, 400);
       }
-    }, 100);
+    }, 80);
 
     return () => clearInterval(interval);
   }, [active, onComplete, dispatch]);
 }
 
-// ─── Returning User Check ───
+// ── Returning User Check ──
 
 function useReturningUser() {
   const [returning, setReturning] = useState<{ name: string } | null>(null);
@@ -591,7 +540,61 @@ function useReturningUser() {
   return returning;
 }
 
-// ─── Main Component ───
+// ── macOS Window Chrome ──
+
+function WindowButtons({
+  onClose,
+  onMinimize,
+  onMaximize,
+}: {
+  onClose: () => void;
+  onMinimize: () => void;
+  onMaximize: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-[7px]">
+      <button
+        onClick={onClose}
+        className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#ff5f57] transition-opacity hover:brightness-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+        aria-label="Close terminal"
+      >
+        <svg className="h-[6px] w-[6px] opacity-0 group-hover:opacity-100" viewBox="0 0 12 12" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="2.5">
+          <path d="M1 1l10 10M11 1L1 11" />
+        </svg>
+      </button>
+      <button
+        onClick={onMinimize}
+        className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#febc2e] transition-opacity hover:brightness-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+        aria-label="Minimize terminal"
+      >
+        <svg className="h-[6px] w-[6px] opacity-0 group-hover:opacity-100" viewBox="0 0 12 12" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="2.5">
+          <path d="M1 6h10" />
+        </svg>
+      </button>
+      <button
+        onClick={onMaximize}
+        className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#28c840] transition-opacity hover:brightness-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+        aria-label="Maximize terminal"
+      >
+        <svg className="h-[6px] w-[6px] opacity-0 group-hover:opacity-100" viewBox="0 0 12 12" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="2.5">
+          <path d="M1.5 3.5v7h7M3.5 1.5h7v7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ── Session ID ──
+
+function useSessionId() {
+  const [sessionId] = useState(() => {
+    const hex = Math.random().toString(16).slice(2, 8);
+    return hex;
+  });
+  return sessionId;
+}
+
+// ── Main Component ──
 
 const BOOT_LINES: TerminalLine[] = [
   { id: uid(), type: "input", content: "./apply.sh" },
@@ -605,17 +608,19 @@ const BOOT_LINES: TerminalLine[] = [
   {
     id: uid(),
     type: "ascii-art",
-    content: `╔══════════════════════════════════════════════════╗
-║        CLAUDE COMMUNITY KENYA APPLICATION        ║
-╚══════════════════════════════════════════════════╝`,
+    content: `  ____  ____  _  __
+ / ___\|/ ___|| |/ /
+| |    | |    | ' /
+| |___ | |___ | . \\
+ \\____| \\____||_|\\_\\  APPLY`,
     color: "green",
   },
   { id: uid(), type: "system", content: "", color: "dim" },
 ];
 
 const BOOT_INTRO_TEXT = [
-  "We're building East Africa's first Claude developer",
-  "community. Want in? Let's go.",
+  "East Africa's first Claude developer community.",
+  "Want in? Let's go.",
 ];
 
 const initialState: FormState = {
@@ -642,11 +647,14 @@ export function TerminalApplication() {
   const [promptReady, setPromptReady] = useState(false);
   const [reApply, setReApply] = useState(false);
   const [csrfToken, setCsrfToken] = useState("");
+  const [minimized, setMinimized] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const returningUser = useReturningUser();
   const prefersReducedMotion = useRef(false);
+  const sessionId = useSessionId();
 
   useEffect(() => {
     prefersReducedMotion.current = window.matchMedia(
@@ -662,9 +670,11 @@ export function TerminalApplication() {
       .catch(() => {});
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll terminal content (NOT the page)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [state.history, state.currentStep, promptReady]);
 
   // Focus input when prompt is ready
@@ -684,7 +694,6 @@ export function TerminalApplication() {
     dispatch({ type: "ADD_LINES", lines: BOOT_LINES });
 
     if (prefersReducedMotion.current) {
-      // Skip typing animation
       dispatch({
         type: "ADD_LINES",
         lines: BOOT_INTRO_TEXT.map((t) => ({
@@ -754,7 +763,6 @@ export function TerminalApplication() {
   const handleProcessingComplete = useCallback(() => {
     const { responses, easterEggsFound } = state;
 
-    // Save to localStorage (for returning user detection)
     try {
       localStorage.setItem(
         "cck-application",
@@ -773,7 +781,6 @@ export function TerminalApplication() {
       // ignore
     }
 
-    // Submit to API (fire and forget — UX shows success regardless)
     if (csrfToken) {
       fetch("/api/join", {
         method: "POST",
@@ -786,9 +793,7 @@ export function TerminalApplication() {
           reason: responses.why || "Joined via terminal application",
           heardFrom: responses.referral || undefined,
         }),
-      }).catch(() => {
-        // Fail silently — localStorage already saved, UX shows success
-      });
+      }).catch(() => {});
     }
 
     dispatch({
@@ -798,63 +803,63 @@ export function TerminalApplication() {
         {
           id: uid(),
           type: "ascii-art",
-          content: `╔══════════════════════════════════════════════════╗
-║              APPLICATION SUBMITTED!              ║
-╚══════════════════════════════════════════════════╝`,
+          content: `+------------------------------------------+
+|         APPLICATION SUBMITTED            |
++------------------------------------------+`,
           color: "green",
         },
         { id: uid(), type: "system", content: "", color: "dim" },
         {
           id: uid(),
           type: "feedback",
-          content: `  Welcome to Claude Community Kenya, ${responses.name}!`,
+          content: `  Welcome to Claude Community Kenya, ${responses.name}.`,
           color: "green",
         },
         { id: uid(), type: "system", content: "", color: "dim" },
         {
           id: uid(),
           type: "feedback",
-          content: "  ✅ APPLICATION RECEIVED",
+          content: "  [OK] APPLICATION RECEIVED",
           color: "green",
         },
         { id: uid(), type: "system", content: "", color: "dim" },
         {
           id: uid(),
           type: "system",
-          content: "  Here's what happens next:",
+          content: "  Next steps:",
           color: "primary",
         },
         { id: uid(), type: "system", content: "", color: "dim" },
         {
           id: uid(),
           type: "system",
-          content: "  1. Join our Discord → discord.gg/AVAyYCbJ",
+          content: "  1. Join Discord --> discord.gg/AVAyYCbJ",
           color: "cyan",
         },
         {
           id: uid(),
           type: "system",
-          content: "  2. Follow us on Twitter → @ClaudeCommunityKE",
+          content: "  2. Follow us --> @ClaudeCommunityKE",
           color: "cyan",
         },
         {
           id: uid(),
           type: "system",
-          content: "  3. Check upcoming events → /events",
+          content: "  3. Upcoming events --> /events",
           color: "cyan",
         },
         { id: uid(), type: "system", content: "", color: "dim" },
         {
           id: uid(),
           type: "system",
-          content: `  Easter Eggs Found: ${easterEggsFound}/5`,
+          content: `  Easter Eggs: ${easterEggsFound}/5`,
           color: "amber",
         },
         {
           id: uid(),
           type: "system",
           content:
-            "  HINT: Explore the terminal like a developer would...",
+            "  HINT: Try some shell commands...",
           color: "dim",
         },
       ],
@@ -880,7 +885,6 @@ export function TerminalApplication() {
     )
       return;
 
-    // Check easter eggs
     const easterEgg = checkEasterEgg(value);
     if (easterEgg) {
       dispatch({
@@ -901,7 +905,6 @@ export function TerminalApplication() {
 
     const config = getStepConfig(state.currentStep, state.responses);
 
-    // Validate
     if (config.validate) {
       const error = config.validate(value);
       if (error) {
@@ -916,17 +919,14 @@ export function TerminalApplication() {
       }
     }
 
-    // Normalize value
     const normalized = config.normalize ? config.normalize(value) : value.trim();
 
-    // Record response
     dispatch({
       type: "SET_RESPONSE",
       field: getStepField(state.currentStep),
       value: normalized || value.trim(),
     });
 
-    // Add input + feedback lines
     const feedback = config.getFeedback(value);
     dispatch({
       type: "ADD_LINES",
@@ -937,7 +937,6 @@ export function TerminalApplication() {
       ],
     });
 
-    // Advance to next step
     const currentIndex = STEP_ORDER.indexOf(state.currentStep);
     if (currentIndex < STEP_ORDER.length - 1) {
       setPromptReady(false);
@@ -945,7 +944,6 @@ export function TerminalApplication() {
         dispatch({ type: "SET_STEP", step: STEP_ORDER[currentIndex + 1] });
       }, 400);
     } else {
-      // All steps done — processing
       setPromptReady(false);
       setTimeout(() => {
         dispatch({
@@ -954,7 +952,7 @@ export function TerminalApplication() {
             {
               id: uid(),
               type: "system",
-              content: "Processing your application...",
+              content: "Processing application...",
               color: "green",
             },
           ],
@@ -971,49 +969,106 @@ export function TerminalApplication() {
     }
   };
 
-  // Handle re-apply for returning users
   const handleReApply = () => {
     setReApply(true);
   };
 
-  // Returning user screen
+  // ── Window controls ──
+  const handleClose = useCallback(() => {
+    setMinimized(true);
+    setTimeout(() => {
+      document.getElementById("contribute")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  }, []);
+
+  const handleMinimize = useCallback(() => {
+    setMinimized(true);
+  }, []);
+
+  const handleMaximize = useCallback(() => {
+    setMaximized((prev) => !prev);
+  }, []);
+
+  // Step progress
+  const currentStepIndex = STEP_ORDER.indexOf(state.currentStep);
+  const stepProgress =
+    state.currentStep === "complete"
+      ? STEP_ORDER.length
+      : state.currentStep === "processing"
+        ? STEP_ORDER.length
+        : currentStepIndex >= 0
+          ? currentStepIndex
+          : 0;
+
+  // ── Minimized state ──
+  if (minimized) {
+    return (
+      <div className={`mx-auto ${maximized ? "max-w-full" : "max-w-4xl"}`}>
+        <button
+          onClick={() => {
+            setMinimized(false);
+            setTimeout(() => inputRef.current?.focus(), 100);
+          }}
+          className="group flex w-full items-center gap-3 rounded-lg border border-border-default bg-[#1c1c1e] px-4 py-3 transition-all hover:border-green-primary/50 hover:shadow-[0_0_20px_rgba(0,255,65,0.08)]"
+        >
+          <div className="flex items-center gap-[7px]">
+            <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+            <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+            <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+          </div>
+          <span className="font-mono text-xs text-text-dim group-hover:text-text-secondary">
+            apply.sh -- click to restore
+          </span>
+          <span className="ml-auto font-mono text-[10px] text-text-dim">
+            {stepProgress}/{STEP_ORDER.length} steps
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // ── Returning user screen ──
   if (returningUser && !reApply && !bootDone) {
     return (
-      <div className="mx-auto max-w-4xl">
-        <div className="border border-border-default bg-bg-card">
-          {/* Title bar */}
-          <div className="flex items-center gap-2 border-b border-border-default px-4 py-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-red" />
-              <span className="h-2.5 w-2.5 rounded-full bg-amber" />
-              <span className="h-2.5 w-2.5 rounded-full bg-green-primary" />
-            </div>
-            <span className="ml-2 font-mono text-xs text-text-dim">
-              apply.sh — bash
+      <div className={`mx-auto ${maximized ? "max-w-full" : "max-w-4xl"}`}>
+        <div className="overflow-hidden rounded-lg border border-border-default bg-[#1c1c1e] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)]">
+          {/* macOS Title Bar */}
+          <div className="flex items-center border-b border-white/[0.06] bg-[#2a2a2c] px-4 py-[10px]">
+            <WindowButtons
+              onClose={handleClose}
+              onMinimize={handleMinimize}
+              onMaximize={handleMaximize}
+            />
+            <span className="flex-1 text-center font-mono text-xs text-[#8e8e93]">
+              apply.sh
             </span>
+            <div className="w-[52px]" />
           </div>
+
           <div className="p-6 font-mono text-sm">
-            <pre className="whitespace-pre text-green-primary">
-{`╔══════════════════════════════════════════════════╗
-║        CLAUDE COMMUNITY KENYA APPLICATION        ║
-╚══════════════════════════════════════════════════╝`}
+            <pre className="whitespace-pre text-xs text-green-primary sm:text-sm">
+{`  ____  ____  _  __
+ / ___\|/ ___|| |/ /
+| |    | |    | ' /
+| |___ | |___ | . \\
+ \\____| \\____||_|\\_\\  APPLY`}
             </pre>
             <p className="mt-4 text-text-primary">
-              Welcome back, {returningUser.name}! Your application is on file.
+              Welcome back, {returningUser.name}. Your application is on file.
             </p>
             <p className="mt-2 text-text-dim">
-              Want to submit a new application?
+              Submit a new application?
             </p>
             <div className="mt-4 flex gap-4">
               <button
                 onClick={handleReApply}
-                className="border border-green-primary px-4 py-2 font-mono text-sm text-green-primary transition-colors hover:bg-green-primary hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+                className="rounded border border-green-primary px-4 py-2 font-mono text-sm text-green-primary transition-all hover:bg-green-primary hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
               >
                 $ ./apply.sh --force
               </button>
               <Link
                 href="/events"
-                className="border border-border-default px-4 py-2 font-mono text-sm text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
+                className="rounded border border-border-default px-4 py-2 font-mono text-sm text-text-secondary transition-all hover:border-border-hover hover:text-text-primary"
               >
                 $ cd /events
               </Link>
@@ -1024,7 +1079,6 @@ export function TerminalApplication() {
     );
   }
 
-  // Determine current step config for aria-label
   const currentConfig =
     state.currentStep !== "boot" &&
     state.currentStep !== "processing" &&
@@ -1032,7 +1086,6 @@ export function TerminalApplication() {
       ? getStepConfig(state.currentStep, state.responses)
       : null;
 
-  // Check if we need to render the typing animation for boot
   const showBootTyping =
     state.currentStep === "boot" && bootDone && state.isTyping;
 
@@ -1043,181 +1096,234 @@ export function TerminalApplication() {
     state.currentStep !== "processing" &&
     state.currentStep !== "complete";
 
-  // Numbered options for mobile
   const mobileOptions = getMobileOptions(state.currentStep);
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="border border-border-default bg-bg-card shadow-[0_0_15px_rgba(0,255,65,0.1)]">
-        {/* Title bar */}
-        <div className="flex items-center gap-2 border-b border-border-default px-4 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber" />
-            <span className="h-2.5 w-2.5 rounded-full bg-green-primary" />
-          </div>
-          <span className="ml-2 font-mono text-xs text-text-dim">
-            apply.sh — bash
+    <div
+      ref={terminalRef}
+      className={`mx-auto transition-all duration-300 ${maximized ? "fixed inset-4 z-50 max-w-none" : "max-w-4xl"}`}
+    >
+      <div
+        className={`flex flex-col overflow-hidden rounded-lg border border-border-default shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] ${maximized ? "h-full" : ""}`}
+        style={{
+          background: "linear-gradient(180deg, #1c1c1e 0%, #141415 100%)",
+        }}
+      >
+        {/* ── macOS Title Bar ── */}
+        <div className="flex shrink-0 items-center border-b border-white/[0.06] bg-[#2a2a2c] px-4 py-[10px]">
+          <WindowButtons
+            onClose={handleClose}
+            onMinimize={handleMinimize}
+            onMaximize={handleMaximize}
+          />
+          <span className="flex-1 text-center font-mono text-xs text-[#8e8e93]">
+            apply.sh -- {sessionId} -- 80x24
           </span>
+          <div className="w-[52px]" />
         </div>
 
-        {/* Terminal content */}
-        <div
-          ref={terminalRef}
-          className="min-h-[60vh] overflow-y-auto p-4 sm:min-h-[60vh] md:p-6"
-          style={{ maxHeight: "clamp(50vh, 70vh, 70vh)" }}
-          aria-live="polite"
-          aria-label="Terminal application form"
-          role="log"
-        >
-          {/* Rendered history lines */}
-          {state.history.map((line) => {
-            // For animated prompt lines, we need onComplete callback
-            if (line.animate && line.type === "prompt") {
-              return (
-                <TerminalLine
-                  key={line.id}
-                  line={line}
-                  onAnimComplete={handlePromptTypingComplete}
+        {/* ── Status Bar ── */}
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.04] bg-[#1c1c1e] px-4 py-1">
+          <span className="font-mono text-[10px] text-text-dim">
+            session: cck-{sessionId}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] text-text-dim">
+              step {Math.min(stepProgress + 1, STEP_ORDER.length)}/{STEP_ORDER.length}
+            </span>
+            <div className="flex gap-[2px]">
+              {STEP_ORDER.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1 w-3 rounded-sm transition-colors duration-300 ${
+                    i <= stepProgress - 1
+                      ? "bg-green-primary"
+                      : i === stepProgress
+                        ? "bg-green-primary/50"
+                        : "bg-white/10"
+                  }`}
                 />
-              );
-            }
-            return <TerminalLine key={line.id} line={line} />;
-          })}
-
-          {/* Boot typing animation */}
-          {showBootTyping && (
-            <TypingAnimation
-              text={BOOT_INTRO_TEXT}
-              speed={30}
-              showCursor={true}
-              onComplete={handleBootTypingComplete}
-              className="text-text-primary"
-            />
-          )}
-
-          {/* Input area */}
-          {showInput && (
-            <div className="mt-2 flex items-center font-mono text-sm">
-              <span className="shrink-0 text-green-dim select-none">
-                ~/claude-community-kenya ${" "}
-              </span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim focus:ring-1 focus:ring-green-primary focus:ring-offset-0"
-                style={{ caretColor: "var(--green-primary)" }}
-                aria-label={currentConfig?.ariaLabel || "Type your response"}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <TypingCursor />
-            </div>
-          )}
-
-          {/* Mobile option buttons */}
-          {showInput && mobileOptions.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2 sm:hidden">
-              {mobileOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    setInputValue(opt.value);
-                    setTimeout(() => {
-                      // Trigger submit
-                      const syntheticInput = opt.value;
-                      setInputValue("");
-
-                      const config = getStepConfig(
-                        state.currentStep,
-                        state.responses
-                      );
-                      const normalized = config.normalize
-                        ? config.normalize(syntheticInput)
-                        : syntheticInput.trim();
-
-                      dispatch({
-                        type: "SET_RESPONSE",
-                        field: getStepField(state.currentStep),
-                        value: normalized || syntheticInput.trim(),
-                      });
-
-                      const feedback = config.getFeedback(syntheticInput);
-                      dispatch({
-                        type: "ADD_LINES",
-                        lines: [
-                          {
-                            id: uid(),
-                            type: "input",
-                            content: syntheticInput,
-                          },
-                          {
-                            id: uid(),
-                            type: "feedback",
-                            content: feedback,
-                            color: "cyan",
-                          },
-                          {
-                            id: uid(),
-                            type: "system",
-                            content: "",
-                            color: "dim",
-                          },
-                        ],
-                      });
-
-                      const currentIndex = STEP_ORDER.indexOf(
-                        state.currentStep
-                      );
-                      if (currentIndex < STEP_ORDER.length - 1) {
-                        setPromptReady(false);
-                        setTimeout(() => {
-                          dispatch({
-                            type: "SET_STEP",
-                            step: STEP_ORDER[currentIndex + 1],
-                          });
-                        }, 400);
-                      } else {
-                        setPromptReady(false);
-                        setTimeout(() => {
-                          dispatch({
-                            type: "ADD_LINES",
-                            lines: [
-                              {
-                                id: uid(),
-                                type: "system",
-                                content: "Processing your application...",
-                                color: "green",
-                              },
-                            ],
-                          });
-                          dispatch({
-                            type: "SET_STEP",
-                            step: "processing",
-                          });
-                        }, 400);
-                      }
-                    }, 50);
-                  }}
-                  className="border border-border-default px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:border-green-primary hover:text-green-primary active:bg-green-primary/10"
-                >
-                  {opt.label}
-                </button>
               ))}
             </div>
-          )}
+          </div>
+        </div>
 
-          <div ref={bottomRef} />
+        {/* ── Terminal Content ── */}
+        <div className="relative flex-1">
+          {/* Scanline overlay */}
+          <div
+            className="pointer-events-none absolute inset-0 z-10 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,255,65,0.1) 1px, rgba(0,255,65,0.1) 2px)",
+            }}
+          />
+
+          <div
+            ref={scrollRef}
+            className={`overflow-y-auto p-4 md:p-6 ${maximized ? "" : "min-h-[50vh]"}`}
+            style={{ maxHeight: maximized ? "calc(100vh - 120px)" : "clamp(50vh, 65vh, 70vh)" }}
+            aria-live="polite"
+            aria-label="Terminal application form"
+            role="log"
+            onClick={() => inputRef.current?.focus()}
+          >
+            {/* History */}
+            {state.history.map((line) => {
+              if (line.animate && line.type === "prompt") {
+                return (
+                  <TerminalLineComponent
+                    key={line.id}
+                    line={line}
+                    onAnimComplete={handlePromptTypingComplete}
+                  />
+                );
+              }
+              return <TerminalLineComponent key={line.id} line={line} />;
+            })}
+
+            {/* Boot typing animation */}
+            {showBootTyping && (
+              <TypingAnimation
+                text={BOOT_INTRO_TEXT}
+                speed={25}
+                showCursor={true}
+                onComplete={handleBootTypingComplete}
+                className="text-text-primary"
+              />
+            )}
+
+            {/* Input area */}
+            {showInput && (
+              <div className="mt-1 flex items-center font-mono text-sm">
+                <span className="shrink-0 select-none">
+                  <span className="text-cyan">cck</span>
+                  <span className="text-text-dim">:</span>
+                  <span className="text-amber">~</span>
+                  <span className="text-text-primary"> $ </span>
+                </span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 border-none bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-dim/40"
+                  style={{ caretColor: "var(--green-primary)" }}
+                  aria-label={currentConfig?.ariaLabel || "Type your response"}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <TypingCursor />
+              </div>
+            )}
+
+            {/* Mobile option buttons */}
+            {showInput && mobileOptions.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 sm:hidden">
+                {mobileOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setInputValue(opt.value);
+                      setTimeout(() => {
+                        const syntheticInput = opt.value;
+                        setInputValue("");
+
+                        const config = getStepConfig(
+                          state.currentStep,
+                          state.responses
+                        );
+                        const normalized = config.normalize
+                          ? config.normalize(syntheticInput)
+                          : syntheticInput.trim();
+
+                        dispatch({
+                          type: "SET_RESPONSE",
+                          field: getStepField(state.currentStep),
+                          value: normalized || syntheticInput.trim(),
+                        });
+
+                        const feedback = config.getFeedback(syntheticInput);
+                        dispatch({
+                          type: "ADD_LINES",
+                          lines: [
+                            {
+                              id: uid(),
+                              type: "input",
+                              content: syntheticInput,
+                            },
+                            {
+                              id: uid(),
+                              type: "feedback",
+                              content: feedback,
+                              color: "cyan",
+                            },
+                            {
+                              id: uid(),
+                              type: "system",
+                              content: "",
+                              color: "dim",
+                            },
+                          ],
+                        });
+
+                        const currentIndex = STEP_ORDER.indexOf(
+                          state.currentStep
+                        );
+                        if (currentIndex < STEP_ORDER.length - 1) {
+                          setPromptReady(false);
+                          setTimeout(() => {
+                            dispatch({
+                              type: "SET_STEP",
+                              step: STEP_ORDER[currentIndex + 1],
+                            });
+                          }, 400);
+                        } else {
+                          setPromptReady(false);
+                          setTimeout(() => {
+                            dispatch({
+                              type: "ADD_LINES",
+                              lines: [
+                                {
+                                  id: uid(),
+                                  type: "system",
+                                  content: "Processing application...",
+                                  color: "green",
+                                },
+                              ],
+                            });
+                            dispatch({
+                              type: "SET_STEP",
+                              step: "processing",
+                            });
+                          }, 400);
+                        }
+                      }, 50);
+                    }}
+                    className="rounded border border-white/10 bg-white/[0.03] px-4 py-2.5 font-mono text-sm text-text-secondary transition-all hover:border-green-primary/40 hover:text-green-primary active:bg-green-primary/10"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Maximized backdrop */}
+      {maximized && (
+        <div
+          className="fixed inset-0 -z-10 bg-black/60 backdrop-blur-sm"
+          onClick={handleMaximize}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Mobile Options Helper ───
+// ── Mobile Options Helper ──
 
 function getMobileOptions(
   step: FormStep

@@ -120,51 +120,59 @@ export default function JoinPage() {
 
         {/* ── Section 4: Contribute ── */}
         <ScrollReveal>
-          <section className="mb-16">
+          <section id="contribute" className="mb-16 scroll-mt-24">
             <h2 className="mb-8 text-center font-mono text-2xl font-bold text-cyan">
               Contribute
             </h2>
 
             <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <Card title="speak.sh" padding="md">
-                <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
-                  Speak at a Meetup
-                </h3>
-                <p className="font-sans text-text-secondary">
-                  Have a Claude project to share? Give a lightning talk or full
-                  presentation at one of our events.
-                </p>
-              </Card>
+              <Link href="/speak" className="block">
+                <Card title="speak.sh" padding="md" className="cursor-pointer">
+                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
+                    Speak at a Meetup
+                  </h3>
+                  <p className="font-sans text-text-secondary">
+                    Have a Claude project to share? Give a lightning talk or full
+                    presentation at one of our events.
+                  </p>
+                </Card>
+              </Link>
 
-              <Card title="organize.sh" padding="md">
-                <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
-                  Help Organize
-                </h3>
-                <p className="font-sans text-text-secondary">
-                  We need co-organizers, especially in Mombasa. Help us bring
-                  the community to your city.
-                </p>
-              </Card>
+              <Link href={`mailto:${CONTACT.email}?subject=Help%20Organize%20CCK`} className="block">
+                <Card title="organize.sh" padding="md" className="cursor-pointer">
+                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
+                    Help Organize
+                  </h3>
+                  <p className="font-sans text-text-secondary">
+                    We need co-organizers, especially in Mombasa. Help us bring
+                    the community to your city.
+                  </p>
+                </Card>
+              </Link>
 
-              <Card title="submit.sh" padding="md">
-                <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
-                  Submit a Project
-                </h3>
-                <p className="font-sans text-text-secondary">
-                  Built something with Claude? Get it featured on our projects
-                  page and inspire other developers.
-                </p>
-              </Card>
+              <Link href="/submit-idea" className="block">
+                <Card title="submit.sh" padding="md" className="cursor-pointer">
+                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
+                    Submit a Project
+                  </h3>
+                  <p className="font-sans text-text-secondary">
+                    Built something with Claude? Get it featured on our projects
+                    page and inspire other developers.
+                  </p>
+                </Card>
+              </Link>
 
-              <Card title="partner.sh" padding="md">
-                <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
-                  Partner with Us
-                </h3>
-                <p className="font-sans text-text-secondary">
-                  University, company, or venue? Let&apos;s collaborate and grow
-                  the AI developer community together.
-                </p>
-              </Card>
+              <Link href={`mailto:${CONTACT.email}?subject=Partnership%20with%20CCK`} className="block">
+                <Card title="partner.sh" padding="md" className="cursor-pointer">
+                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">
+                    Partner with Us
+                  </h3>
+                  <p className="font-sans text-text-secondary">
+                    University, company, or venue? Let&apos;s collaborate and grow
+                    the AI developer community together.
+                  </p>
+                </Card>
+              </Link>
             </div>
 
             {/* Contact info */}
@@ -179,8 +187,15 @@ export default function JoinPage() {
                   className="text-green-primary underline underline-offset-4 transition-colors hover:text-green-dim"
                 >
                   {CONTACT.email}
-                </a>{" "}
-                or find us on{" "}
+                </a>
+                {" "}| Call/WhatsApp:{" "}
+                <a
+                  href={`tel:${CONTACT.phone.replace(/\s/g, "")}`}
+                  className="text-green-primary underline underline-offset-4 transition-colors hover:text-green-dim"
+                >
+                  {CONTACT.phone}
+                </a>
+                {" "}| Find us on{" "}
                 <a
                   href={SOCIAL_LINKS.discord}
                   target="_blank"

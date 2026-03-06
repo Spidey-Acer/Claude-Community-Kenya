@@ -70,6 +70,7 @@ export const FOOTER_SECTIONS = [
 // ─── Contact ───
 export const CONTACT = {
   email: "claudecommunitykenya@gmail.com",
+  phone: "+254 707 311 659",
   city: "Nairobi, Kenya",
 } as const;
 
