@@ -1,6 +1,7 @@
 import type { TeamMemberView } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Linkedin, Github, Twitter, Globe } from "lucide-react";
+import Image from "next/image";
 
 interface TeamMemberCardProps {
   member: TeamMemberView;
@@ -42,15 +43,26 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
       <div className="p-6">
         {/* Avatar + Name */}
         <div className="mb-4 flex items-center gap-4">
-          {/* Avatar placeholder with initials */}
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-green-primary/30 bg-green-primary/10"
-            aria-hidden="true"
-          >
-            <span className="font-mono text-lg font-bold text-green-primary">
-              {getInitials(member.name)}
-            </span>
-          </div>
+          {/* Avatar */}
+          {member.avatar ? (
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-green-primary/30">
+              <Image
+                src={member.avatar}
+                alt={member.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-green-primary/30 bg-green-primary/10"
+              aria-hidden="true"
+            >
+              <span className="font-mono text-lg font-bold text-green-primary">
+                {getInitials(member.name)}
+              </span>
+            </div>
+          )}
 
           <div>
             <h3 className="font-mono text-base font-semibold text-green-primary">
