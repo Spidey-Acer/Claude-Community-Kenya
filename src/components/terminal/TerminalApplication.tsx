@@ -833,7 +833,7 @@ export function TerminalApplication() {
         {
           id: uid(),
           type: "system",
-          content: "  1. Join Discord --> discord.gg/AVAyYCbJ",
+          content: "  1. Join Discord --> discord.gg/CkD9QWjsHm",
           color: "cyan",
         },
         {

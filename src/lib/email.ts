@@ -99,7 +99,7 @@ export async function sendSpeakerApplicationNotification(data: {
       <p>Hi ${esc(data.name)},</p>
       <p>We've received your speaker application for <strong>"${esc(data.topic)}"</strong>.</p>
       <p>Our team will review it and get back to you within 5 business days.</p>
-      <p>In the meantime, join our community on <a href="https://discord.gg/AVAyYCbJ" style="color:#00ff41;">Discord</a>.</p>
+      <p>In the meantime, join our community on <a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;">Discord</a>.</p>
       <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
     </div>
   `
@@ -139,7 +139,7 @@ export async function sendIdeaSubmissionNotification(data: {
       <p>Hi ${esc(data.name)},</p>
       <p>We've received your submission for <strong>"${esc(data.title)}"</strong>.</p>
       <p>We'll review it and reach out if we can help connect you with collaborators or resources.</p>
-      <p>Join our <a href="https://discord.gg/AVAyYCbJ" style="color:#00ff41;">Discord community</a> to connect with other builders now.</p>
+      <p>Join our <a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;">Discord community</a> to connect with other builders now.</p>
       <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
     </div>
   `
@@ -176,7 +176,7 @@ export async function sendJoinApplicationNotification(data: {
       <p>Hi ${esc(data.name)},</p>
       <p>Your application has been received. We'll review it and add you to the community.</p>
       <p>While you wait, join our Discord for instant access to the community:</p>
-      <p><a href="https://discord.gg/AVAyYCbJ" style="color:#00ff41;font-size:18px;">Join Discord →</a></p>
+      <p><a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;font-size:18px;">Join Discord →</a></p>
       <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
     </div>
   `
