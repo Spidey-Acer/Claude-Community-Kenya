@@ -54,7 +54,7 @@ export function TerminalWindow({
       {/* Box-drawing top border accent */}
       <div className="flex overflow-hidden px-4 pt-1 font-mono text-xs text-border-default opacity-40 select-none" aria-hidden="true">
         <span className="shrink-0">╔</span>
-        <span className="flex-1 overflow-hidden whitespace-nowrap">{'═'.repeat(80)}</span>
+        <span className="flex-1 overflow-hidden whitespace-nowrap">{'═'.repeat(40)}</span>
         <span className="shrink-0">╗</span>
       </div>
 
@@ -66,7 +66,7 @@ export function TerminalWindow({
       {/* Box-drawing bottom border accent */}
       <div className="flex overflow-hidden px-4 pb-1 font-mono text-xs text-border-default opacity-40 select-none" aria-hidden="true">
         <span className="shrink-0">╚</span>
-        <span className="flex-1 overflow-hidden whitespace-nowrap">{'═'.repeat(80)}</span>
+        <span className="flex-1 overflow-hidden whitespace-nowrap">{'═'.repeat(40)}</span>
         <span className="shrink-0">╝</span>
       </div>
     </div>
