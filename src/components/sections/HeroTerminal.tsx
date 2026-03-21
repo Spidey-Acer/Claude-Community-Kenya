@@ -31,7 +31,7 @@ export function HeroTerminal() {
       variant="command"
       title="claude-community-kenya@nairobi:~$"
       glowing
-      className="max-w-2xl"
+      className="w-full max-w-2xl"
     >
       <TypingAnimation
         text={heroLines}
