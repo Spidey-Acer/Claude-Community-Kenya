@@ -272,6 +272,54 @@ model ContactMessage {
   @@map("contact_messages")
 }
 
+// ─── Site Settings ──────────────────────────────────────────────────────────
+
+model SiteSettings {
+  id               String   @id @default("default")
+  discordMembers   Int      @default(0)
+  whatsappMembers  Int      @default(0)
+  linkedinMembers  Int      @default(0)
+  eventsHeld       Int      @default(0)
+  citiesActive     Json     @default("[\"Nairobi\", \"Mombasa\"]") // String[]
+  resourceCount    Int      @default(0)
+  websiteStatus    String   @default("live")
+  updatedAt        DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ─── Volunteer Applications ─────────────────────────────────────────────────
+
+enum VolunteerRole {
+  SOCIAL_MEDIA_MANAGER
+  COMMUNITY_MANAGER
+  CONTENT_CREATOR
+  EVENT_COORDINATOR
+}
+
+model VolunteerApplication {
+  id           String            @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  role         VolunteerRole
+  experience   String            @db.Text
+  availability String
+  motivation   String            @db.Text
+  linkedIn     String?
+  github       String?
+  twitter      String?
+  portfolio    String?
+  status       ApplicationStatus @default(PENDING)
+  reviewedBy   String?
+  reviewNotes  String?           @db.Text
+  reviewedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("volunteer_applications")
+}
+
 // ─── Audit Log ───────────────────────────────────────────────────────────────
 
 model AuditLog {
