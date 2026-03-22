@@ -198,6 +198,7 @@ export const RateLimits = {
   SPEAKER_APPLY: { maxRequests: 3, windowInSeconds: 86400 }, // 3/day
   IDEA_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },   // 3/day
   JOIN: { maxRequests: 5, windowInSeconds: 86400 },           // 5/day
+  VOLUNTEER_APPLY: { maxRequests: 3, windowInSeconds: 86400 }, // 3/day
 } as const
 
 export function getRedisClient(): Redis | null {
