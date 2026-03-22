@@ -10,6 +10,7 @@ import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
 import { getUpcomingEvents, getFeaturedProjects } from "@/lib/data";
+import { prisma } from "@/lib/prisma";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -103,10 +104,28 @@ const partners = [
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [upcomingEvents, featuredProjects] = await Promise.all([
+  const [upcomingEvents, featuredProjects, siteSettings] = await Promise.all([
     getUpcomingEvents(),
     getFeaturedProjects(),
+    prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
   ]);
+
+  const communityStats = siteSettings
+    ? {
+        discordMembers: siteSettings.discordMembers,
+        whatsappMembers: siteSettings.whatsappMembers,
+        linkedinMembers: siteSettings.linkedinMembers,
+        totalMembers:
+          siteSettings.discordMembers +
+          siteSettings.whatsappMembers +
+          siteSettings.linkedinMembers,
+        eventsHeld: siteSettings.eventsHeld,
+        citiesActive: Array.isArray(siteSettings.citiesActive)
+          ? (siteSettings.citiesActive as string[])
+          : (JSON.parse(siteSettings.citiesActive as string) as string[]),
+        resourceCount: siteSettings.resourceCount,
+      }
+    : undefined;
 
   return (
     <div>
@@ -118,7 +137,7 @@ export default async function Home() {
         <MatrixRain opacity={0.05} density={0.2} />
 
         <div className="relative z-10 flex flex-col items-center gap-8">
-          <HeroTerminal />
+          <HeroTerminal stats={communityStats} />
 
           <ScrollReveal delay={800}>
             <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
@@ -161,7 +180,7 @@ export default async function Home() {
 
       {/* ─── Stats Bar ─── */}
       <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Community stats">
-        <StatsBar />
+        <StatsBar stats={communityStats} />
       </section>
 
       {/* ─── Featured Events ─── */}

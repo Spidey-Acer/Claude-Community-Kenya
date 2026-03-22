@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { LoadingBar } from "@/components/terminal/LoadingBar";
-import { EasterEggs } from "@/components/EasterEggs";
-import { PageTransition } from "@/components/layout/PageTransition";
+import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -132,16 +128,7 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} antialiased`}
       >
-        <a href="#main-content" className="skip-nav">
-          Skip to main content
-        </a>
-        <Navbar />
-        <LoadingBar />
-        <main id="main-content">
-          <PageTransition>{children}</PageTransition>
-        </main>
-        <Footer />
-        <EasterEggs />
+        <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>
   );

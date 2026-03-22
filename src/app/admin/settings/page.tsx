@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { StatusBadge } from "@/components/admin/StatusBadge"
+import { SiteStatsEditor } from "@/components/admin/SiteStatsEditor"
 import { formatDate } from "@/lib/utils"
 import { Settings, Users, ShieldAlert } from "lucide-react"
 
@@ -30,6 +31,25 @@ export default async function SettingsPage() {
     redirect("/admin")
   }
 
+  // Fetch site stats for the editor
+  let siteStats = await prisma.siteSettings.findUnique({
+    where: { id: "default" },
+  })
+  if (!siteStats) {
+    siteStats = await prisma.siteSettings.create({
+      data: {
+        id: "default",
+        discordMembers: 71,
+        whatsappMembers: 70,
+        linkedinMembers: 59,
+        eventsHeld: 2,
+        citiesActive: ["Nairobi", "Mombasa"],
+        resourceCount: 33,
+        websiteStatus: "live",
+      },
+    })
+  }
+
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
     select: {
@@ -49,6 +69,21 @@ export default async function SettingsPage() {
     <div>
       <AdminHeader title="Settings" />
       <div className="p-6 space-y-6">
+        {/* Community Stats Editor */}
+        <SiteStatsEditor
+          initialStats={{
+            discordMembers: siteStats.discordMembers,
+            whatsappMembers: siteStats.whatsappMembers,
+            linkedinMembers: siteStats.linkedinMembers,
+            eventsHeld: siteStats.eventsHeld,
+            citiesActive: Array.isArray(siteStats.citiesActive)
+              ? siteStats.citiesActive as string[]
+              : JSON.parse(siteStats.citiesActive as string) as string[],
+            resourceCount: siteStats.resourceCount,
+            websiteStatus: siteStats.websiteStatus,
+          }}
+        />
+
         {/* Users Table */}
         <div>
           <div className="flex items-center gap-2 mb-4">

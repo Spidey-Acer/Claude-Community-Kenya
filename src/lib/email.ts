@@ -195,10 +195,57 @@ export async function sendJoinApplicationNotification(data: {
   return adminSent
 }
 
+const VOLUNTEER_ROLE_LABELS: Record<string, string> = {
+  SOCIAL_MEDIA_MANAGER: "Social Media Manager",
+  COMMUNITY_MANAGER: "Community Manager",
+  CONTENT_CREATOR: "Content Creator",
+  EVENT_COORDINATOR: "Event Coordinator",
+}
+
+export async function sendVolunteerApplicationNotification(data: {
+  name: string
+  email: string
+  role: string
+}): Promise<boolean> {
+  const roleLabel = VOLUNTEER_ROLE_LABELS[data.role] ?? data.role
+  const adminHtml = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">New Volunteer Application</h2>
+      <p><strong>Name:</strong> ${esc(data.name)}</p>
+      <p><strong>Email:</strong> ${esc(data.email)}</p>
+      <p><strong>Role:</strong> ${esc(roleLabel)}</p>
+      <p><a href="${APP_URL}/admin/volunteers" style="color:#00ff41;">Review in Admin Dashboard →</a></p>
+    </div>
+  `
+  const applicantHtml = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Volunteer Application Received — Claude Community Kenya</h2>
+      <p>Hi ${esc(data.name)},</p>
+      <p>We've received your volunteer application for the <strong>${esc(roleLabel)}</strong> role.</p>
+      <p>Our team will review it and get back to you soon.</p>
+      <p>In the meantime, join our community on <a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;">Discord</a>.</p>
+      <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  const [adminSent] = await Promise.all([
+    sendEmail({
+      to: EMAIL_TO_ADMIN,
+      subject: `New Volunteer Application: ${roleLabel} — ${data.name}`,
+      html: adminHtml,
+    }),
+    sendEmail({
+      to: data.email,
+      subject: "Volunteer Application Received — Claude Community Kenya",
+      html: applicantHtml,
+    }),
+  ])
+  return adminSent
+}
+
 export async function sendApplicationReviewEmail(data: {
   email: string
   name: string
-  type: "speaker" | "idea" | "join"
+  type: "speaker" | "idea" | "join" | "volunteer"
   status: "approved" | "rejected"
   notes?: string
 }): Promise<boolean> {
@@ -209,6 +256,8 @@ export async function sendApplicationReviewEmail(data: {
       ? "Speaker Application"
       : data.type === "idea"
       ? "Idea Submission"
+      : data.type === "volunteer"
+      ? "Volunteer Application"
       : "Join Application"
 
   const html = `
