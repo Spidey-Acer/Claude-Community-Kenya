@@ -5,26 +5,49 @@ import { TerminalWindow } from "@/components/terminal";
 import { TypingAnimation } from "@/components/terminal";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
-const heroLines = [
-  "$ whoami",
-  "> Claude Community Kenya \u{1F1F0}\u{1F1EA}",
-  "",
-  "$ cat mission.txt",
-  "> Building East Africa's most vibrant",
-  "  AI developer community",
-  "",
-  "$ status --check",
-  "> \u{1F7E2} ACTIVE",
-  "> Cities: Nairobi, Mombasa",
-  "> Members: 50+",
-  "> Events: 3 held \u00B7 Nairobi & Mombasa",
-  "> Resources: 33 curated",
-  "",
-  "$ join --now",
-];
+export interface CommunityStats {
+  discordMembers: number;
+  whatsappMembers: number;
+  linkedinMembers: number;
+  totalMembers: number;
+  eventsHeld: number;
+  citiesActive: string[];
+  resourceCount: number;
+}
 
-export function HeroTerminal() {
+function buildHeroLines(stats: CommunityStats): string[] {
+  return [
+    "$ whoami",
+    "> Claude Community Kenya \u{1F1F0}\u{1F1EA}",
+    "",
+    "$ cat mission.txt",
+    "> Building East Africa's most vibrant",
+    "  AI developer community",
+    "",
+    "$ status --check",
+    "> \u{1F7E2} ACTIVE",
+    `> Cities: ${stats.citiesActive.join(", ")}`,
+    `> Discord: ${stats.discordMembers} \u00B7 WhatsApp: ${stats.whatsappMembers} \u00B7 LinkedIn: ${stats.linkedinMembers}`,
+    `> Events: ${stats.eventsHeld} held \u00B7 ${stats.citiesActive.join(" & ")}`,
+    `> Resources: ${stats.resourceCount} curated`,
+    "",
+    "$ join --now",
+  ];
+}
+
+const DEFAULT_STATS: CommunityStats = {
+  discordMembers: 71,
+  whatsappMembers: 70,
+  linkedinMembers: 59,
+  totalMembers: 200,
+  eventsHeld: 2,
+  citiesActive: ["Nairobi", "Mombasa"],
+  resourceCount: 33,
+};
+
+export function HeroTerminal({ stats }: { stats?: CommunityStats }) {
   const [typingComplete, setTypingComplete] = useState(false);
+  const heroLines = buildHeroLines(stats ?? DEFAULT_STATS);
 
   return (
     <TerminalWindow

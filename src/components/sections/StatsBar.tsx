@@ -5,20 +5,34 @@ import { TypingAnimation } from "@/components/terminal/TypingAnimation";
 import { ScrollReveal } from "@/components/terminal";
 import { useState } from "react";
 import { TypingCursor } from "@/components/terminal/TypingCursor";
+import type { CommunityStats } from "@/components/sections/HeroTerminal";
 
-const statsLines = [
-  "$ git log --stat --community",
-  "",
-  "  50+ members joined across Kenya",
-  "  3 meetups held \u00B7 Nairobi & Mombasa",
-  "  33 curated resources & tutorials",
-  "  Growing every week...",
-  "",
-  "  $ ",
-];
+function buildStatsLines(stats: CommunityStats): string[] {
+  return [
+    "$ git log --stat --community",
+    "",
+    `  Discord: ${stats.discordMembers} · WhatsApp: ${stats.whatsappMembers} · LinkedIn: ${stats.linkedinMembers}`,
+    `  ${stats.eventsHeld} meetups held · ${stats.citiesActive.join(" & ")}`,
+    `  ${stats.resourceCount} curated resources & tutorials`,
+    "  Growing every week...",
+    "",
+    "  $ ",
+  ];
+}
 
-export function StatsBar() {
+const DEFAULT_STATS: CommunityStats = {
+  discordMembers: 71,
+  whatsappMembers: 70,
+  linkedinMembers: 59,
+  totalMembers: 200,
+  eventsHeld: 2,
+  citiesActive: ["Nairobi", "Mombasa"],
+  resourceCount: 33,
+};
+
+export function StatsBar({ stats }: { stats?: CommunityStats }) {
   const [typingDone, setTypingDone] = useState(false);
+  const statsLines = buildStatsLines(stats ?? DEFAULT_STATS);
 
   return (
     <ScrollReveal>
