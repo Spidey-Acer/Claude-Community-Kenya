@@ -9,6 +9,7 @@ export type AdminResource =
   | "speakers"
   | "ideas"
   | "applications"
+  | "volunteers"
   | "contact"
   | "events"
   | "blog"
@@ -27,6 +28,7 @@ const rolePermissions: Record<
     speakers: ["view", "create", "edit", "delete", "approve"],
     ideas: ["view", "create", "edit", "delete", "approve"],
     applications: ["view", "create", "edit", "delete", "approve"],
+    volunteers: ["view", "create", "edit", "delete", "approve"],
     contact: ["view", "edit", "delete"],
     events: ["view", "create", "edit", "delete"],
     blog: ["view", "create", "edit", "delete"],
@@ -39,6 +41,7 @@ const rolePermissions: Record<
     speakers: ["view", "edit", "approve"],
     ideas: ["view", "edit", "approve"],
     applications: ["view", "edit", "approve"],
+    volunteers: ["view", "edit", "approve"],
     contact: ["view", "edit"],
     events: ["view", "create", "edit", "delete"],
     blog: ["view", "create", "edit", "delete"],
@@ -51,6 +54,7 @@ const rolePermissions: Record<
     speakers: ["view", "approve"],
     ideas: ["view", "approve"],
     applications: ["view", "approve"],
+    volunteers: ["view", "approve"],
     contact: ["view"],
     events: ["view"],
     blog: ["view"],
@@ -63,6 +67,7 @@ const rolePermissions: Record<
     speakers: [],
     ideas: [],
     applications: [],
+    volunteers: [],
     contact: [],
     events: ["view"],
     blog: ["view"],

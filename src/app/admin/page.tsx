@@ -1,7 +1,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { AdminHeader } from "@/components/admin/AdminHeader"
-import { Mic2, Lightbulb, Users, MessageSquare, Calendar, FileText, Activity } from "lucide-react"
+import { Mic2, Lightbulb, Users, MessageSquare, Calendar, FileText, Activity, HandHeart } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 
@@ -17,9 +17,12 @@ async function getDashboardStats() {
     pendingIdeas,
     pendingApplications,
     unreadMessages,
+    volunteers,
+    pendingVolunteers,
     recentSpeakers,
     recentIdeas,
     recentApplications,
+    recentVolunteers,
     events,
     blogPosts,
   ] = await Promise.all([
@@ -31,16 +34,20 @@ async function getDashboardStats() {
     prisma.ideaSubmission.count({ where: { status: "PENDING" } }),
     prisma.joinApplication.count({ where: { status: "PENDING" } }),
     prisma.contactMessage.count({ where: { status: "UNREAD" } }),
+    prisma.volunteerApplication.count(),
+    prisma.volunteerApplication.count({ where: { status: "PENDING" } }),
     prisma.speakerApplication.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
     prisma.ideaSubmission.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
     prisma.joinApplication.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
+    prisma.volunteerApplication.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
     prisma.event.count(),
     prisma.blogPost.count(),
   ])
   return {
     speakers, ideas, applications, messages,
     pendingSpeakers, pendingIdeas, pendingApplications, unreadMessages,
-    recentSpeakers, recentIdeas, recentApplications,
+    volunteers, pendingVolunteers,
+    recentSpeakers, recentIdeas, recentApplications, recentVolunteers,
     events, blogPosts,
   }
 }
@@ -54,6 +61,7 @@ export default async function AdminDashboard() {
     { label: "Speaker Apps", value: stats.speakers, pending: stats.pendingSpeakers, href: "/admin/speakers", icon: Mic2, color: "#00ff41" },
     { label: "Idea Submissions", value: stats.ideas, pending: stats.pendingIdeas, href: "/admin/ideas", icon: Lightbulb, color: "#00d4ff" },
     { label: "Join Applications", value: stats.applications, pending: stats.pendingApplications, href: "/admin/applications", icon: Users, color: "#ffb000" },
+    { label: "Volunteers", value: stats.volunteers, pending: stats.pendingVolunteers, href: "/admin/volunteers", icon: HandHeart, color: "#a855f7" },
     { label: "Contact Messages", value: stats.messages, pending: stats.unreadMessages, href: "/admin/contact", icon: MessageSquare, color: "#ff3333" },
   ]
 
@@ -75,7 +83,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {statCards.map(({ label, value, pending, href, icon: Icon, color }) => (
             <Link
               key={label}
@@ -121,7 +129,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Recent Speaker Apps */}
           <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -188,6 +196,30 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="text-[9px] font-mono text-text-dim whitespace-nowrap">
                     {formatDate(app.createdAt.toISOString())}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Volunteer Applications */}
+          <div className="bg-bg-secondary border border-border-default rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-mono font-semibold text-text-secondary uppercase tracking-wider">Recent Volunteers</h3>
+              <Link href="/admin/volunteers" className="text-[10px] font-mono text-green-primary hover:underline">View all</Link>
+            </div>
+            <div className="space-y-2">
+              {stats.recentVolunteers.length === 0 && (
+                <p className="text-[11px] font-mono text-text-dim">No applications yet</p>
+              )}
+              {stats.recentVolunteers.map((vol) => (
+                <Link key={vol.id} href={`/admin/volunteers/${vol.id}`} className="flex items-start justify-between p-2 rounded hover:bg-bg-card transition-colors">
+                  <div className="min-w-0 mr-2">
+                    <div className="text-xs font-mono text-text-secondary truncate">{vol.name}</div>
+                    <div className="text-[10px] font-mono text-text-dim truncate">{vol.role.replace(/_/g, " ").toLowerCase()}</div>
+                  </div>
+                  <div className="text-[9px] font-mono text-text-dim whitespace-nowrap">
+                    {formatDate(vol.createdAt.toISOString())}
                   </div>
                 </Link>
               ))}
