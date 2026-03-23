@@ -27,10 +27,10 @@ export async function GET() {
       settings = await prisma.siteSettings.create({
         data: {
           id: "default",
-          discordMembers: 71,
-          whatsappMembers: 70,
-          linkedinMembers: 59,
-          eventsHeld: 2,
+          discordMembers: 78,
+          whatsappMembers: 96,
+          linkedinMembers: 61,
+          eventsHeld: 5,
           citiesActive: ["Nairobi", "Mombasa"],
           resourceCount: 33,
           websiteStatus: "live",

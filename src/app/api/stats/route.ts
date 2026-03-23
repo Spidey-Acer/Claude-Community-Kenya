@@ -13,11 +13,11 @@ export async function GET() {
         {
           success: true,
           data: {
-            discordMembers: 71,
-            whatsappMembers: 70,
-            linkedinMembers: 59,
-            totalMembers: 200,
-            eventsHeld: 2,
+            discordMembers: 78,
+            whatsappMembers: 96,
+            linkedinMembers: 61,
+            totalMembers: 235,
+            eventsHeld: 5,
             citiesActive: ["Nairobi", "Mombasa"],
             resourceCount: 33,
             websiteStatus: "live",

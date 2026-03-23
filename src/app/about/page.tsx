@@ -13,14 +13,14 @@ import { SOCIAL_LINKS } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "About | Claude Community Kenya",
   description:
-    "East Africa's first Claude Code developer community. Founded January 2026, 30+ members building with Claude across Nairobi and Mombasa.",
+    "East Africa's first Claude developer community. 5 events, 700+ registrations, two cities — Nairobi and Mombasa. Anthropic-supported.",
   alternates: {
     canonical: "https://www.claudekenya.org/about",
   },
   openGraph: {
     title: "About | Claude Community Kenya",
     description:
-      "East Africa's first Claude Code developer community. Founded January 2026, 30+ members building with Claude across Nairobi and Mombasa.",
+      "East Africa's first Claude developer community. 5 events, 700+ registrations, two cities — Nairobi and Mombasa. Anthropic-supported.",
     url: "https://www.claudekenya.org/about",
     siteName: "Claude Community Kenya",
     type: "website",
@@ -32,22 +32,36 @@ const timelineEntries = [
     date: "Jan 24, 2026",
     title: "Kenya's First Claude Code Meetup",
     description:
-      "30+ developers gathered at iHiT Events Space in Westlands, Nairobi for the historic first-ever Claude Code meetup in East Africa. Peter Kibet showcased his Claude Code workflow and the community began to take shape.",
+      "13 developers at iHiT Events Space, Westlands. Engineers from Microsoft, Equity Bank, Safaricom. Peter Kibet demoed Claude Code on a live production system. The community was born.",
     hash: "a1b2c3d",
   },
   {
     date: "Feb 20, 2026",
     title: "Nairobi Meetup #2",
     description:
-      "Our second Nairobi meetup at iHiT Events Space. Deep dives into Claude Code workflows, multi-instance development, and community project updates.",
+      "50+ builders packed the room. Session ran 2.5 hours overtime. Deep dives into Claude Code workflows and multi-instance development. Unanimous demand for a hackathon.",
     hash: "f0a1b2c",
   },
   {
     date: "Feb 26, 2026",
     title: "First Mombasa Meetup",
     description:
-      "Claude Community Kenya expands to Mombasa with our first event at the Technical University of Mombasa. Bringing Claude Code to the coast.",
+      "CCK expands to the coast. 202 registered at the Technical University of Mombasa. 100% show rate. First Claude event outside Nairobi.",
     hash: "c3d4e5f",
+  },
+  {
+    date: "Mar 8, 2026",
+    title: "She Builds Nairobi (IWD)",
+    description:
+      "120+ builders at Blockchain Centre Nairobi. International Women's Day builder event. Peter Kibet spoke on building with Claude AI — live smart contract workshop using Claude as co-pilot.",
+    hash: "d4e5f6g",
+  },
+  {
+    date: "Mar 20, 2026",
+    title: "Claude for Everyone — Nairobi",
+    description:
+      "316 registrations — largest Claude event registration in Africa. Covered Claude AI, Claude Code, and Cowork. Featured community workflow demo by Billy Mwangi.",
+    hash: "e5f6g7h",
   },
 ];
 
@@ -84,30 +98,33 @@ export default async function AboutPage() {
         <ScrollReveal delay={100}>
           <div className="mt-8 max-w-3xl space-y-6 font-sans text-text-secondary leading-relaxed">
             <p>
-              It started with a simple idea: what if Kenya&apos;s developers had a
-              dedicated space to explore, build, and ship with Claude? On January
-              24, 2026, that idea became reality when over 30 developers gathered
-              at iHiT Events Space in Westlands, Nairobi for what would become
-              Kenya&apos;s very first Claude Code meetup.
+              It started with 13 developers in a room.
             </p>
             <p>
-              The meetup was a community gathering where developers talked,
-              connected, and explored the possibilities of AI-assisted development.
-              Peter Kibet showcased his Claude Code workflow with a live project demo —
-              showing how AI-powered tools can help solve real problems
-              right here in East Africa.
+              On January 24, 2026, a small group gathered at iHiT Events Space in
+              Westlands, Nairobi for Kenya&apos;s first Claude Code meetup. Engineers
+              from Microsoft, Equity Bank, and Safaricom. One live demo of Claude
+              Code on a real production system managing 26,000+ coffee plants.
+              Nobody wanted to leave.
             </p>
             <p>
-              By the end of the afternoon, new connections had formed and something
-              bigger was clearly underway. What started in a Nairobi coworking
-              space had the potential to grow across the continent.
+              By Event #2, 50+ builders showed up and the session ran 2.5 hours
+              overtime. Event #3 moved to the coast — 202 people registered at the
+              Technical University of Mombasa with a 100% show rate. Event #4 was
+              an International Women&apos;s Day builder event at Blockchain Centre where
+              Peter spoke on building with Claude AI. Event #5 hit 316 registrations
+              — the largest Claude event registration in Africa.
             </p>
             <p>
-              Today, Claude Community Kenya is expanding to Mombasa, partnering
-              with universities like TU Mombasa and organizations like Swahilipot
-              Hub Foundation, and building a pipeline of developers who are ready
-              to lead the AI era. We are not just learning about AI — we are
-              building with it, every day.
+              Five events. Three months. Two cities. Still growing.
+            </p>
+            <p>
+              Claude Community Kenya is led by Peter Kibet, Claude Community
+              Ambassador for Kenya — part of Anthropic&apos;s founding global cohort
+              of community leaders across 74 cities in 33 countries.
+            </p>
+            <p>
+              We are not just learning about AI — we are building with it, every day.
             </p>
           </div>
         </ScrollReveal>
@@ -138,9 +155,9 @@ export default async function AboutPage() {
                     {"// MISSION"}
                   </h3>
                   <p className="text-sm text-text-secondary leading-relaxed">
-                    To empower every Kenyan developer with the tools, knowledge,
-                    and community to build world-class applications using Claude
-                    and AI-powered development workflows.
+                    Give Kenyan builders the tools, knowledge, and community to
+                    build real things with Claude — from farm management systems
+                    to fintech, from healthtech to education.
                   </p>
                 </div>
               </TerminalWindow>
@@ -157,10 +174,8 @@ export default async function AboutPage() {
                     {"// VISION"}
                   </h3>
                   <p className="text-sm text-text-secondary leading-relaxed">
-                    To make Kenya and East Africa a global hub for AI-first
-                    software development, where developers leverage tools like
-                    Claude Code to build solutions that matter — from farm
-                    management systems to fintech, from healthtech to education.
+                    Make Kenya a reference point for AI-first development in
+                    Africa. Not by talking about it — by shipping.
                   </p>
                 </div>
               </TerminalWindow>
@@ -183,7 +198,7 @@ export default async function AboutPage() {
                       </span>
                       <span>
                         <span className="font-mono text-text-primary">Build in public</span>{" "}
-                        — Ship real projects, share your journey
+                        — Ship real projects, share your process, show your work
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -191,8 +206,8 @@ export default async function AboutPage() {
                         &gt;
                       </span>
                       <span>
-                        <span className="font-mono text-text-primary">Community first</span>{" "}
-                        — Lift as you climb, help others grow
+                        <span className="font-mono text-text-primary">Community over audience</span>{" "}
+                        — This is a room of builders, not a stage with spectators
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -200,8 +215,8 @@ export default async function AboutPage() {
                         &gt;
                       </span>
                       <span>
-                        <span className="font-mono text-text-primary">Think local, build global</span>{" "}
-                        — Solve Kenyan problems with world-class tools
+                        <span className="font-mono text-text-primary">Solve local problems</span>{" "}
+                        — Kenyan problems, world-class tools
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -209,8 +224,8 @@ export default async function AboutPage() {
                         &gt;
                       </span>
                       <span>
-                        <span className="font-mono text-text-primary">Stay curious</span>{" "}
-                        — Keep learning, keep experimenting
+                        <span className="font-mono text-text-primary">Show, don&apos;t tell</span>{" "}
+                        — Demos over decks, shipping over slides
                       </span>
                     </li>
                   </ul>
