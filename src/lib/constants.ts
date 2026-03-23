@@ -4,7 +4,7 @@ export const SITE_CONFIG = {
   shortName: "CCK",
   title: "Claude Community Kenya",
   description:
-    "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
+    "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   url: "https://www.claudekenya.org",
   logo: "/logo.svg",
   locale: "en_KE",
@@ -77,8 +77,6 @@ export const CONTACT = {
 // ─── Partners ───
 export const partners = [
   { name: "Anthropic", url: "https://anthropic.com" },
-  { name: "Technical University of Mombasa", url: "https://tum.ac.ke" },
-  { name: "Swahilipot Hub Foundation", url: "https://swahilipothub.co.ke" },
 ] as const;
 
 // ─── Official Resource URLs ───
