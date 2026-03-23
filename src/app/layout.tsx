@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s | Claude Community Kenya",
   },
   description:
-    "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
+    "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   keywords: [
     "Claude",
     "Anthropic",
@@ -94,7 +94,7 @@ const jsonLd = {
   url: "https://www.claudekenya.org",
   logo: "https://www.claudekenya.org/logo.svg",
   description:
-    "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
+    "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   sameAs: [
     "https://twitter.com/ClaudeCommunityKE",
     "https://github.com/claude-community-kenya",

@@ -16,11 +16,11 @@ import { SOCIAL_LINKS } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Claude Community Kenya | East Africa's First Claude Developer Community",
   description:
-    "Kenya's official Anthropic developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+    "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
   openGraph: {
     title: "Claude Community Kenya | East Africa's First Claude Developer Community",
     description:
-      "Kenya's official Anthropic developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+      "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
     url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Claude Community Kenya | East Africa's First Claude Developer Community",
     description:
-      "Kenya's official Anthropic developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+      "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
   },
 };
 
@@ -141,7 +141,7 @@ export default async function Home() {
 
           <ScrollReveal delay={800}>
             <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
-              Kenya&apos;s official Anthropic developer community — building,
+              Anthropic-supported Claude developer community — building,
               learning, and shipping with Claude across East Africa.
             </p>
           </ScrollReveal>
