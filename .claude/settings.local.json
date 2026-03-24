@@ -6,7 +6,9 @@
       "Bash(git rm:*)",
       "Bash(npm run type-check:*)",
       "Bash(npm run:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npm ls:*)",
+      "Bash(git diff:*)"
     ]
   }
 }
