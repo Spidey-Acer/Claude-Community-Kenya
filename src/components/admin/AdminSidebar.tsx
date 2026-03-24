@@ -16,6 +16,7 @@ import {
   LogOut,
   Terminal,
   ChevronRight,
+  Library,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/volunteers", label: "Volunteers", icon: HandHeart },
   { href: "/admin/events", label: "Events", icon: Calendar },
   { href: "/admin/blog", label: "Blog Posts", icon: FileText },
+  { href: "/admin/community", label: "Community Hub", icon: Library },
   { href: "/admin/contact", label: "Contact Messages", icon: MessageSquare },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
