@@ -96,9 +96,6 @@ const joinPathways = [
 
 const partners = [
   "Anthropic",
-  "iHiT Events Space",
-  "Swahilipot Hub Foundation",
-  "Technical University of Mombasa",
 ];
 
 export const dynamic = "force-dynamic";
