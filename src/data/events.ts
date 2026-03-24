@@ -16,6 +16,7 @@ export interface Event {
   partnerOrg?: string;
   highlights?: string[];
   attendeeCount?: number;
+  posterUrl?: string;
   photosUrl?: string;
   prizes?: string[];
   rules?: string[];

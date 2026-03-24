@@ -49,6 +49,7 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     partnerOrg: e.partnerOrg ?? undefined,
     highlights: (e.highlights as string[]) ?? undefined,
     attendeeCount: e.attendeeCount ?? undefined,
+    posterUrl: e.posterUrl ?? undefined,
     photosUrl: e.photosUrl ?? undefined,
     prizes: (e.prizes as string[]) ?? undefined,
     rules: (e.rules as string[]) ?? undefined,
