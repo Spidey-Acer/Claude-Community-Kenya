@@ -185,6 +185,7 @@ model Event {
   highlights      Json?       // String[]
   agenda          Json?       // String[]
   attendeeCount   Int?
+  posterUrl       String?
   photosUrl       String?
   prizes          Json?       // String[]
   rules           Json?       // String[]
