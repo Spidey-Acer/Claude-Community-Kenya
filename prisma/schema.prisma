@@ -69,6 +69,19 @@ enum MessageStatus {
   ARCHIVED
 }
 
+enum CommunityResourceType {
+  MCP
+  PROMPT
+  WORKFLOW
+  TOOL
+}
+
+enum CommunityStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── Users & Auth ────────────────────────────────────────────────────────────
 
 model User {
@@ -340,4 +353,65 @@ model AuditLog {
   @@index([entity])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─── Community Hub ──────────────────────────────────────────────────────────
+
+model CommunitySubmission {
+  id                  String                @id @default(cuid())
+  slug                String                @unique
+  type                CommunityResourceType
+  title               String
+  shortDescription    String                @db.Text
+  fullDescription     String                @db.Text
+  url                 String?
+  repoUrl             String?
+  installInstructions String?               @db.Text
+  tags                Json                  // String[]
+  submitterName       String?
+  submitterContact    String?
+  status              CommunityStatus       @default(PENDING)
+  reviewedBy          String?
+  reviewNotes         String?               @db.Text
+  reviewedAt          DateTime?
+  upvoteCount         Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  comments CommunityComment[]
+  upvotes  CommunityUpvote[]
+
+  @@index([status])
+  @@index([type])
+  @@index([status, type])
+  @@map("community_submissions")
+}
+
+model CommunityComment {
+  id           String          @id @default(cuid())
+  submissionId String
+  authorName   String?
+  content      String          @db.Text
+  status       CommunityStatus @default(PENDING)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, status])
+  @@map("community_comments")
+}
+
+model CommunityUpvote {
+  id           String   @id @default(cuid())
+  submissionId String
+  ipHash       String
+  createdAt    DateTime @default(now())
+
+  submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, ipHash])
+  @@map("community_upvotes")
 }
