@@ -8,7 +8,8 @@
       "Bash(npm run:*)",
       "Bash(cd:*)",
       "Bash(npm ls:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(gh pr:*)"
     ]
   }
 }
