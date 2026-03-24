@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
@@ -94,9 +95,6 @@ const joinPathways = [
   },
 ];
 
-const partners = [
-  "Anthropic",
-];
 
 export const dynamic = "force-dynamic";
 
@@ -362,21 +360,40 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ─── Partners Bar ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Partners">
+      {/* ─── Supported By ─── */}
+      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Supported by">
         <ScrollReveal>
-          <p className="mb-8 text-center font-mono text-xs uppercase tracking-widest text-text-dim">
+          <p className="mb-10 text-center font-mono text-xs uppercase tracking-widest text-text-dim">
             Supported by
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            {partners.map((partner) => (
-              <span
-                key={partner}
-                className="font-mono text-sm text-text-secondary transition-colors duration-200 hover:text-green-primary"
-              >
-                {partner}
-              </span>
-            ))}
+          <div className="flex items-center justify-center">
+            <a
+              href="https://anthropic.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative inline-block rounded-2xl p-6 transition-all duration-500"
+              style={{
+                boxShadow: "0 0 20px rgba(0, 255, 65, 0.15), 0 0 60px rgba(0, 255, 65, 0.05)",
+              }}
+            >
+              {/* Neon green glow border */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl border border-green-primary/30 transition-all duration-500 group-hover:border-green-primary/60"
+                style={{
+                  boxShadow:
+                    "0 0 15px rgba(0, 255, 65, 0.2), inset 0 0 15px rgba(0, 255, 65, 0.05), 0 0 40px rgba(0, 255, 65, 0.1)",
+                }}
+              />
+              <div className="transition-all duration-500 group-hover:drop-shadow-[0_0_12px_rgba(0,255,65,0.4)]">
+                <Image
+                  src="/images/ANTHROPIC.png"
+                  alt="Anthropic"
+                  width={220}
+                  height={60}
+                  className="brightness-0 invert transition-all duration-500 group-hover:brightness-0 group-hover:invert"
+                />
+              </div>
+            </a>
           </div>
         </ScrollReveal>
       </section>

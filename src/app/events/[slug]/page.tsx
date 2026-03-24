@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
@@ -158,6 +159,22 @@ export default async function EventDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Back to Events
         </Link>
+
+        {/* Event Poster */}
+        {event.posterUrl && (
+          <ScrollReveal>
+            <div className="mb-8 overflow-hidden rounded-lg border border-border-default">
+              <Image
+                src={event.posterUrl}
+                alt={`${event.title} poster`}
+                width={896}
+                height={504}
+                className="w-full h-auto object-cover"
+                priority
+              />
+            </div>
+          </ScrollReveal>
+        )}
 
         <ScrollReveal>
           <header className="mb-10">
