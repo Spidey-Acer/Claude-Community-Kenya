@@ -50,3 +50,5 @@ next-env.d.ts
 .claude/THIRD_PARTY_NOTICES.md
 
 /src/generated/prisma
+
+.vercel
