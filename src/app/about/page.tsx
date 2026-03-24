@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
@@ -76,6 +77,18 @@ export default async function AboutPage() {
       {/* ─── Hero ─── */}
       <section className="mx-auto max-w-6xl px-4 pb-12 pt-24" aria-label="About hero">
         <ScrollReveal>
+          <div className="mb-8 flex justify-center">
+            <div className="relative overflow-hidden rounded-2xl border border-amber/30 bg-bg-card p-2 shadow-lg shadow-amber/5">
+              <Image
+                src="/images/Claude Community Kenya.png"
+                alt="Claude Community Kenya"
+                width={280}
+                height={280}
+                className="rounded-xl"
+                priority
+              />
+            </div>
+          </div>
           <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
             <CommandPrefix />
             cat README.md

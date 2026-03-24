@@ -20,6 +20,7 @@
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/supabase-js": "^2.100.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.3",
     "bcryptjs": "^3.0.3",

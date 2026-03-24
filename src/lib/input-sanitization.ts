@@ -173,6 +173,32 @@ export function sanitizeObject<T extends Record<string, unknown>>(
   return sanitized
 }
 
+/**
+ * Detect obvious prompt injection patterns in user-submitted text.
+ * Returns true if suspicious patterns found. Used as a warning flag, NOT a hard block.
+ */
+export function containsPromptInjection(text: string): boolean {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  const patterns = [
+    "ignore previous instructions",
+    "ignore all previous",
+    "disregard previous",
+    "you are now",
+    "act as",
+    "pretend you are",
+    "system:",
+    "[inst]",
+    "[/inst]",
+    "<<sys>>",
+    "<|im_start|>",
+    "new instructions:",
+    "override:",
+    "jailbreak",
+  ]
+  return patterns.some((p) => lower.includes(p))
+}
+
 // Zod transform helpers
 export const zodSanitizeString = (val: string) => sanitizeString(val)
 export const zodSanitizeEmail = (val: string) => sanitizeEmail(val)

@@ -3,7 +3,8 @@
 import { useState, useEffect, useTransition } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react"
+import Image from "next/image"
+import { ArrowLeft, Save, Loader2, Plus, X, Upload, Trash2 } from "lucide-react"
 
 const EVENT_TYPES = ["MEETUP", "WORKSHOP", "CAREER_TALK", "HACKATHON", "CONFERENCE"] as const
 const EVENT_STATUSES = ["UPCOMING", "REGISTRATION_OPEN", "SOLD_OUT", "COMPLETED", "CANCELLED"] as const
@@ -39,6 +40,7 @@ interface EventData {
   partnerOrg: string | null
   registrationUrl: string | null
   lumaUrl: string | null
+  posterUrl: string | null
   featured: boolean
   attendeeCount: number | null
   highlights: string[] | null
@@ -69,6 +71,8 @@ export default function EditEventPage() {
   const [lumaUrl, setLumaUrl] = useState("")
   const [featured, setFeatured] = useState(false)
   const [attendeeCount, setAttendeeCount] = useState("")
+  const [posterUrl, setPosterUrl] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
   const [agenda, setAgenda] = useState<string[]>([])
   const [highlights, setHighlights] = useState<string[]>([])
 
@@ -92,6 +96,7 @@ export default function EditEventPage() {
         setPartnerOrg(ev.partnerOrg ?? "")
         setRegistrationUrl(ev.registrationUrl ?? "")
         setLumaUrl(ev.lumaUrl ?? "")
+        setPosterUrl(ev.posterUrl ?? "")
         setFeatured(ev.featured)
         setAttendeeCount(ev.attendeeCount !== null ? String(ev.attendeeCount) : "")
         setAgenda(ev.agenda ?? [])
@@ -130,6 +135,7 @@ export default function EditEventPage() {
           registrationUrl: registrationUrl || undefined,
           lumaUrl: lumaUrl || undefined,
           featured,
+          posterUrl: posterUrl || null,
           agenda: agenda.filter(Boolean),
           highlights: highlights.filter(Boolean),
         }
@@ -193,6 +199,18 @@ export default function EditEventPage() {
             <FieldInput label="Title" value={title} onChange={setTitle} required />
             <FieldTextarea label="Description" value={description} onChange={setDescription} rows={3} required />
             <FieldTextarea label="Full Description" value={fullDescription} onChange={setFullDescription} rows={5} />
+          </div>
+
+          {/* Event Poster */}
+          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
+            <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Event Poster</h2>
+            <PosterUpload
+              posterUrl={posterUrl}
+              onUpload={setPosterUrl}
+              onRemove={() => setPosterUrl("")}
+              isUploading={isUploading}
+              setIsUploading={setIsUploading}
+            />
           </div>
 
           {/* Date, Time, Venue */}
@@ -347,6 +365,75 @@ function FieldSelect({
         ))}
       </select>
     </div>
+  )
+}
+
+function PosterUpload({
+  posterUrl, onUpload, onRemove, isUploading, setIsUploading,
+}: {
+  posterUrl: string; onUpload: (url: string) => void; onRemove: () => void; isUploading: boolean; setIsUploading: (v: boolean) => void
+}) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const csrfRes = await fetch("/api/csrf-token")
+      const { csrfToken } = await csrfRes.json()
+
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "events")
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: { "x-csrf-token": csrfToken },
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Upload failed")
+      onUpload(data.url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setIsUploading(false)
+      e.target.value = ""
+    }
+  }
+
+  if (posterUrl) {
+    return (
+      <div className="space-y-3">
+        <div className="relative w-full max-w-xs overflow-hidden rounded-lg border border-[#1e1e1e]">
+          <Image src={posterUrl} alt="Event poster" width={320} height={180} className="w-full h-auto object-cover" />
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex items-center gap-1.5 text-[11px] font-mono text-[#ff3333] hover:text-[#ff5555] transition-colors"
+        >
+          <Trash2 className="w-3 h-3" />
+          Remove poster
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#1e1e1e] rounded-lg cursor-pointer hover:border-[#00ff41]/30 transition-colors">
+      {isUploading ? (
+        <Loader2 className="w-5 h-5 text-[#00ff41] animate-spin" />
+      ) : (
+        <>
+          <Upload className="w-5 h-5 text-[#555] mb-2" />
+          <span className="text-[11px] font-mono text-[#555]">Click to upload poster</span>
+          <span className="text-[10px] font-mono text-[#333] mt-1">JPEG, PNG, WebP, GIF — max 5MB</span>
+        </>
+      )}
+      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFileChange} className="hidden" />
+    </label>
   )
 }
 

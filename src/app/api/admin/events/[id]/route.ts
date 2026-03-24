@@ -37,6 +37,7 @@ const updateSchema = z.object({
   highlights: z.array(z.string().max(200)).optional(),
   agenda: z.array(z.string().max(200)).optional(),
   attendeeCount: z.number().int().min(0).optional(),
+  posterUrl: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : v),
   featured: z.boolean().optional(),
 })
 
