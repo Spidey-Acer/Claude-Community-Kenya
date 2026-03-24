@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import type { Event } from "@/data/events"
 import type {
   Event as PrismaEvent,
@@ -249,14 +250,14 @@ function mapPrismaCommunitySubmission(
     id: s.id,
     slug: s.slug,
     type: s.type,
-    title: s.title,
-    shortDescription: s.shortDescription,
-    fullDescription: s.fullDescription,
+    title: decodeHtmlEntities(s.title),
+    shortDescription: decodeHtmlEntities(s.shortDescription),
+    fullDescription: decodeHtmlEntities(s.fullDescription),
     url: s.url ?? undefined,
     repoUrl: s.repoUrl ?? undefined,
-    installInstructions: s.installInstructions ?? undefined,
-    tags: (s.tags as string[]) ?? [],
-    submitterName: s.submitterName ?? undefined,
+    installInstructions: s.installInstructions ? decodeHtmlEntities(s.installInstructions) : undefined,
+    tags: ((s.tags as string[]) ?? []).map(decodeHtmlEntities),
+    submitterName: s.submitterName ? decodeHtmlEntities(s.submitterName) : undefined,
     upvoteCount: s.upvoteCount,
     commentCount: s._count?.comments ?? 0,
     createdAt: s.createdAt.toISOString(),
@@ -266,8 +267,8 @@ function mapPrismaCommunitySubmission(
 function mapPrismaCommunityComment(c: PrismaCommunityComment): CommunityCommentView {
   return {
     id: c.id,
-    authorName: c.authorName ?? "Anonymous",
-    content: c.content,
+    authorName: c.authorName ? decodeHtmlEntities(c.authorName) : "Anonymous",
+    content: decodeHtmlEntities(c.content),
     createdAt: c.createdAt.toISOString(),
   }
 }

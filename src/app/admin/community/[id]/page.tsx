@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { CommunityActions } from "@/components/admin/CommunityActions"
@@ -48,23 +49,23 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
             {/* Submission Info */}
             <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5">
               <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider mb-3">Submission Info</h2>
-              <h1 className="text-base font-mono font-bold text-[#e0e0e0] mb-2">{submission.title}</h1>
+              <h1 className="text-base font-mono font-bold text-[#e0e0e0] mb-2">{decodeHtmlEntities(submission.title)}</h1>
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#1a1a1a] border border-[#222] text-[#888]">
                   {TYPE_LABELS[submission.type] ?? submission.type}
                 </span>
                 <span className="text-[11px] font-mono text-[#555]">
-                  by {submission.submitterName}
+                  by {submission.submitterName ? decodeHtmlEntities(submission.submitterName) : submission.submitterName}
                 </span>
               </div>
               <div className="space-y-1.5">
                 <div className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Short Description</div>
-                <p className="text-sm font-mono text-[#aaa] leading-relaxed">{submission.shortDescription}</p>
+                <p className="text-sm font-mono text-[#aaa] leading-relaxed">{decodeHtmlEntities(submission.shortDescription)}</p>
               </div>
               {submission.fullDescription && (
                 <div className="space-y-1.5 mt-4">
                   <div className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Full Description</div>
-                  <p className="text-sm font-mono text-[#aaa] leading-relaxed whitespace-pre-wrap">{submission.fullDescription}</p>
+                  <p className="text-sm font-mono text-[#aaa] leading-relaxed whitespace-pre-wrap">{decodeHtmlEntities(submission.fullDescription)}</p>
                 </div>
               )}
             </div>
@@ -73,7 +74,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
             {submission.installInstructions && (
               <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5">
                 <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider mb-3">Install Instructions</h2>
-                <pre className="text-sm font-mono text-[#aaa] leading-relaxed whitespace-pre-wrap bg-[#111] border border-[#1a1a1a] rounded p-3">{submission.installInstructions}</pre>
+                <pre className="text-sm font-mono text-[#aaa] leading-relaxed whitespace-pre-wrap bg-[#111] border border-[#1a1a1a] rounded p-3">{decodeHtmlEntities(submission.installInstructions)}</pre>
               </div>
             )}
 
@@ -85,7 +86,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                   {tags.map((tag, i) => (
                     <span key={i} className="flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded bg-[#1a1a1a] border border-[#222] text-[#888]">
                       <Tag className="w-3 h-3" />
-                      {tag}
+                      {decodeHtmlEntities(tag)}
                     </span>
                   ))}
                 </div>
@@ -113,7 +114,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                     <div key={comment.id} className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div>
-                          <span className="text-[11px] font-mono text-[#ccc] font-semibold">{comment.authorName}</span>
+                          <span className="text-[11px] font-mono text-[#ccc] font-semibold">{comment.authorName ? decodeHtmlEntities(comment.authorName) : comment.authorName}</span>
                           <span className="text-[10px] font-mono text-[#444] ml-2">{formatDate(comment.createdAt.toISOString())}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -125,7 +126,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                           />
                         </div>
                       </div>
-                      <p className="text-xs font-mono text-[#aaa] leading-relaxed">{comment.content}</p>
+                      <p className="text-xs font-mono text-[#aaa] leading-relaxed">{decodeHtmlEntities(comment.content)}</p>
                     </div>
                   ))}
                 </div>
@@ -146,7 +147,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                   <Edit className="w-3 h-3" />
                   Edit Submission
                 </Link>
-                <CommunityActions id={submission.id} title={submission.title} currentStatus={submission.status} />
+                <CommunityActions id={submission.id} title={decodeHtmlEntities(submission.title)} currentStatus={submission.status} />
               </div>
             </div>
 
@@ -178,12 +179,12 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
               <div className="space-y-1.5 text-[11px] font-mono">
                 <div className="flex justify-between">
                   <span className="text-[#555]">Name</span>
-                  <span className="text-[#888]">{submission.submitterName}</span>
+                  <span className="text-[#888]">{submission.submitterName ? decodeHtmlEntities(submission.submitterName) : submission.submitterName}</span>
                 </div>
                 {submission.submitterContact && (
                   <div className="flex justify-between">
                     <span className="text-[#555]">Contact</span>
-                    <span className="text-[#888]">{submission.submitterContact}</span>
+                    <span className="text-[#888]">{decodeHtmlEntities(submission.submitterContact)}</span>
                   </div>
                 )}
               </div>

@@ -20,12 +20,8 @@ export function sanitizeString(input: string, maxLength?: number): string {
     .trim()
     .replace(/\s+/g, " ")
     .replace(/\0/g, "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .replace(/\//g, "&#x2F;")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<[^>]*>/g, "")
   if (maxLength && sanitized.length > maxLength) {
     sanitized = sanitized.substring(0, maxLength)
   }
@@ -122,11 +118,8 @@ export function sanitizeMultilineText(
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<[^>]*>/g, "")
   if (maxLength && sanitized.length > maxLength) {
     sanitized = sanitized.substring(0, maxLength)
   }
@@ -197,6 +190,21 @@ export function containsPromptInjection(text: string): boolean {
     "jailbreak",
   ]
   return patterns.some((p) => lower.includes(p))
+}
+
+/**
+ * Decode HTML entities that were previously encoded at storage time.
+ * Used to fix already-stored data containing entities like &#x27; &amp; etc.
+ */
+export function decodeHtmlEntities(input: string): string {
+  if (!input) return input
+  return input
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
 }
 
 // Zod transform helpers

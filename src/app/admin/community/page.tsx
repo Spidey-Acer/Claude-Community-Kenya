@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { formatDate } from "@/lib/utils"
@@ -63,8 +64,8 @@ export default async function CommunityAdminPage() {
                   <tr key={submission.id} className="hover:bg-[#111] transition-colors cursor-pointer group">
                     <td className="px-4 py-3">
                       <Link href={`/admin/community/${submission.id}`} className="block">
-                        <div className="text-sm font-mono text-[#e0e0e0] group-hover:text-[#00ff41] transition-colors">{submission.title}</div>
-                        <div className="text-[11px] font-mono text-[#444] truncate max-w-xs">{submission.shortDescription}</div>
+                        <div className="text-sm font-mono text-[#e0e0e0] group-hover:text-[#00ff41] transition-colors">{decodeHtmlEntities(submission.title)}</div>
+                        <div className="text-[11px] font-mono text-[#444] truncate max-w-xs">{decodeHtmlEntities(submission.shortDescription)}</div>
                       </Link>
                     </td>
                     <td className="px-4 py-3">
@@ -75,7 +76,7 @@ export default async function CommunityAdminPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/community/${submission.id}`} className="block text-[11px] font-mono text-[#666]">{submission.submitterName}</Link>
+                      <Link href={`/admin/community/${submission.id}`} className="block text-[11px] font-mono text-[#666]">{submission.submitterName ? decodeHtmlEntities(submission.submitterName) : submission.submitterName}</Link>
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/admin/community/${submission.id}`} className="block">
