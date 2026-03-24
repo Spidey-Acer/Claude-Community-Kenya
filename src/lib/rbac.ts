@@ -16,6 +16,7 @@ export type AdminResource =
   | "projects"
   | "users"
   | "settings"
+  | "community"
 
 export type Action = "view" | "create" | "edit" | "delete" | "approve"
 
@@ -35,6 +36,7 @@ const rolePermissions: Record<
     projects: ["view", "create", "edit", "delete"],
     users: ["view", "create", "edit", "delete"],
     settings: ["view", "edit"],
+    community: ["view", "create", "edit", "delete", "approve"],
   },
   ADMIN: {
     dashboard: ["view"],
@@ -48,6 +50,7 @@ const rolePermissions: Record<
     projects: ["view", "create", "edit"],
     users: ["view"],
     settings: [],
+    community: ["view", "edit", "approve"],
   },
   MODERATOR: {
     dashboard: ["view"],
@@ -61,6 +64,7 @@ const rolePermissions: Record<
     projects: ["view"],
     users: [],
     settings: [],
+    community: ["view", "approve"],
   },
   MEMBER: {
     dashboard: ["view"],
@@ -74,6 +78,7 @@ const rolePermissions: Record<
     projects: ["view"],
     users: [],
     settings: [],
+    community: ["view"],
   },
 }
 

@@ -10,6 +10,8 @@ import type {
   BlogPost as PrismaBlogPost,
   Project as PrismaProject,
   TeamMember as PrismaTeamMember,
+  CommunitySubmission as PrismaCommunitySubmission,
+  CommunityComment as PrismaCommunityComment,
 } from "@/generated/prisma/client"
 
 // ─── Event Mappers ──────────────────────────────────────────────────────────
@@ -212,4 +214,120 @@ export async function getDashboardStats() {
     projects: projectCount,
     cities: cities.length,
   }
+}
+
+// ─── Community Hub Types ───────────────────────────────────────────────────
+
+export interface CommunitySubmissionView {
+  id: string
+  slug: string
+  type: "MCP" | "PROMPT" | "WORKFLOW" | "TOOL"
+  title: string
+  shortDescription: string
+  fullDescription: string
+  url?: string
+  repoUrl?: string
+  installInstructions?: string
+  tags: string[]
+  submitterName?: string
+  upvoteCount: number
+  commentCount: number
+  createdAt: string
+}
+
+export interface CommunityCommentView {
+  id: string
+  authorName: string
+  content: string
+  createdAt: string
+}
+
+function mapPrismaCommunitySubmission(
+  s: PrismaCommunitySubmission & { _count?: { comments: number } }
+): CommunitySubmissionView {
+  return {
+    id: s.id,
+    slug: s.slug,
+    type: s.type,
+    title: s.title,
+    shortDescription: s.shortDescription,
+    fullDescription: s.fullDescription,
+    url: s.url ?? undefined,
+    repoUrl: s.repoUrl ?? undefined,
+    installInstructions: s.installInstructions ?? undefined,
+    tags: (s.tags as string[]) ?? [],
+    submitterName: s.submitterName ?? undefined,
+    upvoteCount: s.upvoteCount,
+    commentCount: s._count?.comments ?? 0,
+    createdAt: s.createdAt.toISOString(),
+  }
+}
+
+function mapPrismaCommunityComment(c: PrismaCommunityComment): CommunityCommentView {
+  return {
+    id: c.id,
+    authorName: c.authorName ?? "Anonymous",
+    content: c.content,
+    createdAt: c.createdAt.toISOString(),
+  }
+}
+
+export async function getCommunitySubmissions(opts?: {
+  type?: string
+  sort?: "recent" | "popular"
+  page?: number
+  limit?: number
+}): Promise<{ items: CommunitySubmissionView[]; total: number }> {
+  const page = opts?.page ?? 1
+  const limit = opts?.limit ?? 20
+  const skip = (page - 1) * limit
+
+  const where = {
+    status: "APPROVED" as const,
+    ...(opts?.type && { type: opts.type as PrismaCommunitySubmission["type"] }),
+  }
+
+  const orderBy = opts?.sort === "popular"
+    ? { upvoteCount: "desc" as const }
+    : { createdAt: "desc" as const }
+
+  const [rows, total] = await Promise.all([
+    prisma.communitySubmission.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: { _count: { select: { comments: { where: { status: "APPROVED" } } } } },
+    }),
+    prisma.communitySubmission.count({ where }),
+  ])
+
+  return { items: rows.map(mapPrismaCommunitySubmission), total }
+}
+
+export async function getCommunitySubmissionBySlug(
+  slug: string
+): Promise<CommunitySubmissionView | null> {
+  const row = await prisma.communitySubmission.findUnique({
+    where: { slug },
+    include: { _count: { select: { comments: { where: { status: "APPROVED" } } } } },
+  })
+  if (!row || row.status !== "APPROVED") return null
+  return mapPrismaCommunitySubmission(row)
+}
+
+export async function getCommunityCommentsBySlug(
+  slug: string
+): Promise<CommunityCommentView[]> {
+  const submission = await prisma.communitySubmission.findUnique({
+    where: { slug },
+    select: { id: true, status: true },
+  })
+  if (!submission || submission.status !== "APPROVED") return []
+
+  const comments = await prisma.communityComment.findMany({
+    where: { submissionId: submission.id, status: "APPROVED" },
+    orderBy: { createdAt: "asc" },
+  })
+  return comments.map(mapPrismaCommunityComment)
 }
