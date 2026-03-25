@@ -31,34 +31,40 @@ const GLOW_RGB: Record<GlowColor, string> = {
 
 const VARIANT_CONFIG = {
   hero: {
-    imageHeight: "",
+    imageHeight: "max-h-[400px]",
     useFill: false,
+    objectFit: "object-contain" as const,
     titleBar: true,
     titlePadding: "px-4 py-2.5",
     cornerSize: "h-5 w-5",
     cornerInset: 12,
     scanlines: true,
     glow: true,
+    fadeBottom: false,
   },
   card: {
-    imageHeight: "h-44",
+    imageHeight: "h-52",
     useFill: true,
+    objectFit: "object-contain" as const,
     titleBar: true,
     titlePadding: "px-3 py-1.5",
     cornerSize: "h-3 w-3",
     cornerInset: 8,
     scanlines: true,
     glow: true,
+    fadeBottom: true,
   },
   compact: {
     imageHeight: "h-32",
     useFill: true,
+    objectFit: "object-cover" as const,
     titleBar: false,
     titlePadding: "",
     cornerSize: "h-2.5 w-2.5",
     cornerInset: 6,
     scanlines: false,
     glow: false,
+    fadeBottom: false,
   },
 } as const
 
@@ -135,7 +141,7 @@ export function MediaFrame({
       {/* Image Viewport */}
       <div
         className={cn(
-          "relative overflow-hidden",
+          "relative overflow-hidden bg-bg-primary",
           config.useFill && config.imageHeight
         )}
       >
@@ -147,7 +153,10 @@ export function MediaFrame({
             fill
             priority={priority}
             sizes={sizes ?? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
-            className="object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-110"
+            className={cn(
+              config.objectFit,
+              "transition-all duration-500 group-hover:scale-105 group-hover:brightness-110"
+            )}
             onLoad={() => setImageLoaded(true)}
           />
         ) : (
@@ -158,8 +167,24 @@ export function MediaFrame({
             height={height ?? 504}
             priority={priority}
             sizes={sizes}
-            className="h-auto w-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-110"
+            className={cn(
+              "mx-auto w-full",
+              config.imageHeight,
+              config.objectFit,
+              "transition-all duration-500 group-hover:scale-105 group-hover:brightness-110"
+            )}
             onLoad={() => setImageLoaded(true)}
+          />
+        )}
+
+        {/* Bottom fade gradient — blends poster into card bg */}
+        {config.fadeBottom && (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-16"
+            style={{
+              background: "linear-gradient(to bottom, transparent, var(--bg-primary))",
+            }}
+            aria-hidden="true"
           />
         )}
 
