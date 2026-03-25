@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEventBySlug } from "@/lib/data";
 import { Badge } from "@/components/ui/Badge";
+import { MediaFrame } from "@/components/ui/MediaFrame";
 import { Timeline } from "@/components/ui/Timeline";
 import { TerminalWindow, ScrollReveal } from "@/components/terminal";
 import { formatDate } from "@/lib/utils";
@@ -162,18 +162,17 @@ export default async function EventDetailPage({
 
         {/* Event Poster */}
         {event.posterUrl && (
-          <ScrollReveal>
-            <div className="mb-8 overflow-hidden rounded-lg border border-border-default">
-              <Image
-                src={event.posterUrl}
-                alt={`${event.title} poster`}
-                width={896}
-                height={504}
-                className="w-full h-auto object-cover"
-                priority
-              />
-            </div>
-          </ScrollReveal>
+          <MediaFrame
+            src={event.posterUrl}
+            alt={`${event.title} poster`}
+            title={`${event.slug}-poster.png`}
+            width={896}
+            height={504}
+            variant="hero"
+            priority
+            glowColor="green"
+            className="mb-8"
+          />
         )}
 
         <ScrollReveal>

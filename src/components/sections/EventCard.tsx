@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { MediaFrame } from "@/components/ui/MediaFrame";
 import type { Event } from "@/data/events";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -51,15 +51,14 @@ export function EventCard({ event }: EventCardProps) {
 
         {/* Poster */}
         {event.posterUrl && (
-          <div className="relative h-44 w-full overflow-hidden border-b border-border-default">
-            <Image
-              src={event.posterUrl}
-              alt={`${event.title} poster`}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          </div>
+          <MediaFrame
+            src={event.posterUrl}
+            alt={`${event.title} poster`}
+            variant="card"
+            showTitleBar={false}
+            glowColor="green"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
         )}
 
         {/* Content */}
