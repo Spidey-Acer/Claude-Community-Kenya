@@ -69,7 +69,7 @@ const timelineEntries = [
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  const team = await getTeamMembers();
+  const team = await getTeamMembers().catch(() => []);
 
   return (
     <div>

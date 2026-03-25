@@ -100,8 +100,8 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [upcomingEvents, featuredProjects, siteSettings] = await Promise.all([
-    getUpcomingEvents(),
-    getFeaturedProjects(),
+    getUpcomingEvents().catch(() => []),
+    getFeaturedProjects().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
   ]);
 

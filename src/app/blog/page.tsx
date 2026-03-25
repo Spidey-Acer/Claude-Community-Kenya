@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
+  const posts = await getBlogPosts().catch(() => []);
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
