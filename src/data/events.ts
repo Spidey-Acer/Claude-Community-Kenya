@@ -95,9 +95,9 @@ export const events: Event[] = [
     type: "career-talk",
     status: "registration-open",
     description:
-      "Our first university event! A career talk at Technical University of Mombasa exploring AI opportunities, Claude Code, and how students can start building with AI today.",
+      "Our first university event! A career talk exploring AI opportunities, Claude Code, and how students can start building with AI today.",
     fullDescription:
-      "Claude Community Kenya is heading to Mombasa for our very first university event! In partnership with the Technical University of Mombasa and Swahilipot Hub Foundation, we're bringing an inspiring career talk on AI and development opportunities.\n\nThis event is designed specifically for university students and early-career developers. We'll cover what AI means for the future of software development in Kenya, how to get started with Claude and Claude Code, and the career opportunities emerging in the AI space.\n\nDr. Fullgence Mwakondo will co-host alongside community leaders, ensuring the content is relevant and accessible to students at all levels.",
+      "Claude Community Kenya is heading to Mombasa for our very first university event! An inspiring career talk on AI and development opportunities.\n\nThis event is designed specifically for university students and early-career developers. We'll cover what AI means for the future of software development in Kenya, how to get started with Claude and Claude Code, and the career opportunities emerging in the AI space.\n\nDr. Fullgence Mwakondo will co-host alongside community leaders, ensuring the content is relevant and accessible to students at all levels.",
     agenda: [
       "10:00 AM — Registration & Welcome",
       "10:30 AM — Keynote: AI & The Future of Software Development in Kenya",
@@ -109,7 +109,6 @@ export const events: Event[] = [
     registrationUrl: "https://luma.com/vsf5re14",
     lumaUrl: "https://luma.com/vsf5re14",
     host: "Dr. Fullgence Mwakondo & Joshua Wekesa",
-    partnerOrg: "Technical University of Mombasa, Swahilipot Hub Foundation",
   },
   {
     slug: "claude-code-hackathon-nairobi-1",
