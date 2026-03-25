@@ -34,7 +34,7 @@ export default async function CommunityPage({
   const type = typeof params.type === "string" ? params.type : undefined
   const sort = typeof params.sort === "string" ? (params.sort as "recent" | "popular") : "recent"
 
-  const { items, total } = await getCommunitySubmissions({ type, sort })
+  const { items, total } = await getCommunitySubmissions({ type, sort }).catch(() => ({ items: [], total: 0 }))
 
   return (
     <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">

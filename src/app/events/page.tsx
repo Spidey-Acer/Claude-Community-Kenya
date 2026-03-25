@@ -22,6 +22,6 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const events = await getEvents();
+  const events = await getEvents().catch(() => []);
   return <EventsContent events={events} />;
 }
