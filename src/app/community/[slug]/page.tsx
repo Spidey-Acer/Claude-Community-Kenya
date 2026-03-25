@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ExternalLink, Github, Copy } from "lucide-react"
+import { ArrowLeft, ExternalLink, Github } from "lucide-react"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { getCommunitySubmissionBySlug, getCommunityCommentsBySlug } from "@/lib/data"
 import { TerminalWindow, ScrollReveal } from "@/components/terminal"
 import { UpvoteButton } from "@/components/community/UpvoteButton"
 import { CommentForm } from "@/components/community/CommentForm"
 import { CommentList } from "@/components/community/CommentList"
+import { CopyButton } from "@/components/community/CopyButton"
 import { SITE_CONFIG } from "@/lib/constants"
 
 export const dynamic = "force-dynamic"
@@ -229,14 +230,3 @@ export default async function CommunityDetailPage({
   )
 }
 
-function CopyButton({ text }: { text: string }) {
-  return (
-    <button
-      onClick={() => navigator.clipboard.writeText(text)}
-      className="absolute right-2 top-2 rounded border border-border-default p-1.5 text-text-dim transition-colors hover:border-green-primary/50 hover:text-green-primary"
-      aria-label="Copy to clipboard"
-    >
-      <Copy className="h-3.5 w-3.5" />
-    </button>
-  )
-}
