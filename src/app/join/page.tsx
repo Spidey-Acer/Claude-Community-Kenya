@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
-
-const TerminalApplication = dynamic(
-  () => import("@/components/terminal/TerminalApplication").then((mod) => ({ default: mod.TerminalApplication })),
-  { ssr: false }
-);
+import { LazyTerminalApplication } from "@/components/terminal/LazyTerminalApplication";
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
 import { CountUp } from "@/components/ui/CountUp";
 import { Card } from "@/components/ui/Card";
@@ -81,7 +76,7 @@ export default function JoinPage() {
         {/* ── Section 2: Interactive Terminal Application ── */}
         <ScrollReveal>
           <section className="mb-16">
-            <TerminalApplication />
+            <LazyTerminalApplication />
           </section>
         </ScrollReveal>
 

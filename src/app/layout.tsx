@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { WebVitals } from "@/components/WebVitals";
 import "./globals.css";
 
@@ -33,14 +34,31 @@ export const metadata: Metadata = {
     "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   keywords: [
     "Claude",
+    "Claude AI",
+    "Claude Code",
     "Anthropic",
     "AI",
     "Kenya",
     "Developer Community",
     "Machine Learning",
     "Nairobi",
+    "Mombasa",
+    "AI Community Kenya",
+    "Claude Community",
+    "Claude Developer",
+    "AI Meetup Kenya",
+    "Claude Code Kenya",
+    "East Africa AI",
+    "Claude API",
+    "LLM Kenya",
   ],
-  authors: [{ name: "Claude Community Kenya" }],
+  authors: [{ name: "Claude Community Kenya", url: "https://www.claudekenya.org" }],
+  creator: "Claude Community Kenya",
+  publisher: "Claude Community Kenya",
+  alternates: {
+    canonical: "https://www.claudekenya.org",
+  },
+  category: "technology",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -72,21 +90,12 @@ export const metadata: Metadata = {
     siteName: "Claude Community Kenya",
     locale: "en_KE",
     type: "website",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Claude Community Kenya",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Claude Community Kenya",
     description:
       "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -135,6 +144,7 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} antialiased`}
       >
+        <GoogleAnalytics />
         <WebVitals />
         <ConditionalLayout>{children}</ConditionalLayout>
       </body>

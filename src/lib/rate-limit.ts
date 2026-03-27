@@ -195,8 +195,9 @@ export const RateLimits = {
   FORM: { maxRequests: 10, windowInSeconds: 60 },
   READ: { maxRequests: 100, windowInSeconds: 60 },
   // CCK-specific
-  SPEAKER_APPLY: { maxRequests: 3, windowInSeconds: 86400 }, // 3/day
-  IDEA_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },   // 3/day
+  SPEAKER_APPLY: { maxRequests: 3, windowInSeconds: 86400 },  // 3/day
+  DEMO_REQUEST: { maxRequests: 3, windowInSeconds: 86400 },   // 3/day
+  IDEA_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },    // 3/day
   JOIN: { maxRequests: 5, windowInSeconds: 86400 },           // 5/day
   VOLUNTEER_APPLY: { maxRequests: 3, windowInSeconds: 86400 }, // 3/day
   COMMUNITY_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },  // 3/day

@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Mic2,
+  Presentation,
   Lightbulb,
   Users,
   HandHeart,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/speakers", label: "Speaker Apps", icon: Mic2 },
+  { href: "/admin/demos", label: "Demo Requests", icon: Presentation },
   { href: "/admin/ideas", label: "Idea Submissions", icon: Lightbulb },
   { href: "/admin/applications", label: "Join Applications", icon: Users },
   { href: "/admin/volunteers", label: "Volunteers", icon: HandHeart },

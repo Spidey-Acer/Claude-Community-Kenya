@@ -11,6 +11,7 @@ import type {
   BlogPost as PrismaBlogPost,
   Project as PrismaProject,
   TeamMember as PrismaTeamMember,
+  DemoRequest as PrismaDemoRequest,
   CommunitySubmission as PrismaCommunitySubmission,
   CommunityComment as PrismaCommunityComment,
 } from "@/generated/prisma/client"
@@ -35,6 +36,7 @@ const EVENT_TYPE_MAP: Record<string, Event["type"]> = {
 
 function mapPrismaEvent(e: PrismaEvent): Event {
   return {
+    id: e.id,
     slug: e.slug,
     title: e.title,
     date: e.date.toISOString().split("T")[0],
@@ -54,9 +56,61 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     attendeeCount: e.attendeeCount ?? undefined,
     posterUrl: e.posterUrl ?? undefined,
     photosUrl: e.photosUrl ?? undefined,
+    recordingUrl: e.recordingUrl ?? undefined,
+    slidesUrl: e.slidesUrl ?? undefined,
     prizes: (e.prizes as string[]) ?? undefined,
     rules: (e.rules as string[]) ?? undefined,
   }
+}
+
+// ─── Demo Request Types ─────────────────────────────────────────────────────
+
+export interface DemoRequestView {
+  id: string
+  eventId: string
+  name: string
+  email: string
+  projectTitle: string
+  description: string
+  estimatedTime: string
+  demoUrl?: string
+  repoUrl?: string
+  status: string
+  displayOrder?: number
+  reviewedBy?: string
+  reviewNotes?: string
+  reviewedAt?: string
+  createdAt: string
+}
+
+function mapPrismaDemoRequest(d: PrismaDemoRequest): DemoRequestView {
+  return {
+    id: d.id,
+    eventId: d.eventId,
+    name: d.name,
+    email: d.email,
+    projectTitle: d.projectTitle,
+    description: d.description,
+    estimatedTime: d.estimatedTime,
+    demoUrl: d.demoUrl ?? undefined,
+    repoUrl: d.repoUrl ?? undefined,
+    status: d.status,
+    displayOrder: d.displayOrder ?? undefined,
+    reviewedBy: d.reviewedBy ?? undefined,
+    reviewNotes: d.reviewNotes ?? undefined,
+    reviewedAt: d.reviewedAt?.toISOString() ?? undefined,
+    createdAt: d.createdAt.toISOString(),
+  }
+}
+
+export async function getApprovedDemosByEventId(
+  eventId: string
+): Promise<DemoRequestView[]> {
+  const rows = await prisma.demoRequest.findMany({
+    where: { eventId, status: "APPROVED" },
+    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+  })
+  return rows.map(mapPrismaDemoRequest)
 }
 
 // ─── Blog Post Types ────────────────────────────────────────────────────────

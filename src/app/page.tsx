@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
@@ -7,14 +6,11 @@ import { HeroTerminal } from "@/components/sections/HeroTerminal";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { EventCard } from "@/components/sections/EventCard";
 import { ProjectCard } from "@/components/sections/ProjectCard";
+import { TestimonialsCarousel } from "@/components/sections/TestimonialsCarousel";
+import { LazyMatrixRain } from "@/components/terminal/LazyMatrixRain";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
-
-const MatrixRain = dynamic(
-  () => import("@/components/terminal/MatrixRain").then((mod) => ({ default: mod.MatrixRain })),
-  { ssr: false }
-);
 import { getUpcomingEvents, getFeaturedProjects } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { SOCIAL_LINKS } from "@/lib/constants";
@@ -134,7 +130,7 @@ export default async function Home() {
         className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden px-4"
         aria-label="Hero"
       >
-        <MatrixRain opacity={0.05} density={0.2} />
+        <LazyMatrixRain opacity={0.05} density={0.2} />
 
         <div className="relative z-10 flex flex-col items-center gap-8">
           <HeroTerminal stats={communityStats} />
@@ -259,6 +255,22 @@ export default async function Home() {
             ))}
           </ScrollReveal>
         </div>
+      </section>
+
+      {/* ─── Testimonials ─── */}
+      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">
+        <ScrollReveal>
+          <h2 className="mb-2 text-center font-mono text-xl text-green-primary">
+            <CommandPrefix />
+            cat community/voices.log
+          </h2>
+          <p className="mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary">
+            What developers are saying about Claude Community Kenya.
+          </p>
+        </ScrollReveal>
+        <ScrollReveal delay={200}>
+          <TestimonialsCarousel />
+        </ScrollReveal>
       </section>
 
       {/* ─── Community Showcase ─── */}
