@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
-import { TerminalApplication } from "@/components/terminal/TerminalApplication";
+
+const TerminalApplication = dynamic(
+  () => import("@/components/terminal/TerminalApplication").then((mod) => ({ default: mod.TerminalApplication })),
+  { ssr: false }
+);
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
 import { CountUp } from "@/components/ui/CountUp";
 import { Card } from "@/components/ui/Card";

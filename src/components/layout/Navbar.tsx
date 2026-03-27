@@ -6,8 +6,13 @@ import { usePathname } from "next/navigation";
 import { Menu, X, Search } from "lucide-react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
-import { CommandPalette } from "@/components/terminal/CommandPalette";
+
+const CommandPalette = dynamic(
+  () => import("@/components/terminal/CommandPalette").then((mod) => ({ default: mod.CommandPalette })),
+  { ssr: false }
+);
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
