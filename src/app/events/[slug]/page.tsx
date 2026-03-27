@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getEventBySlug } from "@/lib/data";
+import { getEvents, getEventBySlug } from "@/lib/data";
 import { Badge } from "@/components/ui/Badge";
 import { MediaFrame } from "@/components/ui/MediaFrame";
 import { Timeline } from "@/components/ui/Timeline";
@@ -23,7 +23,12 @@ import {
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
+
+export async function generateStaticParams() {
+  const events = await getEvents().catch(() => []);
+  return events.map((event) => ({ slug: event.slug }));
+}
 
 export async function generateMetadata({
   params,

@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import {
-  getBlogPostBySlug,
-  getBlogPosts,
-} from "@/lib/data";
+import { getBlogPostBySlug, getBlogPosts } from "@/lib/data";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { Badge } from "@/components/ui/Badge";
@@ -13,7 +10,12 @@ import { CopyLinkButton } from "./CopyLinkButton";
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const posts = await getBlogPosts().catch(() => []);
+  return posts.map((post) => ({ slug: post.slug }));
+}
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;

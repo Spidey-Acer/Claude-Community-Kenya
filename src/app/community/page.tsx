@@ -6,7 +6,7 @@ import { getCommunitySubmissions } from "@/lib/data"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { CommunityFilters } from "./CommunityFilters"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 1800
 
 export const metadata: Metadata = {
   title: "Community Hub | Claude Community Kenya",

@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ExternalLink, Github } from "lucide-react"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
-import { getCommunitySubmissionBySlug, getCommunityCommentsBySlug } from "@/lib/data"
+import { getCommunitySubmissions, getCommunitySubmissionBySlug, getCommunityCommentsBySlug } from "@/lib/data"
 import { TerminalWindow, ScrollReveal } from "@/components/terminal"
 import { UpvoteButton } from "@/components/community/UpvoteButton"
 import { CommentForm } from "@/components/community/CommentForm"
@@ -11,7 +11,12 @@ import { CommentList } from "@/components/community/CommentList"
 import { CopyButton } from "@/components/community/CopyButton"
 import { SITE_CONFIG } from "@/lib/constants"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 1800
+
+export async function generateStaticParams() {
+  const { items } = await getCommunitySubmissions().catch(() => ({ items: [] }))
+  return items.map((item) => ({ slug: item.slug }))
+}
 
 const TYPE_LABELS: Record<string, string> = {
   MCP: "MCP Server",
