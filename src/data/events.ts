@@ -1,4 +1,5 @@
 export interface Event {
+  id?: string;
   slug: string;
   title: string;
   date: string;
@@ -18,6 +19,8 @@ export interface Event {
   attendeeCount?: number;
   posterUrl?: string;
   photosUrl?: string;
+  recordingUrl?: string;
+  slidesUrl?: string;
   prizes?: string[];
   rules?: string[];
 }

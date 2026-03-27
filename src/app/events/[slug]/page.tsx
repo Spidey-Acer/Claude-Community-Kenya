@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getEvents, getEventBySlug } from "@/lib/data";
+import { getEvents, getEventBySlug, getApprovedDemosByEventId } from "@/lib/data";
 import { Badge } from "@/components/ui/Badge";
 import { MediaFrame } from "@/components/ui/MediaFrame";
 import { Timeline } from "@/components/ui/Timeline";
@@ -20,8 +20,13 @@ import {
   CheckCircle2,
   Trophy,
   Shield,
+  Monitor,
+  ExternalLink,
+  Video,
+  FileText,
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
+import { DemoRequestForm } from "./DemoRequestForm";
 
 export const revalidate = 1800;
 
@@ -78,7 +83,10 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const [event, allEvents] = await Promise.all([
+    getEventBySlug(slug),
+    getEvents().catch(() => []),
+  ]);
 
   if (!event) {
     notFound();
@@ -86,6 +94,15 @@ export default async function EventDetailPage({
 
   const isActionable =
     event.status === "upcoming" || event.status === "registration-open";
+
+  const approvedDemos = event.id
+    ? await getApprovedDemosByEventId(event.id).catch(() => [])
+    : [];
+
+  const relatedEvents = allEvents
+    .filter((e) => e.slug !== event.slug)
+    .filter((e) => e.city === event.city || e.type === event.type)
+    .slice(0, 2);
 
   const agendaEntries = event.agenda?.map((item, i) => {
     const dashIndex = item.indexOf("—");
@@ -343,6 +360,114 @@ export default async function EventDetailPage({
             </section>
           )}
 
+        {/* Scheduled Demos */}
+        {approvedDemos.length > 0 && (
+          <ScrollReveal delay={150}>
+            <section className="mb-10">
+              <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+                <span className="text-text-dim">## </span>Scheduled Demos
+              </h2>
+              <div className="space-y-3">
+                {approvedDemos.map((demo) => (
+                  <div
+                    key={demo.id}
+                    className="border border-border-default bg-bg-card p-4 transition-colors hover:border-green-primary/30"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Monitor className="h-4 w-4 text-cyan shrink-0" aria-hidden="true" />
+                          <h3 className="font-mono text-sm font-semibold text-text-primary truncate">
+                            {demo.projectTitle}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-text-secondary leading-relaxed line-clamp-2 mb-2">
+                          {demo.description}
+                        </p>
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-text-dim">
+                          <span>by {demo.name}</span>
+                          <span>{demo.estimatedTime} min</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {demo.demoUrl && (
+                          <a
+                            href={demo.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-text-dim hover:text-green-primary transition-colors"
+                            aria-label="Live demo"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </ScrollReveal>
+        )}
+
+        {/* Resources for Completed Events */}
+        {event.status === "completed" && (event.recordingUrl || event.slidesUrl) && (
+          <ScrollReveal delay={150}>
+            <section className="mb-10">
+              <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+                <span className="text-text-dim">## </span>Resources
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {event.recordingUrl && (
+                  <a
+                    href={event.recordingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 border border-border-default bg-bg-card p-4 transition-all hover:border-green-primary/30 hover:bg-bg-card/80"
+                  >
+                    <Video className="h-5 w-5 text-green-primary shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-mono text-sm font-semibold text-text-primary">Watch Recording</p>
+                      <p className="text-[11px] font-mono text-text-dim">Full event recording</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-text-dim ml-auto shrink-0" />
+                  </a>
+                )}
+                {event.slidesUrl && (
+                  <a
+                    href={event.slidesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 border border-border-default bg-bg-card p-4 transition-all hover:border-green-primary/30 hover:bg-bg-card/80"
+                  >
+                    <FileText className="h-5 w-5 text-cyan shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-mono text-sm font-semibold text-text-primary">View Slides</p>
+                      <p className="text-[11px] font-mono text-text-dim">Presentation materials</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-text-dim ml-auto shrink-0" />
+                  </a>
+                )}
+              </div>
+            </section>
+          </ScrollReveal>
+        )}
+
+        {/* Demo Request Form */}
+        {isActionable && (
+          <ScrollReveal delay={200}>
+            <section className="mb-10">
+              <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+                <span className="text-text-dim">## </span>Request a Demo Slot
+              </h2>
+              <p className="text-sm text-text-secondary mb-6 max-w-xl">
+                Have something to show? Request a demo slot to showcase your project, tool, or workflow at this event.
+              </p>
+              <DemoRequestForm eventSlug={event.slug} />
+            </section>
+          </ScrollReveal>
+        )}
+
         {isActionable && event.registrationUrl && (
           <section className="mb-10">
             <a
@@ -354,6 +479,35 @@ export default async function EventDetailPage({
               <span aria-hidden="true">&gt;</span>
               Register Now
             </a>
+          </section>
+        )}
+
+        {/* Related Events */}
+        {relatedEvents.length > 0 && (
+          <section className="mb-10 border-t border-border-default pt-8">
+            <h2 className="mb-6 font-mono text-xl font-semibold text-green-primary">
+              <span className="text-text-dim">## </span>Related Events
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {relatedEvents.map((related) => (
+                <Link
+                  key={related.slug}
+                  href={`/events/${related.slug}`}
+                  className="group border border-border-default bg-bg-card p-5 transition-all hover:border-green-primary/30"
+                >
+                  <Badge variant={related.status} className="mb-3">
+                    {statusLabels[related.status] ?? related.status}
+                  </Badge>
+                  <h3 className="font-mono text-sm font-semibold text-text-primary group-hover:text-green-primary transition-colors mb-2">
+                    {related.title}
+                  </h3>
+                  <div className="flex items-center gap-3 text-[11px] font-mono text-text-dim">
+                    <span>{formatDate(related.date)}</span>
+                    <span>{related.city}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 
