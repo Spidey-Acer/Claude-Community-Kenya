@@ -267,10 +267,12 @@ model Project {
   stack       Json     // String[]
   status      String?
   demoUrl     String?
-  repoUrl     String?
-  featured    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  repoUrl      String?
+  featured     Boolean  @default(false)
+  contactName  String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("projects")
 }

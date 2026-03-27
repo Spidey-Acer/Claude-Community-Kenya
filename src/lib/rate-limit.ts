@@ -200,6 +200,7 @@ export const RateLimits = {
   IDEA_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },    // 3/day
   JOIN: { maxRequests: 5, windowInSeconds: 86400 },           // 5/day
   VOLUNTEER_APPLY: { maxRequests: 3, windowInSeconds: 86400 }, // 3/day
+  PROJECT_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },    // 3/day
   COMMUNITY_SUBMIT: { maxRequests: 3, windowInSeconds: 86400 },  // 3/day
   COMMUNITY_COMMENT: { maxRequests: 5, windowInSeconds: 3600 },  // 5/hr
   COMMUNITY_UPVOTE: { maxRequests: 20, windowInSeconds: 3600 },  // 20/hr

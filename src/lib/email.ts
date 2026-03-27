@@ -158,6 +158,46 @@ export async function sendIdeaSubmissionNotification(data: {
   return adminSent
 }
 
+export async function sendProjectSubmissionNotification(data: {
+  name: string
+  email: string
+  projectName: string
+  status: string
+}): Promise<boolean> {
+  const adminHtml = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">New Project Submission</h2>
+      <p><strong>Project:</strong> ${esc(data.projectName)}</p>
+      <p><strong>Status:</strong> ${esc(data.status)}</p>
+      <p><strong>Submitted by:</strong> ${esc(data.name)} &lt;${esc(data.email)}&gt;</p>
+      <p><a href="${APP_URL}/admin" style="color:#00ff41;">Review in Admin Dashboard →</a></p>
+    </div>
+  `
+  const applicantHtml = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Project Received — Claude Community Kenya</h2>
+      <p>Hi ${esc(data.name)},</p>
+      <p>We've received your submission for <strong>"${esc(data.projectName)}"</strong>.</p>
+      <p>We'll review it and feature it on our Projects page once approved.</p>
+      <p>Join our <a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;">Discord community</a> to connect with other builders.</p>
+      <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  const [adminSent] = await Promise.all([
+    sendEmail({
+      to: EMAIL_TO_ADMIN,
+      subject: `New Project Submission: ${data.projectName.slice(0, 100)} — ${data.name}`,
+      html: adminHtml,
+    }),
+    sendEmail({
+      to: data.email,
+      subject: "Your Project Submission — Claude Community Kenya",
+      html: applicantHtml,
+    }),
+  ])
+  return adminSent
+}
+
 export async function sendJoinApplicationNotification(data: {
   name: string
   email: string
