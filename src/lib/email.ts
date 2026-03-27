@@ -245,7 +245,7 @@ export async function sendVolunteerApplicationNotification(data: {
 export async function sendApplicationReviewEmail(data: {
   email: string
   name: string
-  type: "speaker" | "idea" | "join" | "volunteer"
+  type: "speaker" | "idea" | "join" | "volunteer" | "demo"
   status: "approved" | "rejected"
   notes?: string
 }): Promise<boolean> {

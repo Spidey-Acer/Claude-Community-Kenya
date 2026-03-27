@@ -7,6 +7,7 @@ export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR" | "MEMBER"
 export type AdminResource =
   | "dashboard"
   | "speakers"
+  | "demos"
   | "ideas"
   | "applications"
   | "volunteers"
@@ -27,6 +28,7 @@ const rolePermissions: Record<
   SUPER_ADMIN: {
     dashboard: ["view"],
     speakers: ["view", "create", "edit", "delete", "approve"],
+    demos: ["view", "create", "edit", "delete", "approve"],
     ideas: ["view", "create", "edit", "delete", "approve"],
     applications: ["view", "create", "edit", "delete", "approve"],
     volunteers: ["view", "create", "edit", "delete", "approve"],
@@ -41,6 +43,7 @@ const rolePermissions: Record<
   ADMIN: {
     dashboard: ["view"],
     speakers: ["view", "edit", "approve"],
+    demos: ["view", "edit", "approve"],
     ideas: ["view", "edit", "approve"],
     applications: ["view", "edit", "approve"],
     volunteers: ["view", "edit", "approve"],
@@ -55,6 +58,7 @@ const rolePermissions: Record<
   MODERATOR: {
     dashboard: ["view"],
     speakers: ["view", "approve"],
+    demos: ["view", "approve"],
     ideas: ["view", "approve"],
     applications: ["view", "approve"],
     volunteers: ["view", "approve"],
@@ -69,6 +73,7 @@ const rolePermissions: Record<
   MEMBER: {
     dashboard: ["view"],
     speakers: [],
+    demos: [],
     ideas: [],
     applications: [],
     volunteers: [],
