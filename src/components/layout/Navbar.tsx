@@ -17,6 +17,7 @@ const CommandPalette = dynamic(
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -24,10 +25,23 @@ export function Navbar() {
     setIsMac(navigator.platform.toUpperCase().includes("MAC"));
   }, []);
 
+  useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 60);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50 border-b border-border-default bg-bg-primary/90 backdrop-blur-md"
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50 border-b border-border-default backdrop-blur-md transition-all duration-300",
+          scrolled
+            ? "bg-bg-primary/95 shadow-[0_1px_12px_rgba(0,255,65,0.06)]"
+            : "bg-bg-primary/90"
+        )}
         role="navigation"
         aria-label="Main navigation"
       >

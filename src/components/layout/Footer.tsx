@@ -1,12 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT, SOCIAL_LINKS } from "@/lib/constants";
 
 export function Footer() {
   const [exitHovered, setExitHovered] = useState(false);
+  const [email, setEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "success" | "error">("idle");
+  const [newsletterMsg, setNewsletterMsg] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [csrfToken, setCsrfToken] = useState("");
   const currentYear = new Date().getFullYear();
+
+  useEffect(() => {
+    fetch("/api/csrf-token")
+      .then((r) => r.json())
+      .then((d) => setCsrfToken(d.csrfToken))
+      .catch(() => {});
+  }, []);
+
+  function handleNewsletterSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setNewsletterStatus("idle");
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/newsletter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+          body: JSON.stringify({ email }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setNewsletterStatus("error");
+          setNewsletterMsg(json.error || "Failed to subscribe.");
+          return;
+        }
+        setNewsletterStatus("success");
+        setNewsletterMsg(json.message);
+        setEmail("");
+      } catch {
+        setNewsletterStatus("error");
+        setNewsletterMsg("Network error. Please try again.");
+      }
+    });
+  }
 
   return (
     <footer className="border-t border-border-default bg-bg-secondary" role="contentinfo">
@@ -35,6 +75,34 @@ export function Footer() {
               <p>📍 {CONTACT.city}</p>
               <p>✉ {CONTACT.email}</p>
             </div>
+
+            {/* Newsletter */}
+            <form onSubmit={handleNewsletterSubmit} className="mt-5">
+              <p className="font-mono text-[11px] text-text-dim mb-2">Stay updated:</p>
+              <div className="flex gap-1.5">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  required
+                  className="flex-1 min-w-0 bg-bg-card border border-border-default rounded px-2.5 py-1.5 font-mono text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 transition-colors"
+                  aria-label="Newsletter email"
+                />
+                <button
+                  type="submit"
+                  disabled={isPending || !csrfToken}
+                  className="px-3 py-1.5 bg-green-primary/10 border border-green-primary/30 rounded font-mono text-xs font-semibold text-green-primary hover:bg-green-primary/20 transition-all disabled:opacity-50"
+                >
+                  {isPending ? "..." : "Subscribe"}
+                </button>
+              </div>
+              {newsletterStatus !== "idle" && (
+                <p className={`mt-1.5 font-mono text-[10px] ${newsletterStatus === "success" ? "text-green-primary" : "text-red"}`}>
+                  {newsletterMsg}
+                </p>
+              )}
+            </form>
           </div>
 
           {/* Link sections */}
