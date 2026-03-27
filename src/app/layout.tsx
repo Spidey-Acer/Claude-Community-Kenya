@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
+import { WebVitals } from "@/components/WebVitals";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -15,6 +16,12 @@ const ibmPlexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.claudekenya.org"),
@@ -128,6 +135,7 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} antialiased`}
       >
+        <WebVitals />
         <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>
