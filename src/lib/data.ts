@@ -236,7 +236,10 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | nu
 }
 
 export async function getProjects(): Promise<ProjectView[]> {
-  const rows = await prisma.project.findMany({ orderBy: { createdAt: "desc" } })
+  const rows = await prisma.project.findMany({
+    where: { featured: true },
+    orderBy: { createdAt: "desc" },
+  })
   return rows.map(mapPrismaProject)
 }
 

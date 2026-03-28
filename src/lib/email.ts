@@ -298,6 +298,8 @@ export async function sendApplicationReviewEmail(data: {
       ? "Idea Submission"
       : data.type === "volunteer"
       ? "Volunteer Application"
+      : data.type === "demo"
+      ? "Demo Request"
       : "Join Application"
 
   const html = `
