@@ -177,6 +177,30 @@ model JoinApplication {
   @@map("join_applications")
 }
 
+// ─── Demo Requests ───────────────────────────────────────────────────────────
+
+model DemoRequest {
+  id            String            @id @default(cuid())
+  eventId       String
+  name          String
+  email         String
+  projectTitle  String
+  description   String            @db.Text
+  estimatedTime String
+  demoUrl       String?
+  repoUrl       String?
+  status        ApplicationStatus @default(PENDING)
+  displayOrder  Int?
+  reviewedBy    String?
+  reviewNotes   String?           @db.Text
+  reviewedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([eventId, status])
+  @@map("demo_requests")
+}
+
 // ─── Events ──────────────────────────────────────────────────────────────────
 
 model Event {
@@ -200,6 +224,8 @@ model Event {
   attendeeCount   Int?
   posterUrl       String?
   photosUrl       String?
+  recordingUrl    String?
+  slidesUrl       String?
   prizes          Json?       // String[]
   rules           Json?       // String[]
   featured        Boolean     @default(false)
@@ -241,10 +267,12 @@ model Project {
   stack       Json     // String[]
   status      String?
   demoUrl     String?
-  repoUrl     String?
-  featured    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  repoUrl      String?
+  featured     Boolean  @default(false)
+  contactName  String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("projects")
 }
@@ -414,4 +442,14 @@ model CommunityUpvote {
 
   @@unique([submissionId, ipHash])
   @@map("community_upvotes")
+}
+
+// ─── Newsletter ──────────────────────────────────────────────────────────────
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscribers")
 }

@@ -47,7 +47,7 @@ const timelineEntries = [
     date: "Feb 26, 2026",
     title: "First Mombasa Meetup",
     description:
-      "CCK expands to the coast. 202 registered at the Technical University of Mombasa. 100% show rate. First Claude event outside Nairobi.",
+      "CCK expands to the coast. 202 registered. 100% show rate. First Claude event outside Nairobi.",
     hash: "c3d4e5f",
   },
   {
@@ -66,7 +66,7 @@ const timelineEntries = [
   },
 ];
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function AboutPage() {
   const team = await getTeamMembers().catch(() => []);
@@ -122,8 +122,7 @@ export default async function AboutPage() {
             </p>
             <p>
               By Event #2, 50+ builders showed up and the session ran 2.5 hours
-              overtime. Event #3 moved to the coast — 202 people registered at the
-              Technical University of Mombasa with a 100% show rate. Event #4 was
+              overtime. Event #3 moved to the coast — 202 people registered with a 100% show rate. Event #4 was
               an International Women&apos;s Day builder event at Blockchain Centre where
               Peter spoke on building with Claude AI. Event #5 hit 316 registrations
               — the largest Claude event registration in Africa.

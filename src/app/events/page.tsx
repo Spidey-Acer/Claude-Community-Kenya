@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { EventsContent } from "./EventsContent";
 import { getEvents } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 export const metadata: Metadata = {
   title: "Events | Claude Community Kenya",

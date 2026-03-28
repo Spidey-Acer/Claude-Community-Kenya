@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
-import { Accordion } from "@/components/ui/Accordion";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { faqs, getFaqsByCategory } from "@/data/faq";
+import { faqs } from "@/data/faq";
 import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { FaqClient } from "./FaqClient";
+import { FloatingDiscordCTA } from "./FloatingDiscordCTA";
 
 export const metadata: Metadata = {
   title: "FAQ | Claude Community Kenya",
@@ -79,31 +79,12 @@ export default function FaqPage() {
 
       {/* FAQ Sections */}
       <section className="pb-20">
-        <div className="mx-auto max-w-6xl space-y-12 px-4">
-          {categories.map((category, index) => {
-            const items = getFaqsByCategory(category.key).map((faq) => ({
-              id: faq.id,
-              title: faq.question,
-              content: faq.answer,
-            }));
-
-            return (
-              <ScrollReveal key={category.key} delay={index * 100}>
-                <div id={`faq-${category.key}`}>
-                  <h2 className="mb-4 flex items-center gap-2 font-mono text-base text-text-primary">
-                    <CommandPrefix />
-                    <span className="text-text-secondary">{category.command}</span>
-                    <span className="ml-2 font-mono text-xs text-text-dim">
-                      ({items.length})
-                    </span>
-                  </h2>
-                  <Accordion items={items} />
-                </div>
-              </ScrollReveal>
-            );
-          })}
+        <div className="mx-auto max-w-6xl px-4">
+          <FaqClient faqs={faqs} categories={categories} />
         </div>
       </section>
+
+      <FloatingDiscordCTA />
 
       {/* Still have questions? */}
       <section className="border-t border-border-default bg-bg-secondary py-16">

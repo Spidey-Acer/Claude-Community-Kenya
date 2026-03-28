@@ -62,11 +62,41 @@
   }
 }
 
+/* ─── Media Frame Glow Breathing ─── */
+@keyframes media-frame-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(var(--media-frame-glow-rgb), 0.12),
+      inset 0 0 4px rgba(var(--media-frame-glow-rgb), 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(var(--media-frame-glow-rgb), 0.25),
+      inset 0 0 8px rgba(var(--media-frame-glow-rgb), 0.08);
+  }
+}
+
+.media-frame-glow {
+  animation: media-frame-glow 3s ease-in-out infinite;
+}
+
+/* ─── Media Frame Loading Shimmer ─── */
+@keyframes media-frame-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.media-frame-shimmer {
+  animation: media-frame-shimmer 1.5s ease-in-out infinite;
+}
+
 /* ─── Reduced Motion: Disable all custom animations ─── */
 @media (prefers-reduced-motion: reduce) {
   .loading-bar-indeterminate,
   .crt-glow-pulse,
-  .scanline-flicker {
+  .scanline-flicker,
+  .media-frame-glow,
+  .media-frame-shimmer {
     animation: none;
   }
 

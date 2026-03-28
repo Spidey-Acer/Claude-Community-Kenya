@@ -148,7 +148,7 @@ Our first meetup featured a Claude Code workflow demo and open community interac
 
 ### University Partnerships
 
-We believe the next generation of Kenyan developers should have access to the best AI tools from day one. We are partnering with universities — starting with the Technical University of Mombasa — to bring AI development workshops and career talks directly to students.
+We believe the next generation of Kenyan developers should have access to the best AI tools from day one. We bring AI development workshops and career talks directly to students across universities in Kenya.
 
 ### Online Community
 

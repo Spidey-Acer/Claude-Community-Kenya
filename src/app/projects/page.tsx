@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getProjects } from "@/lib/data";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { SITE_CONFIG, SOCIAL_LINKS } from "@/lib/constants";
+import { SITE_CONFIG } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function ProjectsPage() {
   const projects = await getProjects().catch(() => []);
@@ -59,15 +60,13 @@ export default async function ProjectsPage() {
               Share what you&apos;ve built. Every project, big or small, inspires
               someone.
             </p>
-            <a
-              href={SOCIAL_LINKS.discord}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/submit-project"
               className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
             >
               <span aria-hidden="true">&gt;</span>
               SUBMIT_PROJECT
-            </a>
+            </Link>
           </section>
         </ScrollReveal>
 
