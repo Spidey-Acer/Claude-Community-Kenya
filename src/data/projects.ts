@@ -35,6 +35,18 @@ export const projects: Project[] = [
     featured: true,
   },
   {
+    id: "claude-kenya-theme",
+    name: "Claude Kenya — Savanna Dusk & Dawn",
+    builder: "Claude Community Kenya",
+    description:
+      "A stunning VS Code color theme inspired by Anthropic's brand palette fused with East African sunsets. Two variants: Savanna Dusk (dark) and Savanna Dawn (light).",
+    stack: ["VS Code", "JSON", "TextMate"],
+    status: "live",
+    demoUrl: "https://marketplace.visualstudio.com/items?itemName=claude-community-kenya.claude-kenya-theme",
+    repoUrl: "https://github.com/Spidey-Acer/claude-kenya-theme",
+    featured: true,
+  },
+  {
     id: "your-project",
     name: "Your Project Here",
     builder: "You?",
