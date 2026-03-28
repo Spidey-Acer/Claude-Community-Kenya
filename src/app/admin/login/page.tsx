@@ -34,7 +34,9 @@ export default function AdminLoginPage() {
       if (result?.error) {
         setError("Invalid email or password.")
       } else {
-        router.push("/admin")
+        // Full page navigation so the server-side admin layout
+        // re-renders with the new session (renders sidebar)
+        window.location.href = "/admin"
       }
     })
   }

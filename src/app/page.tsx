@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
+import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown, Layers, BookOpen } from "lucide-react";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
+import type { FeedItem } from "@/components/sections/HeroTerminal";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { EventCard } from "@/components/sections/EventCard";
 import { ProjectCard } from "@/components/sections/ProjectCard";
@@ -11,7 +12,7 @@ import { LazyMatrixRain } from "@/components/terminal/LazyMatrixRain";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { CommandPrefix } from "@/components/terminal";
-import { getUpcomingEvents, getFeaturedProjects } from "@/lib/data";
+import { getUpcomingEvents, getFeaturedProjects, getBlogPosts, getCommunitySubmissions } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
@@ -100,11 +101,43 @@ const joinPathways = [
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [upcomingEvents, featuredProjects, siteSettings] = await Promise.all([
+  const [upcomingEvents, featuredProjects, siteSettings, blogPosts, communityData] = await Promise.all([
     getUpcomingEvents().catch(() => []),
     getFeaturedProjects().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
+    getBlogPosts().catch(() => []),
+    getCommunitySubmissions({ limit: 5, sort: "recent" }).catch(() => ({ items: [], total: 0 })),
   ]);
+
+  // Build activity feed for hero terminal — interleave blogs, community, projects
+  const feedItems: FeedItem[] = [];
+  for (const post of blogPosts.slice(0, 3)) {
+    feedItems.push({
+      type: "blog",
+      label: "BLOG",
+      title: post.title,
+      meta: `by ${post.author} · ${post.readingTime} min read`,
+      href: `/blog/${post.slug}`,
+    });
+  }
+  for (const item of communityData.items.slice(0, 3)) {
+    feedItems.push({
+      type: "community",
+      label: item.type,
+      title: item.title,
+      meta: item.submitterName ? `shared by ${item.submitterName}` : item.shortDescription.slice(0, 60),
+      href: `/community/${item.slug}`,
+    });
+  }
+  for (const project of featuredProjects.slice(0, 2)) {
+    feedItems.push({
+      type: "project",
+      label: "PROJECT",
+      title: project.name,
+      meta: `by ${project.builder} · ${project.stack.slice(0, 3).join(", ")}`,
+      href: "/projects",
+    });
+  }
 
   const communityStats = siteSettings
     ? {
@@ -133,7 +166,7 @@ export default async function Home() {
         <LazyMatrixRain opacity={0.05} density={0.2} />
 
         <div className="relative z-10 flex flex-col items-center gap-8">
-          <HeroTerminal stats={communityStats} />
+          <HeroTerminal stats={communityStats} feed={feedItems} />
 
           <ScrollReveal delay={800}>
             <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
@@ -143,7 +176,7 @@ export default async function Home() {
           </ScrollReveal>
 
           <ScrollReveal delay={1200}>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <a
                 href={SOCIAL_LINKS.discord}
                 target="_blank"
@@ -154,11 +187,25 @@ export default async function Home() {
                 JOIN_DISCORD
               </a>
               <Link
+                href="/community"
+                className="inline-flex items-center gap-2 border border-cyan px-5 py-2.5 font-mono text-sm font-medium text-cyan transition-all duration-200 hover:bg-cyan hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+              >
+                <span className="text-current" aria-hidden="true">&gt;</span>
+                COMMUNITY_HUB
+              </Link>
+              <Link
                 href="/events"
                 className="inline-flex items-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
               >
                 <span className="text-current" aria-hidden="true">&gt;</span>
                 VIEW_EVENTS
+              </Link>
+              <Link
+                href="/projects"
+                className="inline-flex items-center gap-2 border border-border-hover px-5 py-2.5 font-mono text-sm font-medium text-text-secondary transition-all duration-200 hover:border-text-primary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+              >
+                <span className="text-current" aria-hidden="true">&gt;</span>
+                PROJECTS
               </Link>
             </div>
           </ScrollReveal>
@@ -178,6 +225,38 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Community stats">
         <StatsBar stats={communityStats} />
       </section>
+
+      {/* ─── Next Event Highlight ─── */}
+      {upcomingEvents.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pb-12" aria-label="Next event">
+          <ScrollReveal>
+            <Link
+              href={`/events/${upcomingEvents[0].slug}`}
+              className="group relative flex flex-col items-center gap-4 overflow-hidden border border-green-primary/20 bg-bg-secondary p-8 transition-all duration-300 hover:border-green-primary/40 hover:shadow-[0_0_30px_rgba(0,255,65,0.08)] sm:flex-row sm:gap-8"
+            >
+              {/* Subtle glow pulse */}
+              <div className="pointer-events-none absolute -inset-px rounded opacity-0 transition-opacity duration-500 group-hover:opacity-100" style={{ boxShadow: "inset 0 0 30px rgba(0,255,65,0.06)" }} />
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10">
+                <Calendar className="h-7 w-7 text-green-primary" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="mb-1 font-mono text-xs uppercase tracking-wider text-green-primary">
+                  Next Event
+                </p>
+                <h3 className="mb-1 font-mono text-lg font-bold text-text-primary group-hover:text-green-primary transition-colors">
+                  {upcomingEvents[0].title}
+                </h3>
+                <p className="font-sans text-sm text-text-secondary">
+                  {upcomingEvents[0].date} &middot; {upcomingEvents[0].time} &middot; {upcomingEvents[0].venue}
+                </p>
+              </div>
+              <div className="flex-shrink-0 font-mono text-sm text-green-primary opacity-0 transition-opacity group-hover:opacity-100">
+                View Details &rarr;
+              </div>
+            </Link>
+          </ScrollReveal>
+        </section>
+      )}
 
       {/* ─── Featured Events ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Upcoming events">
