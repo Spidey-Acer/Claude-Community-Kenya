@@ -109,7 +109,7 @@ export async function DELETE(
     action: "DELETE",
     entity: "DemoRequest",
     entityId: id,
-    changes: null,
+    changes: undefined,
     ...getRequestMetadata(request),
   })
 
