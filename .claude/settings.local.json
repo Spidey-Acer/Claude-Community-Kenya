@@ -9,7 +9,10 @@
       "Bash(cd:*)",
       "Bash(npm ls:*)",
       "Bash(git diff:*)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(bash ~/.claude/hooks/pre-push-typecheck.sh)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(source .env.local)"
     ]
   }
 }
