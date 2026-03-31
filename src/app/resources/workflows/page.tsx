@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { TerminalWindow, ScrollReveal } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Advanced Workflows | Claude Community Kenya",
@@ -32,24 +34,30 @@ export default function WorkflowsPage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            cat advanced-workflows.md
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            Level up your development with agentic patterns, parallel workflows,
-            and production-grade strategies.
-          </p>
+          <PersonaHeading
+            page="workflows"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="workflows"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
         </section>
       </ScrollReveal>
 
       {/* Agentic Development Patterns */}
       <ScrollReveal delay={100}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          explain --agentic-development
-        </h2>
+        <PersonaHeading
+          page="workflows"
+          section="agentic"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="agentic-patterns.md" variant="default">
           <h3 className="font-mono text-lg font-bold text-amber">
             # Agentic Development Patterns
@@ -122,10 +130,12 @@ export default function WorkflowsPage() {
       {/* Plan Mode */}
       <ScrollReveal delay={200}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          claude --plan
-        </h2>
+        <PersonaHeading
+          page="workflows"
+          section="planMode"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="plan-mode-example" variant="code">
           <div className="space-y-1">
             <p className="text-green-primary">$ claude --plan</p>
@@ -175,10 +185,12 @@ export default function WorkflowsPage() {
       {/* Git Worktree Strategy */}
       <ScrollReveal delay={300}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          git worktree --strategy
-        </h2>
+        <PersonaHeading
+          page="workflows"
+          section="worktrees"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="git-worktree-strategy" variant="default">
           <div className="space-y-3 text-text-secondary">
             <p>

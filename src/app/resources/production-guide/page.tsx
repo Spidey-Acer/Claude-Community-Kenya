@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { TerminalWindow, ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Building Production AI Apps with Claude | Claude Community Kenya",
@@ -57,13 +59,18 @@ export default function ProductionGuidePage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            deploy --production
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            Everything you need to ship Claude-powered applications that are reliable, cost-efficient, and ready for real users.
-          </p>
+          <PersonaHeading
+            page="productionGuide"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="productionGuide"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
             {[
               "Architecture",
@@ -90,10 +97,12 @@ export default function ProductionGuidePage() {
       {/* Architecture */}
       <ScrollReveal delay={100}>
         <section id="architecture" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            cat architecture.md
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="architecture"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="architecture.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -168,10 +177,12 @@ export default function ProductionGuidePage() {
       {/* Error Handling */}
       <ScrollReveal delay={150}>
         <section id="error-handling" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            try &#123;&#125; catch &#123; handle() &#125;
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="errorHandling"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="errors.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -217,10 +228,12 @@ export default function ProductionGuidePage() {
       {/* Rate Limits */}
       <ScrollReveal delay={200}>
         <section id="rate-limits" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            cat rate-limits.md
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="rateLimits"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="rate-limits.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -265,10 +278,12 @@ export default function ProductionGuidePage() {
       {/* Prompt Engineering */}
       <ScrollReveal delay={250}>
         <section id="prompt-engineering" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            vim system-prompt.txt
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="prompts"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="prompts.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -315,10 +330,12 @@ export default function ProductionGuidePage() {
       {/* Cost Control */}
       <ScrollReveal delay={300}>
         <section id="cost-control" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude --cost-optimize
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="costs"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="cost-optimization.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -368,10 +385,12 @@ export default function ProductionGuidePage() {
       {/* Security */}
       <ScrollReveal delay={350}>
         <section id="security" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            chmod 600 .env
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="security"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="security.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -404,10 +423,12 @@ export default function ProductionGuidePage() {
       {/* Monitoring */}
       <ScrollReveal delay={400}>
         <section id="monitoring" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            tail -f production.log
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="monitoring"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="monitoring.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -444,10 +465,12 @@ export default function ProductionGuidePage() {
       {/* Production Checklist */}
       <ScrollReveal delay={500}>
         <section className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            ./pre-launch-checklist.sh
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="checklist"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="pre-launch-checklist" variant="command">
             <ul className="space-y-3">
               {checklist.map((item, i) => (
@@ -467,10 +490,12 @@ export default function ProductionGuidePage() {
       {/* Next Steps */}
       <ScrollReveal delay={550}>
         <section className="border-t border-border-default py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            cat ./next-steps.md
-          </h2>
+          <PersonaHeading
+            page="productionGuide"
+            section="nextSteps"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <div className="grid gap-4 sm:grid-cols-3">
             <Link
               href="/resources/api-guide"

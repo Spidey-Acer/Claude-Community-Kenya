@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 import {
   getResourceCategories,
   getResourcesByCategory,
@@ -38,14 +40,18 @@ export default function LinksPage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            tree ./resources --links
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            A comprehensive directory of resources, tools, and communities — curated
-            by Claude Community Kenya.
-          </p>
+          <PersonaHeading
+            page="links"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="links"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
         </section>
       </ScrollReveal>
 
@@ -138,10 +144,12 @@ export default function LinksPage() {
       <ScrollReveal delay={200}>
       <section className="py-20">
         <div className="border border-border-default bg-bg-card p-6">
-          <h2 className="font-mono text-lg font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            contribute --resource
-          </h2>
+          <PersonaHeading
+            page="links"
+            section="contribute"
+            as="h2"
+            className="font-mono text-lg font-bold text-text-primary"
+          />
           <p className="mt-3 text-sm text-text-secondary">
             Know a great Claude resource that should be listed here? Have a tool
             or tutorial to share? We welcome contributions from the community.

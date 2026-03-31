@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { TerminalWindow, ScrollReveal } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Claude Code Guide | Claude Community Kenya",
@@ -32,14 +34,18 @@ export default function ClaudeCodePage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            man claude-code
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            The complete guide to Anthropic&apos;s CLI for building software with
-            Claude.
-          </p>
+          <PersonaHeading
+            page="claudeCode"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="claudeCode"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
         </section>
       </ScrollReveal>
 
@@ -74,10 +80,12 @@ export default function ClaudeCodePage() {
       {/* Installation Guide */}
       <ScrollReveal delay={200}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          ./install.sh
-        </h2>
+        <PersonaHeading
+          page="claudeCode"
+          section="install"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="installation" variant="code">
           <div className="space-y-1">
             <p className="text-text-dim"># Install globally with npm</p>
@@ -99,10 +107,12 @@ export default function ClaudeCodePage() {
       {/* Essential Commands */}
       <ScrollReveal delay={300}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          claude /help
-        </h2>
+        <PersonaHeading
+          page="claudeCode"
+          section="commands"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="essential-commands" variant="code">
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -145,10 +155,12 @@ export default function ClaudeCodePage() {
       {/* Setting Up CLAUDE.md */}
       <ScrollReveal delay={400}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          cat CLAUDE.md
-        </h2>
+        <PersonaHeading
+          page="claudeCode"
+          section="claudeMd"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="claude-md-guide" variant="default">
           <div className="space-y-3 text-text-secondary">
             <p>
@@ -187,10 +199,12 @@ export default function ClaudeCodePage() {
       {/* Multi-Instance Development */}
       <ScrollReveal delay={500}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          tmux split-window -h
-        </h2>
+        <PersonaHeading
+          page="claudeCode"
+          section="multiInstance"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="multi-instance-dev" variant="default">
           <div className="space-y-3 text-text-secondary">
             <p>
@@ -244,10 +258,12 @@ export default function ClaudeCodePage() {
       {/* Resources */}
       <ScrollReveal delay={600}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          cat ./resources.txt
-        </h2>
+        <PersonaHeading
+          page="claudeCode"
+          section="resources"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <div className="space-y-3 border border-border-default bg-bg-card p-6">
           <h3 className="font-mono text-sm font-bold text-text-primary">
             Official Documentation

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Rocket, Terminal, GitBranch, Link as LinkIcon, GraduationCap, Code2, Zap } from "lucide-react";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -80,13 +82,18 @@ export default function ResourcesPage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16 text-center">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            man claude --resources
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-text-secondary">
-            Everything you need to start building with Claude
-          </p>
+          <PersonaHeading
+            page="resources"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="resources"
+            section="hero"
+            field="subtitle"
+            className="mx-auto mt-6 max-w-2xl text-lg text-text-secondary"
+          />
         </section>
       </ScrollReveal>
 
