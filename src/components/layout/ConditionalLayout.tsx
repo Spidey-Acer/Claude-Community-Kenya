@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PersonaProvider, usePersona } from "@/contexts/PersonaContext";
+import { PersonaSelectorModal } from "@/components/persona/PersonaSelectorModal";
 
 export function ConditionalLayout({
   children,
@@ -20,7 +22,7 @@ export function ConditionalLayout({
   }
 
   return (
-    <>
+    <PersonaProvider>
       <a href="#main-content" className="skip-nav">
         Skip to main content
       </a>
@@ -31,6 +33,13 @@ export function ConditionalLayout({
       </main>
       <Footer />
       <EasterEggs />
-    </>
+      <PersonaGate />
+    </PersonaProvider>
   );
+}
+
+function PersonaGate() {
+  const { persona, setPersona, isLoaded } = usePersona();
+  if (!isLoaded || persona !== null) return null;
+  return <PersonaSelectorModal onSelect={setPersona} />;
 }

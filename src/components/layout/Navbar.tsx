@@ -8,6 +8,7 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
+import { PersonaToggle } from "@/components/persona/PersonaToggle";
 
 const CommandPalette = dynamic(
   () => import("@/components/terminal/CommandPalette").then((mod) => ({ default: mod.CommandPalette })),
@@ -94,6 +95,8 @@ export function Navbar() {
                 {isMac ? "⌘" : "Ctrl+"}K
               </kbd>
             </button>
+
+            <PersonaToggle className="ml-2" />
 
             {/* Join CTA */}
             <Link
