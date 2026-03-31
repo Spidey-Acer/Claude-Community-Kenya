@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import type { Persona } from "@/contexts/PersonaContext";
+import { ParticleCanvas } from "@/components/persona/ParticleCanvas";
 
 interface PersonaSelectorModalProps {
   onSelect: (persona: Persona) => void;
@@ -17,10 +18,12 @@ export function PersonaSelectorModal({ onSelect }: PersonaSelectorModalProps) {
   const handleSelect = (persona: Persona) => {
     setSelectedSide(persona);
     setIsExiting(true);
-    // Placeholder — Task 5 will replace this with ParticleCanvas onComplete
-    setTimeout(() => {
-      onSelect(persona);
-    }, 1000);
+  };
+
+  const handleParticlesComplete = () => {
+    if (selectedSide) {
+      onSelect(selectedSide);
+    }
   };
 
   const prefersReducedMotion =
@@ -61,6 +64,7 @@ export function PersonaSelectorModal({ onSelect }: PersonaSelectorModalProps) {
   }
 
   return (
+    <>
     <AnimatePresence>
       {!isExiting || selectedSide ? (
         <motion.div
@@ -264,5 +268,9 @@ export function PersonaSelectorModal({ onSelect }: PersonaSelectorModalProps) {
         </motion.div>
       ) : null}
     </AnimatePresence>
+    {isExiting && selectedSide && (
+      <ParticleCanvas selected={selectedSide} onComplete={handleParticlesComplete} />
+    )}
+    </>
   );
 }
