@@ -11,19 +11,20 @@ import { TestimonialsCarousel } from "@/components/sections/TestimonialsCarousel
 import { LazyMatrixRain } from "@/components/terminal/LazyMatrixRain";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
-import { CommandPrefix } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 import { getUpcomingEvents, getFeaturedProjects, getBlogPosts, getCommunitySubmissions } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Claude Community Kenya | East Africa's First Claude Developer Community",
+  title: "Claude Community Kenya | Africa's Only Claude Developer Community",
   description:
-    "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+    "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
   openGraph: {
-    title: "Claude Community Kenya | East Africa's First Claude Developer Community",
+    title: "Claude Community Kenya | Africa's Only Claude Developer Community",
     description:
-      "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+      "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
     url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
@@ -31,9 +32,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Claude Community Kenya | East Africa's First Claude Developer Community",
+    title: "Claude Community Kenya | Africa's Only Claude Developer Community",
     description:
-      "Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI across East Africa.",
+      "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
   },
 };
 
@@ -261,13 +262,8 @@ export default async function Home() {
       {/* ─── Featured Events ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Upcoming events">
         <ScrollReveal>
-          <h2 className="mb-2 font-mono text-xl text-green-primary">
-            <CommandPrefix />
-            ls events/ --upcoming
-          </h2>
-          <p className="mb-10 font-sans text-text-secondary">
-            Upcoming meetups, workshops, and career talks across Kenya.
-          </p>
+          <PersonaHeading page="home" section="events" />
+          <PersonaText page="home" section="events" field="subtitle" className="mb-10 font-sans text-text-secondary" />
         </ScrollReveal>
 
         <ScrollReveal
@@ -296,13 +292,8 @@ export default async function Home() {
       >
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h2 className="mb-2 font-mono text-xl text-green-primary">
-              <CommandPrefix />
-              man claude-community-kenya
-            </h2>
-            <p className="mb-12 font-sans text-text-secondary">
-              How we bring Kenya&apos;s developer community together around Claude and AI.
-            </p>
+            <PersonaHeading page="home" section="whatWeDo" />
+            <PersonaText page="home" section="whatWeDo" field="subtitle" className="mb-12 font-sans text-text-secondary" />
           </ScrollReveal>
 
           <ScrollReveal
@@ -339,13 +330,8 @@ export default async function Home() {
       {/* ─── Testimonials ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">
         <ScrollReveal>
-          <h2 className="mb-2 text-center font-mono text-xl text-green-primary">
-            <CommandPrefix />
-            cat community/voices.log
-          </h2>
-          <p className="mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary">
-            What developers are saying about Claude Community Kenya.
-          </p>
+          <PersonaHeading page="home" section="testimonials" className="mb-2 text-center font-mono text-xl text-green-primary" />
+          <PersonaText page="home" section="testimonials" field="subtitle" className="mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary" />
         </ScrollReveal>
         <ScrollReveal delay={200}>
           <TestimonialsCarousel />
@@ -355,13 +341,8 @@ export default async function Home() {
       {/* ─── Community Showcase ─── */}
       <section className="mx-auto max-w-6xl px-4 py-24" aria-label="Community projects">
         <ScrollReveal>
-          <h2 className="mb-2 font-mono text-xl text-green-primary">
-            <CommandPrefix />
-            ls projects/ --featured
-          </h2>
-          <p className="mb-12 font-sans text-text-secondary">
-            Real projects built by community members with Claude Code.
-          </p>
+          <PersonaHeading page="home" section="projects" />
+          <PersonaText page="home" section="projects" field="subtitle" className="mb-12 font-sans text-text-secondary" />
         </ScrollReveal>
 
         <ScrollReveal
@@ -390,14 +371,8 @@ export default async function Home() {
       >
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h2 className="mb-2 text-center font-mono text-xl text-green-primary">
-              <CommandPrefix />
-              sudo join --community
-            </h2>
-            <p className="mx-auto mb-12 max-w-2xl text-center font-sans text-text-secondary">
-              Whether you&apos;re an experienced AI developer or just getting started,
-              there&apos;s a place for you in Claude Community Kenya.
-            </p>
+            <PersonaHeading page="home" section="cta" className="mb-2 text-center font-mono text-xl text-green-primary" />
+            <PersonaText page="home" section="cta" field="subtitle" className="mx-auto mb-12 max-w-2xl text-center font-sans text-text-secondary" />
           </ScrollReveal>
 
           <ScrollReveal
