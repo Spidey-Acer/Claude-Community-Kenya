@@ -3,25 +3,28 @@ import Image from "next/image";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
-import { CommandPrefix } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { TeamMemberCard } from "@/components/sections/TeamMemberCard";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getTeamMembers } from "@/lib/data";
+import { prisma } from "@/lib/prisma";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import type { CommunityStats } from "@/components/sections/HeroTerminal";
 
 export const metadata: Metadata = {
   title: "About | Claude Community Kenya",
   description:
-    "East Africa's first Claude developer community. 5 events, 700+ registrations, two cities — Nairobi and Mombasa. Anthropic-supported.",
+    "Africa's only Claude community. Developers, creators, researchers, and professionals using Claude AI across Kenya.",
   alternates: {
     canonical: "https://www.claudekenya.org/about",
   },
   openGraph: {
     title: "About | Claude Community Kenya",
     description:
-      "East Africa's first Claude developer community. 5 events, 700+ registrations, two cities — Nairobi and Mombasa. Anthropic-supported.",
+      "Africa's only Claude developer community. Anthropic-supported meetups, workshops, and builders across Kenya.",
     url: "https://www.claudekenya.org/about",
     siteName: "Claude Community Kenya",
     type: "website",
@@ -31,16 +34,16 @@ export const metadata: Metadata = {
 const timelineEntries = [
   {
     date: "Jan 24, 2026",
-    title: "Kenya's First Claude Code Meetup",
+    title: "Kenya's First Claude Meetup",
     description:
-      "13 developers at iHiT Events Space, Westlands. Engineers from Microsoft, Equity Bank, Safaricom. Peter Kibet demoed Claude Code on a live production system. The community was born.",
+      "13 people at iHiT Events Space, Westlands. Professionals from Microsoft, Equity Bank, Safaricom. Peter Kibet demoed Claude on a live production system. The community was born.",
     hash: "a1b2c3d",
   },
   {
     date: "Feb 20, 2026",
     title: "Nairobi Meetup #2",
     description:
-      "50+ builders packed the room. Session ran 2.5 hours overtime. Deep dives into Claude Code workflows and multi-instance development. Unanimous demand for a hackathon.",
+      "50+ people packed the room. Session ran 2.5 hours overtime. Hands-on Claude workflows and real-world use cases. Unanimous demand for a hackathon.",
     hash: "f0a1b2c",
   },
   {
@@ -54,7 +57,7 @@ const timelineEntries = [
     date: "Mar 8, 2026",
     title: "She Builds Nairobi (IWD)",
     description:
-      "120+ builders at Blockchain Centre Nairobi. International Women's Day builder event. Peter Kibet spoke on building with Claude AI — live smart contract workshop using Claude as co-pilot.",
+      "120+ attendees at Blockchain Centre Nairobi. International Women's Day event. Peter Kibet spoke on working with Claude AI — live workshop using Claude as co-pilot.",
     hash: "d4e5f6g",
   },
   {
@@ -66,10 +69,40 @@ const timelineEntries = [
   },
 ];
 
+const DEFAULT_STATS: CommunityStats = {
+  discordMembers: 100,
+  whatsappMembers: 120,
+  linkedinMembers: 80,
+  totalMembers: 300,
+  eventsHeld: 5,
+  citiesActive: ["Nairobi", "Mombasa"],
+  resourceCount: 33,
+};
+
 export const revalidate = 3600;
 
 export default async function AboutPage() {
-  const team = await getTeamMembers().catch(() => []);
+  const [team, siteSettings] = await Promise.all([
+    getTeamMembers().catch(() => []),
+    prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
+  ]);
+
+  const stats: CommunityStats = siteSettings
+    ? {
+        discordMembers: siteSettings.discordMembers,
+        whatsappMembers: siteSettings.whatsappMembers,
+        linkedinMembers: siteSettings.linkedinMembers,
+        totalMembers:
+          siteSettings.discordMembers +
+          siteSettings.whatsappMembers +
+          siteSettings.linkedinMembers,
+        eventsHeld: siteSettings.eventsHeld,
+        citiesActive: Array.isArray(siteSettings.citiesActive)
+          ? (siteSettings.citiesActive as string[])
+          : (JSON.parse(siteSettings.citiesActive as string) as string[]),
+        resourceCount: siteSettings.resourceCount,
+      }
+    : DEFAULT_STATS;
 
   return (
     <div>
@@ -89,54 +122,73 @@ export default async function AboutPage() {
               />
             </div>
           </div>
-          <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix />
-            cat README.md
-          </h1>
-          <p className="max-w-2xl font-sans text-lg text-text-secondary">
-            The story of East Africa&apos;s first Claude developer community.
-          </p>
+          <PersonaHeading page="about" section="hero" as="h1" className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl" />
+          <PersonaText page="about" section="hero" field="subtitle" className="max-w-2xl font-sans text-lg text-text-secondary" />
+        </ScrollReveal>
+
+        {/* ─── Continental Stats ─── */}
+        <ScrollReveal delay={200}>
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-lg border border-border-default bg-bg-card p-4 text-center">
+              <p className="font-mono text-2xl font-bold text-green-primary">{stats.eventsHeld}</p>
+              <p className="mt-1 font-sans text-xs text-text-dim uppercase tracking-wider">Events held</p>
+            </div>
+            <div className="rounded-lg border border-border-default bg-bg-card p-4 text-center">
+              <p className="font-mono text-2xl font-bold text-amber">{stats.totalMembers}+</p>
+              <p className="mt-1 font-sans text-xs text-text-dim uppercase tracking-wider">Community members</p>
+            </div>
+            <div className="rounded-lg border border-border-default bg-bg-card p-4 text-center">
+              <p className="font-mono text-2xl font-bold text-cyan">{stats.citiesActive.length}</p>
+              <p className="mt-1 font-sans text-xs text-text-dim uppercase tracking-wider">Cities active</p>
+            </div>
+            <div className="rounded-lg border border-border-default bg-bg-card p-4 text-center">
+              <p className="font-mono text-2xl font-bold text-red">1</p>
+              <p className="mt-1 font-sans text-xs text-text-dim uppercase tracking-wider">Continent. Just us.</p>
+            </div>
+          </div>
         </ScrollReveal>
       </section>
 
       {/* ─── Our Story ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Our story">
         <ScrollReveal>
-          <h2 className="mb-2 font-mono text-xl text-green-primary">
-            <CommandPrefix />
-            cat origin-story.md
-          </h2>
+          <PersonaHeading page="about" section="origin" />
         </ScrollReveal>
 
         <ScrollReveal delay={100}>
           <div className="mt-8 max-w-3xl space-y-6 font-sans text-text-secondary leading-relaxed">
             <p>
-              It started with 13 developers in a room.
+              Out of 85 cities and 155+ events on the global Claude Community map,
+              Africa has one chapter. This is it.
             </p>
             <p>
-              On January 24, 2026, a small group gathered at iHiT Events Space in
-              Westlands, Nairobi for Kenya&apos;s first Claude Code meetup. Engineers
-              from Microsoft, Equity Bank, and Safaricom. One live demo of Claude
-              Code on a real production system managing 26,000+ coffee plants.
+              It started with 13 people in a room. On January 24, 2026, a small
+              group gathered at iHiT Events Space in Westlands, Nairobi for
+              Kenya&apos;s first Claude meetup — developers, creators, and professionals
+              curious about what AI could do for their work. One live demo of Claude
+              on a real production system managing 26,000+ coffee plants.
               Nobody wanted to leave.
             </p>
             <p>
-              By Event #2, 50+ builders showed up and the session ran 2.5 hours
-              overtime. Event #3 moved to the coast — 202 people registered with a 100% show rate. Event #4 was
-              an International Women&apos;s Day builder event at Blockchain Centre where
-              Peter spoke on building with Claude AI. Event #5 hit 316 registrations
-              — the largest Claude event registration in Africa.
+              By Event #2, 50+ people showed up and the session ran 2.5 hours
+              overtime. Event #3 moved to the coast — 202 people registered with a
+              100% show rate. Event #4 was an International Women&apos;s Day event
+              at Blockchain Centre where Peter spoke on working with Claude AI.
+              Event #5 hit 316 registrations — the largest Claude event registration
+              in Africa.
             </p>
             <p>
-              Five events. Three months. Two cities. Still growing.
+              {stats.eventsHeld} events. {stats.citiesActive.join(" & ")}. {stats.totalMembers}+ members. Still the only ones on the continent. Still growing.
             </p>
             <p>
               Claude Community Kenya is led by Peter Kibet, Claude Community
               Ambassador for Kenya — part of Anthropic&apos;s founding global cohort
-              of community leaders across 74 cities in 33 countries.
+              of community leaders across 74+ cities in 33+ countries. Kenya is
+              the sole African representation in that network.
             </p>
             <p>
-              We are not just learning about AI — we are building with it, every day.
+              Whether you write code, write copy, run a business, or do research —
+              if you use Claude, this is your community.
             </p>
           </div>
         </ScrollReveal>
@@ -149,10 +201,7 @@ export default async function AboutPage() {
       >
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h2 className="mb-12 font-mono text-xl text-green-primary">
-              <CommandPrefix />
-              cat mission.json
-            </h2>
+            <PersonaHeading page="about" section="mission" className="mb-12 font-mono text-xl text-green-primary" />
           </ScrollReveal>
 
           <div className="grid gap-8 lg:grid-cols-3">
@@ -166,11 +215,7 @@ export default async function AboutPage() {
                   <h3 className="font-mono text-base font-bold text-amber">
                     {"// MISSION"}
                   </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    Give Kenyan builders the tools, knowledge, and community to
-                    build real things with Claude — from farm management systems
-                    to fintech, from healthtech to education.
-                  </p>
+                  <PersonaText page="about" section="missionContent" field="description" className="text-sm text-text-secondary leading-relaxed" />
                 </div>
               </TerminalWindow>
             </ScrollReveal>
@@ -185,10 +230,7 @@ export default async function AboutPage() {
                   <h3 className="font-mono text-base font-bold text-amber">
                     {"// VISION"}
                   </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    Make Kenya a reference point for AI-first development in
-                    Africa. Not by talking about it — by shipping.
-                  </p>
+                  <PersonaText page="about" section="visionContent" field="description" className="text-sm text-text-secondary leading-relaxed" />
                 </div>
               </TerminalWindow>
             </ScrollReveal>
@@ -209,8 +251,8 @@ export default async function AboutPage() {
                         &gt;
                       </span>
                       <span>
-                        <span className="font-mono text-text-primary">Build in public</span>{" "}
-                        — Ship real projects, share your process, show your work
+                        <span className="font-mono text-text-primary">Work in the open</span>{" "}
+                        — Share what you&apos;re creating, how you&apos;re using Claude, what you&apos;ve learned
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -219,7 +261,7 @@ export default async function AboutPage() {
                       </span>
                       <span>
                         <span className="font-mono text-text-primary">Community over audience</span>{" "}
-                        — This is a room of builders, not a stage with spectators
+                        — A room of doers, not a stage with spectators
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -228,7 +270,7 @@ export default async function AboutPage() {
                       </span>
                       <span>
                         <span className="font-mono text-text-primary">Solve local problems</span>{" "}
-                        — Kenyan problems, world-class tools
+                        — African challenges, world-class AI
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -237,7 +279,7 @@ export default async function AboutPage() {
                       </span>
                       <span>
                         <span className="font-mono text-text-primary">Show, don&apos;t tell</span>{" "}
-                        — Demos over decks, shipping over slides
+                        — Results over presentations, doing over planning
                       </span>
                     </li>
                   </ul>
@@ -251,10 +293,7 @@ export default async function AboutPage() {
       {/* ─── The Team ─── */}
       <section className="mx-auto max-w-6xl px-4 py-24" aria-label="Our team">
         <ScrollReveal>
-          <h2 className="mb-2 font-mono text-xl text-green-primary">
-            <CommandPrefix />
-            ls team/ --all
-          </h2>
+          <PersonaHeading page="about" section="team" />
           <p className="mb-12 font-sans text-text-secondary">
             The people behind Claude Community Kenya.
           </p>
@@ -293,13 +332,8 @@ export default async function AboutPage() {
       >
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h2 className="mb-2 font-mono text-xl text-green-primary">
-              <CommandPrefix />
-              git log --oneline
-            </h2>
-            <p className="mb-12 font-sans text-text-secondary">
-              Our journey so far — every milestone tracked like a git commit.
-            </p>
+            <PersonaHeading page="about" section="timeline" />
+            <PersonaText page="about" section="timeline" field="subtitle" className="mb-12 font-sans text-text-secondary" />
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
