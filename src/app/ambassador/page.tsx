@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { Card } from "@/components/ui/Card";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
 
 export const metadata: Metadata = {
   title: "Ambassador Program | Claude Community Kenya",
@@ -42,13 +43,12 @@ export default function AmbassadorPage() {
       <section className="py-20">
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h1 className="mb-2 font-mono text-2xl font-bold text-green-primary md:text-3xl">
-              <CommandPrefix />
-              cat ambassador-program.md
-            </h1>
-            <p className="mt-4 font-mono text-lg text-green-dim">
-              Claude Community Ambassadors — Founding Cohort
-            </p>
+            <PersonaHeading
+              page="ambassador"
+              section="hero"
+              as="h1"
+              className="mb-2 font-mono text-2xl font-bold text-green-primary md:text-3xl"
+            />
           </ScrollReveal>
         </div>
       </section>
@@ -144,10 +144,12 @@ export default function AmbassadorPage() {
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
             <div className="text-center">
-              <h2 className="mb-6 font-mono text-xl text-green-primary">
-                <CommandPrefix />
-                echo &quot;Get Involved&quot;
-              </h2>
+              <PersonaHeading
+                page="ambassador"
+                section="getInvolved"
+                as="h2"
+                className="mb-6 font-mono text-xl text-green-primary"
+              />
               <div className="mx-auto max-w-lg space-y-4 text-left">
                 <p className="flex items-start gap-3">
                   <span className="shrink-0 font-mono text-green-dim" aria-hidden="true">$</span>

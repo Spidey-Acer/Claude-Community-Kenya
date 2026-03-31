@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getProjects } from "@/lib/data";
 import { ProjectCard } from "@/components/sections/ProjectCard";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
@@ -35,13 +37,18 @@ export default async function ProjectsPage() {
         {/* Header */}
         <ScrollReveal>
           <section className="mb-12">
-            <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-              <CommandPrefix />
-              ls projects/ -la
-            </h1>
-            <p className="max-w-2xl font-sans text-lg text-text-secondary">
-              Built by the community, powered by Claude.
-            </p>
+            <PersonaHeading
+              page="projects"
+              section="hero"
+              as="h1"
+              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+            />
+            <PersonaText
+              page="projects"
+              section="hero"
+              field="subtitle"
+              className="max-w-2xl font-sans text-lg text-text-secondary"
+            />
           </section>
         </ScrollReveal>
 
@@ -53,13 +60,18 @@ export default async function ProjectsPage() {
               <span className="h-2.5 w-2.5 rounded-full bg-amber" />
               <span className="h-2.5 w-2.5 rounded-full bg-green-primary" />
             </div>
-            <h2 className="mb-4 font-mono text-2xl font-bold text-green-primary">
-              Built something with Claude?
-            </h2>
-            <p className="mx-auto mb-8 max-w-lg font-sans text-text-secondary">
-              Share what you&apos;ve built. Every project, big or small, inspires
-              someone.
-            </p>
+            <PersonaHeading
+              page="projects"
+              section="submitCta"
+              as="h2"
+              className="mb-4 font-mono text-2xl font-bold text-green-primary"
+            />
+            <PersonaText
+              page="projects"
+              section="submitCta"
+              field="subtitle"
+              className="mx-auto mb-8 max-w-lg font-sans text-text-secondary"
+            />
             <Link
               href="/submit-project"
               className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"

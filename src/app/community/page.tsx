@@ -1,10 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ScrollReveal, CommandPrefix } from "@/components/terminal"
+import { ScrollReveal } from "@/components/terminal"
 import { CommunityResourceCard } from "@/components/sections/CommunityResourceCard"
 import { getCommunitySubmissions } from "@/lib/data"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { CommunityFilters } from "./CommunityFilters"
+import { PersonaHeading } from "@/components/persona/PersonaHeading"
+import { PersonaText } from "@/components/persona/PersonaText"
 
 export const revalidate = 1800
 
@@ -43,14 +45,18 @@ export default async function CommunityPage({
         {/* Header */}
         <ScrollReveal>
           <section className="mb-12">
-            <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-              <CommandPrefix />
-              ls community/ --shared
-            </h1>
-            <p className="max-w-2xl font-sans text-lg text-text-secondary">
-              MCPs, prompts, workflows, and tools built by the community.
-              Browse what others have shared or submit your own.
-            </p>
+            <PersonaHeading
+              page="community"
+              section="hero"
+              as="h1"
+              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+            />
+            <PersonaText
+              page="community"
+              section="hero"
+              field="subtitle"
+              className="max-w-2xl font-sans text-lg text-text-secondary"
+            />
             <Link
               href="/community/submit"
               className="mt-6 inline-flex items-center gap-2 border border-green-primary bg-green-primary/10 px-6 py-3 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"

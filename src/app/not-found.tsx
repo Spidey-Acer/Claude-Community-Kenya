@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TerminalWindow, CommandPrefix } from "@/components/terminal";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "404 — Page Not Found | Claude Community Kenya",
@@ -33,12 +35,19 @@ export default function NotFound() {
 
             {/* Error message */}
             <div className="border-t border-border-default pt-4">
-              <p className="text-lg font-bold text-amber">
-                ERROR 404: Page not found.
-              </p>
-              <p className="mt-2 font-sans text-text-secondary">
-                Looks like this route doesn&apos;t exist.
-              </p>
+              <PersonaHeading
+                page="notFound"
+                section="hero"
+                as="h1"
+                className="text-lg font-bold text-amber"
+                showPrefix={false}
+              />
+              <PersonaText
+                page="notFound"
+                section="hero"
+                field="subtitle"
+                className="mt-2 font-sans text-text-secondary"
+              />
               <p className="mt-1 font-sans text-text-dim">
                 Maybe try one of these:
               </p>

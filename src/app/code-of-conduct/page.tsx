@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { CONTACT } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
 
 export const metadata: Metadata = {
   title: "Code of Conduct | Claude Community Kenya",
@@ -48,10 +49,12 @@ export default function CodeOfConductPage() {
       <section className="py-20">
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h1 className="font-mono text-2xl font-bold text-green-primary md:text-3xl">
-              <CommandPrefix />
-              cat CODE_OF_CONDUCT.md
-            </h1>
+            <PersonaHeading
+              page="codeOfConduct"
+              section="hero"
+              as="h1"
+              className="font-mono text-2xl font-bold text-green-primary md:text-3xl"
+            />
           </ScrollReveal>
         </div>
       </section>
