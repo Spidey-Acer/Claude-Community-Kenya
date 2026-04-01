@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { faqs } from "@/data/faq";
 import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 import { FaqClient } from "./FaqClient";
 import { FloatingDiscordCTA } from "./FloatingDiscordCTA";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
 
 export const metadata: Metadata = {
   title: "FAQ | Claude Community Kenya",
@@ -66,13 +67,12 @@ export default function FaqPage() {
       <section className="py-20">
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <h1 className="mb-2 font-mono text-2xl font-bold text-green-primary md:text-3xl">
-              <CommandPrefix />
-              claude --help
-            </h1>
-            <p className="mt-4 font-sans text-lg text-text-secondary">
-              Frequently Asked Questions
-            </p>
+            <PersonaHeading
+              page="faq"
+              section="hero"
+              as="h1"
+              className="mb-2 font-mono text-2xl font-bold text-green-primary md:text-3xl"
+            />
           </ScrollReveal>
         </div>
       </section>
@@ -91,10 +91,12 @@ export default function FaqPage() {
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
             <div className="text-center">
-              <h2 className="mb-4 font-mono text-xl text-green-primary">
-                <CommandPrefix />
-                echo &quot;Still have questions?&quot;
-              </h2>
+              <PersonaHeading
+                page="faq"
+                section="still"
+                as="h2"
+                className="mb-4 font-mono text-xl text-green-primary"
+              />
               <p className="mx-auto mb-8 max-w-lg font-sans text-text-secondary">
                 Can&apos;t find what you&apos;re looking for? Reach out to us directly.
               </p>

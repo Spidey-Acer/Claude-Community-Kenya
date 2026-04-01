@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { usePersona } from "@/contexts/PersonaContext";
 
 interface MatrixRainProps {
   speed?: number;
@@ -19,11 +20,14 @@ export function MatrixRain({
   opacity = 0.05,
   className,
 }: MatrixRainProps) {
+  const { persona } = usePersona();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const lastFrameRef = useRef<number>(0);
 
   useEffect(() => {
+    // Pro mode: no matrix rain
+    if (persona === "pro") return;
     // Respect reduced motion
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -91,7 +95,7 @@ export function MatrixRain({
       cancelAnimationFrame(animationRef.current);
       window.removeEventListener("resize", resize);
     };
-  }, [speed, density, opacity]);
+  }, [speed, density, opacity, persona]);
 
   return (
     <canvas

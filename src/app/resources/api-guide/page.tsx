@@ -4,6 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Claude API Complete Guide | Claude Community Kenya",
@@ -62,13 +64,18 @@ export default function ApiGuidePage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            man claude-api
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            A complete reference for integrating Claude into your applications via the Anthropic API.
-          </p>
+          <PersonaHeading
+            page="apiGuide"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="apiGuide"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
             {["Overview", "Authentication", "Models", "Basic Request", "Streaming", "Tool Use", "Rate Limits", "SDK"].map((s) => (
               <a
@@ -120,10 +127,12 @@ export default function ApiGuidePage() {
       {/* Authentication */}
       <ScrollReveal delay={150}>
         <section id="authentication" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            export ANTHROPIC_API_KEY=&quot;...&quot;
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="auth"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="authentication.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -183,10 +192,12 @@ export default function ApiGuidePage() {
       {/* Models */}
       <ScrollReveal delay={200}>
         <section id="models" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude models --list
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="models"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <div className="grid gap-4 sm:grid-cols-3">
             {models.map((model) => (
               <div key={model.id} className="border border-border-default bg-bg-card p-5">
@@ -215,10 +226,12 @@ export default function ApiGuidePage() {
       {/* Basic Request */}
       <ScrollReveal delay={250}>
         <section id="basic-request" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            curl https://api.anthropic.com/v1/messages
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="basicUsage"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
 
           <TerminalWindow title="basic-request.ts" variant="code">
             <div className="space-y-1 font-mono text-sm">
@@ -278,10 +291,12 @@ export default function ApiGuidePage() {
       {/* Streaming */}
       <ScrollReveal delay={300}>
         <section id="streaming" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude --stream
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="streaming"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="streaming.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -332,10 +347,12 @@ export default function ApiGuidePage() {
       {/* Tool Use */}
       <ScrollReveal delay={350}>
         <section id="tool-use" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude --tools
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="tools"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="tool-use.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -387,10 +404,12 @@ export default function ApiGuidePage() {
       {/* System Prompts */}
       <ScrollReveal delay={380}>
         <section className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude --system &quot;You are...&quot;
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="systemPrompts"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="system-prompts.ts" variant="code">
             <div className="space-y-1 font-mono text-sm">
               <p className="text-text-dim">{"// System prompt sets Claude's behavior"}</p>
@@ -414,10 +433,12 @@ export default function ApiGuidePage() {
       {/* Rate Limits */}
       <ScrollReveal delay={400}>
         <section id="rate-limits" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            claude --rate-limits
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="rateLimits"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="rate-limits.md" variant="default">
             <div className="space-y-3 text-text-secondary">
               <p>
@@ -468,10 +489,12 @@ export default function ApiGuidePage() {
       {/* SDK Installation */}
       <ScrollReveal delay={450}>
         <section id="sdk" className="py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            npm install @anthropic-ai/sdk
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="sdk"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <TerminalWindow title="sdk-setup" variant="code">
             <div className="space-y-1">
               <p className="text-text-dim"># TypeScript / JavaScript</p>
@@ -486,10 +509,12 @@ export default function ApiGuidePage() {
       {/* Next Steps */}
       <ScrollReveal delay={500}>
         <section className="border-t border-border-default py-12">
-          <h2 className="mb-6 font-mono text-xl font-bold text-text-primary">
-            <CommandPrefix symbol="$" />
-            cat ./next-steps.md
-          </h2>
+          <PersonaHeading
+            page="apiGuide"
+            section="nextSteps"
+            as="h2"
+            className="mb-6 font-mono text-xl font-bold text-text-primary"
+          />
           <div className="grid gap-4 sm:grid-cols-3">
             <Link
               href="/resources/production-guide"

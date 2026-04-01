@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { usePersona } from "@/contexts/PersonaContext"
 
 interface Testimonial {
   quote: string
@@ -36,6 +37,8 @@ const testimonials: Testimonial[] = [
 export function TestimonialsCarousel() {
   const [current, setCurrent] = useState(0)
   const prefersReducedMotion = useReducedMotion()
+  const { persona } = usePersona()
+  const isPro = persona === "pro"
 
   const next = useCallback(() => {
     setCurrent((prev) => (prev + 1) % testimonials.length)
@@ -61,13 +64,26 @@ export function TestimonialsCarousel() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="text-center max-w-2xl mx-auto px-4"
           >
-            <p className="font-mono text-sm sm:text-base text-text-secondary leading-relaxed mb-4">
-              <span className="text-green-primary">&gt; </span>
-              &ldquo;{t.quote}&rdquo;
-            </p>
-            <footer className="font-mono text-xs text-text-dim">
-              — {t.name}, <span className="text-text-dim/70">{t.role}</span>
-            </footer>
+            {isPro ? (
+              <>
+                <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: "#b0aea5" }}>
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <footer className="text-xs" style={{ color: "#7a7870" }}>
+                  — {t.name}, <span style={{ color: "#7a7870", opacity: 0.7 }}>{t.role}</span>
+                </footer>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-sm sm:text-base text-text-secondary leading-relaxed mb-4">
+                  <span className="text-green-primary">&gt; </span>
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <footer className="font-mono text-xs text-text-dim">
+                  — {t.name}, <span className="text-text-dim/70">{t.role}</span>
+                </footer>
+              </>
+            )}
           </motion.blockquote>
         </AnimatePresence>
       </div>
@@ -79,11 +95,16 @@ export function TestimonialsCarousel() {
             key={i}
             onClick={() => setCurrent(i)}
             className={cn(
-              "w-1.5 h-1.5 rounded-full transition-all duration-300",
-              i === current
-                ? "bg-green-primary w-4"
-                : "bg-text-dim/30 hover:bg-text-dim/50"
+              "h-1.5 rounded-full transition-all duration-300",
+              isPro
+                ? i === current
+                  ? "w-4"
+                  : "w-1.5 bg-[#7a7870]/30 hover:bg-[#7a7870]/50"
+                : i === current
+                  ? "bg-green-primary w-4"
+                  : "w-1.5 bg-text-dim/30 hover:bg-text-dim/50"
             )}
+            style={isPro && i === current ? { backgroundColor: "#d97757", width: "1rem" } : undefined}
             aria-label={`View testimonial ${i + 1}`}
           />
         ))}

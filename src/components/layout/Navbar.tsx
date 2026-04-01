@@ -8,6 +8,8 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
+import { PersonaNotch } from "@/components/persona/PersonaToggle";
+import { usePersona } from "@/contexts/PersonaContext";
 
 const CommandPalette = dynamic(
   () => import("@/components/terminal/CommandPalette").then((mod) => ({ default: mod.CommandPalette })),
@@ -15,6 +17,8 @@ const CommandPalette = dynamic(
 );
 
 export function Navbar() {
+  const { persona } = usePersona();
+  const isPro = persona === "pro";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -39,7 +43,9 @@ export function Navbar() {
         className={cn(
           "fixed top-0 left-0 right-0 z-50 border-b border-border-default backdrop-blur-md transition-all duration-300",
           scrolled
-            ? "bg-bg-primary/95 shadow-[0_1px_12px_rgba(0,255,65,0.06)]"
+            ? isPro
+              ? "bg-bg-primary/95 shadow-[0_1px_12px_rgba(0,0,0,0.2)]"
+              : "bg-bg-primary/95 shadow-[0_1px_12px_rgba(0,255,65,0.06)]"
             : "bg-bg-primary/90"
         )}
         role="navigation"
@@ -49,12 +55,23 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="group font-mono text-lg font-bold text-green-primary transition-colors hover:text-green-dim"
+            className={cn(
+              "group text-lg font-bold transition-colors",
+              isPro
+                ? "font-sans text-text-primary hover:text-text-secondary"
+                : "font-mono text-green-primary hover:text-green-dim"
+            )}
             aria-label="Claude Community Kenya — Home"
           >
-            <span className="text-text-dim">~/</span>
-            <span className="text-green-primary group-hover:drop-shadow-[0_0_6px_rgba(0,255,65,0.4)]">CCK</span>
-            <span className="cursor-blink text-green-primary">▊</span>
+            {isPro ? (
+              <span className="tracking-tight">Claude Community Kenya</span>
+            ) : (
+              <>
+                <span className="text-text-dim">~/</span>
+                <span className="text-green-primary group-hover:drop-shadow-[0_0_6px_rgba(0,255,65,0.4)]">CCK</span>
+                <span className="cursor-blink text-green-primary">▊</span>
+              </>
+            )}
           </Link>
 
           {/* Desktop Navigation */}
@@ -66,18 +83,22 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative px-3 py-2 font-mono text-sm transition-colors",
+                    "relative px-3 py-2 text-sm transition-colors",
+                    isPro ? "font-medium" : "font-mono",
                     isActive
-                      ? "text-green-primary"
+                      ? isPro ? "text-text-primary" : "text-green-primary"
                       : "text-text-secondary hover:text-text-primary"
                   )}
                 >
-                  {isActive && (
+                  {isActive && !isPro && (
                     <span className="text-green-dim" aria-hidden="true">&gt; </span>
                   )}
-                  {link.label.toUpperCase()}
+                  {isPro ? link.label : link.label.toUpperCase()}
                   {isActive && (
-                    <span className="absolute bottom-0 left-3 right-3 h-px bg-green-primary" />
+                    <span className={cn(
+                      "absolute bottom-0 left-3 right-3 h-px",
+                      isPro ? "bg-text-primary" : "bg-green-primary"
+                    )} />
                   )}
                 </Link>
               );
@@ -98,9 +119,15 @@ export function Navbar() {
             {/* Join CTA */}
             <Link
               href="/join"
-              className="ml-2 border border-green-primary px-4 py-1.5 font-mono text-sm text-green-primary transition-all hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
+              className={cn(
+                "ml-2 px-4 py-1.5 text-sm transition-all",
+                isPro
+                  ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                  : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
+              )}
             >
-              <span aria-hidden="true">&gt; </span>JOIN
+              {!isPro && <span aria-hidden="true">&gt; </span>}
+              {isPro ? "Join" : "JOIN"}
             </Link>
           </div>
 
@@ -124,6 +151,9 @@ export function Navbar() {
 
       {/* Command Palette (global) */}
       <CommandPalette />
+
+      {/* Persona notch — centered below navbar */}
+      <PersonaNotch />
 
       {/* Spacer for fixed navbar */}
       <div className="h-16" />

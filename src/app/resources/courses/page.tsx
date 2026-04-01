@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
+import { TerminalWindow, ScrollReveal } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Courses & Learning Paths | Claude Community Kenya",
@@ -121,14 +123,18 @@ export default function CoursesPage() {
 
       {/* Header */}
       <section className="py-16">
-        <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-          <CommandPrefix symbol="$" />
-          cat learning-paths.md
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-          Free structured courses from Anthropic. Complete them in order for the
-          best learning experience — or jump to the topic you need.
-        </p>
+        <PersonaHeading
+          page="courses"
+          section="hero"
+          as="h1"
+          className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+        />
+        <PersonaText
+          page="courses"
+          section="hero"
+          field="subtitle"
+          className="mt-4 max-w-2xl text-lg text-text-secondary"
+        />
         <div className="mt-6 border border-border-default bg-bg-card p-4">
           <p className="font-mono text-sm text-amber">REQUIREMENTS:</p>
           <ul className="mt-2 space-y-1 text-sm text-text-secondary">

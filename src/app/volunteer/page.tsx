@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { TerminalWindow } from "@/components/terminal/TerminalWindow";
-import { CommandPrefix } from "@/components/terminal";
 import { ScrollReveal } from "@/components/terminal";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 import { HandHeart, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 const VOLUNTEER_ROLES = [
@@ -130,14 +131,18 @@ export default function VolunteerPage() {
         {/* Header */}
         <ScrollReveal>
           <div className="mb-8">
-            <h1 className="font-mono text-2xl text-green-primary mb-2">
-              <CommandPrefix />
-              volunteer --apply
-            </h1>
-            <p className="font-sans text-text-secondary max-w-xl">
-              Help us grow Claude Community Kenya. We&apos;re looking for passionate volunteers
-              to help manage social media, create content, coordinate events, and build community.
-            </p>
+            <PersonaHeading
+              page="volunteer"
+              section="hero"
+              as="h1"
+              className="font-mono text-2xl text-green-primary mb-2"
+            />
+            <PersonaText
+              page="volunteer"
+              section="hero"
+              field="subtitle"
+              className="font-sans text-text-secondary max-w-xl"
+            />
           </div>
         </ScrollReveal>
 

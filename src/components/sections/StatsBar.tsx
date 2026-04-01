@@ -21,10 +21,10 @@ function buildStatsLines(stats: CommunityStats): string[] {
 }
 
 const DEFAULT_STATS: CommunityStats = {
-  discordMembers: 78,
-  whatsappMembers: 96,
-  linkedinMembers: 61,
-  totalMembers: 235,
+  discordMembers: 100,
+  whatsappMembers: 120,
+  linkedinMembers: 80,
+  totalMembers: 300,
   eventsHeld: 5,
   citiesActive: ["Nairobi", "Mombasa"],
   resourceCount: 33,

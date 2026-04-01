@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
-import { ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
 import { getBlogPosts } from "@/lib/data";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const revalidate = 3600;
 
@@ -34,13 +36,18 @@ export default async function BlogPage() {
         {/* Header */}
         <ScrollReveal>
           <section className="mb-12">
-            <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-              <CommandPrefix />
-              tail -f community.log
-            </h1>
-            <p className="max-w-2xl font-sans text-lg text-text-secondary">
-              Updates, recaps, and thoughts from the community.
-            </p>
+            <PersonaHeading
+              page="blog"
+              section="hero"
+              as="h1"
+              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+            />
+            <PersonaText
+              page="blog"
+              section="hero"
+              field="subtitle"
+              className="max-w-2xl font-sans text-lg text-text-secondary"
+            />
           </section>
         </ScrollReveal>
 

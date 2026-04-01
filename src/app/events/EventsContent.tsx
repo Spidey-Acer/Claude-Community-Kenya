@@ -6,6 +6,8 @@ import { EventCard } from "@/components/sections/EventCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { cn } from "@/lib/utils";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 type FilterKey = "all" | "upcoming" | "past" | "nairobi" | "mombasa";
 
@@ -45,14 +47,18 @@ export function EventsContent({ events }: { events: Event[] }) {
         {/* Header */}
         <ScrollReveal>
           <section className="mb-12">
-            <h1 className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-              <CommandPrefix />
-              ls events/ -la --sort=date
-            </h1>
-            <p className="max-w-2xl font-sans text-lg text-text-secondary">
-              Meetups, workshops, hackathons, and career talks across Kenya.
-              Find an event near you and join the community.
-            </p>
+            <PersonaHeading
+              page="events"
+              section="hero"
+              as="h1"
+              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+            />
+            <PersonaText
+              page="events"
+              section="hero"
+              field="subtitle"
+              className="max-w-2xl font-sans text-lg text-text-secondary"
+            />
           </section>
         </ScrollReveal>
 

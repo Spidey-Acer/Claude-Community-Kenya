@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
 import { Card } from "@/components/ui/Card";
+import { PersonaHeading } from "@/components/persona/PersonaHeading";
+import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Getting Started with Claude | Claude Community Kenya",
@@ -86,13 +88,18 @@ export default function GettingStartedPage() {
       {/* Header */}
       <ScrollReveal>
         <section className="py-16">
-          <h1 className="font-mono text-3xl font-bold text-green-primary sm:text-4xl">
-            <CommandPrefix symbol="$" />
-            cat getting-started.md
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
-            Your guide to getting started with Claude AI — from zero to building.
-          </p>
+          <PersonaHeading
+            page="gettingStarted"
+            section="hero"
+            as="h1"
+            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
+          />
+          <PersonaText
+            page="gettingStarted"
+            section="hero"
+            field="subtitle"
+            className="mt-4 max-w-2xl text-lg text-text-secondary"
+          />
         </section>
       </ScrollReveal>
 
@@ -135,10 +142,12 @@ export default function GettingStartedPage() {
       {/* Claude Products Overview */}
       <ScrollReveal delay={200}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          ls ./claude-products/
-        </h2>
+        <PersonaHeading
+          page="gettingStarted"
+          section="products"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {products.map((product) => (
             <Card key={product.name} title={product.name} padding="md">
@@ -159,10 +168,12 @@ export default function GettingStartedPage() {
       {/* How to Get Started */}
       <ScrollReveal delay={300}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          ./setup.sh --guided
-        </h2>
+        <PersonaHeading
+          page="gettingStarted"
+          section="setup"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <TerminalWindow title="setup.sh" variant="command">
           <div className="space-y-4">
             {steps.map((step, index) => (
@@ -205,10 +216,12 @@ export default function GettingStartedPage() {
       {/* Pricing Overview */}
       <ScrollReveal delay={400}>
       <section className="py-20">
-        <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-          <CommandPrefix symbol="$" />
-          claude --pricing
-        </h2>
+        <PersonaHeading
+          page="gettingStarted"
+          section="pricing"
+          as="h2"
+          className="mb-8 font-mono text-xl font-bold text-text-primary"
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {pricingTiers.map((tier) => (
             <Card key={tier.name} title={tier.name} showDots={false} padding="md">

@@ -1,0 +1,54 @@
+<h2>How should the persona switch look in the navbar?</h2>
+<p class="subtitle">This lets visitors switch anytime after their initial choice. Should be subtle but findable.</p>
+
+<div class="cards">
+  <div class="card" data-choice="pill" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:60px; background:#0a0a0a; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 20px; font-family:monospace;">
+        <div style="display:flex; background:#111; border:1px solid #222; border-radius:20px; overflow:hidden; font-size:11px;">
+          <div style="padding:6px 14px; background:#00ff41; color:#0a0a0a; font-weight:bold; border-radius:20px;">DEV</div>
+          <div style="padding:6px 14px; color:#666;">PRO</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Pill Toggle</h3>
+      <p>Compact sliding pill. Active side is highlighted (green for dev, amber for pro). Sits next to the JOIN button.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="icon" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:60px; background:#0a0a0a; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:16px; padding:0 20px; font-family:monospace;">
+        <div style="display:flex; align-items:center; gap:6px; color:#00ff41; font-size:12px; cursor:pointer; border:1px solid #00ff41; border-radius:6px; padding:4px 10px;">
+          <span style="font-size:14px;">&gt;_</span>
+          <span style="font-size:10px;">DEV</span>
+        </div>
+        <div style="color:#333; font-size:10px;">→</div>
+        <div style="display:flex; align-items:center; gap:6px; color:#666; font-size:12px; cursor:pointer; border:1px solid #333; border-radius:6px; padding:4px 10px; opacity:0.5;">
+          <span style="font-size:14px;">◆</span>
+          <span style="font-size:10px;">PRO</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Icon Buttons</h3>
+      <p>Two small buttons with icons. Active one is highlighted, inactive is dimmed. More visual, takes more space.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:60px; background:#0a0a0a; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 20px; font-family:monospace;">
+        <div style="color:#00ff41; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+          <span style="font-size:14px;">&gt;_</span>
+          <span style="font-size:9px; color:#444;">⇄</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Minimal Icon</h3>
+      <p>Just the current persona's icon with a tiny swap indicator. Clicking it toggles. Most subtle — almost hidden unless you know it's there.</p>
+    </div>
+  </div>
+</div>
