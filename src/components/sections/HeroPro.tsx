@@ -114,7 +114,14 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           style={{ fontFamily: "var(--font-sans)" }}
         >
           Claude Community{" "}
-          <span className="bg-gradient-to-r from-[#d97757] via-[#e8956e] to-[#6a9bcc] bg-clip-text text-transparent">
+          <span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #d97757 0%, #e8956e 25%, #f0b89a 50%, #6a9bcc 75%, #788c5d 100%)",
+              backgroundSize: "200% 200%",
+              animation: "gradient-shift 6s ease-in-out infinite",
+            }}
+          >
             Kenya
           </span>
         </motion.h1>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { PersonaToggle } from "@/components/persona/PersonaToggle";
+import { usePersona } from "@/contexts/PersonaContext";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ interface MobileMenuProps {
 const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+  const { persona } = usePersona();
+  const isPro = persona === "pro";
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -91,12 +94,14 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           aria-modal="true"
           aria-label="Navigation menu"
         >
-          {/* Terminal header */}
-          <div className="border-b border-border-default px-6 py-3">
-            <span className="font-mono text-xs text-text-dim">
-              $ ls ./navigation
-            </span>
-          </div>
+          {/* Header */}
+          {!isPro && (
+            <div className="border-b border-border-default px-6 py-3">
+              <span className="font-mono text-xs text-text-dim">
+                $ ls ./navigation
+              </span>
+            </div>
+          )}
 
           {/* Navigation links */}
           <nav className="flex flex-col gap-1 p-6" aria-label="Mobile navigation">
@@ -113,14 +118,15 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     href={link.href}
                     onClick={onClose}
                     className={cn(
-                      "block py-3 font-mono text-lg transition-colors",
+                      "block py-3 text-lg transition-colors",
+                      isPro ? "font-medium" : "font-mono",
                       isActive
-                        ? "text-green-primary"
+                        ? isPro ? "text-[#d97757]" : "text-green-primary"
                         : "text-text-secondary hover:text-text-primary"
                     )}
                   >
-                    <span className="text-green-dim" aria-hidden="true">&gt; </span>
-                    {link.label.toUpperCase()}
+                    {!isPro && <span className="text-green-dim" aria-hidden="true">&gt; </span>}
+                    {isPro ? link.label : link.label.toUpperCase()}
                   </Link>
                 </motion.div>
               );
@@ -145,17 +151,23 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <Link
                 href="/join"
                 onClick={onClose}
-                className="inline-block border border-green-primary px-6 py-3 font-mono text-lg text-green-primary transition-all hover:bg-green-primary hover:text-bg-primary"
+                className={cn(
+                  "inline-block px-6 py-3 text-lg transition-all",
+                  isPro
+                    ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                    : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary"
+                )}
               >
-                <span aria-hidden="true">&gt; </span>JOIN
+                {!isPro && <span aria-hidden="true">&gt; </span>}
+                {isPro ? "Join" : "JOIN"}
               </Link>
             </motion.div>
           </nav>
 
-          {/* Bottom terminal decoration */}
+          {/* Bottom decoration */}
           <div className="mt-auto border-t border-border-default px-6 py-4">
-            <span className="font-mono text-xs text-text-dim">
-              claude-community-kenya v1.0.0
+            <span className={cn("text-xs text-text-dim", !isPro && "font-mono")}>
+              {isPro ? "Claude Community Kenya" : "claude-community-kenya v1.0.0"}
             </span>
           </div>
         </motion.div>
