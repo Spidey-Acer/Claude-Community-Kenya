@@ -30,6 +30,15 @@ export function PersonaProvider({ children }: { children: ReactNode }) {
     setIsLoaded(true);
   }, []);
 
+  // Apply/remove .persona-pro class on <html> when persona changes
+  useEffect(() => {
+    if (persona === "pro") {
+      document.documentElement.classList.add("persona-pro");
+    } else {
+      document.documentElement.classList.remove("persona-pro");
+    }
+  }, [persona]);
+
   const setPersona = useCallback((p: Persona) => {
     setPersonaState(p);
     localStorage.setItem(STORAGE_KEY, p);

@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { usePersona } from "@/contexts/PersonaContext";
 
 interface TerminalWindowProps {
   title?: string;
@@ -26,6 +27,41 @@ export function TerminalWindow({
   showDots = true,
   glowing = false,
 }: TerminalWindowProps) {
+  const { persona } = usePersona();
+  const isPro = persona === "pro";
+
+  if (isPro) {
+    return (
+      <div
+        className={cn(
+          "group rounded-2xl border border-border-default bg-bg-card transition-all duration-300",
+          "hover:border-border-hover hover:-translate-y-0.5",
+          "hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]",
+          className
+        )}
+      >
+        {/* Clean title bar */}
+        <div className="flex items-center gap-2 border-b border-border-default px-5 py-3">
+          {showDots && (
+            <div className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+            </div>
+          )}
+          {title && (
+            <span className="ml-2 text-xs font-medium text-text-dim">{title}</span>
+          )}
+        </div>
+
+        {/* Content — no box-drawing characters */}
+        <div className={cn("px-5 py-4", variantStyles[variant])}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(

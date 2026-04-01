@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePersona } from "@/contexts/PersonaContext";
 
 interface GlitchTextProps {
   children: React.ReactNode;
@@ -34,11 +35,17 @@ export function GlitchText({
   trigger = "hover",
   className,
 }: GlitchTextProps) {
+  const { persona } = usePersona();
   const [isActive, setIsActive] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const config = intensityConfig[intensity];
+
+  // Pro mode: no glitch effects
+  if (persona === "pro") {
+    return <div className={cn("relative inline-block", className)}>{children}</div>;
+  }
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");

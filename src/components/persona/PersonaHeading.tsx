@@ -1,6 +1,7 @@
 "use client";
 
 import { CommandPrefix } from "@/components/terminal";
+import { usePersona } from "@/contexts/PersonaContext";
 import { usePersonaContent } from "@/hooks/usePersonaContent";
 
 interface PersonaHeadingProps {
@@ -20,9 +21,11 @@ export function PersonaHeading({
   showPrefix = true,
   prefixSymbol = "$",
 }: PersonaHeadingProps) {
+  const { persona } = usePersona();
   const content = usePersonaContent(page, section);
   if (!content.heading) return null;
 
+  // CommandPrefix returns null in pro mode, so showPrefix still works
   return (
     <Tag className={className}>
       {showPrefix && <CommandPrefix symbol={prefixSymbol} />}

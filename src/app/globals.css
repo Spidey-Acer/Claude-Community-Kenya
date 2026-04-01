@@ -56,6 +56,68 @@
   --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ─── Pro Theme (Clean / Apple-like) ─── */
+.persona-pro {
+  /* Backgrounds — dark neutral, no green tint */
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-card: #1c1c1f;
+  --bg-elevated: #27272a;
+
+  /* Borders — softer, warmer */
+  --border: #27272a;
+  --border-hover: #3f3f46;
+
+  /* Accent — muted slate blue replaces terminal green */
+  --green-primary: #a1a1aa;
+  --green-dim: #71717a;
+  --green-muted: #27272a;
+
+  /* Accent Colors — toned down */
+  --amber: #a1a1aa;
+  --amber-dim: #71717a;
+  --red: #71717a;
+  --cyan: #a1a1aa;
+
+  /* Text — same range, slightly warmer */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-dim: #71717a;
+}
+
+/* Pro: override heading font to system sans-serif */
+.persona-pro h1,
+.persona-pro h2,
+.persona-pro h3,
+.persona-pro h4,
+.persona-pro h5,
+.persona-pro h6 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.03em;
+}
+
+/* Pro: kill scanline overlay + noise/grain */
+.persona-pro body::after,
+.persona-pro body::before {
+  display: none !important;
+}
+
+/* Pro: clean scrollbar */
+.persona-pro ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Pro: clean selection */
+.persona-pro ::selection {
+  background-color: rgba(161, 161, 170, 0.3);
+  color: #fafafa;
+}
+
+/* Pro: clean focus ring */
+.persona-pro :focus-visible {
+  outline-color: #a1a1aa;
+}
+
 /* ─── Base Styles ─── */
 *,
 *::before,

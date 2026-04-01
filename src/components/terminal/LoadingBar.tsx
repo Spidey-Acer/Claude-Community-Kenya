@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { usePersona } from "@/contexts/PersonaContext";
 
 export function LoadingBar() {
+  const { persona } = usePersona();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -56,6 +58,7 @@ export function LoadingBar() {
 
   if (!visible) return null;
 
+  const isPro = persona === "pro";
   const barWidth = Math.round(progress / 100 * 13);
   const filled = "█".repeat(barWidth);
   const empty = "░".repeat(13 - barWidth);
@@ -74,14 +77,19 @@ export function LoadingBar() {
     >
       {/* Progress bar */}
       <div
-        className="h-0.5 bg-green-primary transition-all duration-200 ease-out"
+        className={cn(
+          "transition-all duration-200 ease-out",
+          isPro ? "h-[2px] bg-zinc-400" : "h-0.5 bg-green-primary"
+        )}
         style={{ width: `${progress}%` }}
       />
 
-      {/* Terminal text overlay */}
-      <div className="bg-bg-primary/80 px-4 py-1 font-mono text-xs text-green-dim backdrop-blur-sm">
-        Loading {pathname}... [{filled}{empty}] {Math.round(progress)}%
-      </div>
+      {/* Terminal text overlay — hidden in Pro mode */}
+      {!isPro && (
+        <div className="bg-bg-primary/80 px-4 py-1 font-mono text-xs text-green-dim backdrop-blur-sm">
+          Loading {pathname}... [{filled}{empty}] {Math.round(progress)}%
+        </div>
+      )}
     </div>
   );
 }
