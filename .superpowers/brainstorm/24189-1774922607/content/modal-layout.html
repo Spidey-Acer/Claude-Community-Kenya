@@ -1,0 +1,90 @@
+<h2>How should the persona selector look?</h2>
+<p class="subtitle">This appears once on first visit. It should feel premium, not like a cookie banner.</p>
+
+<div class="cards">
+  <div class="card" data-choice="split" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex; height:240px; border-radius:8px; overflow:hidden; font-family:monospace;">
+        <!-- Dev side -->
+        <div style="flex:1; background:#0a0a0a; padding:20px; display:flex; flex-direction:column; justify-content:center; align-items:center; border-right:1px solid #00ff41; cursor:pointer; position:relative;">
+          <div style="position:absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(135deg, rgba(0,255,65,0.05) 0%, transparent 50%);"></div>
+          <div style="color:#00ff41; font-size:13px; opacity:0.5; margin-bottom:8px;">$ whoami</div>
+          <div style="color:#00ff41; font-size:22px; font-weight:bold; margin-bottom:6px;">Developer</div>
+          <div style="color:#888; font-size:11px; text-align:center; line-height:1.4;">I write code.<br>Show me the terminal.</div>
+          <div style="margin-top:16px; color:#00ff41; font-size:11px; opacity:0.6;">$ cat README.md</div>
+          <div style="color:#00ff41; font-size:11px; opacity:0.6;">$ git log --oneline</div>
+        </div>
+        <!-- Professional side -->
+        <div style="flex:1; background:#111111; padding:20px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer; position:relative;">
+          <div style="position:absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(135deg, rgba(255,176,0,0.05) 0%, transparent 50%);"></div>
+          <div style="color:#ffb000; font-size:13px; opacity:0.5; margin-bottom:8px;">Welcome</div>
+          <div style="color:#ffb000; font-size:22px; font-weight:bold; margin-bottom:6px;">Professional</div>
+          <div style="color:#888; font-size:11px; text-align:center; line-height:1.4;">I use Claude for work.<br>Keep it clean.</div>
+          <div style="margin-top:16px; color:#ffb000; font-size:11px; opacity:0.6;">Our Story</div>
+          <div style="color:#ffb000; font-size:11px; opacity:0.6;">Milestones</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Full Split Screen</h3>
+      <p>Two halves side by side, each previewing its vibe. You click your side. Dramatic, immersive. On mobile: stacked vertically.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="center" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:240px; background:#0a0a0a; border-radius:8px; display:flex; align-items:center; justify-content:center; position:relative;">
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); border-radius:8px;"></div>
+        <div style="position:relative; background:#111; border:1px solid #222; border-radius:12px; padding:24px 32px; text-align:center; font-family:monospace; max-width:320px;">
+          <div style="color:#e0e0e0; font-size:14px; font-weight:bold; margin-bottom:4px;">How do you use Claude?</div>
+          <div style="color:#666; font-size:11px; margin-bottom:16px;">This helps us show you the right experience</div>
+          <div style="display:flex; gap:12px;">
+            <div style="flex:1; border:1px solid #00ff41; border-radius:8px; padding:12px 8px; cursor:pointer;">
+              <div style="color:#00ff41; font-size:16px; margin-bottom:4px;">{ }</div>
+              <div style="color:#00ff41; font-size:12px; font-weight:bold;">Developer</div>
+              <div style="color:#666; font-size:10px;">I write code</div>
+            </div>
+            <div style="flex:1; border:1px solid #ffb000; border-radius:8px; padding:12px 8px; cursor:pointer;">
+              <div style="color:#ffb000; font-size:16px; margin-bottom:4px;">★</div>
+              <div style="color:#ffb000; font-size:12px; font-weight:bold;">Professional</div>
+              <div style="color:#666; font-size:10px;">I use Claude</div>
+            </div>
+          </div>
+          <div style="color:#444; font-size:10px; margin-top:12px;">You can switch anytime</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Centered Modal</h3>
+      <p>Clean dialog box over a blurred backdrop. Two cards to pick from. Familiar pattern (like country selectors). Compact, less dramatic.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="takeover" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:240px; background:#0a0a0a; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:monospace; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:50%; bottom:0; background:linear-gradient(135deg, rgba(0,255,65,0.03) 0%, transparent 70%);"></div>
+        <div style="position:absolute; top:0; left:50%; right:0; bottom:0; background:linear-gradient(225deg, rgba(255,176,0,0.03) 0%, transparent 70%);"></div>
+        <div style="color:#e0e0e0; font-size:18px; font-weight:bold; margin-bottom:4px; position:relative;">Claude Community Kenya</div>
+        <div style="color:#666; font-size:11px; margin-bottom:24px; position:relative;">Africa's only Claude community</div>
+        <div style="display:flex; gap:20px; position:relative;">
+          <div style="width:130px; border:1px solid #00ff41; border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; background:rgba(0,255,65,0.03);">
+            <div style="color:#00ff41; font-size:24px; margin-bottom:6px; font-family:monospace;">&gt;_</div>
+            <div style="color:#00ff41; font-size:14px; font-weight:bold;">Developer</div>
+            <div style="color:#666; font-size:10px; margin-top:4px;">Terminal mode</div>
+          </div>
+          <div style="width:130px; border:1px solid #ffb000; border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; background:rgba(255,176,0,0.03);">
+            <div style="color:#ffb000; font-size:24px; margin-bottom:6px;">◆</div>
+            <div style="color:#ffb000; font-size:14px; font-weight:bold;">Professional</div>
+            <div style="color:#666; font-size:10px; margin-top:4px;">Clean mode</div>
+          </div>
+        </div>
+        <div style="color:#444; font-size:10px; margin-top:16px; position:relative;">You can switch anytime from the menu</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Full-Page Takeover</h3>
+      <p>The entire first screen IS the choice. No backdrop, no modal — the selector is the landing page until you pick. Most bold, most memorable.</p>
+    </div>
+  </div>
+</div>

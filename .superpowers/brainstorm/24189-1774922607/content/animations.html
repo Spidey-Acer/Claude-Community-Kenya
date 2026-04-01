@@ -1,0 +1,36 @@
+<h2>Entry & Exit Animations — Pick Your Drama Level</h2>
+<p class="subtitle">These describe what happens when the persona selector appears and when you pick a side. The bolder the animation, the more memorable the first impression.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>The Curtain Call</h3>
+      <p><strong>Entry:</strong> Screen starts fully black. A thin glowing line appears dead center (vertical). It pulses once, then the two halves "peel apart" like curtains — dev side slides left revealing green particles/scanlines underneath, pro side slides right revealing warm amber glow. Each side's content fades in with a stagger (icon first, title, subtitle, preview text). Total: ~1.2s</p>
+      <p><strong>Exit:</strong> The side you DIDN'T pick dissolves into particles that drift toward your chosen side (like it's absorbing the other). Your side then "zooms in" — scales up to fill the screen while its accent color briefly flashes the whole viewport, then fades to reveal the actual site underneath. Total: ~1s</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>The Matrix Reveal</h3>
+      <p><strong>Entry:</strong> Screen fills with your existing Matrix rain effect (green characters falling). The rain splits down the middle — left side stays green (dev), right side characters morph to amber (pro). Rain gradually clears from center outward, revealing each half's content behind it like a digital fog lifting. Total: ~1.5s</p>
+      <p><strong>Exit:</strong> On click, the chosen side's rain intensifies and sweeps across the rejected side like a wave, "overwriting" it. Screen fills with the winning color's rain, then the characters dissolve downward revealing the homepage. Total: ~1.2s</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>The Terminal Boot</h3>
+      <p><strong>Entry:</strong> Black screen. A blinking cursor appears center-top. It "types out" — <code>initializing cck_experience...</code> then <code>detecting user profile...</code> then <code>two modes available:</code> — each line appearing with typing sound rhythm. Then BOOM — the two halves slam in from left and right edges simultaneously, meeting at center with a brief impact flash on the divider line. Content staggers in. Total: ~2s</p>
+      <p><strong>Exit:</strong> The rejected side "crashes" — its content glitches (your existing glitch CSS), scrambles, then collapses downward like a terminal window closing. The chosen side smoothly expands, its border glow intensifying, then transitions seamlessly into the actual page layout. Total: ~1s</p>
+    </div>
+  </div>
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Mix & Match</h3>
+      <p>Take entry from one, exit from another. Tell me which pieces you like and I'll combine them. Or describe something completely different — I'll make it work.</p>
+    </div>
+  </div>
+</div>

@@ -66,15 +66,15 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
 
   return (
     <div className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden">
-      {/* Gradient mesh background */}
+      {/* Gradient mesh background — Anthropic warm tones */}
       <div className="pointer-events-none absolute inset-0">
         <div
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.15), transparent),
-              radial-gradient(ellipse 60% 40% at 80% 50%, rgba(59, 130, 246, 0.08), transparent),
-              radial-gradient(ellipse 50% 50% at 20% 80%, rgba(168, 85, 247, 0.06), transparent)
+              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(217, 119, 87, 0.12), transparent),
+              radial-gradient(ellipse 60% 40% at 80% 50%, rgba(106, 155, 204, 0.08), transparent),
+              radial-gradient(ellipse 50% 50% at 20% 80%, rgba(120, 140, 93, 0.06), transparent)
             `,
           }}
         />
@@ -99,8 +99,8 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           transition={{ duration: 0.6 }}
           className="mb-6"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-800/50 px-4 py-1.5 text-sm text-zinc-300 backdrop-blur-sm">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#3a3a37] bg-[#1e1e1d]/80 px-4 py-1.5 text-sm text-[#b0aea5] backdrop-blur-sm">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#d97757]" />
             Anthropic-supported community
           </span>
         </motion.div>
@@ -114,7 +114,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           style={{ fontFamily: "var(--font-sans)" }}
         >
           Claude Community{" "}
-          <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#d97757] via-[#e8956e] to-[#6a9bcc] bg-clip-text text-transparent">
             Kenya
           </span>
         </motion.h1>
@@ -124,7 +124,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 sm:text-xl"
+          className="mx-auto mb-10 max-w-2xl text-lg text-[#b0aea5] sm:text-xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           East Africa&apos;s vibrant AI community. Learn, create, and grow with Claude —
@@ -142,20 +142,20 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
             href={SOCIAL_LINKS.discord}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-zinc-900 shadow-lg shadow-white/10 transition-all duration-200 hover:bg-zinc-100 hover:shadow-white/20"
+            className="inline-flex items-center gap-2 rounded-full bg-[#d97757] px-7 py-3 text-sm font-semibold text-[#faf9f5] shadow-lg shadow-[#d97757]/20 transition-all duration-200 hover:bg-[#c06848] hover:shadow-[#d97757]/30"
           >
             Join the Community
             <span aria-hidden="true">→</span>
           </a>
           <Link
             href="/events"
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-600 px-7 py-3 text-sm font-semibold text-zinc-200 transition-all duration-200 hover:border-zinc-400 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full border border-[#3a3a37] px-7 py-3 text-sm font-semibold text-[#e8e6dc] transition-all duration-200 hover:border-[#d97757]/50 hover:text-[#faf9f5]"
           >
             Browse Events
           </Link>
           <Link
             href="/resources"
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-7 py-3 text-sm font-semibold text-zinc-400 transition-all duration-200 hover:border-zinc-500 hover:text-zinc-200"
+            className="inline-flex items-center gap-2 rounded-full border border-[#2a2a28] px-7 py-3 text-sm font-semibold text-[#b0aea5] transition-all duration-200 hover:border-[#6a9bcc]/50 hover:text-[#e8e6dc]"
           >
             Resources
           </Link>
@@ -169,24 +169,24 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           className="mx-auto flex max-w-lg items-center justify-center gap-8 sm:gap-12"
         >
           <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">
+            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
               <AnimatedCounter target={resolvedStats.totalMembers} suffix="+" />
             </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Members</div>
+            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Members</div>
           </div>
-          <div className="h-8 w-px bg-zinc-700" />
+          <div className="h-8 w-px bg-[#2a2a28]" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">
+            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
               <AnimatedCounter target={resolvedStats.eventsHeld} />
             </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Events</div>
+            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Events</div>
           </div>
-          <div className="h-8 w-px bg-zinc-700" />
+          <div className="h-8 w-px bg-[#2a2a28]" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">
+            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
               {resolvedStats.citiesActive.length}
             </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Cities</div>
+            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Cities</div>
           </div>
         </motion.div>
 
@@ -200,20 +200,20 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           >
             <a
               href={currentItem.href}
-              className="group flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-3.5 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-800/50"
+              className="group flex items-center gap-3 rounded-xl border border-[#2a2a28] bg-[#1e1e1d]/80 px-5 py-3.5 backdrop-blur-sm transition-all duration-200 hover:border-[#3a3a37] hover:bg-[#252524]/80"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800">
-                <span className="text-xs font-bold uppercase text-zinc-400">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#252524]">
+                <span className="text-xs font-bold uppercase text-[#b0aea5]">
                   {currentItem.type === "blog" ? "B" : currentItem.type === "project" ? "P" : currentItem.type === "community" ? "C" : "E"}
                 </span>
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">
+                <p className="truncate text-sm font-medium text-[#e8e6dc] group-hover:text-[#faf9f5] transition-colors">
                   {currentItem.title}
                 </p>
-                <p className="text-xs text-zinc-500">{currentItem.meta}</p>
+                <p className="text-xs text-[#7a7870]">{currentItem.meta}</p>
               </div>
-              <span className="shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-400">→</span>
+              <span className="shrink-0 text-[#7a7870] transition-colors group-hover:text-[#d97757]">→</span>
             </a>
             {feed.length > 1 && (
               <div className="mt-3 flex justify-center gap-1">
@@ -221,7 +221,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
                   <div
                     key={i}
                     className={`h-1 rounded-full transition-all duration-300 ${
-                      i === currentFeedIndex ? "w-5 bg-zinc-400" : "w-1 bg-zinc-700"
+                      i === currentFeedIndex ? "w-5 bg-[#d97757]" : "w-1 bg-[#2a2a28]"
                     }`}
                   />
                 ))}

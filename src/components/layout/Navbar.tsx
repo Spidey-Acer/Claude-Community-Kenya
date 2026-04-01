@@ -124,7 +124,7 @@ export function Navbar() {
               className={cn(
                 "ml-2 px-4 py-1.5 text-sm transition-all",
                 isPro
-                  ? "rounded-full bg-text-primary font-medium text-bg-primary hover:bg-text-secondary"
+                  ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
                   : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
               )}
             >

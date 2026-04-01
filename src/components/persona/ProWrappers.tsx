@@ -32,8 +32,8 @@ export function PersonaCTA({
     : "border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary";
 
   const proClasses = variant === "primary"
-    ? "rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-zinc-900 shadow-lg shadow-white/10 transition-all duration-200 hover:bg-zinc-100"
-    : "rounded-full border border-zinc-600 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition-all duration-200 hover:border-zinc-400 hover:text-white";
+    ? "rounded-full bg-[#d97757] px-6 py-2.5 text-sm font-semibold text-[#faf9f5] shadow-lg shadow-[#d97757]/20 transition-all duration-200 hover:bg-[#c06848]"
+    : "rounded-full border border-[#3a3a37] px-6 py-2.5 text-sm font-semibold text-[#e8e6dc] transition-all duration-200 hover:border-[#d97757]/50 hover:text-[#faf9f5]";
 
   const props = {
     className: cn(
@@ -81,7 +81,7 @@ export function PersonaSection({
   if (isPro && altBg) {
     return (
       <section className={cn("relative py-24", className)}>
-        <div className="pointer-events-none absolute inset-0 border-y border-zinc-800/50 bg-zinc-900/30" />
+        <div className="pointer-events-none absolute inset-0 border-y border-[#2a2a28]/50 bg-zinc-900/30" />
         <div className="relative">{children}</div>
       </section>
     );
@@ -122,12 +122,12 @@ export function PersonaCard({
           "group relative overflow-hidden rounded-2xl border bg-zinc-900/50 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5",
           highlighted
             ? "border-zinc-600 hover:border-zinc-500 shadow-lg shadow-zinc-900/50"
-            : "border-zinc-800 hover:border-zinc-700",
+            : "border-[#2a2a28] hover:border-[#3a3a37]",
           className
         )}
       >
         {title && (
-          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">{title}</p>
+          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[#7a7870]">{title}</p>
         )}
         {children}
       </div>

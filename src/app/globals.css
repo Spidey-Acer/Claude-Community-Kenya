@@ -56,33 +56,33 @@
   --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ─── Pro Theme (Clean / Apple-like) ─── */
+/* ─── Pro Theme (Anthropic Brand) ─── */
 .persona-pro {
-  /* Backgrounds — dark neutral, no green tint */
-  --bg-primary: #09090b;
-  --bg-secondary: #18181b;
-  --bg-card: #1c1c1f;
-  --bg-elevated: #27272a;
+  /* Backgrounds — warm dark, Anthropic palette */
+  --bg-primary: #141413;
+  --bg-secondary: #1a1a19;
+  --bg-card: #1e1e1d;
+  --bg-elevated: #252524;
 
-  /* Borders — softer, warmer */
-  --border: #27272a;
-  --border-hover: #3f3f46;
+  /* Borders — warm subtle */
+  --border: #2a2a28;
+  --border-hover: #3a3a37;
 
-  /* Accent — muted slate blue replaces terminal green */
-  --green-primary: #a1a1aa;
-  --green-dim: #71717a;
-  --green-muted: #27272a;
+  /* Accent — Anthropic orange replaces terminal green */
+  --green-primary: #d97757;
+  --green-dim: #c06848;
+  --green-muted: #2a1f1a;
 
-  /* Accent Colors — toned down */
-  --amber: #a1a1aa;
-  --amber-dim: #71717a;
-  --red: #71717a;
-  --cyan: #a1a1aa;
+  /* Accent Colors — Anthropic palette */
+  --amber: #d97757;
+  --amber-dim: #c06848;
+  --red: #b0aea5;
+  --cyan: #6a9bcc;
 
-  /* Text — same range, slightly warmer */
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-dim: #71717a;
+  /* Text — warm Anthropic tones */
+  --text-primary: #faf9f5;
+  --text-secondary: #b0aea5;
+  --text-dim: #7a7870;
 }
 
 /* Pro: override heading font to system sans-serif */
@@ -104,18 +104,18 @@
 
 /* Pro: clean scrollbar */
 .persona-pro ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #4a4a45;
 }
 
 /* Pro: clean selection */
 .persona-pro ::selection {
-  background-color: rgba(161, 161, 170, 0.3);
-  color: #fafafa;
+  background-color: rgba(217, 119, 87, 0.3);
+  color: #faf9f5;
 }
 
 /* Pro: clean focus ring */
 .persona-pro :focus-visible {
-  outline-color: #a1a1aa;
+  outline-color: #d97757;
 }
 
 /* ─── Base Styles ─── */

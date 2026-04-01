@@ -194,23 +194,23 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
             >
               <Link
                 href={`/events/${upcomingEvents[0].slug}`}
-                className="group flex flex-col items-center gap-6 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700 hover:-translate-y-0.5 sm:flex-row"
+                className="group flex flex-col items-center gap-6 overflow-hidden rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/80 p-8 backdrop-blur-sm transition-all duration-300 hover:border-[#3a3a37] hover:-translate-y-0.5 sm:flex-row"
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-zinc-700">
-                  <Calendar className="h-6 w-6 text-blue-400" />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d97757]/20 to-[#6a9bcc]/20 border border-[#3a3a37]">
+                  <Calendar className="h-6 w-6 text-[#d97757]" />
                 </div>
                 <div className="flex-1 text-center sm:text-left">
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">
                     Next Event
                   </p>
-                  <h3 className="mb-1 text-lg font-semibold text-white group-hover:text-blue-300 transition-colors">
+                  <h3 className="mb-1 text-lg font-semibold text-[#faf9f5] group-hover:text-[#d97757] transition-colors">
                     {upcomingEvents[0].title}
                   </h3>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-[#b0aea5]">
                     {upcomingEvents[0].date} · {upcomingEvents[0].time} · {upcomingEvents[0].venue}
                   </p>
                 </div>
-                <span className="shrink-0 text-sm text-zinc-600 transition-colors group-hover:text-zinc-400">
+                <span className="shrink-0 text-sm text-zinc-600 transition-colors group-hover:text-[#b0aea5]">
                   View Details →
                 </span>
               </Link>
@@ -247,7 +247,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Upcoming events">
         <ScrollReveal>
           <PersonaHeading page="home" section="events" />
-          <PersonaText page="home" section="events" field="subtitle" className={isPro ? "mb-10 text-zinc-400" : "mb-10 font-sans text-text-secondary"} />
+          <PersonaText page="home" section="events" field="subtitle" className={isPro ? "mb-10 text-[#b0aea5]" : "mb-10 font-sans text-text-secondary"} />
         </ScrollReveal>
 
         <ScrollReveal stagger={150} className="grid gap-6 md:grid-cols-2">
@@ -273,7 +273,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
             <PersonaHeading page="home" section="whatWeDo" />
-            <PersonaText page="home" section="whatWeDo" field="subtitle" className={isPro ? "mb-12 text-zinc-400" : "mb-12 font-sans text-text-secondary"} />
+            <PersonaText page="home" section="whatWeDo" field="subtitle" className={isPro ? "mb-12 text-[#b0aea5]" : "mb-12 font-sans text-text-secondary"} />
           </ScrollReveal>
 
           <ScrollReveal
@@ -288,15 +288,15 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700 hover:-translate-y-0.5"
+                  className="group rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/80 p-6 backdrop-blur-sm transition-all duration-300 hover:border-[#3a3a37] hover:-translate-y-0.5"
                 >
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 border border-zinc-700">
-                    <item.icon className="h-5 w-5 text-blue-400" aria-hidden="true" />
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#d97757]/15 to-[#6a9bcc]/15 border border-[#3a3a37]">
+                    <item.icon className="h-5 w-5 text-[#d97757]" aria-hidden="true" />
                   </div>
-                  <h3 className="mb-2 text-base font-semibold text-white">
+                  <h3 className="mb-2 text-base font-semibold text-[#faf9f5]">
                     {item.proTitle}
                   </h3>
-                  <p className="text-sm leading-relaxed text-zinc-400">
+                  <p className="text-sm leading-relaxed text-[#b0aea5]">
                     {item.proDescription}
                   </p>
                 </motion.div>
@@ -324,8 +324,8 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       {/* ─── Testimonials ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">
         <ScrollReveal>
-          <PersonaHeading page="home" section="testimonials" className={isPro ? "mb-2 text-center text-xl font-semibold text-white" : "mb-2 text-center font-mono text-xl text-green-primary"} />
-          <PersonaText page="home" section="testimonials" field="subtitle" className={isPro ? "mx-auto mb-10 max-w-lg text-center text-zinc-400" : "mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary"} />
+          <PersonaHeading page="home" section="testimonials" className={isPro ? "mb-2 text-center text-xl font-semibold text-[#faf9f5]" : "mb-2 text-center font-mono text-xl text-green-primary"} />
+          <PersonaText page="home" section="testimonials" field="subtitle" className={isPro ? "mx-auto mb-10 max-w-lg text-center text-[#b0aea5]" : "mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary"} />
         </ScrollReveal>
         <ScrollReveal delay={200}>
           <TestimonialsCarousel />
@@ -336,7 +336,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       <section className="mx-auto max-w-6xl px-4 py-24" aria-label="Community projects">
         <ScrollReveal>
           <PersonaHeading page="home" section="projects" />
-          <PersonaText page="home" section="projects" field="subtitle" className={isPro ? "mb-12 text-zinc-400" : "mb-12 font-sans text-text-secondary"} />
+          <PersonaText page="home" section="projects" field="subtitle" className={isPro ? "mb-12 text-[#b0aea5]" : "mb-12 font-sans text-text-secondary"} />
         </ScrollReveal>
 
         <ScrollReveal stagger={150} className="grid gap-6 lg:grid-cols-2">
@@ -361,8 +361,8 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       <PersonaSection altBg aria-label="Join the community">
         <div className="mx-auto max-w-6xl px-4">
           <ScrollReveal>
-            <PersonaHeading page="home" section="cta" className={isPro ? "mb-2 text-center text-xl font-semibold text-white" : "mb-2 text-center font-mono text-xl text-green-primary"} />
-            <PersonaText page="home" section="cta" field="subtitle" className={isPro ? "mx-auto mb-12 max-w-2xl text-center text-zinc-400" : "mx-auto mb-12 max-w-2xl text-center font-sans text-text-secondary"} />
+            <PersonaHeading page="home" section="cta" className={isPro ? "mb-2 text-center text-xl font-semibold text-[#faf9f5]" : "mb-2 text-center font-mono text-xl text-green-primary"} />
+            <PersonaText page="home" section="cta" field="subtitle" className={isPro ? "mx-auto mb-12 max-w-2xl text-center text-[#b0aea5]" : "mx-auto mb-12 max-w-2xl text-center font-sans text-text-secondary"} />
           </ScrollReveal>
 
           <ScrollReveal
@@ -379,15 +379,15 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   className={`group rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-0.5 ${
                     pathway.isPrimary
-                      ? "border-zinc-600 bg-zinc-800/50 shadow-lg"
-                      : "border-zinc-800 bg-zinc-900/50"
+                      ? "border-[#3a3a37] bg-[#252524]/80 shadow-lg"
+                      : "border-[#2a2a28] bg-[#1e1e1d]/80"
                   }`}
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 border border-zinc-700">
-                    <pathway.icon className={`h-6 w-6 ${pathway.isPrimary ? "text-blue-400" : "text-zinc-400"}`} aria-hidden="true" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#d97757]/15 to-[#6a9bcc]/15 border border-[#3a3a37]">
+                    <pathway.icon className={`h-6 w-6 ${pathway.isPrimary ? "text-[#d97757]" : "text-[#b0aea5]"}`} aria-hidden="true" />
                   </div>
-                  <h3 className="mb-2 text-base font-semibold text-white">{pathway.title}</h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400">{pathway.description}</p>
+                  <h3 className="mb-2 text-base font-semibold text-[#faf9f5]">{pathway.title}</h3>
+                  <p className="mb-6 text-sm leading-relaxed text-[#b0aea5]">{pathway.description}</p>
                   <PersonaCTA
                     href={pathway.href}
                     devLabel={pathway.cta}
@@ -444,7 +444,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       {/* ─── Supported By ─── */}
       <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Supported by">
         <ScrollReveal>
-          <p className={isPro ? "mb-10 text-center text-xs font-medium uppercase tracking-widest text-zinc-500" : "mb-10 text-center font-mono text-xs uppercase tracking-widest text-text-dim"}>
+          <p className={isPro ? "mb-10 text-center text-xs font-medium uppercase tracking-widest text-[#7a7870]" : "mb-10 text-center font-mono text-xs uppercase tracking-widest text-text-dim"}>
             Supported by
           </p>
           <div className="flex items-center justify-center">
@@ -453,7 +453,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
               target="_blank"
               rel="noopener noreferrer"
               className={isPro
-                ? "group relative inline-block rounded-2xl border border-zinc-800 p-6 transition-all duration-500 hover:border-zinc-700"
+                ? "group relative inline-block rounded-2xl border border-[#2a2a28] p-6 transition-all duration-500 hover:border-[#3a3a37]"
                 : "group relative inline-block rounded-2xl p-6 transition-all duration-500"
               }
               style={isPro ? {} : {
