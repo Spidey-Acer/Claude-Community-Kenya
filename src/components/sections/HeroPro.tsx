@@ -110,7 +110,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15 }}
-          className="mb-6 text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl"
+          className="mb-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           Claude Community{" "}
@@ -143,7 +143,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.45 }}
-          className="mb-16 flex flex-wrap items-center justify-center gap-4"
+          className="mb-16 flex flex-wrap items-center justify-center gap-3 px-4"
         >
           <a
             href={SOCIAL_LINKS.discord}
