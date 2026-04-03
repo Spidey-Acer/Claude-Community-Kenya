@@ -63,36 +63,38 @@ export function Navbar() {
             )}
             aria-label="Claude Community Kenya — Home"
           >
-            {/* Mobile: show logo image */}
-            <img
-              src="/images/CCK-LOGO.png"
-              alt="CCK"
-              className={cn(
-                "h-8 w-8 rounded-full object-cover md:hidden",
-                isPro ? "ring-1 ring-[#d97757]/30" : "ring-1 ring-green-primary/30"
-              )}
-            />
-            {/* Tablet: short "CC" + flame */}
+            {/* Mobile + Tablet: sparkle + CC + flame (Pro) or ~/CCK (Dev) */}
+            {isPro ? (
+              <span className="flex items-center gap-0.5 text-sm tracking-tight lg:hidden">
+                <img src="/images/claude-sparkle.svg" alt="" className="h-3.5 w-3.5" />
+                <span
+                  className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent font-bold"
+                  style={{ animation: "gradient-shift 3s ease infinite" }}
+                >
+                  CC
+                </span>
+                <span className="kenya-flame-container">
+                  <img
+                    src="/images/KENYA-FLAME.png"
+                    alt="Kenya"
+                    className="inline-block h-4 w-auto object-contain"
+                    style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
+                  />
+                </span>
+              </span>
+            ) : (
+              <span className="flex items-center font-mono text-sm lg:hidden">
+                <span className="text-text-dim">~/</span>
+                <span className="text-green-primary">CCK</span>
+                <span className="cursor-blink text-green-primary">▊</span>
+              </span>
+            )}
+            {/* Desktop only */}
             {isPro ? (
               <>
-                <span className="hidden tracking-tight text-lg items-center gap-0.5 md:inline-flex lg:hidden">
-                  <span
-                    className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
-                    style={{ animation: "gradient-shift 3s ease infinite" }}
-                  >
-                    CC
-                  </span>
-                  <span className="kenya-flame-container">
-                    <img
-                      src="/images/KENYA-FLAME.png"
-                      alt="Kenya"
-                      className="inline-block h-6 w-auto object-contain"
-                      style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
-                    />
-                  </span>
-                </span>
-                {/* Desktop: full "Claude Community" + flame */}
-                <span className="hidden tracking-tight text-lg items-center gap-0.5 lg:inline-flex">
+                {/* Desktop: sparkle + "Claude Community" + flame */}
+                <span className="hidden tracking-tight text-lg items-center gap-1 lg:inline-flex">
+                  <img src="/images/claude-sparkle.svg" alt="" className="h-5 w-5" />
                   <span
                     className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
                     style={{ animation: "gradient-shift 3s ease infinite" }}

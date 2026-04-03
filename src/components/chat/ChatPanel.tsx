@@ -115,6 +115,7 @@ export function ChatPanel({ tall }: ChatPanelProps) {
             </span>
           ) : (
             <span className="flex items-center gap-1 text-sm font-semibold leading-none">
+              <img src="/images/claude-sparkle.svg" alt="" className="h-3.5 w-3.5" />
               <span
                 className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
                 style={{ animation: "gradient-shift 3s ease infinite" }}

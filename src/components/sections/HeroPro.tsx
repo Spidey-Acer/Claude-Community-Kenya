@@ -100,7 +100,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           className="mb-6"
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-[#3a3a37] bg-[#1e1e1d]/80 px-4 py-1.5 text-sm text-[#b0aea5] backdrop-blur-sm">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#d97757]" />
+            <img src="/images/claude-sparkle.svg" alt="" className="h-3.5 w-3.5 animate-pulse" />
             Anthropic-supported community
           </span>
         </motion.div>
