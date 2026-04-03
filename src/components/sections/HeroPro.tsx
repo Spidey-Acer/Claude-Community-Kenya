@@ -110,19 +110,20 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15 }}
-          className="mb-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl"
+          className="mb-6 font-bold tracking-tight text-white text-3xl sm:text-5xl lg:text-7xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          Claude Community{" "}
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #d97757 0%, #e8956e 25%, #f0b89a 50%, #6a9bcc 75%, #788c5d 100%)",
-              backgroundSize: "200% 200%",
-              animation: "gradient-shift 6s ease-in-out infinite",
-            }}
-          >
-            Kenya
+          Claude Community<br className="sm:hidden" />{" "}
+          <span className="kenya-flame-container inline-block">
+            <img
+              src="/images/KENYA-FLAME.png"
+              alt="Kenya"
+              className="inline h-[2.4rem] w-auto sm:h-[3.5rem] md:h-[4rem] lg:h-[5.5rem]"
+              style={{
+                animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite",
+                verticalAlign: "middle",
+              }}
+            />
           </span>
         </motion.h1>
 

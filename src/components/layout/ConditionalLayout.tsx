@@ -8,6 +8,7 @@ import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PersonaProvider, usePersona } from "@/contexts/PersonaContext";
 import { PersonaSelectorModal } from "@/components/persona/PersonaSelectorModal";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 export function ConditionalLayout({
   children,
@@ -33,6 +34,7 @@ export function ConditionalLayout({
       </main>
       <Footer />
       <EasterEggs />
+      <ChatWidget />
       <PersonaGate />
     </PersonaProvider>
   );

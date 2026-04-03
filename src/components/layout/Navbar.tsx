@@ -56,21 +56,65 @@ export function Navbar() {
           <Link
             href="/"
             className={cn(
-              "group text-lg font-bold transition-colors",
+              "group font-bold transition-colors",
               isPro
                 ? "font-sans text-text-primary hover:text-text-secondary"
                 : "font-mono text-green-primary hover:text-green-dim"
             )}
             aria-label="Claude Community Kenya — Home"
           >
+            {/* Mobile: show logo image */}
+            <img
+              src="/images/CCK-LOGO.png"
+              alt="CCK"
+              className={cn(
+                "h-8 w-8 rounded-full object-cover md:hidden",
+                isPro ? "ring-1 ring-[#d97757]/30" : "ring-1 ring-green-primary/30"
+              )}
+            />
+            {/* Tablet: short "CC" + flame */}
             {isPro ? (
-              <span className="tracking-tight">Claude Community Kenya</span>
-            ) : (
               <>
+                <span className="hidden tracking-tight text-lg items-center gap-0.5 md:inline-flex lg:hidden">
+                  <span
+                    className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
+                    style={{ animation: "gradient-shift 3s ease infinite" }}
+                  >
+                    CC
+                  </span>
+                  <span className="kenya-flame-container">
+                    <img
+                      src="/images/KENYA-FLAME.png"
+                      alt="Kenya"
+                      className="inline-block h-6 w-auto object-contain"
+                      style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
+                    />
+                  </span>
+                </span>
+                {/* Desktop: full "Claude Community" + flame */}
+                <span className="hidden tracking-tight text-lg items-center gap-0.5 lg:inline-flex">
+                  <span
+                    className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
+                    style={{ animation: "gradient-shift 3s ease infinite" }}
+                  >
+                    Claude Community
+                  </span>
+                  <span className="kenya-flame-container">
+                    <img
+                      src="/images/KENYA-FLAME.png"
+                      alt="Kenya"
+                      className="inline-block h-7 w-auto object-contain"
+                      style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
+                    />
+                  </span>
+                </span>
+              </>
+            ) : (
+              <span className="hidden md:inline">
                 <span className="text-text-dim">~/</span>
                 <span className="text-green-primary group-hover:drop-shadow-[0_0_6px_rgba(0,255,65,0.4)]">CCK</span>
                 <span className="cursor-blink text-green-primary">▊</span>
-              </>
+              </span>
             )}
           </Link>
 
