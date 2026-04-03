@@ -48,6 +48,10 @@ function getIdentifier(
   customIdentifier?: (req: NextRequest) => string
 ): string {
   if (customIdentifier) return customIdentifier(request)
+  // x-vercel-forwarded-for is set by Vercel's edge and cannot be spoofed by clients.
+  // Fall back to x-forwarded-for (also platform-set on Vercel) then x-real-ip.
+  const vercelIp = request.headers.get("x-vercel-forwarded-for")
+  if (vercelIp) return vercelIp.split(",")[0]
   const forwarded = request.headers.get("x-forwarded-for")
   const realIp = request.headers.get("x-real-ip")
   return forwarded?.split(",")[0] || realIp || "unknown"

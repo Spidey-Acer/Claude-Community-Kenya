@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 import { buildSystemPrompt, type ChatPersona } from "@/lib/chat/system-prompt";
 
@@ -10,41 +11,89 @@ const anthropic = createAnthropic();
 
 const CHAT_RATE_LIMIT = { maxRequests: 30, windowInSeconds: 3600 };
 
+/** Zod schema — validates security constraints, not full UIMessage shape */
+const ChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().max(4000),
+}).passthrough();
+
+const ChatRequestSchema = z.object({
+  messages: z.array(ChatMessageSchema).max(20, "Conversation too long — please reset."),
+  persona: z.enum(["dev", "pro"]).default("dev"),
+});
+
+/** Allowed origins for the chat endpoint (CSRF protection) */
+const ALLOWED_ORIGINS = new Set([
+  "https://www.claudekenya.org",
+  "https://claudekenya.org",
+  ...(process.env.NODE_ENV === "development"
+    ? ["http://localhost:3000", "http://127.0.0.1:3000"]
+    : []),
+]);
+
+function isOriginAllowed(req: NextRequest): boolean {
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+
+  // Allow same-origin requests with no Origin header (e.g. server-side)
+  if (!origin && !referer) return false;
+
+  if (origin && ALLOWED_ORIGINS.has(origin)) return true;
+  if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      return ALLOWED_ORIGINS.has(refOrigin);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function jsonError(message: string, status: number, headers?: Record<string, string>) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { status, headers: { "Content-Type": "application/json", ...headers } }
+  );
+}
+
 export async function POST(req: NextRequest) {
+  // CSRF: reject cross-origin requests
+  if (!isOriginAllowed(req)) {
+    return jsonError("Forbidden — cross-origin requests are not allowed.", 403);
+  }
+
   const rateLimitResult = await rateLimit(req, CHAT_RATE_LIMIT);
   if (!rateLimitResult.success) {
-    return new Response(
-      JSON.stringify({
-        error: "You've sent too many messages. Please try again in a bit.",
-        retryAfter: rateLimitResult.reset - Math.floor(Date.now() / 1000),
-      }),
-      {
-        status: 429,
-        headers: { "Content-Type": "application/json", ...rateLimitResult.headers },
-      }
+    return jsonError(
+      "You've sent too many messages. Please try again in a bit.",
+      429,
+      rateLimitResult.headers,
     );
   }
 
-  const body = await req.json();
-  const messages: UIMessage[] = body.messages ?? [];
-  const persona: ChatPersona = body.persona === "pro" ? "pro" : "dev";
-
-  if (messages.length > 20) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "Conversation is getting long! Please reset the chat to continue.",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+  // Validate request body
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return jsonError("Invalid JSON body.", 400);
   }
 
-  const systemPrompt = buildSystemPrompt(persona);
+  const parsed = ChatRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message ?? "Invalid request.";
+    return jsonError(firstError, 400);
+  }
+
+  const { persona } = parsed.data;
+
+  // Pass original body.messages to the SDK (preserves full UIMessage shape);
+  // Zod already validated array length, roles, and content size above.
+  const systemPrompt = buildSystemPrompt(persona as ChatPersona);
 
   const result = streamText({
-    model: anthropic("claude-haiku-4-5"),
+    model: anthropic("claude-haiku-4.5"),
     system: systemPrompt,
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(body.messages),
   });
 
   return result.toUIMessageStreamResponse();
