@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(git commit:*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '--- Pre-commit: Type checking ---' && npx tsc --noEmit 2>&1; TSC_EXIT=$?; echo '--- Pre-commit: Checking for TODO/FIXME comments in staged files ---' && TODOS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx)$' | xargs grep -n -E '(TODO|FIXME|HACK|XXX):' 2>/dev/null); if [ -n \"$TODOS\" ]; then echo \"$TODOS\"; TODO_COUNT=$(echo \"$TODOS\" | wc -l); echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"additionalContext\\\":\\\"Pre-commit check found $TODO_COUNT TODO/FIXME comment(s) in staged files:\\n$TODOS\\\"}}\"; fi; if [ $TSC_EXIT -ne 0 ]; then echo '{\"continue\":false,\"stopReason\":\"TypeScript type check failed. Fix errors before committing.\"}'; fi",
+            "timeout": 120,
+            "statusMessage": "Running pre-commit checks (tsc + TODO scan)..."
+          }
+        ]
+      }
+    ]
+  }
+}

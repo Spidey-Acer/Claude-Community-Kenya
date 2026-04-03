@@ -1,117 +1,154 @@
-# Claude Community Kenya — Project Context
+# Claude Community Kenya
+East Africa's first Claude developer community. Live at **claudekenya.org**.
 
-## Overview
-Community website for Claude Community Kenya (CCK) — East Africa's first Claude developer community. This is a **live, public** website. All content must be accurate, professional, and reflect well on the community.
+## Stack
 
-**Domain:** https://www.claudekenya.org
-**Status:** Production (deployed)
+| Layer | Tech |
+|-------|------|
+| Framework | Next.js 16, App Router, TypeScript strict |
+| Styling | Tailwind CSS v4 (`@theme` blocks) + CSS variables |
+| Motion | Framer Motion |
+| Database | PostgreSQL via Prisma 7 (17 models) |
+| Auth | NextAuth v5 (credentials) |
+| Storage | Supabase Storage (uploads, avatars) |
+| Rate Limiting | Upstash Redis |
+| Email | Resend |
+| Icons | Lucide React |
+| Fonts | JetBrains Mono (headings/code) + IBM Plex Sans (body) via `next/font` |
+| Deploy | Vercel |
 
-## Tech Stack
-- **Framework:** Next.js 16 (App Router) with TypeScript strict mode
-- **Styling:** Tailwind CSS v4 (CSS-based config via `@theme` blocks) + CSS variables
-- **Animations:** Framer Motion
-- **Icons:** Lucide React
-- **Fonts:** JetBrains Mono (headings, code, UI) + IBM Plex Sans (body text) via `next/font`
-- **Build:** Turbopack
+## Design System: Terminal Noir
 
-## Design System: "Terminal Noir"
-All colors use CSS custom properties defined in `src/app/globals.css`:
+Colors defined as CSS custom properties in `src/app/globals.css`, registered as Tailwind theme tokens in the `@theme inline` block.
+
 - **Backgrounds:** `--bg-primary` (#0a0a0a), `--bg-secondary`, `--bg-card`, `--bg-elevated`
 - **Green (primary):** `--green-primary` (#00ff41), `--green-dim`, `--green-muted`
-- **Accent colors:** `--amber` (#ffb000), `--red` (#ff3333), `--cyan` (#00d4ff)
+- **Accents:** `--amber` (#ffb000), `--red` (#ff3333), `--cyan` (#00d4ff)
 - **Text:** `--text-primary`, `--text-secondary`, `--text-dim`
 
-Tailwind theme tokens are registered in the `@theme inline` block in globals.css (e.g., `bg-green-primary`, `text-amber`).
+**Persona system** switches between Dev mode (terminal aesthetic) and Pro mode (glassmorphism + Anthropic brand). Toggle lives in the navbar. Context in `src/components/persona/`.
 
-## Critical Links (ALWAYS USE THESE)
-- **Discord:** https://discord.gg/CkD9QWjsHm
-- **WhatsApp:** https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
-- **Nairobi Events (Luma):** https://luma.com/sbsa789m
-- **Mombasa Events (Luma):** https://luma.com/vsf5re14
-- **Global Claude Community Events:** https://luma.com/claudecommunity
+## Architecture
 
-## Git & Commits
-- Conventional commits required: `type(scope): description`
-- When using `/batch-commit`, commits are created **without co-authorship signatures** unless explicitly requested
-- All batch commits must be logically grouped by feature/fix area, not by commit count
-- Always verify changes with `npm run build` and `npx tsc --noEmit` before committing
-
-## Project Conventions
-- Use `"use client"` only on components that require interactivity (state, effects, event handlers)
-- Import paths use `@/` alias (maps to `./src/`)
-- Component structure: `src/components/layout/` for shell, `src/components/ui/` for reusable UI, `src/components/sections/` for page sections, `src/components/terminal/` for terminal-themed components
-- Data files with TypeScript interfaces live in `src/data/`
-- Utility functions in `src/lib/utils.ts`, site constants in `src/lib/constants.ts`
-- All CSS uses Tailwind utility classes + CSS variables — avoid inline styles
-- Accessibility: ARIA labels, keyboard navigation, semantic HTML, `prefers-reduced-motion`
-- Do NOT fabricate URLs — only use real, publicly accessible links
-- Do NOT include overly personal information about individuals
-- Do NOT inflate community stats — keep numbers accurate
-
-## File Structure
 ```
 src/
-├── app/                    # Next.js App Router pages (17 routes)
-│   ├── page.tsx            # Home
-│   ├── about/              # About page with timeline
-│   ├── events/             # Events listing + [slug] detail pages
-│   ├── blog/               # Blog listing + [slug] detail pages
-│   ├── projects/           # Projects showcase
-│   ├── resources/          # Resource hub with 5 sub-pages
-│   │   ├── getting-started/
-│   │   ├── claude-code/
-│   │   ├── workflows/
-│   │   ├── courses/        # Anthropic courses learning paths
-│   │   └── links/          # Curated links directory
-│   ├── join/               # Join page with terminal application form
-│   ├── faq/                # FAQ with accordions
-│   ├── ambassador/         # Ambassador program page
+├── app/                          # 25+ public pages, 15 admin pages, 42 API routes
+│   ├── page.tsx                  # Home (HeroTerminal + StatsBar + content sections)
+│   ├── about/                    # About with timeline
+│   ├── events/                   # Listing + [slug] detail + demo request forms
+│   ├── blog/                     # Listing + [slug] detail (DB-backed)
+│   ├── projects/                 # Project showcase
+│   ├── community/                # Community Hub: MCP/Prompt/Workflow/Tool submissions
+│   │   ├── [slug]/               # Detail page with comments + upvotes
+│   │   └── submit/               # Submission form
+│   ├── resources/                # Resource hub with 7 sub-pages
+│   │   ├── getting-started/      # Beginner guide
+│   │   ├── claude-code/          # Claude Code tutorial
+│   │   ├── workflows/            # Workflow patterns
+│   │   ├── courses/              # Anthropic courses learning paths
+│   │   ├── api-guide/            # API usage guide
+│   │   ├── production-guide/     # Production best practices
+│   │   └── links/                # Curated links directory
+│   ├── join/                     # Terminal-themed application form
+│   ├── speak/                    # Speaker application
+│   ├── volunteer/                # Volunteer application
+│   ├── submit-idea/              # Idea submission
+│   ├── submit-project/           # Project submission
+│   ├── faq/                      # FAQ with accordions + floating Discord CTA
+│   ├── ambassador/               # Ambassador program
 │   ├── code-of-conduct/
-│   └── not-found.tsx       # 404 page
+│   ├── admin/                    # Full CRUD admin panel (auth-protected)
+│   │   ├── applications/         # Join applications management
+│   │   ├── blog/                 # Blog CRUD (new, edit, list)
+│   │   ├── community/            # Community submissions moderation
+│   │   ├── contact/              # Contact messages
+│   │   ├── demos/                # Demo requests
+│   │   ├── events/               # Event CRUD (new, edit, list)
+│   │   ├── ideas/                # Idea submissions
+│   │   ├── speakers/             # Speaker applications
+│   │   ├── volunteers/           # Volunteer applications
+│   │   ├── settings/             # Site settings, stats, user management
+│   │   └── login/                # Admin login
+│   ├── api/                      # 42 API routes (admin + public)
+│   ├── robots.ts                 # SEO: robots.txt generation
+│   ├── sitemap.ts                # SEO: sitemap.xml generation
+│   ├── opengraph-image.tsx       # Dynamic OG image
+│   └── not-found.tsx             # 404
+│
 ├── components/
-│   ├── layout/             # Navbar, Footer, PageTransition, MobileMenu
-│   ├── sections/           # HeroTerminal, StatsBar, EventCard, ProjectCard, etc.
-│   ├── terminal/           # TerminalWindow, MatrixRain, CommandPalette, GlitchText, etc.
-│   └── ui/                 # Button, Card, Badge, CountUp, Accordion, Timeline
-├── data/                   # TypeScript data files
-│   ├── events.ts           # 3 events (1 completed, 2 upcoming)
-│   ├── blog-posts.ts       # 3 professional community blog posts
-│   ├── projects.ts         # 4 projects (2 featured: website + discord bot)
-│   ├── resources.ts        # 33 resources across 8 categories
-│   ├── team.ts             # 4 team members
-│   └── faq.ts              # 13 FAQs in 3 categories
-├── lib/
-│   ├── constants.ts        # Site config, nav links, social links, footer
-│   └── utils.ts            # formatDate, cn, toSlug, truncate, etc.
+│   ├── layout/                   # Navbar, Footer, MobileMenu, PageTransition, ConditionalLayout
+│   ├── sections/                 # HeroTerminal, HeroPro, StatsBar, StatsBarPro, EventCard,
+│   │                             # ProjectCard, BlogPostCard, TeamMemberCard, TestimonialsCarousel,
+│   │                             # CommunityResourceCard, HomeContent
+│   ├── terminal/                 # TerminalWindow, MatrixRain, CommandPalette, GlitchText,
+│   │                             # TypingAnimation, CRTGlow, ScrollReveal, LoadingBar,
+│   │                             # TerminalApplication (1356 lines — needs refactor)
+│   ├── persona/                  # PersonaToggle, PersonaHeading, PersonaText, PersonaSelectorModal,
+│   │                             # ParticleCanvas, ProWrappers
+│   ├── community/                # CommentForm, CommentList, CopyButton, UpvoteButton
+│   ├── admin/                    # AdminHeader, AdminSidebar, StatusBadge, ReviewForm, etc.
+│   ├── schema/                   # BreadcrumbSchema (structured data)
+│   └── ui/                       # Button, Card, Badge, CountUp, Accordion, Timeline, MediaFrame
+│
+├── data/                         # Static TypeScript data (events, blog, projects, resources, team, faq, persona-content)
+├── lib/                          # Utilities: prisma, constants, utils, csrf, rate-limit, rbac,
+│                                 # audit-log, email, supabase, data-access, input-sanitization
 └── styles/
-    └── glitch.css          # Glitch text animations
+    ├── glitch.css                # Glitch text animations
+    └── terminal-effects.css      # Terminal CRT/scanline effects
 ```
 
-## Key Facts (for content accuracy)
-- First meetup: **January 24, 2026** (NOT January 25)
-- Venue: iHiT Events Space, Westlands, Nairobi
-- Attendees at first meetup: **30+** (NOT 50+)
-- What happened: Community gathering, networking, Peter Kibet demoed his Claude Code workflow with a live project demo
-- What did NOT happen: No "building a full-stack application from scratch", no Discord bot demo
-- Events hosted so far: **2** (Nairobi #1 Jan 24, Nairobi #2 Feb 20)
+## Database (17 Prisma models)
+
+User, Event, BlogPost, Project, JoinApplication, SpeakerApplication, VolunteerApplication, DemoRequest, IdeaSubmission, ContactMessage, NewsletterSubscriber, CommunitySubmission, CommunityComment, CommunityUpvote, SiteSettings, TeamMember, AuditLog
+
+## Commands
+
+```bash
+npm run dev              # Dev server (Turbopack)
+npm run build            # prisma generate + next build — must pass clean
+npx tsc --noEmit         # Type check — must pass clean
+npm run db:migrate       # Prisma migrations
+npm run db:studio        # Prisma Studio GUI
+npm run db:seed          # Seed database
+```
+
+## Conventions
+
+- `"use client"` only when needed (state, effects, event handlers)
+- Import paths use `@/` alias → `./src/`
+- Conventional commits: `type(scope): description`
+- All CSS via Tailwind utilities + CSS variables — no inline styles
+- Accessibility: ARIA labels, keyboard nav, semantic HTML, `prefers-reduced-motion`
+- Verify with `npm run build && npx tsc --noEmit` before committing
+
+## Content Rules
+
+- Do NOT fabricate URLs — only real, publicly accessible links
+- Do NOT inflate stats — keep numbers accurate
+- Do NOT include personal information about individuals
+
+## Critical Links
+
+| Purpose | URL |
+|---------|-----|
+| Website | https://www.claudekenya.org |
+| Discord | https://discord.gg/CkD9QWjsHm |
+| WhatsApp | https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa |
+| Nairobi Events (Luma) | https://luma.com/sbsa789m |
+| Mombasa Events (Luma) | https://luma.com/vsf5re14 |
+| Global Claude Community | https://luma.com/claudecommunity |
+
+## Key Facts
+
+- First meetup: **January 24, 2026** — iHiT Events Space, Westlands, Nairobi
+- Attendees at first meetup: **30+**
+- First meetup: Community gathering + networking, Peter Kibet demoed Claude Code workflow
+- Events hosted: **2** (Nairobi #1 Jan 24, Nairobi #2 Feb 20)
 - Cities: Nairobi + Mombasa (expanding)
 
-## Build & Verification
-```bash
-npm run build          # Must pass with zero errors
-npx tsc --noEmit       # Must pass with zero type errors
-```
+## Known Issues
 
-## Known Issues / TODO
-- Team avatars reference `/images/team/*.jpg` — files may not exist yet
-- CommandPalette FAQ links may point to wrong route (/about#id instead of /faq)
-- TerminalApplication.tsx is 1,218 lines — could benefit from refactoring into sub-components
-- No sitemap.xml or robots.txt generation configured
-- Blog posts and events could have richer structured data (BlogPosting, Event schemas)
-
-## Build Phases
-- **Phase 1 (Foundation):** ✅ Project setup, design system, layout + UI components, data structures
-- **Phase 2 (Terminal FX):** ✅ Terminal window, typing animation, matrix rain, command palette, glitch text
-- **Phase 3 (Pages):** ✅ Home, About, Events, Resources, Projects, Blog, Join — 17 pages total
-- **Phase 4 (Content):** ✅ Real content, accurate data, correct links, professional blog posts, comprehensive resources
-- **Phase 5 (Polish):** 🔄 See REVAMP-PROMPT.md for full revamp plan — component polish, animations, SEO, accessibility, performance
+- `TerminalApplication.tsx` is 1,356 lines — needs refactoring into sub-components
+- Team avatars reference `/images/team/*.jpg` — files may not exist
+- CommandPalette FAQ links may point to wrong routes
