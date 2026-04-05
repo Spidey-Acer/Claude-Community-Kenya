@@ -399,6 +399,26 @@ body::before {
   }
 }
 
+/* ─── Mobile: Disable layout-thrashing flame animations ─── */
+/*
+ * ember-travel and micro-spark animate left/top/width/height — non-composited
+ * properties that force layout + paint on every frame, causing the mobile flicker.
+ * kenya-flame-sway uses scaleX on an inline element inside text flow, causing
+ * layout shifts. Disable both on mobile. Keep kenya-flame-glow (filter only — GPU).
+ */
+@media (max-width: 768px) {
+  .kenya-flame-container::before,
+  .kenya-flame-container::after {
+    animation: none !important;
+    display: none;
+  }
+
+  .kenya-flame-container img {
+    animation: kenya-flame-glow 3s ease-in-out infinite !important;
+    will-change: filter;
+  }
+}
+
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,

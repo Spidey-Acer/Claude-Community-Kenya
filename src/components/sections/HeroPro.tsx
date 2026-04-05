@@ -122,6 +122,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
               style={{
                 animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite",
                 verticalAlign: "middle",
+                willChange: "filter, transform",
               }}
             />
           </span>
