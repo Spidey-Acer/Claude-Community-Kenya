@@ -6,6 +6,9 @@ import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import type { CommunityStats, FeedItem } from "@/components/sections/HeroTerminal";
 
+/** Mobile breakpoint — must match the CSS media query in globals.css */
+const MOBILE_BREAKPOINT = 768;
+
 interface HeroProProps {
   stats?: CommunityStats;
   feed?: FeedItem[];
@@ -53,6 +56,20 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 export function HeroPro({ stats, feed = [] }: HeroProProps) {
   const resolvedStats = stats ?? DEFAULT_STATS;
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
+  /**
+   * Tracks whether the viewport is mobile-sized.
+   * Initialised to false (assumes desktop) to avoid SSR mismatch.
+   * Set accurately after mount via ResizeObserver so it stays reactive.
+   */
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     if (feed.length <= 1) return;
@@ -120,9 +137,17 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
               alt="Kenya"
               className="inline h-[2.4rem] w-auto sm:h-[3.5rem] md:h-[4rem] lg:h-[5.5rem]"
               style={{
-                animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite",
+                /*
+                 * On mobile: no animation — static image only.
+                 * CSS media queries cannot override inline styles, so we
+                 * gate the animation here in JS where we know the viewport.
+                 * On desktop: glow (filter, GPU) + sway (transform, GPU) are safe.
+                 */
+                animation: isMobile
+                  ? "none"
+                  : "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite",
                 verticalAlign: "middle",
-                willChange: "filter, transform",
+                willChange: isMobile ? "auto" : "filter, transform",
               }}
             />
           </span>
