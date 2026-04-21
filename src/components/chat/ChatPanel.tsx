@@ -124,7 +124,7 @@ export function ChatPanel({ tall }: ChatPanelProps) {
               </span>
               <span className="kenya-flame-container">
                 <img
-                  src="/images/KENYA-FLAME.png"
+                  src="/images/kenya-flame.webp"
                   alt="Kenya"
                   className="inline-block h-[14px] w-auto object-contain"
                   style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}

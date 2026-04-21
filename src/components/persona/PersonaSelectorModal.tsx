@@ -85,7 +85,7 @@ export function PersonaSelectorModal({ onSelect }: PersonaSelectorModalProps) {
             transition={{ delay: 0.8, duration: 0.4 }}
           >
             <Image
-              src="/images/Claude Community Kenya.png"
+              src="/images/cck-logo-wordmark.webp"
               alt="Claude Community Kenya"
               width={64}
               height={64}

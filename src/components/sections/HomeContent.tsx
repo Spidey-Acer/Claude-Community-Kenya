@@ -470,7 +470,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
               )}
               <div className={isPro ? "transition-all duration-500 group-hover:opacity-80" : "transition-all duration-500 group-hover:drop-shadow-[0_0_12px_rgba(0,255,65,0.4)]"}>
                 <Image
-                  src="/images/ANTHROPIC.png"
+                  src="/images/anthropic-wordmark.webp"
                   alt="Anthropic"
                   width={220}
                   height={60}

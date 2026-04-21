@@ -113,7 +113,7 @@ export default async function AboutPage() {
           <div className="mb-8 flex justify-center">
             <div className="relative overflow-hidden rounded-2xl border border-amber/30 bg-bg-card p-2 shadow-lg shadow-amber/5">
               <Image
-                src="/images/Claude Community Kenya.png"
+                src="/images/cck-logo-wordmark.webp"
                 alt="Claude Community Kenya"
                 width={280}
                 height={280}
