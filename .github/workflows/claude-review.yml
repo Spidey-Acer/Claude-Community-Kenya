@@ -1,0 +1,39 @@
+# SpideyInc Global PR Review Workflow
+# Copy this to .github/workflows/claude-review.yml in any repo
+# Requires: ANTHROPIC_API_KEY secret set on the repo
+
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    if: |
+      github.event.pull_request.user.login != 'claude[bot]' &&
+      !contains(github.event.pull_request.title, '[skip-review]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          model: claude-sonnet-4-6
+          prompt: |
+            Review this PR for:
+            1. Bugs that pass TypeScript but break at runtime
+            2. Security issues (auth bypass, injection, exposed secrets)
+            3. Missing error handling
+            4. API consistency
+            Be concise. Only flag real issues.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
