@@ -67,7 +67,7 @@ export function Footer() {
         )}
 
         {/* Footer content grid */}
-        <div className="grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand section */}
           <div>
             <h3 className={isPro ? "text-sm font-semibold text-text-primary" : "font-mono text-sm font-bold text-green-primary"}>
