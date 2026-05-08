@@ -45,6 +45,8 @@ export const FOOTER_SECTIONS = [
       { label: "Events", href: "/events" },
       { label: "Projects", href: "/projects" },
       { label: "Blog", href: "/blog" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Merch", href: "/merch" },
     ],
   },
   {
@@ -64,6 +66,14 @@ export const FOOTER_SECTIONS = [
       { label: "Claude Code", href: "/resources/claude-code" },
       { label: "Courses", href: "/resources/courses" },
       { label: "Useful Links", href: "/resources/links" },
+    ],
+  },
+  {
+    title: "Cities",
+    links: [
+      { label: "Nairobi", href: SOCIAL_LINKS.lumaNairobi },
+      { label: "Mombasa", href: SOCIAL_LINKS.lumaMombasa },
+      { label: "More cities — request one", href: "/join" },
     ],
   },
 ] as const;
