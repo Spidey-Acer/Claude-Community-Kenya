@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { Search, ArrowRight, Command, CornerDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/constants";
-import { events } from "@/data/events";
-import { blogPosts } from "@/data/blog-posts";
 import { faqs } from "@/data/faq";
 import { resources } from "@/data/resources";
 
@@ -18,10 +16,18 @@ interface SearchResult {
   description?: string;
 }
 
-function buildSearchIndex(): SearchResult[] {
+interface SearchIndexResponse {
+  events: { slug: string; title: string; city: string; date: string }[];
+  blogPosts: { slug: string; title: string; excerpt: string }[];
+}
+
+/**
+ * Static slice of the index — pages, FAQ, resources — known at build time.
+ * Events and blog posts come from the DB via lazy fetch on first palette open.
+ */
+function buildStaticIndex(): SearchResult[] {
   const results: SearchResult[] = [];
 
-  // Pages
   NAV_LINKS.forEach((link) => {
     results.push({
       id: `page-${link.href}`,
@@ -32,29 +38,6 @@ function buildSearchIndex(): SearchResult[] {
     });
   });
 
-  // Events
-  events.forEach((event) => {
-    results.push({
-      id: `event-${event.slug}`,
-      label: event.title,
-      category: "Events",
-      path: `/events/${event.slug}`,
-      description: `${event.city} — ${event.date}`,
-    });
-  });
-
-  // Blog posts
-  blogPosts.forEach((post) => {
-    results.push({
-      id: `blog-${post.slug}`,
-      label: post.title,
-      category: "Blog",
-      path: `/blog/${post.slug}`,
-      description: post.excerpt,
-    });
-  });
-
-  // FAQ
   faqs.forEach((faq) => {
     results.push({
       id: `faq-${faq.id}`,
@@ -65,7 +48,6 @@ function buildSearchIndex(): SearchResult[] {
     });
   });
 
-  // Resources
   resources.forEach((resource) => {
     results.push({
       id: `resource-${resource.id}`,
@@ -77,6 +59,29 @@ function buildSearchIndex(): SearchResult[] {
   });
 
   return results;
+}
+
+function dynamicResultsFrom(data: SearchIndexResponse): SearchResult[] {
+  const out: SearchResult[] = [];
+  data.events.forEach((e) => {
+    out.push({
+      id: `event-${e.slug}`,
+      label: e.title,
+      category: "Events",
+      path: `/events/${e.slug}`,
+      description: `${e.city} — ${e.date}`,
+    });
+  });
+  data.blogPosts.forEach((p) => {
+    out.push({
+      id: `blog-${p.slug}`,
+      label: p.title,
+      category: "Blog",
+      path: `/blog/${p.slug}`,
+      description: p.excerpt,
+    });
+  });
+  return out;
 }
 
 function fuzzyMatch(query: string, text: string): boolean {
@@ -96,11 +101,14 @@ export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [dynamicIndex, setDynamicIndex] = useState<SearchResult[]>([]);
+  const dynamicLoadedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const searchIndex = useMemo(() => buildSearchIndex(), []);
+  const staticIndex = useMemo(() => buildStaticIndex(), []);
+  const searchIndex = useMemo(() => [...staticIndex, ...dynamicIndex], [staticIndex, dynamicIndex]);
 
   const results = useMemo(() => {
     if (!query.trim()) return searchIndex.slice(0, 8);
@@ -114,11 +122,26 @@ export function CommandPalette() {
       .slice(0, 10);
   }, [query, searchIndex]);
 
+  const loadDynamicIndex = useCallback(async () => {
+    if (dynamicLoadedRef.current) return;
+    dynamicLoadedRef.current = true;
+    try {
+      const res = await fetch("/api/search-index");
+      if (!res.ok) return;
+      const data: SearchIndexResponse = await res.json();
+      setDynamicIndex(dynamicResultsFrom(data));
+    } catch {
+      // Silent — palette still works with static index
+      dynamicLoadedRef.current = false;
+    }
+  }, []);
+
   const open = useCallback(() => {
     setIsOpen(true);
     setQuery("");
     setSelectedIndex(0);
-  }, []);
+    void loadDynamicIndex();
+  }, [loadDynamicIndex]);
 
   const close = useCallback(() => {
     setIsOpen(false);
