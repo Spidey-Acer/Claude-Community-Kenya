@@ -27,11 +27,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/resources/api-guide`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/resources/production-guide`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/faq`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE_URL}/ambassador`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/speak`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/volunteer`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/submit-idea`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE_URL}/submit-project`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/community/submit`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
   ];
 
