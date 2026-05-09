@@ -177,6 +177,13 @@ export default async function AboutPage() {
               Whether you write code, write copy, run a business, or do research —
               if you use Claude, this is your community.
             </p>
+            <p className="border-l-2 border-border-default pl-4 text-sm text-text-dim">
+              Claude Community Kenya is an independently operated community initiative,
+              supported by Anthropic PBC through event funding and API credits via the
+              Community Ambassador programme. We operate autonomously — community content,
+              opinions, and activities represent the community, not official Anthropic positions.
+              &ldquo;Claude&rdquo; and &ldquo;Anthropic&rdquo; are trademarks of Anthropic PBC.
+            </p>
           </div>
         </ScrollReveal>
       </section>
