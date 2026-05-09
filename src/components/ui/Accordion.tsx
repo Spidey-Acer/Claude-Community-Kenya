@@ -29,7 +29,7 @@ export function Accordion({ items, className }: AccordionProps) {
         const isOpen = openId === item.id;
 
         return (
-          <div key={item.id} className="bg-bg-card">
+          <div key={item.id} id={item.id} className="bg-bg-card scroll-mt-20">
             <button
               onClick={() => toggle(item.id)}
               className="flex w-full items-center gap-3 px-5 py-4 text-left font-mono text-sm transition-colors hover:bg-bg-elevated"

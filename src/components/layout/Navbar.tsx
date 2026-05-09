@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Search } from "lucide-react";
+import { Menu, X, Search, LayoutDashboard } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -18,7 +19,9 @@ const CommandPalette = dynamic(
 
 export function Navbar() {
   const { persona } = usePersona();
+  const { status } = useSession();
   const isPro = persona === "pro";
+  const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -162,19 +165,47 @@ export function Navbar() {
               </kbd>
             </button>
 
-            {/* Join CTA */}
-            <Link
-              href="/join"
-              className={cn(
-                "ml-2 px-4 py-1.5 text-sm transition-all",
-                isPro
-                  ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
-                  : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
-              )}
-            >
-              {!isPro && <span aria-hidden="true">&gt; </span>}
-              {isPro ? "Join" : "JOIN"}
-            </Link>
+            {/* Auth-aware CTA */}
+            {isAuthed ? (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "ml-2 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm transition-all",
+                  isPro
+                    ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                    : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
+                )}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+                {isPro ? "Dashboard" : "DASHBOARD"}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className={cn(
+                    "ml-2 px-3 py-1.5 text-sm transition-colors",
+                    isPro
+                      ? "font-medium text-[#b0aea5] hover:text-[#faf9f5]"
+                      : "font-mono text-text-secondary hover:text-green-primary"
+                  )}
+                >
+                  {isPro ? "Sign in" : "SIGN_IN"}
+                </Link>
+                <Link
+                  href="/signup"
+                  className={cn(
+                    "ml-1 px-4 py-1.5 text-sm transition-all",
+                    isPro
+                      ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                      : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary hover:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
+                  )}
+                >
+                  {!isPro && <span aria-hidden="true">&gt; </span>}
+                  {isPro ? "Join" : "JOIN"}
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Hamburger */}

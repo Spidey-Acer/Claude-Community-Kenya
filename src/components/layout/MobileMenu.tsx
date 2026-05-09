@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { PersonaToggle } from "@/components/persona/PersonaToggle";
@@ -18,7 +19,9 @@ const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), [tabindex]:not([ta
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { persona } = usePersona();
+  const { status } = useSession();
   const isPro = persona === "pro";
+  const isAuthed = status === "authenticated";
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -141,26 +144,56 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <PersonaToggle />
             </motion.div>
 
-            {/* Join CTA */}
+            {/* Auth-aware CTA */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: NAV_LINKS.length * 0.05 }}
-              className="mt-4"
+              className="mt-4 flex flex-col gap-3"
             >
-              <Link
-                href="/join"
-                onClick={onClose}
-                className={cn(
-                  "inline-block px-6 py-3 text-lg transition-all",
-                  isPro
-                    ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
-                    : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary"
-                )}
-              >
-                {!isPro && <span aria-hidden="true">&gt; </span>}
-                {isPro ? "Join" : "JOIN"}
-              </Link>
+              {isAuthed ? (
+                <Link
+                  href="/dashboard"
+                  onClick={onClose}
+                  className={cn(
+                    "inline-block px-6 py-3 text-lg transition-all",
+                    isPro
+                      ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                      : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary"
+                  )}
+                >
+                  {!isPro && <span aria-hidden="true">&gt; </span>}
+                  {isPro ? "Dashboard" : "DASHBOARD"}
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/signup"
+                    onClick={onClose}
+                    className={cn(
+                      "inline-block px-6 py-3 text-lg transition-all",
+                      isPro
+                        ? "rounded-full bg-[#d97757] font-medium text-[#faf9f5] hover:bg-[#c06848]"
+                        : "border border-green-primary font-mono text-green-primary hover:bg-green-primary hover:text-bg-primary"
+                    )}
+                  >
+                    {!isPro && <span aria-hidden="true">&gt; </span>}
+                    {isPro ? "Join" : "JOIN"}
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={onClose}
+                    className={cn(
+                      "inline-block px-6 py-3 text-base transition-colors",
+                      isPro
+                        ? "font-medium text-[#b0aea5] hover:text-[#faf9f5]"
+                        : "font-mono text-text-secondary hover:text-green-primary"
+                    )}
+                  >
+                    {isPro ? "Sign in" : "SIGN_IN"}
+                  </Link>
+                </>
+              )}
             </motion.div>
           </nav>
 
