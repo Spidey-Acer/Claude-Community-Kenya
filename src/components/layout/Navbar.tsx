@@ -78,7 +78,7 @@ export function Navbar() {
                 </span>
                 <span className="kenya-flame-container">
                   <img
-                    src="/images/KENYA-FLAME.png"
+                    src="/images/kenya-flame.webp"
                     alt="Kenya"
                     className="inline-block h-4 w-auto object-contain"
                     style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
@@ -106,7 +106,7 @@ export function Navbar() {
                   </span>
                   <span className="kenya-flame-container">
                     <img
-                      src="/images/KENYA-FLAME.png"
+                      src="/images/kenya-flame.webp"
                       alt="Kenya"
                       className="inline-block h-7 w-auto object-contain"
                       style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}

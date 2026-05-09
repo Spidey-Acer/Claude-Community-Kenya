@@ -399,6 +399,47 @@ body::before {
   }
 }
 
+/* ─── Mobile: Kill ALL flame animations — static image only ─── */
+/*
+ * WHY: ember-travel + micro-spark animate left/top/width/height every frame.
+ * These are non-composited layout properties — each frame triggers a full
+ * browser reflow + repaint, causing the visible shift/flicker on mobile.
+ *
+ * kenya-flame-sway uses scaleX on an inline element mid-text-flow. Combined
+ * with the ember pseudo-elements, this cascades into repeated layout recalc.
+ *
+ * CSS CANNOT override the flame's inline `style` animation — that is handled
+ * in HeroPro.tsx via the `isMobile` guard (matchMedia). This block covers
+ * the pseudo-elements and enforces containment on the container itself.
+ *
+ * On mobile: fully static. No glow, no sway, no sparks. Desktop unchanged.
+ */
+@media (max-width: 768px) {
+  /* Kill pseudo-element sparks entirely */
+  .kenya-flame-container::before,
+  .kenya-flame-container::after {
+    display: none !important;
+    animation: none !important;
+  }
+
+  /* Freeze image — inline style is handled by JS, this is a CSS safety net */
+  .kenya-flame-container img {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  /* Fixed dimensions prevent the container from contributing to layout shifts */
+  .kenya-flame-container {
+    overflow: hidden;
+    contain: layout style;
+  }
+
+  /* Lock the hero section — no content can bleed outside and trigger reflow */
+  [class*="min-h-[calc(100dvh"] {
+    overflow-x: hidden;
+  }
+}
+
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
