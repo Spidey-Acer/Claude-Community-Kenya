@@ -2,8 +2,8 @@ import { buildCommunityContext } from "./community-context";
 
 export type ChatPersona = "dev" | "pro";
 
-export function buildSystemPrompt(persona: ChatPersona): string {
-  const communityContext = buildCommunityContext();
+export async function buildSystemPrompt(persona: ChatPersona): Promise<string> {
+  const communityContext = await buildCommunityContext();
 
   const identity =
     persona === "dev"
@@ -29,7 +29,6 @@ Available action types and their real URLs:
 - events → /events
 - resources → /resources
 - faq → /faq
-- ambassador → /ambassador
 - discord → https://discord.gg/CkD9QWjsHm
 - whatsapp → https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
 - nairobi-events → https://luma.com/sbsa789m
