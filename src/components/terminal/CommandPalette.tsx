@@ -53,7 +53,7 @@ function buildStaticIndex(): SearchResult[] {
       id: `resource-${resource.id}`,
       label: resource.title,
       category: "Resources",
-      path: `/resources#${resource.id}`,
+      path: `/resources/links#${resource.id}`,
       description: resource.description,
     });
   });
