@@ -53,10 +53,8 @@ export function PersonaNotch() {
   if (!isLoaded || !persona) return null;
 
   return (
-    <div className="fixed top-16 left-1/2 z-50 -translate-x-1/2 hidden md:block">
-      <div className="translate-y-0">
-        <PersonaToggle className="shadow-lg shadow-black/20" />
-      </div>
+    <div className="fixed top-[4.5rem] left-1/2 z-50 -translate-x-1/2 hidden md:block">
+      <PersonaToggle className="shadow-lg shadow-black/30" />
     </div>
   );
 }
