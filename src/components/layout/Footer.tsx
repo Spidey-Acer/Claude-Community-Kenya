@@ -135,6 +135,17 @@ export function Footer() {
           ))}
         </div>
 
+        {/* Community disclaimer */}
+        <div className="border-t border-border-default py-4">
+          <p className={isPro
+            ? "text-[11px] text-text-dim leading-relaxed"
+            : "font-mono text-[11px] text-text-dim leading-relaxed"}>
+            {isPro
+              ? "Claude Community Kenya is an independently operated community initiative, supported by Anthropic through event funding and API credits via the Community Ambassador programme. We are not an official division or representative body of Anthropic PBC, and community views do not constitute official Anthropic positions. \"Claude\" and \"Anthropic\" are trademarks of Anthropic PBC."
+              : "// Independently operated. Anthropic-supported via the Community Ambassador programme (event funding + API credits). Views expressed here are community-held, not official Anthropic positions. \"Claude\" is a trademark of Anthropic PBC."}
+          </p>
+        </div>
+
         {/* Bottom bar with box-drawing characters */}
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border-default py-6 sm:flex-row">
           <p className={isPro ? "text-xs text-text-dim" : "font-mono text-xs text-text-dim"}>
