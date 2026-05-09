@@ -94,7 +94,8 @@ export default function LinksPage() {
                     return (
                       <div
                         key={resource.id}
-                        className="flex flex-col gap-0.5 py-1 sm:flex-row sm:items-center sm:gap-2"
+                        id={resource.id}
+                        className="flex flex-col gap-0.5 py-1 scroll-mt-24 sm:flex-row sm:items-center sm:gap-2"
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-text-dim select-none">
