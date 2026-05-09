@@ -3,9 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown } from "lucide-react";
+import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown, Sparkles, Cpu } from "lucide-react";
 import { usePersona } from "@/contexts/PersonaContext";
-import type { Event } from "@/data/events";
+import type { Event } from "@/lib/types";
 import type { ProjectView } from "@/lib/data";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
 import { HeroPro } from "@/components/sections/HeroPro";
@@ -122,7 +122,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
           aria-label="Hero"
         >
           <LazyMatrixRain opacity={0.05} density={0.2} />
-          <div className="relative z-10 flex flex-col items-center gap-8">
+          <div className="relative z-10 flex flex-col items-center gap-8 pt-10 md:pt-14">
             <HeroTerminal stats={communityStats} feed={feedItems} />
             <ScrollReveal delay={800}>
               <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
@@ -320,6 +320,94 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
           </ScrollReveal>
         </div>
       </PersonaSection>
+
+      {/* ─── Find Your Community (audience segmentation) ─── */}
+      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Find your community">
+        <ScrollReveal>
+          <h2 className={isPro
+            ? "mb-2 text-center text-3xl font-semibold text-[#faf9f5] sm:text-4xl"
+            : "mb-2 text-center font-mono text-2xl font-bold text-green-primary sm:text-3xl"}>
+            {isPro ? "Find Your Community" : "$ ls ./community/audiences"}
+          </h2>
+          <p className={isPro
+            ? "mx-auto mb-12 max-w-2xl text-center text-[#b0aea5]"
+            : "mx-auto mb-12 max-w-2xl text-center font-sans text-text-secondary"}>
+            {isPro
+              ? "Whoever you are, there's a place for you here."
+              : "// two tracks. one community. ship together."}
+          </p>
+        </ScrollReveal>
+
+        <ScrollReveal stagger={150} className="grid gap-6 md:grid-cols-2">
+          {/* Software Engineers */}
+          {isPro ? (
+            <Link
+              href="/events"
+              className="group flex flex-col rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/80 p-8 backdrop-blur-sm transition-all duration-300 hover:border-[#d97757]/40 hover:-translate-y-0.5"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#d97757]/20 to-[#d97757]/5 border border-[#3a3a37]">
+                <Cpu className="h-6 w-6 text-[#d97757]" aria-hidden="true" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-[#faf9f5]">Software Engineers</h3>
+              <p className="mb-6 flex-1 text-sm leading-relaxed text-[#b0aea5]">
+                Backend, frontend, mobile, ML engineers shipping production code. Deep-dive workflows, agentic patterns, multi-instance Claude Code, hackathons, and live demos with peers who get it.
+              </p>
+              <span className="text-sm font-medium text-[#d97757] group-hover:underline">
+                See technical events →
+              </span>
+            </Link>
+          ) : (
+            <TerminalWindow title="engineers.sh" variant="command" className="h-full">
+              <div className="flex flex-col gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded border border-green-primary/20 bg-green-primary/10">
+                  <Cpu className="h-5 w-5 text-green-primary" aria-hidden="true" />
+                </div>
+                <h3 className="font-mono text-base font-bold text-text-primary">Software Engineers</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Backend, frontend, mobile, ML. Deep-dive workflows, agentic patterns, multi-instance Claude Code, hackathons.
+                </p>
+                <Link href="/events" className="font-mono text-sm text-green-primary hover:text-amber transition-colors">
+                  &gt; cd /events
+                </Link>
+              </div>
+            </TerminalWindow>
+          )}
+
+          {/* Builders & Vibe Coders */}
+          {isPro ? (
+            <Link
+              href="/join"
+              className="group flex flex-col rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/80 p-8 backdrop-blur-sm transition-all duration-300 hover:border-[#6a9bcc]/40 hover:-translate-y-0.5"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#6a9bcc]/20 to-[#6a9bcc]/5 border border-[#3a3a37]">
+                <Sparkles className="h-6 w-6 text-[#6a9bcc]" aria-hidden="true" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-[#faf9f5]">Builders &amp; Vibe Coders</h3>
+              <p className="mb-6 flex-1 text-sm leading-relaxed text-[#b0aea5]">
+                Founders, PMs, designers, students, and AI-curious creators. You don&apos;t need to know how a transformer works — you need Claude to ship the thing in your head. Workshops, demos, and a community that meets you where you are.
+              </p>
+              <span className="text-sm font-medium text-[#6a9bcc] group-hover:underline">
+                Join the community →
+              </span>
+            </Link>
+          ) : (
+            <TerminalWindow title="vibe-coders.sh" variant="command" className="h-full">
+              <div className="flex flex-col gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded border border-cyan/30 bg-cyan/10">
+                  <Sparkles className="h-5 w-5 text-cyan" aria-hidden="true" />
+                </div>
+                <h3 className="font-mono text-base font-bold text-text-primary">Builders &amp; Vibe Coders</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Founders, PMs, designers, students, AI-curious creators. Skip the theory — ship the thing.
+                </p>
+                <Link href="/join" className="font-mono text-sm text-cyan hover:text-amber transition-colors">
+                  &gt; ./join.sh
+                </Link>
+              </div>
+            </TerminalWindow>
+          )}
+        </ScrollReveal>
+      </section>
 
       {/* ─── Testimonials ─── */}
       <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">

@@ -282,6 +282,58 @@ export async function sendVolunteerApplicationNotification(data: {
   return adminSent
 }
 
+export async function sendEmailVerificationEmail(data: {
+  to: string
+  firstName: string
+  verifyUrl: string
+  expiresInHours: number
+}): Promise<boolean> {
+  const html = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Verify your email</h2>
+      <p>Hi ${esc(data.firstName)},</p>
+      <p>Welcome to Claude Community Kenya. Tap the button below to verify your email address. This link expires in ${data.expiresInHours} hours.</p>
+      <p style="margin:24px 0;">
+        <a href="${data.verifyUrl}" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Verify Email</a>
+      </p>
+      <p style="color:#8a8a8a;font-size:12px;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.verifyUrl)}</p>
+      <p style="color:#8a8a8a;font-size:12px;">If you didn't create a CCK account, you can safely ignore this email.</p>
+      <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  return sendEmail({
+    to: data.to,
+    subject: "Verify your CCK email",
+    html,
+  })
+}
+
+export async function sendPasswordResetEmail(data: {
+  to: string
+  firstName: string
+  resetUrl: string
+  expiresInMinutes: number
+}): Promise<boolean> {
+  const html = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Reset your password</h2>
+      <p>Hi ${esc(data.firstName)},</p>
+      <p>We received a request to reset your password. Click the button below to choose a new one. This link expires in ${data.expiresInMinutes} minutes.</p>
+      <p style="margin:24px 0;">
+        <a href="${data.resetUrl}" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Reset Password</a>
+      </p>
+      <p style="color:#8a8a8a;font-size:12px;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.resetUrl)}</p>
+      <p style="color:#8a8a8a;font-size:12px;">If you didn't request a password reset, you can safely ignore this email — your password won't change.</p>
+      <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  return sendEmail({
+    to: data.to,
+    subject: "Reset your CCK password",
+    html,
+  })
+}
+
 export async function sendApplicationReviewEmail(data: {
   email: string
   name: string

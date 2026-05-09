@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { MediaFrame } from "@/components/ui/MediaFrame";
-import type { Event } from "@/data/events";
+import type { Event } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Calendar, MapPin, Clock, Tag } from "lucide-react";

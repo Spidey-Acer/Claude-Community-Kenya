@@ -1,0 +1,35 @@
+/**
+ * Domain types used across CCK pages and components.
+ *
+ * These mirror the shape of records the DB returns after mapping in lib/data.ts.
+ * Component-facing types live here (decoupled from Prisma generated types) so
+ * UI code never imports from `@/generated/prisma` and stays portable if the
+ * persistence layer ever changes.
+ */
+
+export interface Event {
+  id?: string;
+  slug: string;
+  title: string;
+  date: string;
+  time: string;
+  venue: string;
+  city: string;
+  type: "meetup" | "workshop" | "career-talk" | "hackathon";
+  status: "upcoming" | "registration-open" | "completed" | "sold-out";
+  description: string;
+  fullDescription?: string;
+  agenda?: string[];
+  registrationUrl?: string;
+  lumaUrl?: string;
+  host?: string;
+  partnerOrg?: string;
+  highlights?: string[];
+  attendeeCount?: number;
+  posterUrl?: string;
+  photosUrl?: string;
+  recordingUrl?: string;
+  slidesUrl?: string;
+  prizes?: string[];
+  rules?: string[];
+}

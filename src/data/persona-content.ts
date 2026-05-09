@@ -188,22 +188,6 @@ const CONTENT: Record<string, PageDef> = {
     },
   },
 
-  // ─── AMBASSADOR ───
-  ambassador: {
-    hero: {
-      heading: { dev: "cat ambassador-program.md", pro: "Ambassador Program" },
-    },
-    getInvolved: {
-      heading: { dev: 'echo "Get Involved"', pro: "Get Involved" },
-    },
-    body: {
-      description: {
-        dev: "Organize meetups, workshops, and hackathons. Lead and grow local developer communities.",
-        pro: "Organize meetups, workshops, and events. Lead and grow local communities.",
-      },
-    },
-  },
-
   // ─── CODE OF CONDUCT ───
   codeOfConduct: {
     hero: {

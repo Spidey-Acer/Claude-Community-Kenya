@@ -6,6 +6,7 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendVolunteerApplicationNotification } from "@/lib/email"
 import { VolunteerRole } from "@/generated/prisma/client"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const volunteerSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
@@ -55,9 +56,12 @@ export async function POST(request: NextRequest) {
 
   const data = validation.data
 
+  const userId = await getSessionUserId()
+
   try {
     const application = await prisma.volunteerApplication.create({
       data: {
+        userId,
         name: data.name,
         email: data.email,
         phone: data.phone,

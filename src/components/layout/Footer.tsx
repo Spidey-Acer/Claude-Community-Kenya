@@ -67,7 +67,7 @@ export function Footer() {
         )}
 
         {/* Footer content grid */}
-        <div className="grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand section */}
           <div>
             <h3 className={isPro ? "text-sm font-semibold text-text-primary" : "font-mono text-sm font-bold text-green-primary"}>
@@ -133,6 +133,17 @@ export function Footer() {
               </ul>
             </div>
           ))}
+        </div>
+
+        {/* Community disclaimer */}
+        <div className="border-t border-border-default py-4">
+          <p className={isPro
+            ? "text-[11px] text-text-dim leading-relaxed"
+            : "font-mono text-[11px] text-text-dim leading-relaxed"}>
+            {isPro
+              ? "Claude Community Kenya is an independently operated community initiative, supported by Anthropic through event funding and API credits via the Community Ambassador programme. We are not an official division or representative body of Anthropic PBC, and community views do not constitute official Anthropic positions. \"Claude\" and \"Anthropic\" are trademarks of Anthropic PBC."
+              : "// Independently operated. Anthropic-supported via the Community Ambassador programme (event funding + API credits). Views expressed here are community-held, not official Anthropic positions. \"Claude\" is a trademark of Anthropic PBC."}
+          </p>
         </div>
 
         {/* Bottom bar with box-drawing characters */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Event } from "@/data/events";
+import type { Event } from "@/lib/types";
 import { EventCard } from "@/components/sections/EventCard";
 import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";

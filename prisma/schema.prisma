@@ -85,21 +85,31 @@ enum CommunityStatus {
 // ─── Users & Auth ────────────────────────────────────────────────────────────
 
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  passwordHash         String
-  role                 UserRole  @default(MEMBER)
-  firstName            String
-  lastName             String
-  phone                String?
-  imageUrl             String?
-  active               Boolean   @default(true)
-  emailVerified        Boolean   @default(false)
-  lastLogin            DateTime?
-  passwordResetToken   String?   @unique
-  passwordResetExpires DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  passwordHash             String
+  role                     UserRole  @default(MEMBER)
+  firstName                String
+  lastName                 String
+  phone                    String?
+  imageUrl                 String?
+  active                   Boolean   @default(true)
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+  lastLogin                DateTime?
+  passwordResetToken       String?   @unique
+  passwordResetExpires     DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  // Submissions linked back to this user (when authored while signed in)
+  ideaSubmissions      IdeaSubmission[]
+  communitySubmissions CommunitySubmission[]
+  joinApplications     JoinApplication[]
+  speakerApplications  SpeakerApplication[]
+  volunteerApplications VolunteerApplication[]
+  demoRequests         DemoRequest[]
 
   @@map("users")
 }
@@ -108,6 +118,7 @@ model User {
 
 model SpeakerApplication {
   id             String            @id @default(cuid())
+  userId         String?
   name           String
   email          String
   phone          String?
@@ -128,6 +139,9 @@ model SpeakerApplication {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
   @@map("speaker_applications")
 }
 
@@ -135,6 +149,7 @@ model SpeakerApplication {
 
 model IdeaSubmission {
   id           String            @id @default(cuid())
+  userId       String?
   title        String
   description  String            @db.Text
   stage        ProjectStage
@@ -153,6 +168,9 @@ model IdeaSubmission {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
   @@map("idea_submissions")
 }
 
@@ -160,6 +178,7 @@ model IdeaSubmission {
 
 model JoinApplication {
   id          String            @id @default(cuid())
+  userId      String?
   name        String
   email       String
   github      String?
@@ -174,6 +193,9 @@ model JoinApplication {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
   @@map("join_applications")
 }
 
@@ -181,6 +203,7 @@ model JoinApplication {
 
 model DemoRequest {
   id            String            @id @default(cuid())
+  userId        String?
   eventId       String
   name          String
   email         String
@@ -197,7 +220,10 @@ model DemoRequest {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@index([eventId, status])
+  @@index([userId])
   @@map("demo_requests")
 }
 
@@ -341,6 +367,7 @@ enum VolunteerRole {
 
 model VolunteerApplication {
   id           String            @id @default(cuid())
+  userId       String?
   name         String
   email        String
   phone        String?
@@ -359,6 +386,9 @@ model VolunteerApplication {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
   @@map("volunteer_applications")
 }
 
@@ -387,6 +417,7 @@ model AuditLog {
 
 model CommunitySubmission {
   id                  String                @id @default(cuid())
+  userId              String?
   slug                String                @unique
   type                CommunityResourceType
   title               String
@@ -406,11 +437,13 @@ model CommunitySubmission {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
+  user     User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments CommunityComment[]
   upvotes  CommunityUpvote[]
 
   @@index([status])
   @@index([type])
+  @@index([userId])
   @@index([status, type])
   @@map("community_submissions")
 }

@@ -17,7 +17,7 @@ const DEFAULT_STATS: CommunityStats = {
   whatsappMembers: 120,
   linkedinMembers: 80,
   totalMembers: 300,
-  eventsHeld: 5,
+  eventsHeld: 2,
   citiesActive: ["Nairobi", "Mombasa"],
   resourceCount: 33,
 };
@@ -92,7 +92,7 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
+      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center pt-10 md:pt-14">
         {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

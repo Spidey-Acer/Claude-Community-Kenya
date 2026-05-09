@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
@@ -23,20 +24,22 @@ export function ConditionalLayout({
   }
 
   return (
-    <PersonaProvider>
-      <a href="#main-content" className="skip-nav">
-        Skip to main content
-      </a>
-      <Navbar />
-      <LoadingBar />
-      <main id="main-content">
-        <PageTransition>{children}</PageTransition>
-      </main>
-      <Footer />
-      <EasterEggs />
-      <ChatWidget />
-      <PersonaGate />
-    </PersonaProvider>
+    <SessionProvider>
+      <PersonaProvider>
+        <a href="#main-content" className="skip-nav">
+          Skip to main content
+        </a>
+        <Navbar />
+        <LoadingBar />
+        <main id="main-content">
+          <PageTransition>{children}</PageTransition>
+        </main>
+        <Footer />
+        <EasterEggs />
+        <ChatWidget />
+        <PersonaGate />
+      </PersonaProvider>
+    </SessionProvider>
   );
 }
 

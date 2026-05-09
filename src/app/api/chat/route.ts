@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   // Pass original body.messages to the SDK (preserves full UIMessage shape);
   // Zod already validated array length, roles, and content size above.
-  const systemPrompt = buildSystemPrompt(persona as ChatPersona);
+  const systemPrompt = await buildSystemPrompt(persona as ChatPersona);
 
   const result = streamText({
     model: anthropic("claude-haiku-4.5"),

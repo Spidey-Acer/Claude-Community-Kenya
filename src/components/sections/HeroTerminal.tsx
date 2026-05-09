@@ -33,7 +33,7 @@ const DEFAULT_STATS: CommunityStats = {
   whatsappMembers: 120,
   linkedinMembers: 80,
   totalMembers: 300,
-  eventsHeld: 5,
+  eventsHeld: 2,
   citiesActive: ["Nairobi", "Mombasa"],
   resourceCount: 33,
 };

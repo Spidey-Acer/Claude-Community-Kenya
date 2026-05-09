@@ -48,15 +48,14 @@ export default function VolunteerPage() {
 
     startTransition(async () => {
       try {
-        // Fetch CSRF token
-        const csrfRes = await fetch("/api/csrf");
-        const csrfData = await csrfRes.json();
+        const csrfRes = await fetch("/api/csrf-token");
+        const { csrfToken } = await csrfRes.json();
 
         const res = await fetch("/api/volunteer/apply", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-csrf-token": csrfData.token ?? "",
+            "x-csrf-token": csrfToken ?? "",
           },
           body: JSON.stringify({
             name,

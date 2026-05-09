@@ -105,21 +105,21 @@ export default async function Image() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-            <span style={{ color: "#00ff41", fontSize: "32px", fontWeight: "bold" }}>700+</span>
+            <span style={{ color: "#00ff41", fontSize: "32px", fontWeight: "bold" }}>Anthropic</span>
             <span style={{ color: "#666", fontSize: "14px", textTransform: "uppercase", letterSpacing: "2px" }}>
-              Registrations
+              Supported
             </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-            <span style={{ color: "#ffb000", fontSize: "32px", fontWeight: "bold" }}>5</span>
+            <span style={{ color: "#ffb000", fontSize: "32px", fontWeight: "bold" }}>Nairobi</span>
             <span style={{ color: "#666", fontSize: "14px", textTransform: "uppercase", letterSpacing: "2px" }}>
-              Events
+              + Mombasa
             </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-            <span style={{ color: "#00d4ff", fontSize: "32px", fontWeight: "bold" }}>2</span>
+            <span style={{ color: "#00d4ff", fontSize: "32px", fontWeight: "bold" }}>Claude</span>
             <span style={{ color: "#666", fontSize: "14px", textTransform: "uppercase", letterSpacing: "2px" }}>
-              Cities
+              Code · API
             </span>
           </div>
         </div>

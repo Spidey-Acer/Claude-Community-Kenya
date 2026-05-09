@@ -1,12 +1,24 @@
 import { faqs } from "@/data/faq";
-import { events, getUpcomingEvents } from "@/data/events";
 import { resources } from "@/data/resources";
-import { blogPosts } from "@/data/blog-posts";
-import { team } from "@/data/team";
-import { projects } from "@/data/projects";
+import {
+  getEvents,
+  getUpcomingEvents,
+  getBlogPosts,
+  getFeaturedProjects,
+  getTeamMembers,
+} from "@/lib/data";
 
-export function buildCommunityContext(): string {
-  const upcoming = getUpcomingEvents();
+export async function buildCommunityContext(): Promise<string> {
+  // Single source of truth: the DB. Empty arrays on failure are intentional —
+  // chat omits sections rather than crashes. Editorial content (FAQ, resources)
+  // is still file-based since it's reviewed in PRs, not admin-managed.
+  const [events, upcoming, blogPosts, featuredProjects, team] = await Promise.all([
+    getEvents().catch(() => []),
+    getUpcomingEvents().catch(() => []),
+    getBlogPosts().catch(() => []),
+    getFeaturedProjects().catch(() => []),
+    getTeamMembers().catch(() => []),
+  ]);
 
   const faqBlock = faqs
     .map((f) => `Q: ${f.question}\nA: ${f.answer}`)
@@ -31,8 +43,7 @@ export function buildCommunityContext(): string {
     .map((r) => `- ${r.title}: ${r.url} — ${r.description ?? ""}`)
     .join("\n");
 
-  const projectBlock = projects
-    .filter((p) => p.featured)
+  const projectBlock = featuredProjects
     .map(
       (p) =>
         `- ${p.name} by ${p.builder}: ${p.description}${p.demoUrl ? ` (${p.demoUrl})` : ""}`
@@ -47,12 +58,14 @@ export function buildCommunityContext(): string {
     .map((b) => `- "${b.title}" (${b.date}) — ${b.excerpt}`)
     .join("\n");
 
+  const completedCount = events.filter((e) => e.status === "completed").length;
+
   return `
 === KEY FACTS ===
 - Community name: Claude Community Kenya (CCK)
-- Africa's first Claude developer community
-- First meetup: January 24, 2026 at iHiT Events Space, Westlands, Nairobi — 30+ attendees
-- Events hosted: 2 (Nairobi #1 Jan 24, Nairobi #2 Feb 20)
+- East Africa's first Claude developer community
+- First meetup: January 24, 2026 at iHiT Events Space, Westlands, Nairobi
+- Events hosted (completed): ${completedCount}
 - Cities: Nairobi + Mombasa (expanding)
 - Website: https://www.claudekenya.org
 - Discord: https://discord.gg/CkD9QWjsHm
@@ -91,7 +104,6 @@ ${resourceBlock}
 - Events: /events
 - Resources: /resources
 - FAQ: /faq
-- Ambassador Program: /ambassador
 - Blog: /blog
 - Projects: /projects
 - Community Hub: /community

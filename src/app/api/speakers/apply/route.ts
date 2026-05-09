@@ -6,6 +6,7 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendSpeakerApplicationNotification } from "@/lib/email"
 import { SpeakerCategory } from "@/generated/prisma/client"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const speakerSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
@@ -57,9 +58,12 @@ export async function POST(request: NextRequest) {
 
   const data = validation.data
 
+  const userId = await getSessionUserId()
+
   try {
     const application = await prisma.speakerApplication.create({
       data: {
+        userId,
         name: data.name,
         email: data.email,
         phone: data.phone,

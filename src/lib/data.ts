@@ -5,7 +5,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
-import type { Event } from "@/data/events"
+import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
   BlogPost as PrismaBlogPost,
