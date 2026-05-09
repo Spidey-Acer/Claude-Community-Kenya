@@ -6,6 +6,7 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendIdeaSubmissionNotification } from "@/lib/email"
 import { ProjectStage } from "@/generated/prisma/client"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const SEEKING_ROLES = ["COFOUNDER", "DEVELOPER", "DESIGNER", "MENTOR", "FUNDER"] as const
 
@@ -57,9 +58,12 @@ export async function POST(request: NextRequest) {
 
   const data = validation.data
 
+  const userId = await getSessionUserId()
+
   try {
     const submission = await prisma.ideaSubmission.create({
       data: {
+        userId,
         title: data.title,
         description: data.description,
         stage: data.stage,

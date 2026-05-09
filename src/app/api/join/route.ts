@@ -5,6 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendJoinApplicationNotification } from "@/lib/email"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const joinSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
@@ -63,8 +64,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const userId = await getSessionUserId()
+
     const application = await prisma.joinApplication.create({
       data: {
+        userId,
         name: data.name,
         email: data.email,
         github: data.github,

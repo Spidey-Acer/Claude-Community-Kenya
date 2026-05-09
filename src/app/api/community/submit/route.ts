@@ -11,6 +11,7 @@ import {
 } from "@/lib/input-sanitization"
 import { toSlug } from "@/lib/utils"
 import { CommunityResourceType } from "@/generated/prisma/client"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const communitySubmitSchema = z.object({
   type: z.nativeEnum(CommunityResourceType),
@@ -65,9 +66,12 @@ export async function POST(request: NextRequest) {
     console.warn("[COMMUNITY] Potential prompt injection detected in submission:", slug)
   }
 
+  const userId = await getSessionUserId()
+
   try {
     await prisma.communitySubmission.create({
       data: {
+        userId,
         type: data.type,
         title: data.title,
         slug,

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
+import { getSessionUserId } from "@/lib/auth-helpers"
 
 const demoRequestSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
@@ -65,9 +66,12 @@ export async function POST(
 
   const data = validation.data
 
+  const userId = await getSessionUserId()
+
   try {
     const demoRequest = await prisma.demoRequest.create({
       data: {
+        userId,
         eventId: event.id,
         name: data.name,
         email: data.email,

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeEmail, zodSanitizeString } from "@/lib/input-sanitization"
+import { sendEmailVerificationEmail } from "@/lib/email"
+
+const VERIFICATION_TTL_HOURS = 24
 
 const signupSchema = z.object({
   firstName: z.string().min(1).max(60).transform(zodSanitizeString),
@@ -61,8 +65,10 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
+  const verificationToken = crypto.randomBytes(32).toString("hex")
+  const verificationExpires = new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60_000)
 
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       email,
       passwordHash,
@@ -71,11 +77,27 @@ export async function POST(request: NextRequest) {
       role: "MEMBER",
       active: true,
       emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
     },
+  })
+
+  const baseUrl = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
+  const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`
+
+  // Fire-and-forget: signup should not fail if email delivery hiccups.
+  // The user can request a resend from the dashboard.
+  sendEmailVerificationEmail({
+    to: created.email,
+    firstName: created.firstName,
+    verifyUrl,
+    expiresInHours: VERIFICATION_TTL_HOURS,
+  }).catch((err) => {
+    console.error("[signup] sendEmailVerificationEmail failed:", err)
   })
 
   return NextResponse.json({
     success: true,
-    message: "Account created. You can now sign in.",
+    message: "Account created. Check your email to verify your address.",
   })
 }
