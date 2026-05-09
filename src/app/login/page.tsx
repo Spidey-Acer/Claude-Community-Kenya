@@ -151,6 +151,13 @@ function LoginInner() {
                 "Sign In"
               )}
             </button>
+
+            <Link
+              href="/forgot-password"
+              className="block text-center text-[11px] font-mono text-text-dim hover:text-green-primary transition-colors"
+            >
+              Forgot password?
+            </Link>
           </form>
         </div>
 

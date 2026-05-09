@@ -7,6 +7,8 @@ import { getUpcomingEvents } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Calendar, MessageSquare, BookOpen, Sparkles, Code2 } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
+import { VerifyEmailBanner } from "./VerifyEmailBanner";
+import { ProfileEditor } from "./ProfileEditor";
 
 export const metadata: Metadata = {
   title: "Dashboard | Claude Community Kenya",
@@ -32,12 +34,49 @@ export default async function DashboardPage() {
   const [user, upcomingEvents] = await Promise.all([
     prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { firstName: true, lastName: true, email: true, createdAt: true, role: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        imageUrl: true,
+        createdAt: true,
+        role: true,
+        emailVerified: true,
+      },
     }),
     getUpcomingEvents().catch(() => []),
   ]);
 
   if (!user) redirect("/login");
+
+  // My submissions — small recent slice across all submission types
+  const [myIdeas, myCommunity, myProjects, myDemos] = await Promise.all([
+    prisma.ideaSubmission.findMany({
+      where: { userId: user.id },
+      select: { id: true, title: true, status: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }).catch(() => []),
+    prisma.communitySubmission.findMany({
+      where: { userId: user.id },
+      select: { id: true, slug: true, title: true, type: true, status: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }).catch(() => []),
+    // Approved community projects don't link via userId yet — leave for future schema pass.
+    Promise.resolve([] as never[]),
+    prisma.demoRequest.findMany({
+      where: { userId: user.id },
+      select: { id: true, projectTitle: true, status: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }).catch(() => []),
+  ]);
+
+  const totalSubmissions =
+    myIdeas.length + myCommunity.length + myProjects.length + myDemos.length;
 
   const nextEvent = upcomingEvents[0];
 
@@ -69,6 +108,18 @@ export default async function DashboardPage() {
             <SignOutButton />
           </div>
         </header>
+
+        {!user.emailVerified && <VerifyEmailBanner />}
+
+        <section className="mb-8" aria-label="Profile">
+          <ProfileEditor
+            initialFirstName={user.firstName}
+            initialLastName={user.lastName}
+            initialPhone={user.phone}
+            initialImageUrl={user.imageUrl}
+            email={user.email}
+          />
+        </section>
 
         {/* Next Event */}
         {nextEvent && (
@@ -150,10 +201,49 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        {/* My Submissions */}
+        {totalSubmissions > 0 && (
+          <section className="mt-12" aria-label="My submissions">
+            <h2 className="mb-4 font-mono text-xs uppercase tracking-wider text-text-dim">
+              // ./my-submissions
+            </h2>
+            <div className="space-y-3">
+              {myIdeas.map((s) => (
+                <SubmissionRow
+                  key={`idea-${s.id}`}
+                  type="Idea"
+                  title={s.title}
+                  status={s.status}
+                  createdAt={s.createdAt}
+                />
+              ))}
+              {myCommunity.map((s) => (
+                <SubmissionRow
+                  key={`community-${s.id}`}
+                  type={s.type}
+                  title={s.title}
+                  status={s.status}
+                  createdAt={s.createdAt}
+                  href={`/community/${s.slug}`}
+                />
+              ))}
+              {myDemos.map((s) => (
+                <SubmissionRow
+                  key={`demo-${s.id}`}
+                  type="Demo"
+                  title={s.projectTitle}
+                  status={s.status}
+                  createdAt={s.createdAt}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Footer note */}
         <footer className="mt-12 border-t border-border-default pt-6">
           <p className="font-mono text-xs text-text-dim">
-            // Member features in progress: saved events, contribution history, profile editing.
+            // Member features in progress: saved events, 2FA for admins.
             <br />
             Have an idea?{" "}
             <Link href="/submit-idea" className="text-green-primary hover:underline">
@@ -165,6 +255,44 @@ export default async function DashboardPage() {
       </div>
     </main>
   );
+}
+
+interface SubmissionRowProps {
+  type: string;
+  title: string;
+  status: string;
+  createdAt: Date;
+  href?: string;
+}
+
+function SubmissionRow({ type, title, status, createdAt, href }: SubmissionRowProps) {
+  const statusColor =
+    status === "APPROVED"
+      ? "text-green-primary border-green-primary/30 bg-green-primary/10"
+      : status === "REJECTED"
+      ? "text-red border-red/30 bg-red/10"
+      : "text-amber border-amber/30 bg-amber/10";
+
+  const dateLabel = createdAt.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const inner = (
+    <div className="flex flex-wrap items-center gap-3 rounded border border-border-default bg-bg-secondary px-4 py-3 transition-colors hover:border-border-hover">
+      <span className="rounded border border-border-default bg-bg-card px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim">
+        {type}
+      </span>
+      <span className="flex-1 truncate font-mono text-sm text-text-primary">{title}</span>
+      <span className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${statusColor}`}>
+        {status.toLowerCase()}
+      </span>
+      <span className="font-mono text-[11px] text-text-dim">{dateLabel}</span>
+    </div>
+  );
+
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
 interface DashboardCardProps {
