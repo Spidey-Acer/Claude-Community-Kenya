@@ -122,7 +122,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
           aria-label="Hero"
         >
           <LazyMatrixRain opacity={0.05} density={0.2} />
-          <div className="relative z-10 flex flex-col items-center gap-8">
+          <div className="relative z-10 flex flex-col items-center gap-8 pt-10 md:pt-14">
             <HeroTerminal stats={communityStats} feed={feedItems} />
             <ScrollReveal delay={800}>
               <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
