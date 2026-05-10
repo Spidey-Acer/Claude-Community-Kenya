@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT, SOCIAL_LINKS } from "@/lib/constants";
 import { useSkin } from "@/contexts/SkinContext";
+import { PersonalizeFooterLink } from "@/components/karibu/PersonalizeFooterLink";
 
 export function Footer() {
   const { skin } = useSkin();
@@ -193,6 +194,9 @@ export function Footer() {
               WhatsApp
             </a>
           </div>
+
+          {/* Karibu re-onboarding */}
+          <PersonalizeFooterLink />
 
           {/* Exit easter egg — Dev only */}
           {!isPro && (
