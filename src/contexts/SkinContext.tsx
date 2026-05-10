@@ -36,6 +36,10 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       if (legacy === "dev" || legacy === "pro") {
         setSkinState(legacy);
         localStorage.setItem(STORAGE_KEY, legacy);
+      } else {
+        // First visit: default to dev skin — no modal gate needed
+        setSkinState("dev");
+        localStorage.setItem(STORAGE_KEY, "dev");
       }
     }
     setIsLoaded(true);

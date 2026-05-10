@@ -8,8 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { SkinProvider, useSkin } from "@/contexts/SkinContext";
-import { PersonaSelectorModal } from "@/components/persona/PersonaSelectorModal";
+import { SkinProvider } from "@/contexts/SkinContext";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { AudienceProvider, type AudienceState } from "@/contexts/AudienceContext";
 
@@ -49,7 +48,6 @@ export function ConditionalLayout({
           <Footer />
           <EasterEggs />
           <ChatWidget />
-          <PersonaGate />
           {showKaribu && <KaribuModal />}
         </AudienceProvider>
       </SkinProvider>
@@ -57,8 +55,3 @@ export function ConditionalLayout({
   );
 }
 
-function PersonaGate() {
-  const { skin, setSkin, isLoaded } = useSkin();
-  if (!isLoaded || skin !== null) return null;
-  return <PersonaSelectorModal onSelect={setSkin} />;
-}
