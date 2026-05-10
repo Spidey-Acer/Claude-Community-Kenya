@@ -10,6 +10,10 @@ import type { CommunityStats, FeedItem } from "@/components/sections/HeroTermina
 interface HeroProProps {
   stats?: CommunityStats;
   feed?: FeedItem[];
+  headlineOverride?: string;
+  subOverride?: string;
+  ctaLabelOverride?: string;
+  ctaHrefOverride?: string;
 }
 
 const DEFAULT_STATS: CommunityStats = {
@@ -51,7 +55,7 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   return <span ref={ref}>{count}{suffix}</span>;
 }
 
-export function HeroPro({ stats, feed = [] }: HeroProProps) {
+export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLabelOverride, ctaHrefOverride }: HeroProProps) {
   const resolvedStats = stats ?? DEFAULT_STATS;
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
 
@@ -114,10 +118,16 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           className="mb-8 font-bold tracking-tight text-white text-3xl sm:text-5xl lg:text-7xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          Claude Community<br className="sm:hidden" />{" "}
-          <span className="bg-gradient-to-br from-[#e89576] via-[#d97757] to-[#b85a3e] bg-clip-text text-transparent">
-            Kenya
-          </span>
+          {headlineOverride ? (
+            headlineOverride
+          ) : (
+            <>
+              Claude Community<br className="sm:hidden" />{" "}
+              <span className="bg-gradient-to-br from-[#e89576] via-[#d97757] to-[#b85a3e] bg-clip-text text-transparent">
+                Kenya
+              </span>
+            </>
+          )}
         </motion.h1>
 
         {/* Hero map — geographic representation of the community across Kenya */}
@@ -152,8 +162,8 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           className="mx-auto mb-10 max-w-2xl text-lg text-[#b0aea5] sm:text-xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          East Africa&apos;s vibrant AI community. Learn, create, and grow with Claude —
-          from workshops and meetups to real-world projects.
+          {subOverride ??
+            "East Africa’s vibrant AI community. Learn, create, and grow with Claude — from workshops and meetups to real-world projects."}
         </motion.p>
 
         {/* CTAs */}
@@ -164,12 +174,12 @@ export function HeroPro({ stats, feed = [] }: HeroProProps) {
           className="mb-16 flex flex-wrap items-center justify-center gap-3 px-4"
         >
           <a
-            href={SOCIAL_LINKS.discord}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={ctaHrefOverride ?? SOCIAL_LINKS.discord}
+            target={ctaHrefOverride ? undefined : "_blank"}
+            rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
             className="inline-flex items-center gap-2 rounded-full bg-[#d97757] px-7 py-3 text-sm font-semibold text-[#faf9f5] shadow-lg shadow-[#d97757]/20 transition-all duration-200 hover:bg-[#c06848] hover:shadow-[#d97757]/30"
           >
-            Join the Community
+            {ctaLabelOverride ?? "Join the Community"}
             <span aria-hidden="true">→</span>
           </a>
           <Link
