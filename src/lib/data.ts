@@ -60,6 +60,9 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     slidesUrl: e.slidesUrl ?? undefined,
     prizes: (e.prizes as string[]) ?? undefined,
     rules: (e.rules as string[]) ?? undefined,
+    audiences: (e.audiences as string[]) ?? [],
+    intents: (e.intents as string[]) ?? [],
+    featured: e.featured,
   }
 }
 
@@ -127,6 +130,10 @@ export interface BlogPostView {
   featured: boolean
   status: string
   views: number
+  /** Audience tags used by the recommendation engine. */
+  audiences: string[]
+  /** Intent tags used by the recommendation engine. */
+  intents: string[]
 }
 
 function mapPrismaBlog(p: PrismaBlogPost): BlogPostView {
@@ -142,6 +149,8 @@ function mapPrismaBlog(p: PrismaBlogPost): BlogPostView {
     featured: p.featured,
     status: p.status,
     views: p.views,
+    audiences: (p.audiences as string[]) ?? [],
+    intents: (p.intents as string[]) ?? [],
   }
 }
 

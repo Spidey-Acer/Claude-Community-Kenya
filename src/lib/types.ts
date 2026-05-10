@@ -32,4 +32,9 @@ export interface Event {
   slidesUrl?: string;
   prizes?: string[];
   rules?: string[];
+  /** Audience tags used by the recommendation engine. */
+  audiences?: string[];
+  /** Intent tags used by the recommendation engine. */
+  intents?: string[];
+  featured?: boolean;
 }
