@@ -1,0 +1,180 @@
+<h2>Section 5 — What changes after Karibu</h2>
+<p class="subtitle">5 audiences × 5 surfaces. Personalize emphasis, never subtract.</p>
+
+<!-- Hero variant grid -->
+<h3 style="margin-top:8px;">Homepage hero · 5 variants</h3>
+<p style="color:#aaa;font-size:13px;">Same skeleton, different copy + accent + featured CTA. <code>&lt;HeroTerminal/&gt;</code> and <code>&lt;HeroPro/&gt;</code> each branch on <code>audience</code>.</p>
+
+<div class="cards" style="grid-template-columns:repeat(2,1fr);gap:12px;">
+
+  <div class="card" data-choice="hero-dev" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:14px;font-family:monospace;font-size:11px;color:#00ff41;line-height:1.6;height:140px;overflow:hidden;">
+      <span style="color:#666;">$ whoami</span><br>
+      <strong style="color:#fff;font-size:13px;">Africa's only Claude developer community</strong><br>
+      <span style="color:#aaa;font-size:10px;">Build, ship, and learn with Kenya's strongest AI engineers</span><br><br>
+      <span style="background:#00ff41;color:#000;padding:2px 8px;font-size:10px;">[ Join Discord ]</span>
+      <span style="color:#666;font-size:10px;margin-left:6px;">↳ #devs (286 online)</span>
+    </div>
+    <div class="card-body" style="padding:8px 12px;">
+      <h3 style="font-size:13px;margin:0;">Developer</h3>
+      <p style="font-size:11px;margin-top:2px;">Featured: API guide, Claude Code tutorial, hackathons</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hero-pro" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#1a0f00,#0a0a0a);padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#fff;line-height:1.6;height:140px;overflow:hidden;">
+      <span style="color:#ffb000;font-size:9px;letter-spacing:1px;">FOR PROFESSIONALS</span><br>
+      <strong style="font-size:13px;">AI for the work you actually do</strong><br>
+      <span style="color:#aaa;font-size:10px;">Learn Claude with marketers, lawyers, and ops folks like you</span><br><br>
+      <span style="background:#ffb000;color:#000;padding:2px 8px;font-size:10px;border-radius:3px;">Browse non-tech meetups</span>
+    </div>
+    <div class="card-body" style="padding:8px 12px;">
+      <h3 style="font-size:13px;margin:0;">Non-tech professional</h3>
+      <p style="font-size:11px;margin-top:2px;">Featured: workshops, prompt libraries, real case studies</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hero-student" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#001a2e,#000814);padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#fff;line-height:1.6;height:140px;overflow:hidden;">
+      <span style="color:#00d4ff;font-size:9px;letter-spacing:1px;">FOR STUDENTS</span><br>
+      <strong style="font-size:13px;">Start your AI journey with us</strong><br>
+      <span style="color:#aaa;font-size:10px;">Free meetups, study groups, mentorship — built for Kenyan students</span><br><br>
+      <span style="background:#00d4ff;color:#000;padding:2px 8px;font-size:10px;border-radius:3px;">Join WhatsApp</span>
+    </div>
+    <div class="card-body" style="padding:8px 12px;">
+      <h3 style="font-size:13px;margin:0;">Student</h3>
+      <p style="font-size:11px;margin-top:2px;">Featured: getting-started guide, free courses, ambassador program</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hero-founder" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#1a0511,#0a0507);padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#fff;line-height:1.6;height:140px;overflow:hidden;">
+      <span style="color:#ff3366;font-size:9px;letter-spacing:1px;">FOR FOUNDERS</span><br>
+      <strong style="font-size:13px;">Build your AI company in Nairobi</strong><br>
+      <span style="color:#aaa;font-size:10px;">Connect with founders, investors, and builders shipping with Claude</span><br><br>
+      <span style="background:#ff3366;color:#fff;padding:2px 8px;font-size:10px;border-radius:3px;">Founder events</span>
+    </div>
+    <div class="card-body" style="padding:8px 12px;">
+      <h3 style="font-size:13px;margin:0;">Founder</h3>
+      <p style="font-size:11px;margin-top:2px;">Featured: production guide, project showcase, partnership hub</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hero-creator" onclick="toggleSelect(this)" style="grid-column:span 2;">
+    <div class="card-image" style="background:linear-gradient(135deg,#1a0533,#0a0314);padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#fff;line-height:1.6;height:140px;overflow:hidden;">
+      <span style="color:#a855f7;font-size:9px;letter-spacing:1px;">FOR CREATORS, EDUCATORS &amp; THE CURIOUS</span><br>
+      <strong style="font-size:13px;">Tell better stories with Claude</strong><br>
+      <span style="color:#aaa;font-size:10px;">Writers, journalists, teachers using AI to amplify their work</span><br><br>
+      <span style="background:#a855f7;color:#fff;padding:2px 8px;font-size:10px;border-radius:3px;">Creator track</span>
+    </div>
+    <div class="card-body" style="padding:8px 12px;">
+      <h3 style="font-size:13px;margin:0;">Creator / Educator / Curious</h3>
+      <p style="font-size:11px;margin-top:2px;">Featured: storytelling prompts, educator playbooks, beginner-friendly meetups</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Made-for-you recommendation block -->
+<h3 style="margin-top:32px;">"Made for you" recommendation block</h3>
+<p style="color:#aaa;font-size:13px;">Sits below the hero on every page. Server-side rendered using <code>cck-audience</code> cookie — no client flicker.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Server-side ranked recommendations · audience=non_tech_pro · city=Nairobi</div>
+  <div class="mockup-body" style="background:#0a0a0a;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <span style="font-family:monospace;font-size:11px;color:#ffb000;letter-spacing:1px;">MADE FOR YOU</span>
+        <h4 style="margin:2px 0 0;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:16px;">3 things to start with</h4>
+      </div>
+      <span style="font-family:monospace;font-size:11px;color:#666;">based on: marketing pro · learn basics · used Claude.ai</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid #222;border-left:3px solid #ffb000;padding:12px;border-radius:4px;">
+        <span style="font-family:monospace;font-size:9px;color:#ffb000;">EVENT</span>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#fff;font-weight:600;margin-top:4px;line-height:1.3;">Healthcare AI workshop</div>
+        <div style="color:#aaa;font-size:11px;margin-top:4px;">Feb 20 · iHiT Westlands</div>
+        <div style="color:#ffb000;font-size:10px;margin-top:6px;">6 spots left →</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid #222;border-left:3px solid #00d4ff;padding:12px;border-radius:4px;">
+        <span style="font-family:monospace;font-size:9px;color:#00d4ff;">RESOURCE</span>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#fff;font-weight:600;margin-top:4px;line-height:1.3;">Claude prompts for marketing teams</div>
+        <div style="color:#aaa;font-size:11px;margin-top:4px;">7 min · by Mary K.</div>
+        <div style="color:#00d4ff;font-size:10px;margin-top:6px;">Read →</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid #222;border-left:3px solid #a855f7;padding:12px;border-radius:4px;">
+        <span style="font-family:monospace;font-size:9px;color:#a855f7;">COMMUNITY</span>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#fff;font-weight:600;margin-top:4px;line-height:1.3;">#non-tech-pros on Discord</div>
+        <div style="color:#aaa;font-size:11px;margin-top:4px;">42 active members</div>
+        <div style="color:#a855f7;font-size:10px;margin-top:6px;">Join channel →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- The "you're personalized" banner -->
+<h3 style="margin-top:32px;">First-visit confirmation banner</h3>
+<p style="color:#aaa;font-size:13px;">Shown ONCE immediately after Karibu completes. Auto-dismisses in 8s or on click. Never shown again.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Banner · top of homepage · session-only</div>
+  <div class="mockup-body" style="background:#0a0a0a;padding:14px 18px;">
+    <div style="background:linear-gradient(90deg, rgba(0,255,65,0.12), rgba(0,255,65,0.04));border:1px solid rgba(0,255,65,0.3);border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Sans',sans-serif;">
+      <div style="display:flex;align-items:center;gap:10px;color:#fff;font-size:14px;">
+        <span style="color:#00ff41;">✓</span>
+        Personalized for <strong style="color:#00ff41;">marketing professionals</strong>. Not right? <a style="color:#00ff41;text-decoration:underline;cursor:pointer;">Change</a>
+      </div>
+      <span style="color:#888;font-size:11px;cursor:pointer;">×</span>
+    </div>
+  </div>
+</div>
+
+<!-- Surfaces table -->
+<div class="section" style="margin-top:32px;padding:16px;background:rgba(0,255,65,0.06);border-left:3px solid #00ff41;">
+  <span class="label">5 surfaces that personalize · everything else stays universal</span>
+  <table style="width:100%;margin-top:8px;border-collapse:collapse;font-size:13px;color:#ccc;">
+    <thead>
+      <tr style="border-bottom:1px solid #333;">
+        <th style="text-align:left;padding:6px 8px;font-family:monospace;font-size:11px;color:#888;">Surface</th>
+        <th style="text-align:left;padding:6px 8px;font-family:monospace;font-size:11px;color:#888;">What changes</th>
+        <th style="text-align:left;padding:6px 8px;font-family:monospace;font-size:11px;color:#888;">Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:8px;color:#fff;">Homepage hero</td><td style="padding:8px;">Headline, sub, accent color, primary CTA</td><td style="padding:8px;color:#888;">audience</td></tr>
+      <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:8px;color:#fff;">Made for you block</td><td style="padding:8px;">Top 3 events/resources/channels ranked by audience+intent+city</td><td style="padding:8px;color:#888;">all signals</td></tr>
+      <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:8px;color:#fff;">Discord/WhatsApp deep links</td><td style="padding:8px;">Specific channel invite (#devs, #non-tech, etc.) instead of generic</td><td style="padding:8px;color:#888;">audience</td></tr>
+      <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:8px;color:#fff;">/join form pre-fill</td><td style="padding:8px;">Audience field pre-selected, "experience" field defaulted</td><td style="padding:8px;color:#888;">audience, experience</td></tr>
+      <tr><td style="padding:8px;color:#fff;">Email greeting (if shared)</td><td style="padding:8px;">Subject + opening line in welcome email</td><td style="padding:8px;color:#888;">name, audience</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Anti-patterns -->
+<div class="section" style="margin-top:16px;padding:16px;background:rgba(255,51,51,0.06);border-left:3px solid #ff3333;">
+  <span class="label">What we DON'T personalize (anti-patterns)</span>
+  <ul style="margin-top:6px;color:#ccc;font-size:13px;line-height:1.7;">
+    <li><strong style="color:#fff;">Navigation</strong> — never hide nav items by audience. Discoverability &gt; personalization.</li>
+    <li><strong style="color:#fff;">Search results</strong> — show all matches, not filtered by audience.</li>
+    <li><strong style="color:#fff;">Detail pages</strong> (event, blog, project) — same content for everyone. Only the recommendation block on top adapts.</li>
+    <li><strong style="color:#fff;">Sign-up forms</strong> — never block based on audience. A "wrong-audience" user must still be able to apply.</li>
+    <li><strong style="color:#fff;">Pricing/access</strong> — N/A here, but as a principle: never gate by audience.</li>
+  </ul>
+</div>
+
+<!-- Recommendation engine -->
+<div class="section" style="margin-top:16px;padding:16px;background:rgba(0,212,255,0.06);border-left:3px solid #00d4ff;">
+  <span class="label">Recommendation engine — simple ranking, no ML</span>
+  <p style="margin-top:6px;color:#ccc;font-size:13px;line-height:1.6;">
+    <code>src/lib/recommendations.ts</code> — pure function, no external deps. Each event/resource has <code>audiences: Audience[]</code> and optional <code>intents: Intent[]</code> tags (manual, set in admin). Score:
+  </p>
+  <pre style="margin-top:8px;background:#0a0a0a;border:1px solid #222;padding:10px;border-radius:4px;font-size:12px;color:#ccc;overflow-x:auto;">score =
+  (audience match)         * 5 +
+  (intent match)           * 3 +
+  (city match)             * 2 +
+  (experience appropriate) * 2 +
+  (recency, weeks until)   * (1 / weeks_away) +
+  (featured flag)          * 1</pre>
+  <p style="color:#aaa;font-size:12px;margin-top:8px;">Top 3 by score. Cached per-audience for 5 minutes. Falls back to "featured" if no items match.</p>
+</div>

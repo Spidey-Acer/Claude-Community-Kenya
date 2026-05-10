@@ -1,0 +1,74 @@
+<h2>How "deep" does each persona go?</h2>
+<p class="subtitle">Same audience count (5), very different scope. Pick the depth.</p>
+
+<div class="cards">
+  <div class="card" data-choice="light" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); padding: 0; overflow: hidden;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:2px;padding:8px;background:#000;">
+        <div style="aspect-ratio:1;background:#00ff41;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;color:#000;font-weight:bold;">DEV</div>
+        <div style="aspect-ratio:1;background:#ffb000;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;color:#000;font-weight:bold;">PRO</div>
+        <div style="aspect-ratio:1;background:#00d4ff;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;color:#000;font-weight:bold;">STUDENT</div>
+        <div style="aspect-ratio:1;background:#ff3366;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:9px;color:#fff;font-weight:bold;">FOUNDER</div>
+        <div style="aspect-ratio:1;background:#a855f7;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:9px;color:#fff;font-weight:bold;">CREATOR</div>
+      </div>
+      <div style="padding:14px;color:#aaa;font-size:13px;line-height:1.5;">
+        <strong style="color:#fff;">Same skeleton, 5 accents</strong><br>
+        Each persona = unique entry splash + accent color + hero copy + featured content lane. Inside pages share one polished design language. CCK has ONE identity, 5 friendly doors.
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Light: 5 doors, 1 house</h3>
+      <p><strong>Cost:</strong> ~1.5x current persona work. <strong>Risk:</strong> low. Brand stays coherent. Easy to add a 6th audience later.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="deep" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#000; padding: 0; overflow: hidden;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0;">
+        <div style="aspect-ratio:1;background:#0a0a0a;border-right:1px solid #00ff41;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:9px;color:#00ff41;">$&gt;_<br>terminal</div>
+        <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a0f00,#332200);display:flex;align-items:center;justify-content:center;font-family:serif;font-size:9px;color:#ffb000;font-style:italic;">glass<br>polish</div>
+        <div style="aspect-ratio:1;background:linear-gradient(135deg,#001a2e,#003355);display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:9px;color:#00d4ff;">campus<br>vibrant</div>
+        <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a0511,#330a22);display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:9px;color:#ff3366;font-weight:bold;">bold<br>editorial</div>
+        <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a0533,#33126a);display:flex;align-items:center;justify-content:center;font-family:cursive;font-size:9px;color:#a855f7;">artful<br>magazine</div>
+      </div>
+      <div style="padding:14px;color:#aaa;font-size:13px;line-height:1.5;">
+        <strong style="color:#fff;">5 visual worlds</strong><br>
+        Each persona = full re-skin: own typography, motion, layout language. Like Dev (terminal) vs Pro (glass) but times 5. Most immersive, most expensive, biggest fragmentation risk.
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Deep: 5 worlds</h3>
+      <p><strong>Cost:</strong> ~5x current persona work + ongoing 5x maintenance for every new feature. <strong>Risk:</strong> brand fragmentation, slow shipping, design drift.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hybrid" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a; padding: 0; overflow: hidden;">
+      <div style="padding:14px;font-family:monospace;font-size:11px;color:#00ff41;line-height:1.7;">
+        <span style="color:#666;">// ENTRY EXPERIENCE</span><br>
+        <span style="color:#fff;">5 unique splash screens</span><br>
+        <span style="color:#666;">// HOMEPAGE HERO</span><br>
+        <span style="color:#fff;">5 unique hero sections</span><br>
+        <span style="color:#666;">// CONTENT LANES</span><br>
+        <span style="color:#fff;">5 personalized feeds</span><br>
+        <span style="color:#666;">// VISUAL SKIN</span><br>
+        <span style="color:#ffb000;">2 modes (Dev/Pro) — choose any</span><br>
+        <span style="color:#666;">// INSIDE PAGES</span><br>
+        <span style="color:#fff;">shared design language</span>
+      </div>
+      <div style="padding:0 14px 14px;color:#aaa;font-size:13px;line-height:1.5;">
+        <strong style="color:#fff;">Audience layer ≠ Skin layer</strong><br>
+        Audience drives content & entry experience. Skin (Dev/Pro) is independent — any persona can pick either mood. Two orthogonal axes.
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Hybrid: deep entry, shared core</h3>
+      <p><strong>Cost:</strong> ~2.5x current. <strong>Risk:</strong> medium. Each audience gets a tailored welcome + personalized content, but core site stays unified. Skin (Dev/Pro) becomes a separate "vibe" toggle.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:32px;padding:16px;background:rgba(255,255,255,0.04);border-left:3px solid #ffb000;">
+  <span class="label">My recommendation</span>
+  <p>The <strong>Hybrid</strong> approach. You get the "feels made for me" magic of Deep without the 5x maintenance tax. The trick: separate <em>who you are</em> (audience → content) from <em>how you like things to look</em> (skin → aesthetic). A founder might love the terminal aesthetic; a developer might prefer polished. Don't conflate them.</p>
+</div>

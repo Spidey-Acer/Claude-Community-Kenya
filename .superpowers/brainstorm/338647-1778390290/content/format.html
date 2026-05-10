@@ -1,0 +1,106 @@
+<h2>What shape should the onboarding take?</h2>
+<p class="subtitle">Same goal, very different feel. Pick one or mix.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="ai-conversation" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:0;overflow:hidden;">
+      <div style="padding:20px 16px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;">
+        <div style="color:#666;margin-bottom:8px;">[claude.cck]</div>
+        <div style="color:#00ff41;">&gt; Karibu! I'm Claude. Welcome to CCK.</div>
+        <div style="color:#00ff41;margin-top:6px;">&gt; What brings you here today?</div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="border:1px solid #00ff41;color:#00ff41;padding:3px 7px;font-size:9px;border-radius:2px;">I'm a developer</span>
+          <span style="border:1px solid #444;color:#aaa;padding:3px 7px;font-size:9px;border-radius:2px;">I'm a student</span>
+          <span style="border:1px solid #444;color:#aaa;padding:3px 7px;font-size:9px;border-radius:2px;">I'm a founder</span>
+        </div>
+        <div style="color:#fff;margin-top:14px;border-left:2px solid #ffb000;padding-left:8px;">
+          <span style="color:#ffb000;font-size:9px;">USER ↳</span><br>
+          I'm a marketing manager exploring AI
+        </div>
+        <div style="color:#00ff41;margin-top:10px;">&gt; Got it. Here are 3 things in CCK<br>&nbsp;&nbsp;made for non-technical pros...</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>🤖 AI-guided conversation</h3>
+      <p><strong>"Karibu! I'm Claude."</strong> Literally Claude greets every visitor with a short chat. Free-text answers OR chip selections. Maximum on-brand for a Claude community. Memorable, shareable.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="cinematic" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#000 0%,#0a0a1f 50%,#1a0a33 100%);padding:0;overflow:hidden;position:relative;">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%, rgba(0,255,65,0.15) 0%, transparent 60%);"></div>
+      <div style="position:relative;padding:30px 16px;text-align:center;">
+        <div style="font-family:monospace;font-size:9px;color:#666;margin-bottom:10px;letter-spacing:2px;">SCENE 01 / 04</div>
+        <div style="font-family:'Times New Roman',serif;font-size:18px;color:#fff;font-weight:300;line-height:1.4;">Africa's only<br><span style="color:#00ff41;">Claude developer</span><br>community</div>
+        <div style="font-family:monospace;font-size:9px;color:#888;margin-top:14px;">↓ scroll to begin</div>
+        <div style="margin-top:14px;display:flex;justify-content:center;gap:4px;">
+          <span style="width:24px;height:2px;background:#00ff41;"></span>
+          <span style="width:24px;height:2px;background:#444;"></span>
+          <span style="width:24px;height:2px;background:#444;"></span>
+          <span style="width:24px;height:2px;background:#444;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>🎬 Cinematic scroll-story</h3>
+      <p><strong>4-5 full-screen scenes</strong> that scroll into view: Africa+AI hook → Why CCK → Who it's for (audience pick) → Discord/WhatsApp CTA. Apple-style storytelling. High visual impact.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="card-wizard" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#111;padding:0;overflow:hidden;">
+      <div style="padding:18px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-family:monospace;font-size:9px;color:#888;">STEP 2 OF 4</div>
+          <div style="font-family:monospace;font-size:9px;color:#00ff41;">▓▓░░ 50%</div>
+        </div>
+        <div style="font-family:sans-serif;font-size:14px;color:#fff;font-weight:600;margin-bottom:12px;">Which best describes you?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="border:1px solid #00ff41;background:rgba(0,255,65,0.08);padding:10px 8px;border-radius:4px;font-size:10px;color:#00ff41;text-align:center;">👨‍💻<br>Developer</div>
+          <div style="border:1px solid #333;padding:10px 8px;border-radius:4px;font-size:10px;color:#888;text-align:center;">💼<br>Pro</div>
+          <div style="border:1px solid #333;padding:10px 8px;border-radius:4px;font-size:10px;color:#888;text-align:center;">🎓<br>Student</div>
+          <div style="border:1px solid #333;padding:10px 8px;border-radius:4px;font-size:10px;color:#888;text-align:center;">🚀<br>Founder</div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;font-family:monospace;font-size:10px;">
+          <span style="color:#666;">← back</span>
+          <span style="color:#00ff41;">next →</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>🃏 Card wizard (Linear/Notion style)</h3>
+      <p><strong>3-4 quick steps:</strong> Welcome → Who are you → What do you want → Join community. Familiar pattern. Fast to skip. Lower wow-factor but very effective at funneling.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ambient" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:0;overflow:hidden;">
+      <div style="padding:18px 16px;">
+        <div style="font-family:monospace;font-size:10px;color:#00ff41;margin-bottom:6px;">$ whoami</div>
+        <div style="font-family:sans-serif;font-size:18px;color:#fff;font-weight:600;line-height:1.3;">Claude Community<br>Kenya</div>
+        <div style="margin-top:12px;font-family:sans-serif;font-size:11px;color:#aaa;">I'm a
+          <span style="border-bottom:2px dashed #00ff41;color:#00ff41;cursor:pointer;">developer</span>
+          <span style="color:#666;font-size:9px;">[change]</span>
+        </div>
+        <div style="margin-top:12px;font-family:sans-serif;font-size:10px;color:#666;font-style:italic;">↓ Page below adapts to your role</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">
+          <div style="height:6px;background:rgba(0,255,65,0.3);border-radius:1px;width:80%;"></div>
+          <div style="height:6px;background:rgba(0,255,65,0.2);border-radius:1px;width:65%;"></div>
+          <div style="height:6px;background:rgba(0,255,65,0.15);border-radius:1px;width:75%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>👻 Ambient (no modal)</h3>
+      <p><strong>Zero friction.</strong> No splash. Hero says "I'm a [developer]" with the role as an inline chip — click to change. Page below silently adapts. Nothing blocks the user. Lowest commitment, lowest signal.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:32px;padding:16px;background:rgba(0,255,65,0.06);border-left:3px solid #00ff41;">
+  <span class="label">My recommendation</span>
+  <p>Lead with the <strong>AI-guided conversation</strong> as the headline experience — there's no other community on earth with as strong a reason to do this (you're literally a Claude community, so Claude greeting you is meta-perfect). Then borrow from <strong>Ambient</strong> for returning visitors — never block someone twice. The chat collects audience + intent in 2-3 messages, sets persona, and routes them to Discord with a personalized invite.</p>
+  <p style="margin-top:8px;color:#aaa;font-size:13px;">⚠️ Tradeoff: AI conversation needs an LLM API call (cheap with Haiku 4.5 — ~$0.001/visitor) and careful prompt design to stay <strong>fast</strong>. We'd cache common flows and stream responses. Or do it 100% client-side with pre-scripted branches if cost matters.</p>
+</div>

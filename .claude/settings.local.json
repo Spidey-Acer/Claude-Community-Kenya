@@ -12,7 +12,8 @@
       "Bash(gh pr:*)",
       "Bash(bash ~/.claude/hooks/pre-push-typecheck.sh)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(source .env.local)"
+      "Bash(source .env.local)",
+      "Bash(echo \"DONE: $?\")"
     ]
   }
 }
