@@ -1,7 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { ensureVisitorId, setAudienceCookie } from "@/lib/karibu/cookies";
+import { AUDIENCES, EXPERIENCES } from "@/lib/karibu/types";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+
+const scriptedSchema = z.object({
+  scripted: z.object({
+    audience: z.enum(AUDIENCES),
+    experience: z.enum(EXPERIENCES),
+  }),
+});
 
 export const runtime = "nodejs";
 
@@ -20,9 +29,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: limit.headers });
   }
 
-  let body: { honey?: string } = {};
+  let body: Record<string, unknown> = {};
   try {
-    body = (await req.json()) as { honey?: string };
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
     /* empty body is fine */
   }
@@ -31,6 +40,21 @@ export async function POST(req: NextRequest) {
   }
 
   const visitorId = await ensureVisitorId();
+
+  // L3 scripted fallback path — wizard completed when live API was unavailable
+  const parsedScripted = scriptedSchema.safeParse(body);
+  if (parsedScripted.success) {
+    const { audience, experience } = parsedScripted.data.scripted;
+    await prisma.onboardingSession.upsert({
+      where: { cookieId: visitorId },
+      update: { audience, experience, skipped: false, completedAt: new Date() },
+      create: { cookieId: visitorId, audience, experience, skipped: false, completedAt: new Date() },
+    });
+    await setAudienceCookie(audience);
+    return NextResponse.json({ ok: true, mode: "scripted" });
+  }
+
+  // Standard skip path — visitor declined onboarding
   await prisma.onboardingSession.upsert({
     where: { cookieId: visitorId },
     update: { skipped: true, audience: null, completedAt: new Date() },

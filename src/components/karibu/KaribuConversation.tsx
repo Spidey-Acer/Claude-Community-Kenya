@@ -7,6 +7,7 @@ import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { KaribuChips } from "./KaribuChips";
+import { KaribuFallbackWizard } from "./KaribuFallbackWizard";
 
 interface ChipSet {
   forMessageIndex: number;
@@ -57,6 +58,7 @@ export function KaribuConversation({ onComplete }: { onComplete: () => void }) {
     },
   });
 
+  const errored = status === "error";
   const isStreaming = status === "submitted" || status === "streaming";
 
   // Count assistant messages to determine chip set
@@ -84,6 +86,10 @@ export function KaribuConversation({ onComplete }: { onComplete: () => void }) {
     if (isStreaming) return;
     sendMessage({ text: value });
   };
+
+  if (errored) {
+    return <KaribuFallbackWizard onComplete={onComplete} />;
+  }
 
   return (
     <div
