@@ -121,7 +121,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       <MadeForYou audienceState={audienceState} items={recommendables} />
 
       {/* ─── Stats Bar ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Community stats">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:py-12 lg:py-16" aria-label="Community stats">
         {isPro ? (
           <StatsBarPro stats={communityStats} />
         ) : (
@@ -131,7 +131,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
 
       {/* ─── Next Event Highlight ─── */}
       {upcomingEvents.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pb-12" aria-label="Next event">
+        <section className="mx-auto max-w-6xl px-4 pb-8 md:pb-12" aria-label="Next event">
           {isPro ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -191,7 +191,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       )}
 
       {/* ─── Featured Events ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Upcoming events">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Upcoming events">
         <ScrollReveal>
           <PersonaHeading page="home" section="events" />
           <PersonaText page="home" section="events" field="subtitle" className={isPro ? "mb-10 text-[#b0aea5]" : "mb-10 font-sans text-text-secondary"} />
@@ -269,7 +269,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </PersonaSection>
 
       {/* ─── Find Your Community (audience segmentation) ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Find your community">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Find your community">
         <ScrollReveal>
           <h2 className={isPro
             ? "mb-2 text-center text-3xl font-semibold text-[#faf9f5] sm:text-4xl"
@@ -357,7 +357,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </section>
 
       {/* ─── Testimonials ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Community voices">
         <ScrollReveal>
           <PersonaHeading page="home" section="testimonials" className={isPro ? "mb-2 text-center text-xl font-semibold text-[#faf9f5]" : "mb-2 text-center font-mono text-xl text-green-primary"} />
           <PersonaText page="home" section="testimonials" field="subtitle" className={isPro ? "mx-auto mb-10 max-w-lg text-center text-[#b0aea5]" : "mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary"} />
@@ -368,7 +368,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </section>
 
       {/* ─── Community Showcase ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-24" aria-label="Community projects">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-24" aria-label="Community projects">
         <ScrollReveal>
           <PersonaHeading page="home" section="projects" />
           <PersonaText page="home" section="projects" field="subtitle" className={isPro ? "mb-12 text-[#b0aea5]" : "mb-12 font-sans text-text-secondary"} />
@@ -477,7 +477,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </PersonaSection>
 
       {/* ─── Supported By ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Supported by">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:py-12 lg:py-16" aria-label="Supported by">
         <ScrollReveal>
           <p className={isPro ? "mb-10 text-center text-xs font-medium uppercase tracking-widest text-[#7a7870]" : "mb-10 text-center font-mono text-xs uppercase tracking-widest text-text-dim"}>
             Supported by

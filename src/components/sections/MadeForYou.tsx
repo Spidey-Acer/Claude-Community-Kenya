@@ -31,14 +31,14 @@ export function MadeForYou({ audienceState, items }: Props) {
   if (ranked.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-4 py-12">
+    <section className="container mx-auto px-4 py-8 md:py-12">
       <div className="flex justify-between items-end mb-4">
         <div>
           <span className="font-mono text-xs text-amber tracking-wider">MADE FOR YOU</span>
           <h2 className="font-sans text-2xl text-text-primary mt-1">3 things to start with</h2>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {ranked.map((item) => {
           const style = TYPE_STYLES[item.type];
           const href =
@@ -51,10 +51,10 @@ export function MadeForYou({ audienceState, items }: Props) {
             <Link
               key={item.id}
               href={href}
-              className={`block bg-white/[0.03] border border-border-default border-l-2 ${style.border} p-3 rounded transition-colors hover:bg-white/[0.06]`}
+              className={`block bg-white/[0.03] border border-border-default border-l-2 ${style.border} p-4 rounded transition-colors hover:bg-white/[0.06]`}
             >
               <span className={`font-mono text-[9px] ${style.color}`}>{style.label}</span>
-              <div className="font-sans text-sm text-text-primary font-semibold mt-1 leading-tight">
+              <div className="font-sans text-base sm:text-sm md:text-base text-text-primary font-semibold mt-1 leading-tight line-clamp-2">
                 {item.title}
               </div>
               {item.date && (
