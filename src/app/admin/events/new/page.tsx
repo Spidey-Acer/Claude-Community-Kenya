@@ -5,9 +5,27 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Save, Loader2, Plus, X, Upload, Trash2 } from "lucide-react"
+import { AUDIENCES, INTENTS, type Audience, type Intent } from "@/lib/karibu/types"
 
 const EVENT_TYPES = ["MEETUP", "WORKSHOP", "CAREER_TALK", "HACKATHON", "CONFERENCE"] as const
 const EVENT_STATUSES = ["UPCOMING", "REGISTRATION_OPEN", "SOLD_OUT", "COMPLETED", "CANCELLED"] as const
+
+const AUDIENCE_LABELS: Record<Audience, string> = {
+  dev: "Developer",
+  non_tech_pro: "Non-tech professional",
+  student: "Student",
+  founder: "Founder",
+  creator: "Creator / Educator",
+}
+
+const INTENT_LABELS: Record<Intent, string> = {
+  learn_basics: "Learn basics",
+  find_event: "Find an event",
+  find_collaborators: "Find collaborators",
+  build: "Build something",
+  hire_or_partner: "Hire / partner",
+  other: "Other",
+}
 
 const TYPE_LABELS: Record<string, string> = {
   MEETUP: "Meetup",
@@ -50,6 +68,8 @@ export default function NewEventPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [agenda, setAgenda] = useState<string[]>([])
   const [highlights, setHighlights] = useState<string[]>([])
+  const [audiences, setAudiences] = useState<Audience[]>([])
+  const [intents, setIntents] = useState<Intent[]>([])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -79,6 +99,8 @@ export default function NewEventPage() {
           posterUrl: posterUrl || undefined,
           agenda: agenda.filter(Boolean),
           highlights: highlights.filter(Boolean),
+          audiences,
+          intents,
         }
 
         if (attendeeCount) {
@@ -200,6 +222,47 @@ export default function NewEventPage() {
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Highlights</h2>
             <DynamicList items={highlights} onChange={setHighlights} placeholder="e.g. Live coding demo" />
+          </div>
+
+          {/* Audiences & Intents */}
+          <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
+            <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Personalization Tags</h2>
+            <fieldset className="space-y-2">
+              <legend className="font-mono text-xs text-[#555]">Audiences</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {AUDIENCES.map((a) => (
+                  <label key={a} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={audiences.includes(a)}
+                      onChange={(e) =>
+                        setAudiences(e.target.checked ? [...audiences, a] : audiences.filter((x) => x !== a))
+                      }
+                      className="accent-[#00ff41]"
+                    />
+                    {AUDIENCE_LABELS[a]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="space-y-2">
+              <legend className="font-mono text-xs text-[#555]">Intents</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {INTENTS.map((i) => (
+                  <label key={i} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={intents.includes(i)}
+                      onChange={(e) =>
+                        setIntents(e.target.checked ? [...intents, i] : intents.filter((x) => x !== i))
+                      }
+                      className="accent-[#00ff41]"
+                    />
+                    {INTENT_LABELS[i]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
 
           {/* Submit */}
