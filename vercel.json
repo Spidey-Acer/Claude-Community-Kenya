@@ -1,3 +1,6 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    { "path": "/api/cron/purge-conversations", "schedule": "0 3 * * *" }
+  ]
 }
