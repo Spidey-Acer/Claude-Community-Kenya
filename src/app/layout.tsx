@@ -3,6 +3,10 @@ import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { WebVitals } from "@/components/WebVitals";
+import { isKaribuEnabled, isKaribuCanaryHit } from "@/lib/karibu/feature-flag";
+import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
+import { type AudienceState } from "@/contexts/AudienceContext";
+import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -128,11 +132,49 @@ const jsonLd = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const visitorId = await ensureVisitorId();
+  const audienceCookie = await getAudienceCookie();
+  const showKaribu =
+    isKaribuEnabled() && audienceCookie === null && isKaribuCanaryHit(visitorId);
+
+  let audienceState: AudienceState = {
+    audience: null,
+    intent: null,
+    experience: null,
+    name: null,
+    city: null,
+    language: null,
+  };
+
+  if (audienceCookie && audienceCookie !== "skipped") {
+    const session = await prisma.onboardingSession.findUnique({
+      where: { cookieId: visitorId },
+      select: {
+        audience: true,
+        intent: true,
+        experience: true,
+        name: true,
+        city: true,
+        language: true,
+      },
+    });
+    if (session) {
+      audienceState = {
+        audience: session.audience,
+        intent: session.intent,
+        experience: session.experience,
+        name: session.name,
+        city: session.city,
+        language: session.language,
+      };
+    }
+  }
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -146,7 +188,9 @@ export default function RootLayout({
       >
         <GoogleAnalytics />
         <WebVitals />
-        <ConditionalLayout>{children}</ConditionalLayout>
+        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu}>
+          {children}
+        </ConditionalLayout>
       </body>
     </html>
   );
