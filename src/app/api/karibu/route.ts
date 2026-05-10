@@ -7,7 +7,7 @@
  * is set. Gated by KARIBU_ENABLED feature flag. Rate-limited to 5 req/hr/IP.
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { streamText, tool } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
@@ -79,85 +79,102 @@ function jsonError(message: string, status: number, headers?: Record<string, str
  * the onboarding session row and sets the cck-audience cookie when called.
  */
 export async function POST(req: NextRequest) {
-  if (!isKaribuEnabled()) {
-    return jsonError("karibu_disabled", 503);
-  }
-
-  if (!isOriginAllowed(req)) {
-    return jsonError("Forbidden — cross-origin requests are not allowed.", 403);
-  }
-
-  const rateLimitResult = await rateLimit(req, KARIBU_RATE_LIMIT);
-  if (!rateLimitResult.success) {
-    return jsonError(
-      "Too many requests. Please try again later.",
-      429,
-      rateLimitResult.headers,
-    );
-  }
-
-  const body = await req.json().catch(() => null);
-  if (!body) {
-    return jsonError("Invalid JSON body.", 400);
-  }
-
-  const parsed = RequestSchema.safeParse(body);
-  if (!parsed.success) {
-    const firstError = parsed.error.issues[0]?.message ?? "Invalid request.";
-    return jsonError(firstError, 400);
-  }
-
-  // Per-message size cap to prevent prompt injection via long messages
-  for (const m of parsed.data.messages) {
-    const text = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
-    if (text.length > MAX_MESSAGE_CHARS) {
-      return jsonError("Message too long.", 400);
+  try {
+    if (!isKaribuEnabled()) {
+      return jsonError("karibu_disabled", 503);
     }
+
+    if (!isOriginAllowed(req)) {
+      return jsonError("Forbidden — cross-origin requests are not allowed.", 403);
+    }
+
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+    const rateLimitResult = await rateLimit(req, KARIBU_RATE_LIMIT);
+    if (!rateLimitResult.success) {
+      console.log(JSON.stringify({ kind: "karibu", event: "rate_limited", ip, ts: Date.now() }));
+      return jsonError(
+        "Too many requests. Please try again later.",
+        429,
+        rateLimitResult.headers,
+      );
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return jsonError("Invalid JSON body.", 400);
+    }
+
+    const parsed = RequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? "Invalid request.";
+      return jsonError(firstError, 400);
+    }
+
+    // Per-message size cap to prevent prompt injection via long messages
+    for (const m of parsed.data.messages) {
+      const text = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
+      if (text.length > MAX_MESSAGE_CHARS) {
+        return jsonError("Message too long.", 400);
+      }
+    }
+
+    const visitorId = await ensureVisitorId();
+    const systemPrompt = await buildKaribuPrompt();
+
+    const result = streamText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      system: systemPrompt,
+      messages: parsed.data.messages as never,
+      maxOutputTokens: 1500,
+      tools: {
+        record_visitor: tool({
+          description: RECORD_VISITOR_TOOL_DESCRIPTION,
+          inputSchema: recordVisitorSchema,
+          async execute(args) {
+            await prisma.onboardingSession.upsert({
+              where: { cookieId: visitorId },
+              update: {
+                audience: args.audience,
+                intent: args.intent ?? null,
+                experience: args.experience ?? null,
+                name: args.name ?? null,
+                city: args.city ?? null,
+                language: args.language ?? null,
+                completedAt: new Date(),
+                skipped: false,
+              },
+              create: {
+                cookieId: visitorId,
+                audience: args.audience,
+                intent: args.intent ?? null,
+                experience: args.experience ?? null,
+                name: args.name ?? null,
+                city: args.city ?? null,
+                language: args.language ?? null,
+                completedAt: new Date(),
+                skipped: false,
+              },
+            });
+            await setAudienceCookie(args.audience);
+            console.log(JSON.stringify({
+              kind: "karibu",
+              event: "completed",
+              visitorId,
+              audience: args.audience,
+              intent: args.intent ?? null,
+              experience: args.experience ?? null,
+              ts: Date.now(),
+            }));
+            return { ok: true };
+          },
+        }),
+      },
+    });
+
+    return result.toUIMessageStreamResponse({ headers: rateLimitResult.headers });
+  } catch (error) {
+    console.error(JSON.stringify({ kind: "karibu", event: "error", message: String(error), ts: Date.now() }));
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
-
-  const visitorId = await ensureVisitorId();
-  const systemPrompt = await buildKaribuPrompt();
-
-  const result = streamText({
-    model: anthropic("claude-haiku-4-5-20251001"),
-    system: systemPrompt,
-    messages: parsed.data.messages as never,
-    maxOutputTokens: 1500,
-    tools: {
-      record_visitor: tool({
-        description: RECORD_VISITOR_TOOL_DESCRIPTION,
-        inputSchema: recordVisitorSchema,
-        async execute(args) {
-          await prisma.onboardingSession.upsert({
-            where: { cookieId: visitorId },
-            update: {
-              audience: args.audience,
-              intent: args.intent ?? null,
-              experience: args.experience ?? null,
-              name: args.name ?? null,
-              city: args.city ?? null,
-              language: args.language ?? null,
-              completedAt: new Date(),
-              skipped: false,
-            },
-            create: {
-              cookieId: visitorId,
-              audience: args.audience,
-              intent: args.intent ?? null,
-              experience: args.experience ?? null,
-              name: args.name ?? null,
-              city: args.city ?? null,
-              language: args.language ?? null,
-              completedAt: new Date(),
-              skipped: false,
-            },
-          });
-          await setAudienceCookie(args.audience);
-          return { ok: true };
-        },
-      }),
-    },
-  });
-
-  return result.toUIMessageStreamResponse({ headers: rateLimitResult.headers });
 }
