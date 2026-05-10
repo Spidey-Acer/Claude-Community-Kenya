@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { streamText, tool } from "ai";
+import { streamText, tool, convertToModelMessages } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { recordVisitorSchema, RECORD_VISITOR_TOOL_DESCRIPTION } from "@/lib/karibu/tool-schema";
@@ -28,10 +28,15 @@ const KARIBU_RATE_LIMIT = { maxRequests: 5, windowInSeconds: 3600 };
 const MAX_MESSAGES = 8;
 const MAX_MESSAGE_CHARS = 300;
 
-const MessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
-  content: z.union([z.string(), z.array(z.any())]),
-});
+// Schema validates security constraints only — passthrough preserves the
+// full UIMessage shape (parts, id, etc.) that ai-sdk v6 sends from the client.
+const MessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string().max(MAX_MESSAGE_CHARS).optional(),
+    parts: z.array(z.any()).optional(),
+  })
+  .passthrough();
 
 const RequestSchema = z.object({
   messages: z.array(MessageSchema).max(MAX_MESSAGES, "Conversation too long."),
@@ -111,9 +116,12 @@ export async function POST(req: NextRequest) {
       return jsonError(firstError, 400);
     }
 
-    // Per-message size cap to prevent prompt injection via long messages
+    // Per-message size cap — checks both UIMessage parts and legacy content
     for (const m of parsed.data.messages) {
-      const text = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
+      const partsText = Array.isArray(m.parts)
+        ? m.parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("")
+        : "";
+      const text = (typeof m.content === "string" ? m.content : "") + partsText;
       if (text.length > MAX_MESSAGE_CHARS) {
         return jsonError("Message too long.", 400);
       }
@@ -125,7 +133,7 @@ export async function POST(req: NextRequest) {
     const result = streamText({
       model: anthropic("claude-haiku-4-5-20251001"),
       system: systemPrompt,
-      messages: parsed.data.messages as never,
+      messages: await convertToModelMessages(body.messages),
       maxOutputTokens: 1500,
       tools: {
         record_visitor: tool({
