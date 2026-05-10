@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback, type KeyboardEvent } from "react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { Send } from "lucide-react";
 
@@ -13,9 +13,9 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isDev = persona === "dev";
+  const isDev = skin === "dev";
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {

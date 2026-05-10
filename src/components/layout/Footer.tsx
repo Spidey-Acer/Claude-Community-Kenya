@@ -3,11 +3,11 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT, SOCIAL_LINKS } from "@/lib/constants";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 export function Footer() {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
   const [exitHovered, setExitHovered] = useState(false);
   const [email, setEmail] = useState("");
   const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "success" | "error">("idle");

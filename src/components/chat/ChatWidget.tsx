@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "./ChatPanel";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,9 +38,9 @@ function ProCloseButton({ onClick }: { onClick: () => void }) {
 }
 
 export function ChatWidget() {
-  const { persona, isLoaded } = usePersona();
+  const { skin, isLoaded } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
-  const isDev = persona === "dev";
+  const isDev = skin === "dev";
 
   // Restore open state from localStorage
   useEffect(() => {

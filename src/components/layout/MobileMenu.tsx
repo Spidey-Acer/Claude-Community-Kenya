@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { PersonaToggle } from "@/components/persona/PersonaToggle";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -18,9 +18,9 @@ interface MobileMenuProps {
 const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const { status } = useSession();
-  const isPro = persona === "pro";
+  const isPro = skin === "pro";
   const isAuthed = status === "authenticated";
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);

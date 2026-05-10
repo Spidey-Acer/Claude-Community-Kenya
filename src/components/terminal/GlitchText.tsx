@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface GlitchTextProps {
   children: React.ReactNode;
@@ -35,7 +35,7 @@ export function GlitchText({
   trigger = "hover",
   className,
 }: GlitchTextProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const [isActive, setIsActive] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -43,7 +43,7 @@ export function GlitchText({
   const config = intensityConfig[intensity];
 
   // Pro mode: no glitch effects
-  if (persona === "pro") {
+  if (skin === "pro") {
     return <div className={cn("relative inline-block", className)}>{children}</div>;
   }
 

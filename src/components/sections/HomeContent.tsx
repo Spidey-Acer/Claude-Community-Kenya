@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown, Sparkles, Cpu } from "lucide-react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import type { Event } from "@/lib/types";
 import type { ProjectView } from "@/lib/data";
 import { HeroTerminal } from "@/components/sections/HeroTerminal";
@@ -106,8 +106,8 @@ const joinPathways = [
 ];
 
 export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects }: HomeContentProps) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   return (
     <div>

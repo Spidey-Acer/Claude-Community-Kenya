@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { PersonaProvider, usePersona } from "@/contexts/PersonaContext";
+import { SkinProvider, useSkin } from "@/contexts/SkinContext";
 import { PersonaSelectorModal } from "@/components/persona/PersonaSelectorModal";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
@@ -25,7 +25,7 @@ export function ConditionalLayout({
 
   return (
     <SessionProvider>
-      <PersonaProvider>
+      <SkinProvider>
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>
@@ -38,13 +38,13 @@ export function ConditionalLayout({
         <EasterEggs />
         <ChatWidget />
         <PersonaGate />
-      </PersonaProvider>
+      </SkinProvider>
     </SessionProvider>
   );
 }
 
 function PersonaGate() {
-  const { persona, setPersona, isLoaded } = usePersona();
-  if (!isLoaded || persona !== null) return null;
-  return <PersonaSelectorModal onSelect={setPersona} />;
+  const { skin, setSkin, isLoaded } = useSkin();
+  if (!isLoaded || skin !== null) return null;
+  return <PersonaSelectorModal onSelect={setSkin} />;
 }

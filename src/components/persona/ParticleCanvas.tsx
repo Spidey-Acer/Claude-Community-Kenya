@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Persona } from "@/contexts/PersonaContext";
+import type { Skin } from "@/contexts/SkinContext";
 
 interface Particle {
   x: number;
@@ -15,7 +15,7 @@ interface Particle {
 }
 
 interface ParticleCanvasProps {
-  selected: Persona;
+  selected: Skin;
   onComplete: () => void;
 }
 

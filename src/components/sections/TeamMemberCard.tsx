@@ -4,7 +4,7 @@ import type { TeamMemberView } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Linkedin, Github, Twitter, Globe } from "lucide-react";
 import Image from "next/image";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface TeamMemberCardProps {
   member: TeamMemberView;
@@ -20,8 +20,8 @@ function getInitials(name: string): string {
 }
 
 export function TeamMemberCard({ member }: TeamMemberCardProps) {
-  const { persona } = usePersona()
-  const isPro = persona === "pro"
+  const { skin } = useSkin()
+  const isPro = skin === "pro"
   const hasSocials = member.linkedIn || member.github || member.twitter || member.website;
 
   if (isPro) {

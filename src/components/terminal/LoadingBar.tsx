@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 export function LoadingBar() {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -58,7 +58,7 @@ export function LoadingBar() {
 
   if (!visible) return null;
 
-  const isPro = persona === "pro";
+  const isPro = skin === "pro";
   const barWidth = Math.round(progress / 100 * 13);
   const filled = "█".repeat(barWidth);
   const empty = "░".repeat(13 - barWidth);

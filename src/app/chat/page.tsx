@@ -1,12 +1,12 @@
 "use client";
 
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 
 export default function ChatPage() {
-  const { persona } = usePersona();
-  const isDev = persona === "dev";
+  const { skin } = useSkin();
+  const isDev = skin === "dev";
 
   return (
     <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-3xl flex-col px-4 py-6">

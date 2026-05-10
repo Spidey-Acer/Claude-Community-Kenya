@@ -1,12 +1,12 @@
 "use client";
 
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { motion } from "framer-motion";
 
 export function TypingIndicator() {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
 
-  if (persona === "dev") {
+  if (skin === "dev") {
     return (
       <span className="inline-block font-mono text-green-primary text-sm animate-pulse">
         █

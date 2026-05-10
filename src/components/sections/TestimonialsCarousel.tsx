@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { usePersona } from "@/contexts/PersonaContext"
+import { useSkin } from "@/contexts/SkinContext"
 
 interface Testimonial {
   quote: string
@@ -37,8 +37,8 @@ const testimonials: Testimonial[] = [
 export function TestimonialsCarousel() {
   const [current, setCurrent] = useState(0)
   const prefersReducedMotion = useReducedMotion()
-  const { persona } = usePersona()
-  const isPro = persona === "pro"
+  const { skin } = useSkin()
+  const isPro = skin === "pro"
 
   const next = useCallback(() => {
     setCurrent((prev) => (prev + 1) % testimonials.length)

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { parseActions } from "@/lib/chat/action-parser";
 import { ActionButton } from "./ActionButton";
@@ -42,9 +42,9 @@ function renderInlineMarkdown(text: string): ReactNode[] {
 }
 
 export function ChatMessage({ message }: { message: UIMessage }) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const isUser = message.role === "user";
-  const isDev = persona === "dev";
+  const isDev = skin === "dev";
 
   // Extract text from parts
   const textContent = message.parts
