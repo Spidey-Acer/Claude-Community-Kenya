@@ -68,7 +68,7 @@ const whatWeDoItems = [
     description:
       "Active Discord server for daily discussions, code reviews, project collaboration, job sharing, and connecting with Claude developers.",
     proDescription:
-      "Join our Discord for daily discussions, collaboration, job sharing, and connecting with people using Claude across East Africa.",
+      "Join our Discord for daily discussions, collaboration, job sharing, and connecting with people using Claude across Africa.",
   },
 ];
 

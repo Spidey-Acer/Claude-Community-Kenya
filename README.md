@@ -1,6 +1,6 @@
 # Claude Community Kenya
 
-> East Africa's first Claude developer community — official community website.
+> Africa's first Claude developer community — official community website.
 
 **Live site:** [claudekenya.org](https://www.claudekenya.org)
 
@@ -12,7 +12,7 @@
 
 ## About
 
-Claude Community Kenya (CCK) is an Anthropic-supported developer community based in Nairobi, Kenya, with chapters expanding across East Africa. This repository is the source code for the community website — a hub for events, resources, projects, blog posts, and community submissions.
+Claude Community Kenya (CCK) is an Anthropic-supported developer community based in Nairobi, Kenya, with chapters expanding across Africa. This repository is the source code for the community website — a hub for events, resources, projects, blog posts, and community submissions.
 
 ## Tech Stack
 

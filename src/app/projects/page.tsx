@@ -11,14 +11,14 @@ import { PersonaText } from "@/components/persona/PersonaText";
 export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
   description:
-    "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in East Africa.",
+    "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in Africa.",
   alternates: {
     canonical: `${SITE_CONFIG.url}/projects`,
   },
   openGraph: {
     title: `Projects | ${SITE_CONFIG.name}`,
     description:
-      "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in East Africa.",
+      "Explore real projects built by Kenyan developers using Claude Code. See what's possible with AI-assisted development in Africa.",
     url: `${SITE_CONFIG.url}/projects`,
     siteName: SITE_CONFIG.name,
     type: "website",

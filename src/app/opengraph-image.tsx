@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Claude Community Kenya — East Africa's First Claude Developer Community";
+export const alt = "Claude Community Kenya — Africa's First Claude Developer Community";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -90,7 +90,7 @@ export default async function Image() {
               maxWidth: "800px",
             }}
           >
-            East Africa&apos;s first Claude developer community
+            Africa&apos;s first Claude developer community
           </p>
         </div>
 

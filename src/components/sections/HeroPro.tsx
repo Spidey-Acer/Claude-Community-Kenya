@@ -163,7 +163,7 @@ export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLa
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {subOverride ??
-            "East Africa’s vibrant AI community. Learn, create, and grow with Claude — from workshops and meetups to real-world projects."}
+            "Africa’s vibrant AI community. Learn, create, and grow with Claude — from workshops and meetups to real-world projects."}
         </motion.p>
 
         {/* CTAs */}

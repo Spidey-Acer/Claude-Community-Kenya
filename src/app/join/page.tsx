@@ -11,14 +11,14 @@ import { SITE_CONFIG, SOCIAL_LINKS, CONTACT } from "@/lib/constants";
 export const metadata: Metadata = {
   title: `Join | ${SITE_CONFIG.name}`,
   description:
-    "Join East Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
+    "Join Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
   alternates: {
     canonical: `${SITE_CONFIG.url}/join`,
   },
   openGraph: {
     title: `Join | ${SITE_CONFIG.name}`,
     description:
-      "Join East Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
+      "Join Africa's first Claude developer community. Attend meetups in Nairobi and Mombasa, learn Claude Code, and build with AI.",
     url: `${SITE_CONFIG.url}/join`,
     siteName: SITE_CONFIG.name,
     type: "website",
@@ -66,7 +66,7 @@ export default function JoinPage() {
                   </span>
                 </div>
                 <p className="font-mono text-sm text-text-secondary">
-                  EAST AFRICA&apos;S FIRST CLAUDE DEVELOPER COMMUNITY
+                  AFRICA&apos;S FIRST CLAUDE DEVELOPER COMMUNITY
                 </p>
               </div>
             </TerminalWindow>
