@@ -107,7 +107,7 @@ export function HeroTerminal({ stats, feed = [], headlineOverride, subOverride, 
       variant="command"
       title="claude-community-kenya@nairobi:~$"
       glowing
-      className="w-full max-w-2xl"
+      className="w-full max-w-2xl mx-auto"
     >
       <TypingAnimation
         text={heroLines}

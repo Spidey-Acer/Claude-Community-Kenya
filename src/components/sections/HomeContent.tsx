@@ -115,7 +115,9 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
   return (
     <div>
       {/* ─── Hero Section ─── */}
-      <PersonalizedHero stats={communityStats} feedItems={feedItems} />
+      <section className="mx-auto max-w-6xl px-4 pt-8 md:pt-12 lg:pt-16 pb-4" aria-label="Hero">
+        <PersonalizedHero stats={communityStats} feedItems={feedItems} />
+      </section>
 
       {/* ─── Personalised Recommendations ─── */}
       <MadeForYou audienceState={audienceState} items={recommendables} />

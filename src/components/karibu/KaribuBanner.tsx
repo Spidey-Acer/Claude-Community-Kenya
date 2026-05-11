@@ -36,7 +36,7 @@ export function KaribuBanner() {
 
   return (
     <div
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-2xl"
+      className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-2xl"
       role="status"
       aria-live="polite"
     >
