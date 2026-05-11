@@ -61,7 +61,7 @@ function buildHeroLines(
   subOverride?: string,
 ): string[] {
   const headline = headlineOverride ?? "Claude Community Kenya 🇰🇪";
-  const sub = subOverride ?? "Building East Africa's most vibrant\n  AI developer community";
+  const sub = subOverride ?? "Building Africa's most vibrant\n  AI developer community";
   const [subLine1, subLine2] = sub.includes("\n")
     ? sub.split("\n")
     : [sub, undefined];
@@ -107,7 +107,7 @@ export function HeroTerminal({ stats, feed = [], headlineOverride, subOverride, 
       variant="command"
       title="claude-community-kenya@nairobi:~$"
       glowing
-      className="w-full max-w-2xl mx-auto"
+      className="w-full max-w-3xl mx-auto"
     >
       <TypingAnimation
         text={heroLines}

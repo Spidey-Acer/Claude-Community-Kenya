@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { ChevronRight, Users } from "lucide-react"
+import { AUDIENCE_LABELS, isAudience } from "@/lib/karibu/types"
 
 export const dynamic = "force-dynamic"
 
@@ -64,7 +65,7 @@ export default async function ApplicationsPage() {
                         <span className="text-sm font-mono text-[#e0e0e0]">{app.name}</span>
                         {app.karibuAudience && (
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[#00ff41]/30 text-[#00ff41] bg-[#00ff41]/5 whitespace-nowrap">
-                            From Karibu · {app.karibuAudience}
+                            From Karibu · {isAudience(app.karibuAudience) ? AUDIENCE_LABELS[app.karibuAudience] : app.karibuAudience}
                           </span>
                         )}
                       </div>

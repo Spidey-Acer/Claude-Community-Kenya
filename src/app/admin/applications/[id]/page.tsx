@@ -6,25 +6,10 @@ import { ReviewForm } from "@/components/admin/ReviewForm"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { ArrowLeft, Mail, Github, ExternalLink } from "lucide-react"
+import { AUDIENCE_LABELS, INTENT_LABELS, isAudience } from "@/lib/karibu/types"
+import type { Intent } from "@/lib/karibu/types"
 
 export const dynamic = "force-dynamic"
-
-const AUDIENCE_LABELS: Record<string, string> = {
-  dev: "Developer",
-  non_tech_pro: "Non-Tech Professional",
-  student: "Student",
-  founder: "Founder",
-  creator: "Creator",
-}
-
-const INTENT_LABELS: Record<string, string> = {
-  learn_basics: "Learn the basics",
-  find_event: "Find an event",
-  find_collaborators: "Find collaborators",
-  build: "Build something",
-  hire_or_partner: "Hire or partner",
-  other: "Other",
-}
 
 export default async function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -101,21 +86,15 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                   <div>
                     <div className="text-[10px] font-mono text-[#555] mb-1">Audience</div>
                     <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-[#00ff41]/30 text-[#00ff41] bg-[#00ff41]/5">
-                      {AUDIENCE_LABELS[app.karibuAudience] ?? app.karibuAudience}
+                      {isAudience(app.karibuAudience) ? AUDIENCE_LABELS[app.karibuAudience] : app.karibuAudience}
                     </span>
                   </div>
                   {app.karibuIntent && (
                     <div>
                       <div className="text-[10px] font-mono text-[#555] mb-1">Intent</div>
                       <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-[#00d4ff]/30 text-[#00d4ff] bg-[#00d4ff]/5">
-                        {INTENT_LABELS[app.karibuIntent] ?? app.karibuIntent}
+                        {INTENT_LABELS[app.karibuIntent as Intent] ?? app.karibuIntent}
                       </span>
-                    </div>
-                  )}
-                  {app.karibuSessionId && (
-                    <div>
-                      <div className="text-[10px] font-mono text-[#555] mb-1">Session ID</div>
-                      <div className="text-[10px] font-mono text-[#444] break-all">{app.karibuSessionId}</div>
                     </div>
                   )}
                 </div>
