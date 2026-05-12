@@ -15,6 +15,7 @@ import { recordVisitorSchema, RECORD_VISITOR_TOOL_DESCRIPTION } from "@/lib/kari
 import { buildKaribuPrompt } from "@/lib/karibu/system-prompt";
 import { ensureVisitorId, setAudienceCookie } from "@/lib/karibu/cookies";
 import { isKaribuEnabled } from "@/lib/karibu/feature-flag";
+import { checkBudget, recordSpend } from "@/lib/karibu/budget";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -127,8 +128,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Daily spend cap (per-day, Upstash). Fail-open if Redis unavailable.
+    const budget = await checkBudget();
+    if (!budget.allowed) {
+      console.log(JSON.stringify({ kind: "karibu", event: "budget_exceeded", spend: budget.spend, ts: Date.now() }));
+      return jsonError("budget_exceeded", 503);
+    }
+    if (budget.warn) {
+      console.log(JSON.stringify({ kind: "karibu", event: "budget_warn", spend: budget.spend, ts: Date.now() }));
+    }
+
     const visitorId = await ensureVisitorId();
     const systemPrompt = await buildKaribuPrompt();
+    const userAgent = req.headers.get("user-agent") ?? null;
 
     const result = streamText({
       model: anthropic("claude-haiku-4-5-20251001"),
@@ -140,7 +152,7 @@ export async function POST(req: NextRequest) {
           description: RECORD_VISITOR_TOOL_DESCRIPTION,
           inputSchema: recordVisitorSchema,
           async execute(args) {
-            await prisma.onboardingSession.upsert({
+            const session = await prisma.onboardingSession.upsert({
               where: { cookieId: visitorId },
               update: {
                 audience: args.audience,
@@ -165,6 +177,27 @@ export async function POST(req: NextRequest) {
               },
             });
             await setAudienceCookie(args.audience);
+
+            // Fire-and-forget audit row; never block the user response.
+            prisma.auditLog
+              .create({
+                data: {
+                  userId: "system",
+                  action: "KARIBU_COMPLETED",
+                  entity: "OnboardingSession",
+                  entityId: session.id,
+                  changes: {
+                    audience: args.audience,
+                    intent: args.intent ?? null,
+                    experience: args.experience ?? null,
+                    visitorId,
+                  },
+                  ipAddress: ip,
+                  userAgent,
+                },
+              })
+              .catch((e) => console.error("[audit] karibu_completed failed", e));
+
             console.log(JSON.stringify({
               kind: "karibu",
               event: "completed",
@@ -177,6 +210,11 @@ export async function POST(req: NextRequest) {
             return { ok: true };
           },
         }),
+      },
+      onFinish: async ({ totalUsage }) => {
+        if (totalUsage) {
+          await recordSpend(totalUsage.inputTokens ?? 0, totalUsage.outputTokens ?? 0);
+        }
       },
     });
 

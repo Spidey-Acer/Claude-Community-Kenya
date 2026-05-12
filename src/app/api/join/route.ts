@@ -99,7 +99,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    await sendJoinApplicationNotification({ name: data.name, email: data.email }).catch(console.error)
+    await sendJoinApplicationNotification({
+      name: data.name,
+      email: data.email,
+      audience: karibuData?.karibuAudience ?? null,
+    }).catch(console.error)
 
     return NextResponse.json(
       {

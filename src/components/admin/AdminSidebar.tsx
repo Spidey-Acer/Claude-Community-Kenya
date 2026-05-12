@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Library,
   UsersRound,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/admin/demos", label: "Demo Requests", icon: Presentation },
   { href: "/admin/ideas", label: "Idea Submissions", icon: Lightbulb },
   { href: "/admin/applications", label: "Join Applications", icon: Users },
+  { href: "/admin/karibu", label: "Karibu", icon: Sparkles },
   { href: "/admin/volunteers", label: "Volunteers", icon: HandHeart },
   { href: "/admin/events", label: "Events", icon: Calendar },
   { href: "/admin/blog", label: "Blog Posts", icon: FileText },

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ensureVisitorId, setAudienceCookie } from "@/lib/karibu/cookies";
 import { AUDIENCES, EXPERIENCES } from "@/lib/karibu/types";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { rateLimit } from "@/lib/rate-limit";
 
 const scriptedSchema = z.object({
@@ -40,17 +41,28 @@ export async function POST(req: NextRequest) {
   }
 
   const visitorId = await ensureVisitorId();
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const userAgent = req.headers.get("user-agent") ?? null;
+
+  function logAudit(action: string, sessionId: string | null, changes: Prisma.InputJsonValue) {
+    prisma.auditLog
+      .create({
+        data: { userId: "system", action, entity: "OnboardingSession", entityId: sessionId, changes, ipAddress: ip, userAgent },
+      })
+      .catch((e) => console.error(`[audit] ${action} failed`, e));
+  }
 
   // L3 scripted fallback path — wizard completed when live API was unavailable
   const parsedScripted = scriptedSchema.safeParse(body);
   if (parsedScripted.success) {
     const { audience, experience } = parsedScripted.data.scripted;
-    await prisma.onboardingSession.upsert({
+    const session = await prisma.onboardingSession.upsert({
       where: { cookieId: visitorId },
       update: { audience, experience, skipped: false, completedAt: new Date() },
       create: { cookieId: visitorId, audience, experience, skipped: false, completedAt: new Date() },
     });
     await setAudienceCookie(audience);
+    logAudit("KARIBU_COMPLETED", session.id, { mode: "scripted", audience, experience, visitorId });
     return NextResponse.json({ ok: true, mode: "scripted" });
   }
 
@@ -62,19 +74,21 @@ export async function POST(req: NextRequest) {
   // earlier choices to stick.
   const existing = await prisma.onboardingSession.findUnique({
     where: { cookieId: visitorId },
-    select: { audience: true, completedAt: true, skipped: true },
+    select: { id: true, audience: true, completedAt: true, skipped: true },
   });
 
   if (existing?.audience && existing.completedAt && !existing.skipped) {
     await setAudienceCookie(existing.audience);
+    logAudit("KARIBU_SKIP_NOOP", existing.id, { mode: "preserved", visitorId });
     return NextResponse.json({ ok: true, mode: "preserved" });
   }
 
-  await prisma.onboardingSession.upsert({
+  const session = await prisma.onboardingSession.upsert({
     where: { cookieId: visitorId },
     update: { skipped: true, audience: null, completedAt: new Date() },
     create: { cookieId: visitorId, skipped: true, completedAt: new Date() },
   });
   await setAudienceCookie("skipped");
+  logAudit("KARIBU_SKIPPED", session.id, { mode: "skipped", visitorId });
   return NextResponse.json({ ok: true });
 }
