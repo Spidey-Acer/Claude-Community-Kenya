@@ -7,7 +7,7 @@ import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultili
 import { sendJoinApplicationNotification } from "@/lib/email"
 import { getSessionUserId } from "@/lib/auth-helpers"
 import { getVisitorId } from "@/lib/karibu/cookies"
-import { type Audience, type Intent } from "@/generated/prisma"
+import { type Audience, type Intent } from "@/generated/prisma/client"
 
 const joinSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
