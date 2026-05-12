@@ -6,6 +6,8 @@ import { ReviewForm } from "@/components/admin/ReviewForm"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { ArrowLeft, Mail, Github, ExternalLink } from "lucide-react"
+import { AUDIENCE_LABELS, INTENT_LABELS, isAudience } from "@/lib/karibu/types"
+import type { Intent } from "@/lib/karibu/types"
 
 export const dynamic = "force-dynamic"
 
@@ -76,6 +78,28 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                 )}
               </div>
             </div>
+
+            {app.karibuAudience && (
+              <div className="bg-[#0d0d0d] border border-[#00ff41]/20 rounded-lg p-4">
+                <h2 className="text-[11px] font-mono font-semibold text-[#00ff41]/70 uppercase tracking-wider mb-3">Karibu Context</h2>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[10px] font-mono text-[#555] mb-1">Audience</div>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-[#00ff41]/30 text-[#00ff41] bg-[#00ff41]/5">
+                      {isAudience(app.karibuAudience) ? AUDIENCE_LABELS[app.karibuAudience] : app.karibuAudience}
+                    </span>
+                  </div>
+                  {app.karibuIntent && (
+                    <div>
+                      <div className="text-[10px] font-mono text-[#555] mb-1">Intent</div>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-[#00d4ff]/30 text-[#00d4ff] bg-[#00d4ff]/5">
+                        {INTENT_LABELS[app.karibuIntent as Intent] ?? app.karibuIntent}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4">
               <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider mb-3">Metadata</h2>

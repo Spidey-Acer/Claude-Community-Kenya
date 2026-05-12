@@ -8,24 +8,37 @@ import { Lock, Mail, AlertTriangle, Loader2, ArrowLeft } from "lucide-react";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
 
+/** Only trust same-origin relative callback paths — never full https:// URLs. */
+function safeCallbackPath(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    // NextAuth sometimes encodes a full URL — extract just the pathname+search
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return url.pathname + url.search;
+  } catch {
+    // Already a relative path like "/admin"
+    return raw.startsWith("/") ? raw : null;
+  }
+}
+
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl");
+  const rawCallback = searchParams.get("callbackUrl");
   const { status, data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // If already signed in, send them to the right place.
+  // Redirect when session is confirmed. Uses router.replace to avoid adding a
+  // history entry and to stay within the SPA navigation model (no full reload).
   useEffect(() => {
     if (status !== "authenticated") return;
     const role = (session?.user as { role?: string } | undefined)?.role;
-    if (callbackUrl) {
-      window.location.href = callbackUrl;
-      return;
-    }
-    window.location.href = role && ADMIN_ROLES.has(role) ? "/admin" : "/dashboard";
-  }, [status, session, callbackUrl]);
+    const safePath = safeCallbackPath(rawCallback);
+    const dest = safePath ?? (role && ADMIN_ROLES.has(role) ? "/admin" : "/dashboard");
+    router.replace(dest);
+  }, [status, session, rawCallback, router]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,9 +57,9 @@ function LoginInner() {
         setError("Invalid email or password.");
         return;
       }
-      // Refresh the session via a full navigation so server layouts pick up the role.
-      // The useEffect above will handle the role-based redirect on next paint.
-      window.location.reload();
+      // router.refresh() updates server components and triggers a session
+      // re-read — the useEffect above then fires and does the redirect.
+      router.refresh();
     });
   }
 

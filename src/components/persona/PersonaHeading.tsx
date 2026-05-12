@@ -1,7 +1,7 @@
 "use client";
 
 import { CommandPrefix } from "@/components/terminal";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { usePersonaContent } from "@/hooks/usePersonaContent";
 
 interface PersonaHeadingProps {
@@ -21,7 +21,7 @@ export function PersonaHeading({
   showPrefix = true,
   prefixSymbol = "$",
 }: PersonaHeadingProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const content = usePersonaContent(page, section);
   if (!content.heading) return null;
 

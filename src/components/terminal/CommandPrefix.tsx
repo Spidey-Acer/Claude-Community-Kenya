@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface CommandPrefixProps {
   symbol?: "$" | ">" | "#";
@@ -12,10 +12,10 @@ export function CommandPrefix({
   symbol = "$",
   className,
 }: CommandPrefixProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
 
   // Pro mode: no command prefixes
-  if (persona === "pro") return null;
+  if (skin === "pro") return null;
 
   return (
     <span

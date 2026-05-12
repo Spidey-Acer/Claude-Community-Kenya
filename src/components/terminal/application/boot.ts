@@ -24,7 +24,7 @@ export const BOOT_LINES: TerminalLine[] = [
 ];
 
 export const BOOT_INTRO_TEXT = [
-  "East Africa's first Claude developer community.",
+  "Africa's first Claude developer community.",
   "Want in? Let's go.",
 ];
 

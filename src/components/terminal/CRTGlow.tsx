@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface CRTGlowProps {
   children: React.ReactNode;
@@ -38,12 +38,12 @@ export function CRTGlow({
   color = "green",
   className,
 }: CRTGlowProps) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const [hovered, setHovered] = useState(false);
   const { r, g, b } = colorMap[color];
 
   // Pro mode: no CRT glow, just render children
-  if (persona === "pro") {
+  if (skin === "pro") {
     return <div className={className}>{children}</div>;
   }
   const { spread1, spread2, alpha1, alpha2 } = intensityMap[intensity];

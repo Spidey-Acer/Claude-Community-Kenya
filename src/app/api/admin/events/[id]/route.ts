@@ -4,7 +4,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
-import { EventType, EventStatus } from "@/generated/prisma/client"
+import { EventType, EventStatus, Audience, Intent } from "@/generated/prisma/client"
 
 export async function GET(
   _request: NextRequest,
@@ -39,6 +39,8 @@ const updateSchema = z.object({
   attendeeCount: z.number().int().min(0).optional(),
   posterUrl: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : v),
   featured: z.boolean().optional(),
+  audiences: z.array(z.nativeEnum(Audience)).optional(),
+  intents: z.array(z.nativeEnum(Intent)).optional(),
 })
 
 export async function PATCH(

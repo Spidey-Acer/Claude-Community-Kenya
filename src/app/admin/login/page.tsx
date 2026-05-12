@@ -1,22 +1,31 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { signIn, useSession } from "next-auth/react"
+import { signIn, signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Terminal, Lock, Mail, AlertTriangle, Loader2 } from "lucide-react"
 
+const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"])
+
 export default function AdminLoginPage() {
   const router = useRouter()
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  // Redirect if already logged in
+  // If already signed in: redirect to /admin only when the role is admin-capable.
+  // For non-admin roles, stay on the login page and show an inline error so the
+  // user can sign out — bouncing them to /admin (or vice versa) would create a
+  // redirect loop with admin/layout.tsx.
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status !== "authenticated") return
+    const role = (session?.user as { role?: string } | undefined)?.role
+    if (role && ADMIN_ROLES.has(role)) {
       router.replace("/admin")
+    } else {
+      setError("This account doesn't have admin access. Sign out and sign in with an admin account.")
     }
-  }, [status, router])
+  }, [status, session, router])
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -111,26 +120,36 @@ export default function AdminLoginPage() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                {error}
+              <div className="flex items-start gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+                <span className="flex-1">{error}</span>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-primary/10 hover:bg-green-primary/20 border border-green-primary/40 hover:border-green-primary/60 rounded text-sm font-mono font-semibold text-green-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
+            {status === "authenticated" ? (
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/admin/login" })}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-bg-card hover:bg-bg-elevated border border-border-default hover:border-border-hover rounded text-sm font-mono font-semibold text-text-primary transition-all"
+              >
+                Sign out
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-primary/10 hover:bg-green-primary/20 border border-green-primary/40 hover:border-green-primary/60 rounded text-sm font-mono font-semibold text-green-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Authenticating...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            )}
           </form>
         </div>
 

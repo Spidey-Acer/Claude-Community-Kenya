@@ -38,21 +38,21 @@ function mapPrismaEvent(e: PrismaEvent): Event {
   return {
     id: e.id,
     slug: e.slug,
-    title: e.title,
+    title: decodeHtmlEntities(e.title),
     date: e.date.toISOString().split("T")[0],
     time: e.time,
-    venue: e.venue,
+    venue: decodeHtmlEntities(e.venue),
     city: e.city,
     type: EVENT_TYPE_MAP[e.type] || "meetup",
     status: EVENT_STATUS_MAP[e.status] || "upcoming",
-    description: e.description,
-    fullDescription: e.fullDescription ?? undefined,
+    description: decodeHtmlEntities(e.description),
+    fullDescription: e.fullDescription ? decodeHtmlEntities(e.fullDescription) : undefined,
     agenda: (e.agenda as string[]) ?? undefined,
     registrationUrl: e.registrationUrl ?? undefined,
     lumaUrl: e.lumaUrl ?? undefined,
-    host: e.host ?? undefined,
-    partnerOrg: e.partnerOrg ?? undefined,
-    highlights: (e.highlights as string[]) ?? undefined,
+    host: e.host ? decodeHtmlEntities(e.host) : undefined,
+    partnerOrg: e.partnerOrg ? decodeHtmlEntities(e.partnerOrg) : undefined,
+    highlights: ((e.highlights as string[]) ?? undefined)?.map(decodeHtmlEntities),
     attendeeCount: e.attendeeCount ?? undefined,
     posterUrl: e.posterUrl ?? undefined,
     photosUrl: e.photosUrl ?? undefined,
@@ -60,6 +60,9 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     slidesUrl: e.slidesUrl ?? undefined,
     prizes: (e.prizes as string[]) ?? undefined,
     rules: (e.rules as string[]) ?? undefined,
+    audiences: (e.audiences as string[]) ?? [],
+    intents: (e.intents as string[]) ?? [],
+    featured: e.featured,
   }
 }
 
@@ -127,21 +130,27 @@ export interface BlogPostView {
   featured: boolean
   status: string
   views: number
+  /** Audience tags used by the recommendation engine. */
+  audiences: string[]
+  /** Intent tags used by the recommendation engine. */
+  intents: string[]
 }
 
 function mapPrismaBlog(p: PrismaBlogPost): BlogPostView {
   return {
     slug: p.slug,
-    title: p.title,
+    title: decodeHtmlEntities(p.title),
     date: p.publishedAt?.toISOString().split("T")[0] ?? "",
-    excerpt: p.excerpt,
-    content: p.content,
-    author: p.author,
-    tags: (p.tags as string[]) ?? [],
+    excerpt: decodeHtmlEntities(p.excerpt),
+    content: decodeHtmlEntities(p.content),
+    author: decodeHtmlEntities(p.author),
+    tags: ((p.tags as string[]) ?? []).map(decodeHtmlEntities),
     readingTime: p.readingTime ?? 5,
     featured: p.featured,
     status: p.status,
     views: p.views,
+    audiences: (p.audiences as string[]) ?? [],
+    intents: (p.intents as string[]) ?? [],
   }
 }
 

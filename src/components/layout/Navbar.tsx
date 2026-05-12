@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
 import { PersonaNotch } from "@/components/persona/PersonaToggle";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 const CommandPalette = dynamic(
   () => import("@/components/terminal/CommandPalette").then((mod) => ({ default: mod.CommandPalette })),
@@ -18,9 +18,9 @@ const CommandPalette = dynamic(
 );
 
 export function Navbar() {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const { status } = useSession();
-  const isPro = persona === "pro";
+  const isPro = skin === "pro";
   const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);

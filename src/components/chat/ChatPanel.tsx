@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
@@ -35,8 +35,8 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ tall }: ChatPanelProps) {
-  const { persona } = usePersona();
-  const isDev = persona === "dev";
+  const { skin } = useSkin();
+  const isDev = skin === "dev";
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
@@ -45,7 +45,7 @@ export function ChatPanel({ tall }: ChatPanelProps) {
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: () => ({ persona: persona ?? "dev" }),
+      body: () => ({ persona: skin ?? "dev" }),
     }),
     messages: storedMessages,
   });

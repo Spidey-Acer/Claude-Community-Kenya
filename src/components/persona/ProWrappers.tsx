@@ -1,6 +1,6 @@
 "use client";
 
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -24,8 +24,8 @@ export function PersonaCTA({
   variant?: "primary" | "secondary";
   className?: string;
 }) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   const devClasses = variant === "primary"
     ? "border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
@@ -75,8 +75,8 @@ export function PersonaSection({
   className?: string;
   altBg?: boolean;
 }) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   if (isPro && altBg) {
     return (
@@ -112,8 +112,8 @@ export function PersonaCard({
   className?: string;
   highlighted?: boolean;
 }) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   if (isPro) {
     return (

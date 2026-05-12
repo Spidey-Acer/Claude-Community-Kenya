@@ -120,7 +120,7 @@ export default function SubmitProjectPage() {
             <span className="text-green-primary">Share It With the Community</span>
           </h1>
           <p className="text-sm font-mono text-text-secondary leading-relaxed max-w-lg mx-auto mb-6">
-            Showcase your project built with Claude. Get featured on the CCK Projects page and inspire other developers across East Africa.
+            Showcase your project built with Claude. Get featured on the CCK Projects page and inspire other developers across Africa.
           </p>
           <div className="flex items-center justify-center gap-6 text-[11px] font-mono text-text-dim">
             {["Free to submit", "Approved projects get featured", "Open source encouraged"].map((item) => (

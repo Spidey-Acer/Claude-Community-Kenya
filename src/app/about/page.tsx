@@ -150,7 +150,7 @@ export default async function AboutPage() {
         <ScrollReveal delay={100}>
           <div className="mt-8 max-w-3xl space-y-6 font-sans text-text-secondary leading-relaxed">
             <p>
-              Across the global Claude Community network, Kenya is the East African chapter.
+              Across the global Claude Community network, Kenya is the African chapter.
               This is it.
             </p>
             <p>
@@ -163,7 +163,7 @@ export default async function AboutPage() {
             <p>
               Since then the community has grown across Nairobi and Mombasa — meetups,
               hands-on workshops, project showcases, and the first Claude hackathon in
-              East Africa. Every gathering ships something: talks, demos, builds, conversations.
+              Africa. Every gathering ships something: talks, demos, builds, conversations.
             </p>
             <p>
               {stats.eventsHeld} events. {stats.citiesActive.join(" & ")}. {stats.totalMembers}+ members.

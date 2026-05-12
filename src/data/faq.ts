@@ -12,7 +12,7 @@ export const faqs: FAQ[] = [
     category: "general",
     question: "What is Claude Community Kenya?",
     answer:
-      "East Africa's first Claude developer community. We organize meetups, workshops, and career talks focused on building with Claude AI across Kenya.",
+      "Africa's first Claude developer community. We organize meetups, workshops, and career talks focused on building with Claude AI across Kenya.",
   },
   {
     id: "gen-2",

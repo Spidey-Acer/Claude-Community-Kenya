@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import type { ParsedAction } from "@/lib/chat/action-parser";
 
 export function ActionButton({ action }: { action: ParsedAction }) {
-  const { persona } = usePersona();
+  const { skin } = useSkin();
   const isExternal = action.url.startsWith("http");
-  const isDev = persona === "dev";
+  const isDev = skin === "dev";
 
   const className = cn(
     "inline-flex items-center gap-1.5 transition-colors duration-200 text-xs font-medium",

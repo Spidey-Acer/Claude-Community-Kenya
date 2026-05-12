@@ -6,6 +6,8 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeString, zodSanitizeEmail, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { sendJoinApplicationNotification } from "@/lib/email"
 import { getSessionUserId } from "@/lib/auth-helpers"
+import { getVisitorId } from "@/lib/karibu/cookies"
+import { type Audience, type Intent } from "@/generated/prisma/client"
 
 const joinSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
@@ -66,6 +68,23 @@ export async function POST(request: NextRequest) {
 
     const userId = await getSessionUserId()
 
+    // Look up the OnboardingSession by visitor cookie to attribute Karibu context
+    const visitorId = await getVisitorId()
+    let karibuData: { karibuAudience: Audience; karibuIntent: Intent | null; karibuSessionId: string } | undefined
+    if (visitorId) {
+      const session = await prisma.onboardingSession.findUnique({
+        where: { cookieId: visitorId },
+        select: { id: true, audience: true, intent: true, skipped: true },
+      })
+      if (session && !session.skipped && session.audience) {
+        karibuData = {
+          karibuAudience: session.audience,
+          karibuIntent: session.intent,
+          karibuSessionId: session.id,
+        }
+      }
+    }
+
     const application = await prisma.joinApplication.create({
       data: {
         userId,
@@ -76,6 +95,7 @@ export async function POST(request: NextRequest) {
         interests: data.interests,
         reason: data.reason,
         heardFrom: data.heardFrom,
+        ...karibuData,
       },
     })
 

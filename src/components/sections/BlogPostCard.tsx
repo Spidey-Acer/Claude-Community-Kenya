@@ -5,15 +5,15 @@ import type { BlogPostView } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Calendar, Clock, User } from "lucide-react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface BlogPostCardProps {
   post: BlogPostView;
 }
 
 export function BlogPostCard({ post }: BlogPostCardProps) {
-  const { persona } = usePersona()
-  const isPro = persona === "pro"
+  const { skin } = useSkin()
+  const isPro = skin === "pro"
 
   if (isPro) {
     return (

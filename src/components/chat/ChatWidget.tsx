@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "./ChatPanel";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,9 +38,9 @@ function ProCloseButton({ onClick }: { onClick: () => void }) {
 }
 
 export function ChatWidget() {
-  const { persona, isLoaded } = usePersona();
+  const { skin, isLoaded } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
-  const isDev = persona === "dev";
+  const isDev = skin === "dev";
 
   // Restore open state from localStorage
   useEffect(() => {
@@ -74,8 +74,8 @@ export function ChatWidget() {
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className={cn(
               "relative flex flex-col overflow-hidden shadow-2xl",
-              "w-[calc(100vw-2rem)] max-w-[400px]",
-              "h-[min(500px,calc(100vh-6rem))]",
+              "w-[calc(100vw-2rem)] sm:w-[360px] max-w-[420px]",
+              "h-[calc(100vh-7rem)] sm:h-[480px] max-h-[600px]",
               isDev
                 ? "rounded border border-green-primary/30 bg-bg-primary"
                 : "rounded-2xl border border-border-default bg-bg-primary/95 backdrop-blur-md"

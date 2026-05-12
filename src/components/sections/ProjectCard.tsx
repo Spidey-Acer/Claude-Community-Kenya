@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 import type { ProjectView } from "@/lib/data";
 import { ExternalLink, Github } from "lucide-react";
 
@@ -23,8 +23,8 @@ const statusVariants: Record<string, "upcoming" | "registration-open" | "default
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
   const slug = project.name.toLowerCase().replace(/\s+/g, "-");
 
   if (isPro) {

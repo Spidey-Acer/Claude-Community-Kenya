@@ -3,18 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, ChevronDown, Sparkles, Cpu } from "lucide-react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { Terminal, Code, GraduationCap, MessageSquare, Calendar, Share2, Sparkles, Cpu } from "lucide-react";
+import { useSkin } from "@/contexts/SkinContext";
 import type { Event } from "@/lib/types";
 import type { ProjectView } from "@/lib/data";
-import { HeroTerminal } from "@/components/sections/HeroTerminal";
-import { HeroPro } from "@/components/sections/HeroPro";
+import type { AudienceState } from "@/contexts/AudienceContext";
+import type { Recommendable } from "@/lib/recommendations";
+import { PersonalizedHero } from "@/components/sections/PersonalizedHero";
+import { MadeForYou } from "@/components/sections/MadeForYou";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { StatsBarPro } from "@/components/sections/StatsBarPro";
 import { EventCard } from "@/components/sections/EventCard";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { TestimonialsCarousel } from "@/components/sections/TestimonialsCarousel";
-import { LazyMatrixRain } from "@/components/terminal/LazyMatrixRain";
 import { ScrollReveal } from "@/components/terminal";
 import { TerminalWindow } from "@/components/terminal";
 import { PersonaHeading } from "@/components/persona/PersonaHeading";
@@ -28,6 +29,8 @@ interface HomeContentProps {
   feedItems: FeedItem[];
   upcomingEvents: Event[];
   featuredProjects: ProjectView[];
+  audienceState: AudienceState;
+  recommendables: Recommendable[];
 }
 
 const whatWeDoItems = [
@@ -65,7 +68,7 @@ const whatWeDoItems = [
     description:
       "Active Discord server for daily discussions, code reviews, project collaboration, job sharing, and connecting with Claude developers.",
     proDescription:
-      "Join our Discord for daily discussions, collaboration, job sharing, and connecting with people using Claude across East Africa.",
+      "Join our Discord for daily discussions, collaboration, job sharing, and connecting with people using Claude across Africa.",
   },
 ];
 
@@ -105,76 +108,22 @@ const joinPathways = [
   },
 ];
 
-export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects }: HomeContentProps) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects, audienceState, recommendables }: HomeContentProps) {
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   return (
     <div>
       {/* ─── Hero Section ─── */}
-      {isPro ? (
-        <section aria-label="Hero">
-          <HeroPro stats={communityStats} feed={feedItems} />
-        </section>
-      ) : (
-        <section
-          className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden px-4"
-          aria-label="Hero"
-        >
-          <LazyMatrixRain opacity={0.05} density={0.2} />
-          <div className="relative z-10 flex flex-col items-center gap-8 pt-10 md:pt-14">
-            <HeroTerminal stats={communityStats} feed={feedItems} />
-            <ScrollReveal delay={800}>
-              <p className="max-w-xl text-center font-sans text-lg text-text-secondary">
-                Anthropic-supported Claude developer community — building,
-                learning, and shipping with Claude across East Africa.
-              </p>
-            </ScrollReveal>
-            <ScrollReveal delay={1200}>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <a
-                  href={SOCIAL_LINKS.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
-                >
-                  <span className="text-current" aria-hidden="true">&gt;</span>
-                  JOIN_DISCORD
-                </a>
-                <Link
-                  href="/community"
-                  className="inline-flex items-center gap-2 border border-cyan px-5 py-2.5 font-mono text-sm font-medium text-cyan transition-all duration-200 hover:bg-cyan hover:text-bg-primary"
-                >
-                  <span className="text-current" aria-hidden="true">&gt;</span>
-                  COMMUNITY_HUB
-                </Link>
-                <Link
-                  href="/events"
-                  className="inline-flex items-center gap-2 border border-amber px-5 py-2.5 font-mono text-sm font-medium text-amber transition-all duration-200 hover:bg-amber hover:text-bg-primary"
-                >
-                  <span className="text-current" aria-hidden="true">&gt;</span>
-                  VIEW_EVENTS
-                </Link>
-                <Link
-                  href="/projects"
-                  className="inline-flex items-center gap-2 border border-border-hover px-5 py-2.5 font-mono text-sm font-medium text-text-secondary transition-all duration-200 hover:border-text-primary hover:text-text-primary"
-                >
-                  <span className="text-current" aria-hidden="true">&gt;</span>
-                  PROJECTS
-                </Link>
-              </div>
-            </ScrollReveal>
-          </div>
-          <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 sm:block">
-            <ScrollReveal delay={2000}>
-              <ChevronDown className="h-5 w-5 animate-bounce text-text-dim opacity-60" aria-hidden="true" />
-            </ScrollReveal>
-          </div>
-        </section>
-      )}
+      <section className="mx-auto max-w-6xl px-4 pt-8 md:pt-12 lg:pt-16 pb-4" aria-label="Hero">
+        <PersonalizedHero stats={communityStats} feedItems={feedItems} />
+      </section>
+
+      {/* ─── Personalised Recommendations ─── */}
+      <MadeForYou audienceState={audienceState} items={recommendables} />
 
       {/* ─── Stats Bar ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Community stats">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:py-12 lg:py-16" aria-label="Community stats">
         {isPro ? (
           <StatsBarPro stats={communityStats} />
         ) : (
@@ -184,7 +133,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
 
       {/* ─── Next Event Highlight ─── */}
       {upcomingEvents.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pb-12" aria-label="Next event">
+        <section className="mx-auto max-w-6xl px-4 pb-8 md:pb-12" aria-label="Next event">
           {isPro ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -244,7 +193,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       )}
 
       {/* ─── Featured Events ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Upcoming events">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Upcoming events">
         <ScrollReveal>
           <PersonaHeading page="home" section="events" />
           <PersonaText page="home" section="events" field="subtitle" className={isPro ? "mb-10 text-[#b0aea5]" : "mb-10 font-sans text-text-secondary"} />
@@ -322,7 +271,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </PersonaSection>
 
       {/* ─── Find Your Community (audience segmentation) ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Find your community">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Find your community">
         <ScrollReveal>
           <h2 className={isPro
             ? "mb-2 text-center text-3xl font-semibold text-[#faf9f5] sm:text-4xl"
@@ -410,7 +359,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </section>
 
       {/* ─── Testimonials ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-20" aria-label="Community voices">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Community voices">
         <ScrollReveal>
           <PersonaHeading page="home" section="testimonials" className={isPro ? "mb-2 text-center text-xl font-semibold text-[#faf9f5]" : "mb-2 text-center font-mono text-xl text-green-primary"} />
           <PersonaText page="home" section="testimonials" field="subtitle" className={isPro ? "mx-auto mb-10 max-w-lg text-center text-[#b0aea5]" : "mx-auto mb-10 max-w-lg text-center font-sans text-text-secondary"} />
@@ -421,7 +370,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </section>
 
       {/* ─── Community Showcase ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-24" aria-label="Community projects">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-24" aria-label="Community projects">
         <ScrollReveal>
           <PersonaHeading page="home" section="projects" />
           <PersonaText page="home" section="projects" field="subtitle" className={isPro ? "mb-12 text-[#b0aea5]" : "mb-12 font-sans text-text-secondary"} />
@@ -530,7 +479,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </PersonaSection>
 
       {/* ─── Supported By ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16" aria-label="Supported by">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:py-12 lg:py-16" aria-label="Supported by">
         <ScrollReveal>
           <p className={isPro ? "mb-10 text-center text-xs font-medium uppercase tracking-widest text-[#7a7870]" : "mb-10 text-center font-mono text-xs uppercase tracking-widest text-text-dim"}>
             Supported by

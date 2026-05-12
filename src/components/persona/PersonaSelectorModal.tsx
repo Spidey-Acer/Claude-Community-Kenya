@@ -3,19 +3,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import type { Persona } from "@/contexts/PersonaContext";
+import type { Skin } from "@/contexts/SkinContext";
 import { ParticleCanvas } from "@/components/persona/ParticleCanvas";
 
 interface PersonaSelectorModalProps {
-  onSelect: (persona: Persona) => void;
+  onSelect: (skin: Skin) => void;
 }
 
 export function PersonaSelectorModal({ onSelect }: PersonaSelectorModalProps) {
-  const [hoveredSide, setHoveredSide] = useState<Persona | null>(null);
-  const [selectedSide, setSelectedSide] = useState<Persona | null>(null);
+  const [hoveredSide, setHoveredSide] = useState<Skin | null>(null);
+  const [selectedSide, setSelectedSide] = useState<Skin | null>(null);
   const [isExiting, setIsExiting] = useState(false);
 
-  const handleSelect = (persona: Persona) => {
+  const handleSelect = (persona: Skin) => {
     setSelectedSide(persona);
     setIsExiting(true);
   };

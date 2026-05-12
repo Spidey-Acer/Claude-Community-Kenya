@@ -7,7 +7,7 @@ import type { Event } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Calendar, MapPin, Clock, Tag } from "lucide-react";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface EventCardProps {
   event: Event;
@@ -28,8 +28,8 @@ const proStatusColors: Record<Event["status"], string> = {
 };
 
 export function EventCard({ event }: EventCardProps) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   const isActionable =
     event.status === "upcoming" || event.status === "registration-open";

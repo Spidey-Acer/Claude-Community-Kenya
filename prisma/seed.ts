@@ -4,7 +4,7 @@
  * Run: npx prisma db seed
  */
 
-import { PrismaClient, EventType, EventStatus, BlogStatus } from "../src/generated/prisma"
+import { PrismaClient, EventType, EventStatus, BlogStatus } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
 import "dotenv/config"
@@ -48,7 +48,7 @@ async function main() {
       description:
         "The one that started it all. 30 developers in a room, one CLI, and a lot of curiosity.",
       fullDescription:
-        "On January 24, 2026, history was made as Kenya hosted its very first Claude Code meetup. Over 30 developers from across Nairobi gathered at iHiT Events Space in Westlands for an afternoon of networking, interaction, and a live Claude Code demo.\n\nThe event was a community gathering where members talked, connected, and explored the possibilities of AI-assisted development. Peter Kibet showcased his Claude Code workflow with a live project demo — showing what developers can build with these tools.\n\nThis meetup marked the birth of Claude Community Kenya and set the foundation for what would become East Africa's most vibrant AI developer community.",
+        "On January 24, 2026, history was made as Kenya hosted its very first Claude Code meetup. Over 30 developers from across Nairobi gathered at iHiT Events Space in Westlands for an afternoon of networking, interaction, and a live Claude Code demo.\n\nThe event was a community gathering where members talked, connected, and explored the possibilities of AI-assisted development. Peter Kibet showcased his Claude Code workflow with a live project demo — showing what developers can build with these tools.\n\nThis meetup marked the birth of Claude Community Kenya and set the foundation for what would become Africa's most vibrant AI developer community.",
       agenda: [
         "2:00 PM — Doors Open & Registration",
         "2:30 PM — Welcome & Community Introduction",
@@ -62,7 +62,7 @@ async function main() {
       host: "Peter Kibet",
       highlights: [
         "30+ developers attended",
-        "First-ever Claude Code demo in East Africa",
+        "First-ever Claude Code demo in Africa",
         "Community connections and collaborations formed",
       ],
       attendeeCount: 30,
@@ -135,7 +135,7 @@ async function main() {
       type: EventType.HACKATHON,
       status: EventStatus.UPCOMING,
       description:
-        "East Africa's first Claude hackathon — build anything with Claude in one day, solo or as a team of up to three.",
+        "Africa's first Claude hackathon — build anything with Claude in one day, solo or as a team of up to three.",
       fullDescription:
         "Claude Community Kenya presents its first-ever hackathon — a full-day, in-person building sprint for developers across Nairobi. Whether you're coming solo or with a team of up to three, this is your chance to ship something real using Claude's API and Claude Code in a single day.\n\nThe build is open — no prescribed theme, no prescribed industry. If you can use Claude to solve a problem, tell a story, automate a workflow, or create something entirely new, it qualifies. Projects will be judged on real-world impact, technical execution, innovation, and how well teams demo their work.\n\nThe winner walks away with a Claude Code Max subscription. All registered participants receive CCK T-shirts and stickers.",
       agenda: [
@@ -151,7 +151,7 @@ async function main() {
       ],
       host: "Peter Kibet",
       highlights: [
-        "East Africa's first Claude hackathon",
+        "Africa's first Claude hackathon",
         "Open build format — any domain, as long as Claude powers it",
         "Winner takes home a Claude Code Max subscription",
       ],
@@ -200,7 +200,7 @@ async function main() {
       author: "Claude Community Kenya",
       tags: ["community", "introduction", "kenya"],
       excerpt:
-        "An introduction to Claude Community Kenya — who we are, what we do, and why we are building East Africa's first Claude developer community.",
+        "An introduction to Claude Community Kenya — who we are, what we do, and why we are building Africa's first Claude developer community.",
       status: BlogStatus.PUBLISHED,
       readingTime: 5,
       featured: false,

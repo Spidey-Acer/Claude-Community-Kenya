@@ -26,6 +26,10 @@ export interface FeedItem {
 interface HeroTerminalProps {
   stats?: CommunityStats;
   feed?: FeedItem[];
+  headlineOverride?: string;
+  subOverride?: string;
+  ctaLabelOverride?: string;
+  ctaHrefOverride?: string;
 }
 
 const DEFAULT_STATS: CommunityStats = {
@@ -52,24 +56,33 @@ const TYPE_LABELS: Record<string, string> = {
   event: "EVENT",
 };
 
-function buildHeroLines(): string[] {
+function buildHeroLines(
+  headlineOverride?: string,
+  subOverride?: string,
+): string[] {
+  const headline = headlineOverride ?? "Claude Community Kenya 🇰🇪";
+  const sub = subOverride ?? "Building Africa's most vibrant\n  AI developer community";
+  const [subLine1, subLine2] = sub.includes("\n")
+    ? sub.split("\n")
+    : [sub, undefined];
+
   return [
     "$ whoami",
-    "> Claude Community Kenya \u{1F1F0}\u{1F1EA}",
+    `> ${headline}`,
     "",
     "$ cat mission.txt",
-    "> Building East Africa's most vibrant",
-    "  AI developer community",
+    `> ${subLine1}`,
+    ...(subLine2 ? [`  ${subLine2.trim()}`] : []),
     "",
     "$ tail -f activity.log",
   ];
 }
 
-export function HeroTerminal({ stats, feed = [] }: HeroTerminalProps) {
+export function HeroTerminal({ stats, feed = [], headlineOverride, subOverride, ctaLabelOverride, ctaHrefOverride }: HeroTerminalProps) {
   const [typingComplete, setTypingComplete] = useState(false);
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
   const [feedVisible, setFeedVisible] = useState(true);
-  const heroLines = buildHeroLines();
+  const heroLines = buildHeroLines(headlineOverride, subOverride);
   const resolvedStats = stats ?? DEFAULT_STATS;
 
   const rotateFeed = useCallback(() => {
@@ -94,7 +107,7 @@ export function HeroTerminal({ stats, feed = [] }: HeroTerminalProps) {
       variant="command"
       title="claude-community-kenya@nairobi:~$"
       glowing
-      className="w-full max-w-2xl"
+      className="w-full max-w-3xl mx-auto"
     >
       <TypingAnimation
         text={heroLines}
@@ -168,19 +181,19 @@ export function HeroTerminal({ stats, feed = [] }: HeroTerminalProps) {
         </div>
       )}
 
-      {/* Discord CTA */}
+      {/* Primary CTA */}
       {typingComplete && (
         <div className="mt-2 min-h-[1.5em]">
           <a
-            href={SOCIAL_LINKS.discord}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={ctaHrefOverride ?? SOCIAL_LINKS.discord}
+            target={ctaHrefOverride ? undefined : "_blank"}
+            rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
             className="font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"
-            aria-label="Join Claude Community Kenya on Discord"
+            aria-label={ctaLabelOverride ?? "Join Claude Community Kenya on Discord"}
           >
             <span className="text-text-primary">{"> "}</span>
             <span className="underline underline-offset-4">
-              [CLICK TO JOIN DISCORD]
+              [{ctaLabelOverride ? ctaLabelOverride.toUpperCase() : "CLICK TO JOIN DISCORD"}]
             </span>
             <span className="cursor-blink ml-1">{"\u258A"}</span>
           </a>

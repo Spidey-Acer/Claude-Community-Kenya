@@ -4,6 +4,24 @@ import { useState, useEffect, useTransition, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Save, X, Loader2 } from "lucide-react"
+import { AUDIENCES, INTENTS, type Audience, type Intent } from "@/lib/karibu/types"
+
+const AUDIENCE_LABELS: Record<Audience, string> = {
+  dev: "Developer",
+  non_tech_pro: "Non-tech professional",
+  student: "Student",
+  founder: "Founder",
+  creator: "Creator / Educator",
+}
+
+const INTENT_LABELS: Record<Intent, string> = {
+  learn_basics: "Learn basics",
+  find_event: "Find an event",
+  find_collaborators: "Find collaborators",
+  build: "Build something",
+  hire_or_partner: "Hire / partner",
+  other: "Other",
+}
 
 interface BlogPostData {
   id: string
@@ -17,6 +35,8 @@ interface BlogPostData {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
   readingTime: number | null
   featured: boolean
+  audiences: Audience[]
+  intents: Intent[]
 }
 
 interface ApiResponse {
@@ -47,6 +67,8 @@ export default function EditBlogPostPage() {
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("DRAFT")
   const [readingTime, setReadingTime] = useState<number | "">("")
   const [featured, setFeatured] = useState(false)
+  const [audiences, setAudiences] = useState<Audience[]>([])
+  const [intents, setIntents] = useState<Intent[]>([])
 
   const fetchPost = useCallback(async () => {
     try {
@@ -65,6 +87,8 @@ export default function EditBlogPostPage() {
       setStatus(post.status)
       setReadingTime(post.readingTime ?? "")
       setFeatured(post.featured)
+      setAudiences(Array.isArray(post.audiences) ? post.audiences : [])
+      setIntents(Array.isArray(post.intents) ? post.intents : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load post")
     } finally {
@@ -117,6 +141,8 @@ export default function EditBlogPostPage() {
           tags,
           status,
           featured,
+          audiences,
+          intents,
         }
         if (readingTime !== "") body.readingTime = Number(readingTime)
 
@@ -316,6 +342,47 @@ export default function EditBlogPostPage() {
                 <span className="text-[11px] font-mono text-[#888]">Featured post</span>
               </label>
             </div>
+          </div>
+
+          {/* Audiences & Intents */}
+          <div className="pt-2 space-y-4">
+            <p className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Personalization Tags</p>
+            <fieldset className="space-y-2">
+              <legend className="font-mono text-xs text-[#555]">Audiences</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {AUDIENCES.map((a) => (
+                  <label key={a} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={audiences.includes(a)}
+                      onChange={(e) =>
+                        setAudiences(e.target.checked ? [...audiences, a] : audiences.filter((x) => x !== a))
+                      }
+                      className="accent-[#00ff41]"
+                    />
+                    {AUDIENCE_LABELS[a]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="space-y-2">
+              <legend className="font-mono text-xs text-[#555]">Intents</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {INTENTS.map((i) => (
+                  <label key={i} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={intents.includes(i)}
+                      onChange={(e) =>
+                        setIntents(e.target.checked ? [...intents, i] : intents.filter((x) => x !== i))
+                      }
+                      className="accent-[#00ff41]"
+                    />
+                    {INTENT_LABELS[i]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
         </div>
 

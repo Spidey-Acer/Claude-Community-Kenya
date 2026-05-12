@@ -10,12 +10,20 @@ export const maxDuration = 30;
 const anthropic = createAnthropic();
 
 const CHAT_RATE_LIMIT = { maxRequests: 30, windowInSeconds: 3600 };
+const MAX_MESSAGE_CHARS = 4000;
 
-/** Zod schema — validates security constraints, not full UIMessage shape */
-const ChatMessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
-  content: z.string().max(4000),
-}).passthrough();
+/**
+ * Validates security constraints only. ai-sdk v6 UIMessages carry text in
+ * `parts`, not `content`; both shapes are accepted via passthrough so the
+ * SDK can convert from the original body downstream.
+ */
+const ChatMessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string().max(MAX_MESSAGE_CHARS).optional(),
+    parts: z.array(z.any()).optional(),
+  })
+  .passthrough();
 
 const ChatRequestSchema = z.object({
   messages: z.array(ChatMessageSchema).max(20, "Conversation too long — please reset."),
@@ -84,6 +92,17 @@ export async function POST(req: NextRequest) {
     return jsonError(firstError, 400);
   }
 
+  // Per-message size cap on UIMessage parts text + legacy content
+  for (const m of parsed.data.messages) {
+    const partsText = Array.isArray(m.parts)
+      ? m.parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("")
+      : "";
+    const text = (typeof m.content === "string" ? m.content : "") + partsText;
+    if (text.length > MAX_MESSAGE_CHARS) {
+      return jsonError("Message too long.", 400);
+    }
+  }
+
   const { persona } = parsed.data;
 
   // Pass original body.messages to the SDK (preserves full UIMessage shape);
@@ -91,7 +110,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = await buildSystemPrompt(persona as ChatPersona);
 
   const result = streamText({
-    model: anthropic("claude-haiku-4.5"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     system: systemPrompt,
     messages: await convertToModelMessages(body.messages),
   });

@@ -75,7 +75,9 @@ const rolePermissions: Record<
     team: ["view"],
   },
   MEMBER: {
-    dashboard: ["view"],
+    // "dashboard" here means the admin dashboard. MEMBER must not have access —
+    // the user-facing /dashboard route does its own auth check.
+    dashboard: [],
     speakers: [],
     demos: [],
     ideas: [],

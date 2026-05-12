@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { usePersona } from "@/contexts/PersonaContext";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface TerminalWindowProps {
   title?: string;
@@ -27,8 +27,8 @@ export function TerminalWindow({
   showDots = true,
   glowing = false,
 }: TerminalWindowProps) {
-  const { persona } = usePersona();
-  const isPro = persona === "pro";
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
 
   if (isPro) {
     return (

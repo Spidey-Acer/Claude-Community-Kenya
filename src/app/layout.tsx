@@ -3,6 +3,10 @@ import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { WebVitals } from "@/components/WebVitals";
+import { isKaribuEnabled, isKaribuCanaryHit } from "@/lib/karibu/feature-flag";
+import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
+import { type AudienceState } from "@/contexts/AudienceContext";
+import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -48,7 +52,7 @@ export const metadata: Metadata = {
     "Claude Developer",
     "AI Meetup Kenya",
     "Claude Code Kenya",
-    "East Africa AI",
+    "Africa AI",
     "Claude API",
     "LLM Kenya",
   ],
@@ -128,11 +132,63 @@ const jsonLd = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const visitorId = await ensureVisitorId();
+  const audienceCookie = await getAudienceCookie();
+  const karibuEnabled = isKaribuEnabled();
+  const canaryHit = karibuEnabled && isKaribuCanaryHit(visitorId);
+
+  // Source of truth = DB session, not just the cookie.
+  // The cck-audience cookie can fail to propagate when set from inside the
+  // streaming /api/karibu tool response (response headers are sent before
+  // tool.execute runs). Reading the DB also lets us hide the modal correctly
+  // on /join (and every other post-Karibu page) for visitors whose cookie
+  // write didn't land.
+  const session =
+    canaryHit && audienceCookie !== "skipped"
+      ? await prisma.onboardingSession.findUnique({
+          where: { cookieId: visitorId },
+          select: {
+            audience: true,
+            intent: true,
+            experience: true,
+            name: true,
+            city: true,
+            language: true,
+            skipped: true,
+            completedAt: true,
+          },
+        })
+      : null;
+
+  const hasCompletedKaribu = !!(
+    session?.audience && !session.skipped && session.completedAt
+  );
+
+  const showKaribu = canaryHit && !hasCompletedKaribu && audienceCookie !== "skipped";
+
+  const audienceState: AudienceState = hasCompletedKaribu && session
+    ? {
+        audience: session.audience,
+        intent: session.intent,
+        experience: session.experience,
+        name: session.name,
+        city: session.city,
+        language: session.language,
+      }
+    : {
+        audience: null,
+        intent: null,
+        experience: null,
+        name: null,
+        city: null,
+        language: null,
+      };
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -146,7 +202,9 @@ export default function RootLayout({
       >
         <GoogleAnalytics />
         <WebVitals />
-        <ConditionalLayout>{children}</ConditionalLayout>
+        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu}>
+          {children}
+        </ConditionalLayout>
       </body>
     </html>
   );

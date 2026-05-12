@@ -22,6 +22,7 @@ import {
   useReturningUser,
   useSessionId,
 } from "./application/hooks";
+import type { KaribuPrefill } from "@/lib/karibu/form-prefill";
 import { TerminalLineComponent } from "./application/output";
 import { MobileOptions, PromptInput } from "./application/prompt";
 import { formReducer, initialState, uid } from "./application/state";
@@ -44,7 +45,8 @@ const introLines = (): TerminalLine[] => [
   { id: uid(), type: "system", content: "", color: "dim" },
 ];
 
-export function TerminalApplication() {
+export function TerminalApplication({ prefill }: { prefill?: KaribuPrefill }) {
+  const prefillRef = useRef(prefill);
   const [state, dispatch] = useReducer(formReducer, initialState);
   const [inputValue, setInputValue] = useState("");
   const [bootDone, setBootDone] = useState(false);
@@ -83,11 +85,44 @@ export function TerminalApplication() {
     if (promptReady && !state.isTyping) inputRef.current?.focus();
   }, [promptReady, state.isTyping]);
 
+  // Auto-advance a step when promptReady becomes true AND that step has prefill data.
+  // setInputValue shows the value briefly (600ms) so the user sees it before advancing.
+  useEffect(() => {
+    if (!prefillRef.current || !promptReady) return;
+    const step = state.currentStep;
+    if (step === "boot" || step === "processing" || step === "complete") return;
+
+    const field = getStepField(step);
+    const prefillValue = prefillRef.current[field as keyof KaribuPrefill];
+    if (!prefillValue) return;
+
+    setInputValue(prefillValue);
+    const t = setTimeout(() => {
+      setInputValue("");
+      advanceWithValue(prefillValue);
+    }, 600);
+    return () => clearTimeout(t);
+  // advanceWithValue is stable (useCallback with stable deps); promptReady and currentStep drive re-evaluation
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptReady, state.currentStep]);
+
   useEffect(() => {
     if (bootDone) return;
     if (returningUser && !reApply) return;
 
     dispatch({ type: "ADD_LINES", lines: BOOT_LINES });
+
+    if (prefillRef.current) {
+      dispatch({
+        type: "ADD_LINES",
+        lines: [
+          { id: uid(), type: "system", content: "", color: "dim" },
+          { id: uid(), type: "system", content: "> Continuing from your Claude conversation.", color: "green" },
+          { id: uid(), type: "system", content: "> Pre-filled fields advance automatically — type to override.", color: "dim" },
+          { id: uid(), type: "system", content: "", color: "dim" },
+        ],
+      });
+    }
 
     if (prefersReducedMotion.current) {
       dispatch({ type: "ADD_LINES", lines: introLines() });

@@ -9,7 +9,7 @@ export function ConsoleWelcome() {
 ┌──────────────────────────────────────────┐
 │                                          │
 │   Claude Community Kenya                 │
-│   East Africa's Claude Dev Community     │
+│   Africa's Claude Dev Community          │
 │                                          │
 │   Built with Claude Code                 │
 │   https://www.claudekenya.org       │

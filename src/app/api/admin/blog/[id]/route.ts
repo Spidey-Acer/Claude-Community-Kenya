@@ -4,7 +4,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
-import { BlogStatus } from "@/generated/prisma/client"
+import { BlogStatus, Audience, Intent } from "@/generated/prisma/client"
 
 export async function GET(
   _request: NextRequest,
@@ -29,6 +29,8 @@ const updateSchema = z.object({
   status: z.nativeEnum(BlogStatus).optional(),
   featured: z.boolean().optional(),
   readingTime: z.number().int().min(1).optional(),
+  audiences: z.array(z.nativeEnum(Audience)).optional(),
+  intents: z.array(z.nativeEnum(Intent)).optional(),
 })
 
 export async function PATCH(

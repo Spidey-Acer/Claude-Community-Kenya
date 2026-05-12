@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { toSlug } from "@/lib/utils"
-import { EventType, EventStatus } from "@/generated/prisma/client"
+import { EventType, EventStatus, Audience, Intent } from "@/generated/prisma/client"
 
 const eventSchema = z.object({
   title: z.string().min(3).max(200).transform(zodSanitizeString),
@@ -27,6 +27,8 @@ const eventSchema = z.object({
   posterUrl: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
   photosUrl: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
   featured: z.boolean().optional().default(false),
+  audiences: z.array(z.nativeEnum(Audience)).optional(),
+  intents: z.array(z.nativeEnum(Intent)).optional(),
 })
 
 export async function GET(request: NextRequest) {
