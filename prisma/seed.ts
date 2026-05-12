@@ -4,7 +4,7 @@
  * Run: npx prisma db seed
  */
 
-import { PrismaClient, EventType, EventStatus, BlogStatus } from "../src/generated/prisma"
+import { PrismaClient, EventType, EventStatus, BlogStatus } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
 import "dotenv/config"
