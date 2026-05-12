@@ -13,7 +13,8 @@
       "Bash(bash ~/.claude/hooks/pre-push-typecheck.sh)",
       "Bash(echo \"EXIT: $?\")",
       "Bash(source .env.local)",
-      "Bash(echo \"DONE: $?\")"
+      "Bash(echo \"DONE: $?\")",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_pages"
     ]
   }
 }
