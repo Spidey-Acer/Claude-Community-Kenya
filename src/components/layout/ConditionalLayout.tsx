@@ -29,6 +29,7 @@ export function ConditionalLayout({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
+  const isDashboard = pathname.startsWith("/dashboard");
 
   if (isAdmin) {
     return <>{children}</>;
@@ -46,7 +47,7 @@ export function ConditionalLayout({
           <main id="main-content">
             <PageTransition>{children}</PageTransition>
           </main>
-          <Footer />
+          {!isDashboard && <Footer />}
           <EasterEggs />
           <ChatWidget />
           <KaribuBanner />
