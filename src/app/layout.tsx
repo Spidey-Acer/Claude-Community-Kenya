@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, IBM_Plex_Sans } from "next/font/google";
+import { JetBrains_Mono, IBM_Plex_Sans, Fraunces } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { WebVitals } from "@/components/WebVitals";
@@ -22,8 +22,15 @@ const ibmPlexSans = IBM_Plex_Sans({
   display: "swap",
 });
 
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  axes: ["SOFT", "opsz"],
+  display: "swap",
+});
+
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#141413",
   width: "device-width",
   initialScale: 1,
 };
@@ -190,7 +197,7 @@ export default async function RootLayout({
       };
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark persona-pro">
       <head>
         <script
           type="application/ld+json"
@@ -198,7 +205,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} antialiased`}
+        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} antialiased`}
       >
         <GoogleAnalytics />
         <WebVitals />
