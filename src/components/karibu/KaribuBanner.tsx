@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useAudience } from "@/contexts/AudienceContext";
+import { useSkin } from "@/contexts/SkinContext";
 import { AUDIENCE_LABELS } from "@/lib/karibu/types";
 
 const SESSION_KEY = "cck-karibu-banner-shown";
@@ -16,6 +17,8 @@ const AUTO_DISMISS_MS = 8000;
  */
 export function KaribuBanner() {
   const { audience } = useAudience();
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
   const [visible, setVisible] = useState(false);
   const [paused, setPaused] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -65,19 +68,29 @@ export function KaribuBanner() {
           role="status"
           aria-live="polite"
         >
-          <div className="relative overflow-hidden bg-bg-secondary border border-green-primary/30 rounded-lg shadow-[0_8px_32px_rgba(0,255,65,0.12)]">
+          <div
+            className={
+              isPro
+                ? "relative overflow-hidden rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/95 backdrop-blur-sm shadow-[0_12px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(217,119,87,0.06)]"
+                : "relative overflow-hidden bg-bg-secondary border border-green-primary/30 rounded-lg shadow-[0_8px_32px_rgba(0,255,65,0.12)]"
+            }
+          >
             <div className="px-4 py-3 flex items-center gap-3 font-sans text-sm text-text-primary">
-              <span className="text-green-primary text-base" aria-hidden="true">
+              <span className={isPro ? "text-[#d97757] text-base" : "text-green-primary text-base"} aria-hidden="true">
                 ✓
               </span>
               <span className="flex-1 min-w-0">
                 Personalized for{" "}
-                <strong className="text-green-primary">{label}</strong>.{" "}
+                <strong className={isPro ? "text-[#d97757] font-semibold" : "text-green-primary"}>{label}</strong>.{" "}
                 <button
                   type="button"
                   onClick={handleChange}
                   disabled={resetting}
-                  className="text-green-primary underline underline-offset-2 hover:text-amber transition-colors disabled:opacity-50"
+                  className={
+                    isPro
+                      ? "text-[#d97757] underline underline-offset-2 decoration-[#d97757]/40 hover:decoration-[#d97757] transition-colors disabled:opacity-50"
+                      : "text-green-primary underline underline-offset-2 hover:text-amber transition-colors disabled:opacity-50"
+                  }
                 >
                   {resetting ? "Resetting…" : "Change"}
                 </button>
@@ -103,7 +116,7 @@ export function KaribuBanner() {
                   ease: "linear",
                 }}
                 style={{ transformOrigin: "left" }}
-                className="absolute bottom-0 left-0 h-0.5 w-full bg-green-primary/40"
+                className={isPro ? "absolute bottom-0 left-0 h-0.5 w-full bg-[#d97757]/50" : "absolute bottom-0 left-0 h-0.5 w-full bg-green-primary/40"}
                 aria-hidden="true"
               />
             )}
