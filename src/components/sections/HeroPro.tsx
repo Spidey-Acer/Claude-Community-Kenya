@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { HeroEmailCapture } from "@/components/sections/HeroEmailCapture";
 import type { CommunityStats, FeedItem } from "@/components/sections/HeroTerminal";
 
 interface HeroProProps {
@@ -69,185 +70,174 @@ export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLa
 
   const currentItem = feed[currentFeedIndex];
 
+  const easeOut = [0.16, 1, 0.3, 1] as const;
+
   return (
     <div className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden">
-      {/* Gradient mesh background — Anthropic warm tones */}
+      {/* Ambient gradient mesh — Anthropic warm tones, softer than before */}
       <div className="pointer-events-none absolute inset-0">
         <div
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(217, 119, 87, 0.12), transparent),
-              radial-gradient(ellipse 60% 40% at 80% 50%, rgba(106, 155, 204, 0.08), transparent),
-              radial-gradient(ellipse 50% 50% at 20% 80%, rgba(120, 140, 93, 0.06), transparent)
+              radial-gradient(ellipse 70% 45% at 50% -15%, rgba(217, 119, 87, 0.10), transparent 60%),
+              radial-gradient(ellipse 55% 40% at 85% 55%, rgba(106, 155, 204, 0.06), transparent 65%),
+              radial-gradient(ellipse 45% 50% at 15% 85%, rgba(120, 140, 93, 0.05), transparent 70%)
             `,
-          }}
-        />
-        {/* Subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: "60px 60px",
           }}
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center pt-10 md:pt-14">
+      <div className="relative z-10 mx-auto max-w-3xl px-4 text-center pt-8 md:pt-12 lg:pt-16">
         {/* Eyebrow */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-6"
+          transition={{ duration: 0.5, ease: easeOut }}
+          className="mb-7"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#3a3a37] bg-[#1e1e1d]/80 px-4 py-1.5 text-sm text-[#b0aea5] backdrop-blur-sm">
-            <img src="/images/claude-sparkle.svg" alt="" className="h-3.5 w-3.5 animate-pulse" />
-            Anthropic-supported community
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#2a2a28] bg-[#1e1e1d]/60 px-3.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b0aea5] backdrop-blur-sm">
+            <img src="/images/claude-sparkle.svg" alt="" className="h-3 w-3" />
+            <span>Anthropic-supported</span>
+            <span className="text-[#3a3a37]">·</span>
+            <span>Africa</span>
           </span>
         </motion.div>
 
-        {/* Main headline */}
+        {/* Display headline — Fraunces serif */}
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15 }}
-          className="mb-8 font-bold tracking-tight text-white text-3xl sm:text-5xl lg:text-7xl"
-          style={{ fontFamily: "var(--font-sans)" }}
+          transition={{ duration: 0.65, delay: 0.12, ease: easeOut }}
+          className="display-xl mb-7 text-[42px] text-[#faf9f5] sm:text-[64px] lg:text-[88px]"
         >
           {headlineOverride ? (
             headlineOverride
           ) : (
             <>
-              Claude Community<br className="sm:hidden" />{" "}
-              <span className="bg-gradient-to-br from-[#e89576] via-[#d97757] to-[#b85a3e] bg-clip-text text-transparent">
+              Claude Community<br />
+              <span className="italic bg-gradient-to-br from-[#e89576] via-[#d97757] to-[#b85a3e] bg-clip-text text-transparent">
                 Kenya
               </span>
             </>
           )}
         </motion.h1>
 
-        {/* Hero map — geographic representation of the community across Kenya */}
+        {/* Map — smaller, less ringed, more integrated */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
+          initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto mb-10 w-full max-w-[260px] sm:max-w-[320px] lg:max-w-[380px]"
+          transition={{ duration: 0.8, delay: 0.22, ease: easeOut }}
+          className="relative mx-auto mb-9 w-full max-w-[200px] sm:max-w-[240px] lg:max-w-[280px]"
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.35),transparent_60%)] blur-2xl"
+            className="pointer-events-none absolute -inset-12 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.20),transparent_65%)] blur-3xl"
           />
-          <div className="relative overflow-hidden rounded-2xl shadow-2xl shadow-[#d97757]/25 ring-1 ring-[#3a3a37]/60">
+          <div className="relative overflow-hidden rounded-3xl">
             <Image
               src="/images/kenya-map.webp"
-              alt="Map of Kenya highlighting Claude Community cities connected across the country"
+              alt="Map of Kenya highlighting Claude Community cities"
               width={1000}
               height={1000}
               priority
-              sizes="(max-width: 640px) 260px, (max-width: 1024px) 320px, 380px"
+              sizes="(max-width: 640px) 200px, (max-width: 1024px) 240px, 280px"
               className="h-auto w-full"
             />
           </div>
         </motion.div>
 
-        {/* Subtitle */}
+        {/* Subtitle — tighter, more confident */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mx-auto mb-10 max-w-2xl text-lg text-[#b0aea5] sm:text-xl"
+          transition={{ duration: 0.55, delay: 0.28, ease: easeOut }}
+          className="mx-auto mb-10 max-w-xl text-[17px] leading-relaxed text-[#b0aea5] sm:text-[19px]"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {subOverride ??
-            "Africa’s vibrant AI community. Learn, create, and grow with Claude — from workshops and meetups to real-world projects."}
+            "Where Kenya's builders learn, create, and ship with Claude. Workshops, meetups, and real projects — together."}
         </motion.p>
 
-        {/* CTAs */}
+        {/* Primary: email capture — keep the lead on-site instead of pushing to Discord */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.45 }}
-          className="mb-16 flex flex-wrap items-center justify-center gap-3 px-4"
+          transition={{ duration: 0.55, delay: 0.36, ease: easeOut }}
+          className="mb-6"
         >
+          <HeroEmailCapture
+            label={ctaLabelOverride ? `${ctaLabelOverride.toLowerCase().includes("invite") ? ctaLabelOverride : "Get event invites + the monthly digest"}` : "Get event invites + the monthly digest"}
+            buttonLabel="Get invites"
+          />
+        </motion.div>
+
+        {/* Secondary actions — refined text links */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.44, ease: easeOut }}
+          className="mb-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px]"
+        >
+          <Link
+            href="/events"
+            className="link-refined font-medium text-[#e8e6dc] transition-colors hover:text-[#faf9f5]"
+          >
+            Browse events
+          </Link>
+          <span className="text-[#3a3a37]" aria-hidden="true">·</span>
           <a
             href={ctaHrefOverride ?? SOCIAL_LINKS.discord}
             target={ctaHrefOverride ? undefined : "_blank"}
             rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
-            className="inline-flex items-center gap-2 rounded-full bg-[#d97757] px-7 py-3 text-sm font-semibold text-[#faf9f5] shadow-lg shadow-[#d97757]/20 transition-all duration-200 hover:bg-[#c06848] hover:shadow-[#d97757]/30"
+            className="link-refined font-medium text-[#b0aea5] transition-colors hover:text-[#e8e6dc]"
           >
-            {ctaLabelOverride ?? "Join the Community"}
-            <span aria-hidden="true">→</span>
+            {ctaLabelOverride && !ctaLabelOverride.toLowerCase().includes("invite") ? ctaLabelOverride : "Join Discord"}
           </a>
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-2 rounded-full border border-[#3a3a37] px-7 py-3 text-sm font-semibold text-[#e8e6dc] transition-all duration-200 hover:border-[#d97757]/50 hover:text-[#faf9f5]"
-          >
-            Browse Events
-          </Link>
+          <span className="text-[#3a3a37]" aria-hidden="true">·</span>
           <Link
             href="/resources"
-            className="inline-flex items-center gap-2 rounded-full border border-[#2a2a28] px-7 py-3 text-sm font-semibold text-[#b0aea5] transition-all duration-200 hover:border-[#6a9bcc]/50 hover:text-[#e8e6dc]"
+            className="link-refined font-medium text-[#b0aea5] transition-colors hover:text-[#e8e6dc]"
           >
-            Resources
+            See resources
           </Link>
         </motion.div>
 
-        {/* Stats row */}
+        {/* Trust strip — small caps, restrained */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mx-auto flex max-w-lg items-center justify-center gap-8 sm:gap-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mb-14 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7a7870]"
         >
-          <div className="text-center">
-            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
-              <AnimatedCounter target={resolvedStats.totalMembers} suffix="+" />
-            </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Members</div>
-          </div>
-          <div className="h-8 w-px bg-[#2a2a28]" />
-          <div className="text-center">
-            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
-              <AnimatedCounter target={resolvedStats.eventsHeld} />
-            </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Events</div>
-          </div>
-          <div className="h-8 w-px bg-[#2a2a28]" />
-          <div className="text-center">
-            <div className="text-2xl font-bold text-[#faf9f5] sm:text-3xl">
-              {resolvedStats.citiesActive.length}
-            </div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">Cities</div>
-          </div>
+          <span className="tabular-nums"><AnimatedCounter target={resolvedStats.totalMembers} suffix="+" /> members</span>
+          <span className="text-[#3a3a37]">·</span>
+          <span>{resolvedStats.citiesActive.join(" & ")}</span>
+          <span className="text-[#3a3a37]">·</span>
+          <span>Free to join</span>
+          <span className="text-[#3a3a37]">·</span>
+          <span>Built in the open</span>
         </motion.div>
 
-        {/* Activity feed — clean card */}
+        {/* Activity feed — refined ticker */}
         {currentItem && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="mx-auto mt-12 max-w-md"
+            transition={{ duration: 0.55, delay: 0.65, ease: easeOut }}
+            className="mx-auto max-w-md"
           >
             <a
               href={currentItem.href}
-              className="group flex items-center gap-3 rounded-xl border border-[#2a2a28] bg-[#1e1e1d]/80 px-5 py-3.5 backdrop-blur-sm transition-all duration-200 hover:border-[#3a3a37] hover:bg-[#252524]/80"
+              className="card-hairline group flex items-center gap-3 rounded-full px-4 py-2.5"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#252524]">
-                <span className="text-xs font-bold uppercase text-[#b0aea5]">
-                  {currentItem.type === "blog" ? "B" : currentItem.type === "project" ? "P" : currentItem.type === "community" ? "C" : "E"}
-                </span>
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-medium text-[#e8e6dc] group-hover:text-[#faf9f5] transition-colors">
-                  {currentItem.title}
-                </p>
-                <p className="text-xs text-[#7a7870]">{currentItem.meta}</p>
-              </div>
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#d97757] shadow-[0_0_8px_rgba(217,119,87,0.6)]" />
+              <span className="text-[11px] font-medium uppercase tracking-wider text-[#7a7870]">
+                {currentItem.type === "blog" ? "New post" : currentItem.type === "project" ? "Project" : currentItem.type === "community" ? "Resource" : "Event"}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-left text-[13px] text-[#e8e6dc] group-hover:text-[#faf9f5] transition-colors">
+                {currentItem.title}
+              </span>
               <span className="shrink-0 text-[#7a7870] transition-colors group-hover:text-[#d97757]">→</span>
             </a>
             {feed.length > 1 && (
@@ -255,8 +245,8 @@ export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLa
                 {feed.map((_, i) => (
                   <div
                     key={i}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      i === currentFeedIndex ? "w-5 bg-[#d97757]" : "w-1 bg-[#2a2a28]"
+                    className={`h-0.5 rounded-full transition-all duration-300 ${
+                      i === currentFeedIndex ? "w-6 bg-[#d97757]" : "w-1 bg-[#2a2a28]"
                     }`}
                   />
                 ))}
