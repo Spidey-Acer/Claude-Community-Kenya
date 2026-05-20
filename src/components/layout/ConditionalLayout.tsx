@@ -12,6 +12,7 @@ import { SkinProvider } from "@/contexts/SkinContext";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { AudienceProvider, type AudienceState } from "@/contexts/AudienceContext";
 import { KaribuBanner } from "@/components/karibu/KaribuBanner";
+import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 
 const KaribuModal = dynamic(
   () => import("@/components/karibu/KaribuModal").then((m) => m.KaribuModal),
@@ -51,6 +52,7 @@ export function ConditionalLayout({
           <EasterEggs />
           <ChatWidget />
           <KaribuBanner />
+          {!isDashboard && <StickyMobileCTA />}
           {showKaribu && <KaribuModal />}
         </AudienceProvider>
       </SkinProvider>

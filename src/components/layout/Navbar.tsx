@@ -9,7 +9,6 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
-import { PersonaNotch } from "@/components/persona/PersonaToggle";
 import { useSkin } from "@/contexts/SkinContext";
 
 const CommandPalette = dynamic(
@@ -228,9 +227,6 @@ export function Navbar() {
 
       {/* Command Palette (global) */}
       <CommandPalette />
-
-      {/* Persona notch — centered below navbar */}
-      <PersonaNotch />
 
       {/* Spacer for fixed navbar */}
       <div className="h-16" />

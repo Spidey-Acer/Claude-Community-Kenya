@@ -64,7 +64,7 @@ export function ChatWidget() {
   if (!isLoaded) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-4">
       <AnimatePresence>
         {isOpen && (
           <motion.div

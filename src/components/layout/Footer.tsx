@@ -7,7 +7,7 @@ import { useSkin } from "@/contexts/SkinContext";
 import { PersonalizeFooterLink } from "@/components/karibu/PersonalizeFooterLink";
 
 export function Footer() {
-  const { skin } = useSkin();
+  const { skin, setSkin } = useSkin();
   const isPro = skin === "pro";
   const [exitHovered, setExitHovered] = useState(false);
   const [email, setEmail] = useState("");
@@ -77,34 +77,48 @@ export function Footer() {
             <p className="mt-3 text-sm text-text-secondary">
               {SITE_CONFIG.description}
             </p>
-            <div className="mt-4 font-mono text-xs text-text-dim">
-              <p>📍 {CONTACT.city}</p>
-              <p>✉ {CONTACT.email}</p>
+            <div className={isPro
+              ? "mt-4 space-y-1 text-[12px] text-[#7a7870]"
+              : "mt-4 font-mono text-xs text-text-dim"}>
+              <p>{isPro ? "" : "📍 "}{CONTACT.city}</p>
+              <p>{isPro ? "" : "✉ "}{CONTACT.email}</p>
             </div>
 
             {/* Newsletter */}
             <form onSubmit={handleNewsletterSubmit} className="mt-5">
-              <p className="font-mono text-[11px] text-text-dim mb-2">Stay updated:</p>
-              <div className="flex gap-1.5">
+              <p className={isPro
+                ? "mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-text-dim"
+                : "font-mono text-[11px] text-text-dim mb-2"}>
+                {isPro ? "Get the monthly digest" : "Stay updated:"}
+              </p>
+              <div className={isPro ? "flex gap-2" : "flex gap-1.5"}>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
                   required
-                  className="flex-1 min-w-0 bg-bg-card border border-border-default rounded px-2.5 py-1.5 font-mono text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 transition-colors"
+                  className={isPro
+                    ? "min-w-0 flex-1 rounded-full border border-[#2a2a28] bg-[#1e1e1d]/80 px-4 py-2 text-[13px] text-text-primary placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/50 focus:outline-none"
+                    : "flex-1 min-w-0 bg-bg-card border border-border-default rounded px-2.5 py-1.5 font-mono text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 transition-colors"
+                  }
                   aria-label="Newsletter email"
                 />
                 <button
                   type="submit"
                   disabled={isPending || !csrfToken}
-                  className="px-3 py-1.5 bg-green-primary/10 border border-green-primary/30 rounded font-mono text-xs font-semibold text-green-primary hover:bg-green-primary/20 transition-all disabled:opacity-50"
+                  className={isPro
+                    ? "btn-primary-shadow rounded-full bg-[#d97757] px-5 py-2 text-[13px] font-semibold text-[#faf9f5] transition-all hover:bg-[#c06848] disabled:opacity-50"
+                    : "px-3 py-1.5 bg-green-primary/10 border border-green-primary/30 rounded font-mono text-xs font-semibold text-green-primary hover:bg-green-primary/20 transition-all disabled:opacity-50"
+                  }
                 >
                   {isPending ? "..." : "Subscribe"}
                 </button>
               </div>
               {newsletterStatus !== "idle" && (
-                <p className={`mt-1.5 font-mono text-[10px] ${newsletterStatus === "success" ? "text-green-primary" : "text-red"}`}>
+                <p className={isPro
+                  ? `mt-2 text-[11px] ${newsletterStatus === "success" ? "text-[#788c5d]" : "text-[#b85a3e]"}`
+                  : `mt-1.5 font-mono text-[10px] ${newsletterStatus === "success" ? "text-green-primary" : "text-red"}`}>
                   {newsletterMsg}
                 </p>
               )}
@@ -212,6 +226,17 @@ export function Footer() {
                 : "$ exit"}
             </span>
           )}
+
+          {/* Discrete skin toggle — the only place the dev skin can be turned on */}
+          <button
+            type="button"
+            onClick={() => setSkin(isPro ? "dev" : "pro")}
+            className="cursor-pointer font-mono text-[11px] text-text-dim/40 transition-colors hover:text-text-dim"
+            title={isPro ? "Switch to developer skin" : "Switch to professional skin"}
+            aria-label={isPro ? "Switch to developer skin" : "Switch to professional skin"}
+          >
+            {isPro ? ">_ dev" : "◆ pro"}
+          </button>
         </div>
       </div>
     </footer>
