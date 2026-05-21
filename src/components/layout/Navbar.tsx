@@ -9,6 +9,7 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
+import { NavDropdown } from "./NavDropdown";
 import { useSkin } from "@/contexts/SkinContext";
 
 const CommandPalette = dynamic(
@@ -125,6 +126,9 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden items-center gap-1 md:flex">
             {NAV_LINKS.map((link) => {
+              if (link.children && link.children.length > 0) {
+                return <NavDropdown key={link.label} item={link} />;
+              }
               const isActive = pathname === link.href;
               return (
                 <Link

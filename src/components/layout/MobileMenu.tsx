@@ -106,10 +106,70 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </div>
           )}
 
-          {/* Navigation links */}
-          <nav className="flex flex-col gap-1 p-6" aria-label="Mobile navigation">
+          {/* Navigation links — flat for items without children, section + indented sub-items for grouped */}
+          <nav className="flex flex-col gap-1 overflow-y-auto p-6" aria-label="Mobile navigation">
             {NAV_LINKS.map((link, index) => {
-              const isActive = pathname === link.href;
+              const hasChildren = link.children && link.children.length > 0;
+              const isActive =
+                pathname === link.href ||
+                (hasChildren &&
+                  link.children!.some(
+                    (c) => pathname === c.href || pathname.startsWith(c.href + "/"),
+                  ));
+
+              if (hasChildren) {
+                return (
+                  <motion.div
+                    key={link.label}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="mb-2"
+                  >
+                    <div
+                      className={cn(
+                        "px-1 pt-3 pb-1 text-[11px] font-medium uppercase tracking-[0.16em]",
+                        isPro ? "text-[#9a9890]" : "font-mono text-text-dim",
+                      )}
+                    >
+                      {!isPro && <span className="text-green-dim" aria-hidden="true">{"// "}</span>}
+                      {link.label}
+                    </div>
+                    <ul className="flex flex-col">
+                      {link.children!.map((child) => {
+                        const childActive =
+                          pathname === child.href ||
+                          pathname.startsWith(child.href + "/");
+                        return (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              onClick={onClose}
+                              className={cn(
+                                "block py-2.5 pl-3 text-base transition-colors",
+                                isPro ? "font-medium" : "font-mono",
+                                childActive
+                                  ? isPro
+                                    ? "text-[#d97757]"
+                                    : "text-green-primary"
+                                  : "text-text-secondary hover:text-text-primary",
+                              )}
+                            >
+                              {!isPro && (
+                                <span className="text-green-dim" aria-hidden="true">
+                                  &gt;{" "}
+                                </span>
+                              )}
+                              {isPro ? child.label : child.label.toUpperCase()}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </motion.div>
+                );
+              }
+
               return (
                 <motion.div
                   key={link.href}
@@ -124,8 +184,10 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       "block py-3 text-lg transition-colors",
                       isPro ? "font-medium" : "font-mono",
                       isActive
-                        ? isPro ? "text-[#d97757]" : "text-green-primary"
-                        : "text-text-secondary hover:text-text-primary"
+                        ? isPro
+                          ? "text-[#d97757]"
+                          : "text-green-primary"
+                        : "text-text-secondary hover:text-text-primary",
                     )}
                   >
                     {!isPro && <span className="text-green-dim" aria-hidden="true">&gt; </span>}
