@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // Unsplash — used for placeholder gallery photos during seed; remove
+      // once real meetup photos are uploaded to Supabase Storage.
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },

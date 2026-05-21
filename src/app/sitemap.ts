@@ -1,13 +1,15 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getCommunitySubmissions } from "@/lib/data";
+import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues } from "@/lib/data";
 
 const BASE_URL = "https://www.claudekenya.org";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData] = await Promise.all([
+  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     getCommunitySubmissions().catch(() => ({ items: [] })),
+    getGalleryPhotos({ limit: 1 }).catch(() => [] as { id: string }[]),
+    getNewsletterIssues().catch(() => []),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -16,6 +18,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/events`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/projects`, changeFrequency: "weekly", priority: 0.8 },
+    // Only list /gallery if there are photos — otherwise it's a thin page.
+    ...(galleryPhotos.length > 0
+      ? [{ url: `${BASE_URL}/gallery`, changeFrequency: "weekly" as const, priority: 0.7 }]
+      : []),
     { url: `${BASE_URL}/community`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/join`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/resources`, changeFrequency: "monthly", priority: 0.8 },
@@ -34,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/community/submit`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE_URL}/newsletter`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/signup`, changeFrequency: "yearly", priority: 0.6 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
     // NOTE: /login, /forgot-password, /reset-password, /verify-email,
@@ -61,5 +68,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes];
+  const newsletterRoutes: MetadataRoute.Sitemap = newsletterIssues.map((issue) => ({
+    url: `${BASE_URL}/newsletter/${issue.slug}`,
+    lastModified: issue.publishedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...newsletterRoutes];
 }

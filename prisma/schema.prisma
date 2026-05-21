@@ -293,7 +293,38 @@ model Event {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  photos          MeetupPhoto[]
+
   @@map("events")
+}
+
+// ─── Meetup Photos ───────────────────────────────────────────────────────────
+
+model MeetupPhoto {
+  id            String   @id @default(cuid())
+  // Optional FK — photos without an event are "community life" general shots
+  // surfaced on the /gallery aggregator landing.
+  eventId       String?
+  url           String
+  thumbnailUrl  String?
+  alt           String?  @db.Text
+  caption       String?  @db.Text
+  photographer  String?
+  /// Curated "best of" filter — shown first on /gallery and used for
+  /// the homepage social proof if we ever want a "wall of community".
+  featured      Boolean  @default(false)
+  /// Manual display order within an event album. Lower = earlier.
+  order         Int      @default(0)
+  takenAt       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([featured])
+  @@index([order])
+  @@map("meetup_photos")
 }
 
 // ─── Blog Posts ──────────────────────────────────────────────────────────────
@@ -322,6 +353,7 @@ model BlogPost {
 
 // ─── Projects ────────────────────────────────────────────────────────────────
 
+// TODO: admin UI for setting POTW
 model Project {
   id          String   @id @default(cuid())
   name        String
@@ -335,9 +367,13 @@ model Project {
   audiences    Audience[] @default([])
   contactName  String?
   contactEmail String?
+  /// When this project held the "Project of the Week" slot. NULL = never.
+  /// Latest non-null value across all projects is the current pick.
+  potwAt       DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@index([potwAt])
   @@map("projects")
 }
 
@@ -553,4 +589,28 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@map("newsletter_subscribers")
+}
+
+enum NewsletterStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model NewsletterIssue {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  number      Int              @unique // Issue #1, #2, ...
+  title       String
+  subject     String           // The email subject line we sent
+  excerpt     String           @db.Text
+  body        String           @db.Text // Markdown body
+  publishedAt DateTime
+  /// Soft-publish gate so drafts aren't visible.
+  status      NewsletterStatus @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([publishedAt])
+  @@index([status])
+  @@map("newsletter_issues")
 }

@@ -9,7 +9,8 @@ import { TerminalWindow, ScrollReveal } from "@/components/terminal";
 import { useSkin } from "@/contexts/SkinContext";
 import { formatDate } from "@/lib/utils";
 import type { Event } from "@/lib/types";
-import type { DemoRequestView } from "@/lib/data";
+import type { DemoRequestView, PhotoView } from "@/lib/data";
+import { EventPhotoStrip } from "./EventPhotoStrip";
 import {
   Calendar,
   Clock,
@@ -66,6 +67,7 @@ interface EventDetailContentProps {
   eventUrl: string;
   twitterShareUrl: string;
   linkedInShareUrl: string;
+  photos?: PhotoView[];
 }
 
 export function EventDetailContent({
@@ -77,6 +79,7 @@ export function EventDetailContent({
   eventUrl,
   twitterShareUrl,
   linkedInShareUrl,
+  photos = [],
 }: EventDetailContentProps) {
   const { skin } = useSkin();
   const isPro = skin === "pro";
@@ -430,6 +433,15 @@ export function EventDetailContent({
             )}
           </section>
         )}
+
+      {/* Photos from this event */}
+      {photos.length > 0 && (
+        <ScrollReveal delay={120}>
+          <section className="mb-10" aria-labelledby="event-photos-heading">
+            <EventPhotoStrip photos={photos} eventSlug={event.slug} />
+          </section>
+        </ScrollReveal>
+      )}
 
       {/* Scheduled Demos */}
       {approvedDemos.length > 0 && (
