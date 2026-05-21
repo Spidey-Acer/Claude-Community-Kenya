@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: "Courses & Learning Paths | Claude Community Kenya",
   description:
     "Free structured courses from Anthropic covering API fundamentals, prompt engineering, real-world prompting, evaluations, and tool use.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/resources/courses",
+  },
   openGraph: {
     title: "Courses & Learning Paths | Claude Community Kenya",
     description:

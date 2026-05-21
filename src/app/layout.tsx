@@ -107,6 +107,7 @@ export const metadata: Metadata = {
     title: "Claude Community Kenya",
     description:
       "Kenya's official Anthropic developer community — building, learning, and shipping with Claude.",
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
@@ -119,7 +120,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "Claude Community Kenya",
   url: "https://www.claudekenya.org",
-  logo: "https://www.claudekenya.org/logo.svg",
+  logo: "https://www.claudekenya.org/images/cck-logo.webp",
   description:
     "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   sameAs: [

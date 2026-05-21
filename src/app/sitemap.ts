@@ -34,9 +34,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/community/submit`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/login`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/signup`, changeFrequency: "yearly", priority: 0.6 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
+    // NOTE: /login, /forgot-password, /reset-password, /verify-email,
+    // /account/* deliberately omitted — auth/account pages should not be
+    // indexed; the corresponding pages also export `robots: { index: false }`.
   ];
 
   const eventRoutes: MetadataRoute.Sitemap = events.map((event) => ({
