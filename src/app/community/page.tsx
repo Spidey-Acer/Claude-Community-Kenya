@@ -1,12 +1,10 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { ScrollReveal } from "@/components/terminal"
 import { CommunityResourceCard } from "@/components/sections/CommunityResourceCard"
 import { getCommunitySubmissions } from "@/lib/data"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { CommunityFilters } from "./CommunityFilters"
-import { PersonaHeading } from "@/components/persona/PersonaHeading"
-import { PersonaText } from "@/components/persona/PersonaText"
+import { CommunityHeader, CommunityEmpty, CommunityCountChip } from "./CommunityHeader"
 
 export const revalidate = 1800
 
@@ -43,29 +41,7 @@ export default async function CommunityPage({
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Community Hub" }]} />
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <ScrollReveal>
-          <section className="mb-12">
-            <PersonaHeading
-              page="community"
-              section="hero"
-              as="h1"
-              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-            />
-            <PersonaText
-              page="community"
-              section="hero"
-              field="subtitle"
-              className="max-w-2xl font-sans text-lg text-text-secondary"
-            />
-            <Link
-              href="/community/submit"
-              className="mt-6 inline-flex items-center gap-2 border border-green-primary bg-green-primary/10 px-6 py-3 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
-            >
-              <span aria-hidden="true">&gt;</span>
-              Submit a Resource
-            </Link>
-          </section>
-        </ScrollReveal>
+        <CommunityHeader />
 
         {/* Filters */}
         <ScrollReveal delay={100}>
@@ -74,9 +50,7 @@ export default async function CommunityPage({
 
         {/* Results count */}
         <ScrollReveal delay={150}>
-          <p className="mb-6 font-mono text-xs text-text-dim">
-            {total} {total === 1 ? "resource" : "resources"} found
-          </p>
+          <CommunityCountChip total={total} />
         </ScrollReveal>
 
         {/* Grid */}
@@ -91,17 +65,7 @@ export default async function CommunityPage({
           </ScrollReveal>
         ) : (
           <ScrollReveal>
-            <div className="rounded border border-border-default bg-bg-card p-8 text-center">
-              <p className="font-mono text-sm text-text-dim">
-                No resources found{type ? ` for type "${type}"` : ""}.
-              </p>
-              <Link
-                href="/community/submit"
-                className="mt-4 inline-block font-mono text-sm text-green-primary hover:text-amber transition-colors"
-              >
-                Be the first to submit one &rarr;
-              </Link>
-            </div>
+            <CommunityEmpty type={type} />
           </ScrollReveal>
         )}
       </div>
