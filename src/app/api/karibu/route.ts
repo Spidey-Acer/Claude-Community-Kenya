@@ -145,7 +145,12 @@ export async function POST(req: NextRequest) {
     const result = streamText({
       model: anthropic("claude-haiku-4-5-20251001"),
       system: systemPrompt,
-      messages: await convertToModelMessages(body.messages),
+      // Pass the Zod-validated messages — not raw body.messages — so the
+      // `role` field is constrained to "user"|"assistant"|"system". The Zod
+      // schema uses `.passthrough()` so all UIMessage fields are preserved.
+      messages: await convertToModelMessages(
+        parsed.data.messages as Parameters<typeof convertToModelMessages>[0],
+      ),
       maxOutputTokens: 1500,
       tools: {
         record_visitor: tool({

@@ -5,12 +5,23 @@ interface KaribuContextData {
   topResources: Array<{ title: string; audiences: string[] }>;
 }
 
+// Module-level cache. Karibu context only changes when events or blog posts
+// are added — refreshing every 5 minutes is plenty for an onboarding chat.
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedContext: { data: KaribuContextData; expiresAt: number } | null = null;
+
 /**
  * Fetches live CCK data to inject into the Karibu system prompt.
  * Pulls up to 5 upcoming events and 5 published blog posts so Claude
  * can give real, non-hallucinated recommendations during onboarding.
+ * Cached for 5 minutes to avoid hitting the DB on every onboarding request.
  */
 async function fetchKaribuContext(): Promise<KaribuContextData> {
+  const now = Date.now();
+  if (cachedContext && cachedContext.expiresAt > now) {
+    return cachedContext.data;
+  }
+
   const [events, resources] = await Promise.all([
     prisma.event.findMany({
       where: { date: { gte: new Date() } },
@@ -26,10 +37,12 @@ async function fetchKaribuContext(): Promise<KaribuContextData> {
     }),
   ]);
 
-  return {
+  const data = {
     upcomingEvents: events,
     topResources: resources.map((r) => ({ title: r.title, audiences: r.audiences ?? [] })),
   };
+  cachedContext = { data, expiresAt: now + CACHE_TTL_MS };
+  return data;
 }
 
 /**
