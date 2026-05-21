@@ -1,8 +1,14 @@
 import type { FormAction, FormState } from "./types";
 
 let lineIdCounter = 0;
+// Random session prefix survives HMR resets — without it, hot-reload could
+// restart lineIdCounter and produce a collision with already-rendered lines.
+const SESSION_PREFIX =
+  typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID
+    ? globalThis.crypto.randomUUID().slice(0, 8)
+    : Math.random().toString(36).slice(2, 10);
 export function uid(): string {
-  return `line-${++lineIdCounter}-${Date.now()}`;
+  return `line-${SESSION_PREFIX}-${++lineIdCounter}`;
 }
 
 export function buildProgressBar(percent: number): string {

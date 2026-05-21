@@ -37,10 +37,15 @@ export function KaribuModal() {
   }, [open]);
 
   function handleSkip() {
-    void fetch("/api/karibu/skip", {
+    // Best-effort persist of the skip — if it fails we still close the modal
+    // for this visit. The server will re-show it on next page load if the
+    // visitor's cookie/DB record wasn't updated, which is the safe fallback.
+    fetch("/api/karibu/skip", {
       method: "POST",
       body: "{}",
       headers: { "Content-Type": "application/json" },
+    }).catch((err) => {
+      console.error("[karibu] skip persist failed:", err);
     });
     setExiting(true);
     setTimeout(() => {

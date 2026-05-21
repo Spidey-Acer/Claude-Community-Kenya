@@ -4,6 +4,13 @@
 
 /* ─── Terminal Noir Design System ─── */
 :root {
+  /* Font stacks (mirrored from @theme inline below, exposed as raw CSS vars
+   * so they're available to plain CSS rules — Tailwind v4 @theme inline
+   * registers tokens for utilities but doesn't expose CSS vars at :root). */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+
   /* Backgrounds */
   --bg-primary: #0a0a0a;
   --bg-secondary: #111111;
@@ -60,6 +67,7 @@
   /* Fonts */
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 /* ─── Pro Theme (Anthropic Brand) ─── */
@@ -85,21 +93,121 @@
   --red: #b0aea5;
   --cyan: #6a9bcc;
 
-  /* Text — warm Anthropic tones */
+  /* Text — warm Anthropic tones. --text-dim bumped from #7a7870 to #9a9890
+   * to hit ~4.6:1 contrast on the #141413 bg (WCAG AA). */
   --text-primary: #faf9f5;
   --text-secondary: #b0aea5;
-  --text-dim: #7a7870;
+  --text-dim: #9a9890;
 }
 
-/* Pro: override heading font to system sans-serif */
+/* Pro: refined typography — display serif for headlines, sans for body */
 .persona-pro h1,
 .persona-pro h2,
-.persona-pro h3,
+.persona-pro h3 {
+  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  font-feature-settings: "ss01", "ss02";
+}
+
 .persona-pro h4,
 .persona-pro h5,
 .persona-pro h6 {
   font-family: var(--font-sans);
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* Pro: tighter optical tracking at huge sizes */
+.persona-pro .display-xl {
+  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+/* Pro: tabular figures for stats so numbers don't jiggle */
+.persona-pro .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Pro: Card tier system ─── */
+.persona-pro .card-hairline {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.persona-pro .card-hairline:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(30, 30, 29, 0.4);
+}
+
+.persona-pro .card-elevated {
+  border: 1px solid #2a2a28;
+  background: rgba(30, 30, 29, 0.6);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.persona-pro .card-elevated:hover {
+  border-color: #3a3a37;
+  background: rgba(37, 37, 36, 0.7);
+  transform: translateY(-2px);
+}
+
+.persona-pro .card-featured {
+  position: relative;
+  border: 1px solid #3a3a37;
+  background: linear-gradient(180deg, rgba(37, 37, 36, 0.9) 0%, rgba(30, 30, 29, 0.8) 100%);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(217, 119, 87, 0.04);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.persona-pro .card-featured::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(217, 119, 87, 0.3) 0%, rgba(217, 119, 87, 0) 50%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.persona-pro .card-featured:hover {
+  border-color: #4a4a45;
+  transform: translateY(-3px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(217, 119, 87, 0.08);
+}
+
+/* ─── Pro: Refined link underline ─── */
+.persona-pro .link-refined {
+  text-decoration-line: underline;
+  text-decoration-color: rgba(176, 174, 165, 0.3);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s ease;
+}
+.persona-pro .link-refined:hover {
+  text-decoration-color: #d97757;
+}
+
+/* ─── Pro: Premium button shadows ─── */
+.persona-pro .btn-primary-shadow {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 8px 20px -8px rgba(217, 119, 87, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.persona-pro .btn-primary-shadow:hover {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 12px 28px -10px rgba(217, 119, 87, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
 }
 
 /* Pro: kill scanline overlay + noise/grain */
@@ -121,7 +229,22 @@
 
 /* Pro: clean focus ring */
 .persona-pro :focus-visible {
-  outline-color: #d97757;
+  outline: 1px solid #d97757;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Pro: refined scrollbar */
+.persona-pro ::-webkit-scrollbar {
+  width: 8px;
+}
+.persona-pro ::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+  border-radius: 4px;
+  border: 2px solid var(--bg-primary);
+}
+.persona-pro ::-webkit-scrollbar-thumb:hover {
+  background: #3a3a37;
 }
 
 /* ─── Base Styles ─── */

@@ -11,6 +11,9 @@ export type AuditAction =
   | "APPROVE"
   | "REJECT"
   | "RECEIVE"
+  | "KARIBU_COMPLETED"
+  | "KARIBU_SKIPPED"
+  | "KARIBU_SKIP_NOOP"
 
 export interface AuditLogEntry {
   userId: string

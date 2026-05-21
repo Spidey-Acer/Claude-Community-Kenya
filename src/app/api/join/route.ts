@@ -54,15 +54,21 @@ export async function POST(request: NextRequest) {
   const data = validation.data
 
   try {
-    // Check for duplicate email
+    // Dedup by email to avoid duplicate submissions, but DON'T leak account
+    // existence — both first-submission and re-submission return the same
+    // success-shaped response.
     const existing = await prisma.joinApplication.findFirst({
       where: { email: data.email },
       orderBy: { createdAt: "desc" },
+      select: { id: true },
     })
     if (existing) {
       return NextResponse.json(
-        { success: false, error: "An application with this email already exists." },
-        { status: 409 }
+        {
+          success: true,
+          message: "Application received! Check your email for next steps.",
+        },
+        { status: 200 }
       )
     }
 
@@ -99,7 +105,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    await sendJoinApplicationNotification({ name: data.name, email: data.email }).catch(console.error)
+    await sendJoinApplicationNotification({
+      name: data.name,
+      email: data.email,
+      audience: karibuData?.karibuAudience ?? null,
+    }).catch(console.error)
 
     return NextResponse.json(
       {

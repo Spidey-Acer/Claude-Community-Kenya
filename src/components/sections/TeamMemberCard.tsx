@@ -46,7 +46,7 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
                 className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border"
                 style={{ borderColor: "rgba(217,119,87,0.3)" }}
               >
-                <Image src={member.avatar} alt={member.name} fill className="object-cover" />
+                <Image src={member.avatar} alt={member.name} fill sizes="56px" className="object-cover" />
               </div>
             ) : (
               <div
@@ -173,6 +173,7 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
                 src={member.avatar}
                 alt={member.name}
                 fill
+                sizes="56px"
                 className="object-cover"
               />
             </div>

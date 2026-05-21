@@ -56,3 +56,6 @@ next-env.d.ts
 # Claude Code internals
 .superpowers/
 .claude/worktrees/
+
+# Local scratch / dev screenshots
+.tmp/

@@ -81,12 +81,12 @@ export default async function DashboardPage() {
   const nextEvent = upcomingEvents[0];
 
   return (
-    <main className="min-h-screen bg-bg-primary pt-24 pb-20">
+    <main className="min-h-screen bg-bg-primary pt-24 pb-24">
       <div className="mx-auto max-w-5xl px-4">
         {/* Header */}
-        <header className="mb-10 flex flex-wrap items-start justify-between gap-4">
+        <header className="mb-10 flex flex-wrap items-start justify-between gap-4 border-b border-border-default/60 pb-8">
           <div>
-            <p className="font-mono text-xs uppercase tracking-wider text-green-primary mb-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-green-primary mb-2">
               $ whoami
             </p>
             <h1 className="font-mono text-3xl font-bold text-text-primary sm:text-4xl">
@@ -94,6 +94,7 @@ export default async function DashboardPage() {
             </h1>
             <p className="mt-2 font-mono text-sm text-text-dim">
               {user.email} &middot; member since {formatJoinDate(user.createdAt)}
+              {role ? ` · ${role.toLowerCase().replace("_", " ")}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -240,18 +241,37 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        {/* Footer note */}
-        <footer className="mt-12 border-t border-border-default pt-6">
-          <p className="font-mono text-xs text-text-dim">
-            // Member features in progress: saved events, 2FA for admins.
-            <br />
-            Have an idea?{" "}
-            <Link href="/submit-idea" className="text-green-primary hover:underline">
-              Tell us
-            </Link>
-            .
+        {/* Inline footer card — professional, scoped to dashboard */}
+        <section className="mt-12" aria-label="Dashboard notes">
+          <div className="grid gap-3 rounded-lg border border-border-default bg-bg-secondary/60 p-5 sm:grid-cols-2">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim mb-1">
+                // roadmap
+              </p>
+              <p className="font-mono text-xs text-text-secondary leading-relaxed">
+                Member features in progress: saved events, 2FA for admins, and
+                a richer activity feed.
+              </p>
+            </div>
+            <div className="sm:text-right">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim mb-1">
+                // feedback
+              </p>
+              <p className="font-mono text-xs text-text-secondary leading-relaxed">
+                Have an idea?{" "}
+                <Link
+                  href="/submit-idea"
+                  className="text-green-primary hover:underline"
+                >
+                  Tell us &rarr;
+                </Link>
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim">
+            Claude Community Kenya &middot; member workspace
           </p>
-        </footer>
+        </section>
       </div>
     </main>
   );

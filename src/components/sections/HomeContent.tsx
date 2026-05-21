@@ -10,6 +10,7 @@ import type { ProjectView } from "@/lib/data";
 import type { AudienceState } from "@/contexts/AudienceContext";
 import type { Recommendable } from "@/lib/recommendations";
 import { PersonalizedHero } from "@/components/sections/PersonalizedHero";
+import { SocialProofRail } from "@/components/sections/SocialProofRail";
 import { MadeForYou } from "@/components/sections/MadeForYou";
 import { StatsBar } from "@/components/sections/StatsBar";
 import { StatsBarPro } from "@/components/sections/StatsBarPro";
@@ -119,6 +120,9 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
         <PersonalizedHero stats={communityStats} feedItems={feedItems} />
       </section>
 
+      {/* ─── Social Proof Rail ─── Trust signal right after the hero, before any other content. */}
+      {isPro && <SocialProofRail />}
+
       {/* ─── Personalised Recommendations ─── */}
       <MadeForYou audienceState={audienceState} items={recommendables} />
 
@@ -132,31 +136,65 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       </section>
 
       {/* ─── Next Event Highlight ─── */}
-      {upcomingEvents.length > 0 && (
+      {upcomingEvents.length > 0 && (() => {
+        const nextEvent = upcomingEvents[0];
+        const parsed = new Date(nextEvent.date);
+        const daysUntil = !Number.isNaN(parsed.getTime())
+          ? Math.ceil((parsed.setHours(23, 59, 59) - Date.now()) / 86400000)
+          : null;
+        let urgency: string | null = null;
+        let urgencyTone: "hot" | "warm" | "cool" = "cool";
+        if (nextEvent.status === "sold-out") {
+          urgency = "Sold out · Get notified for the next one";
+          urgencyTone = "hot";
+        } else if (daysUntil !== null && daysUntil >= 0) {
+          if (daysUntil === 0) { urgency = "Today"; urgencyTone = "hot"; }
+          else if (daysUntil === 1) { urgency = "Tomorrow"; urgencyTone = "hot"; }
+          else if (daysUntil <= 7) { urgency = `In ${daysUntil} days`; urgencyTone = "warm"; }
+          else if (daysUntil <= 30) { urgency = `${daysUntil} days away`; urgencyTone = "cool"; }
+        }
+        const urgencyClass =
+          urgencyTone === "hot"
+            ? "bg-[#d97757]/15 text-[#d97757] border-[#d97757]/40"
+            : urgencyTone === "warm"
+              ? "bg-[#d97757]/10 text-[#e89576] border-[#d97757]/25"
+              : "bg-[#252524] text-[#b0aea5] border-[#3a3a37]";
+
+        return (
         <section className="mx-auto max-w-6xl px-4 pb-8 md:pb-12" aria-label="Next event">
           {isPro ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <Link
-                href={`/events/${upcomingEvents[0].slug}`}
-                className="group flex flex-col items-center gap-6 overflow-hidden rounded-2xl border border-[#2a2a28] bg-[#1e1e1d]/80 p-8 backdrop-blur-sm transition-all duration-300 hover:border-[#3a3a37] hover:-translate-y-0.5 sm:flex-row"
+                href={`/events/${nextEvent.slug}`}
+                className="card-elevated group flex flex-col items-center gap-6 overflow-hidden rounded-2xl p-8 sm:flex-row"
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d97757]/20 to-[#6a9bcc]/20 border border-[#3a3a37]">
                   <Calendar className="h-6 w-6 text-[#d97757]" />
                 </div>
                 <div className="flex-1 text-center sm:text-left">
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[#7a7870]">
-                    Next Event
-                  </p>
+                  <div className="mb-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                    <span className="text-xs font-medium uppercase tracking-wider text-[#7a7870]">
+                      Next Event
+                    </span>
+                    {urgency && (
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${urgencyClass}`}>
+                        {urgencyTone === "hot" && (
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                        )}
+                        {urgency}
+                      </span>
+                    )}
+                  </div>
                   <h3 className="mb-1 text-lg font-semibold text-[#faf9f5] group-hover:text-[#d97757] transition-colors">
-                    {upcomingEvents[0].title}
+                    {nextEvent.title}
                   </h3>
                   <p className="text-sm text-[#b0aea5]">
-                    {upcomingEvents[0].date} · {upcomingEvents[0].time} · {upcomingEvents[0].venue}
+                    {nextEvent.date} · {nextEvent.time} · {nextEvent.venue}
                   </p>
                 </div>
                 <span className="shrink-0 text-sm text-zinc-600 transition-colors group-hover:text-[#b0aea5]">
@@ -190,7 +228,8 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
             </ScrollReveal>
           )}
         </section>
-      )}
+        );
+      })()}
 
       {/* ─── Featured Events ─── */}
       <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20" aria-label="Upcoming events">
@@ -511,6 +550,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
                   alt="Anthropic"
                   width={220}
                   height={60}
+                  style={{ width: "220px", height: "auto" }}
                   className="brightness-0 invert transition-all duration-500"
                 />
               </div>

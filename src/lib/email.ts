@@ -198,15 +198,61 @@ export async function sendProjectSubmissionNotification(data: {
   return adminSent
 }
 
+type KaribuAudience = "dev" | "non_tech_pro" | "student" | "founder" | "creator"
+
+const AUDIENCE_WELCOME_COPY: Record<KaribuAudience, { subject: string; opening: string; closing: string }> = {
+  dev: {
+    subject: "You're in — welcome from the CCK devs",
+    opening:
+      "Glad to have another builder. CCK's developer track runs hands-on workshops on Claude Code, agentic patterns, and shipping AI into production. The next thing you'll want is our Discord — the #dev-chat channel is where most of the real work happens.",
+    closing: "Show up to a meetup, share what you're building, and don't be shy about asking sharp questions.",
+  },
+  non_tech_pro: {
+    subject: "Welcome — Claude for the work you actually do",
+    opening:
+      "You don't need to be an engineer to get real leverage from Claude. CCK runs workshops aimed at marketers, lawyers, ops folks, and consultants who want to make Claude part of their daily workflow — without learning to code.",
+    closing: "Our Discord is friendly to people from all backgrounds. Pop in, say hi, and tell us what you're trying to do.",
+  },
+  student: {
+    subject: "Welcome to CCK — built for Kenyan students",
+    opening:
+      "We're glad you found us. CCK runs free meetups, study groups, and university sessions across Nairobi and Mombasa. Whether you've never written a line of code or you're already deep in side projects, there's a place for you here.",
+    closing: "Join the WhatsApp group and the Discord — that's where peers and mentors hang out between events.",
+  },
+  founder: {
+    subject: "Welcome — let's build your AI company in Nairobi",
+    opening:
+      "CCK is where the people building AI-native companies in Kenya find each other. Expect founder dinners, technical deep-dives that translate to product decisions, and intros to investors and operators thinking about the same things you are.",
+    closing: "Join the Discord and watch for the next founder event — that's usually where the most useful conversations start.",
+  },
+  creator: {
+    subject: "Welcome — better stories with Claude",
+    opening:
+      "Writers, journalists, teachers, and educators are a fast-growing part of CCK. We run sessions on using Claude to amplify your work without losing your voice — drafting, research, lesson design, editing flows.",
+    closing: "Hop into the Discord and share what you're working on — the community loves seeing real creative work.",
+  },
+}
+
+const GENERIC_WELCOME = {
+  subject: "Application Received — Claude Community Kenya",
+  opening:
+    "Your application has been received. We'll review it and add you to the community shortly. While you wait, the Discord is the fastest way to start meeting people.",
+  closing: "See you in there.",
+}
+
 export async function sendJoinApplicationNotification(data: {
   name: string
   email: string
+  audience?: KaribuAudience | null
 }): Promise<boolean> {
+  const copy = data.audience ? AUDIENCE_WELCOME_COPY[data.audience] : GENERIC_WELCOME
+
   const adminHtml = `
     <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
       <h2 style="color:#00ff41;">New Join Application</h2>
       <p><strong>Name:</strong> ${esc(data.name)}</p>
       <p><strong>Email:</strong> ${esc(data.email)}</p>
+      ${data.audience ? `<p><strong>Audience (from Karibu):</strong> ${esc(data.audience)}</p>` : ""}
       <p><a href="${APP_URL}/admin/applications" style="color:#00ff41;">Review in Admin Dashboard →</a></p>
     </div>
   `
@@ -214,21 +260,23 @@ export async function sendJoinApplicationNotification(data: {
     <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
       <h2 style="color:#00ff41;">Welcome to Claude Community Kenya!</h2>
       <p>Hi ${esc(data.name)},</p>
-      <p>Your application has been received. We'll review it and add you to the community.</p>
-      <p>While you wait, join our Discord for instant access to the community:</p>
-      <p><a href="https://discord.gg/CkD9QWjsHm" style="color:#00ff41;font-size:18px;">Join Discord →</a></p>
+      <p>${esc(copy.opening)}</p>
+      <p style="margin:24px 0;">
+        <a href="https://discord.gg/CkD9QWjsHm" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Join Discord →</a>
+      </p>
+      <p>${esc(copy.closing)}</p>
       <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
     </div>
   `
   const [adminSent] = await Promise.all([
     sendEmail({
       to: EMAIL_TO_ADMIN,
-      subject: `New Join Application: ${data.name}`,
+      subject: `New Join Application: ${data.name}${data.audience ? ` · ${data.audience}` : ""}`,
       html: adminHtml,
     }),
     sendEmail({
       to: data.email,
-      subject: "Application Received — Claude Community Kenya",
+      subject: copy.subject,
       html: applicantHtml,
     }),
   ])

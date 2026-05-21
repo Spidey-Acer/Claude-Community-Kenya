@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: "Advanced Workflows | Claude Community Kenya",
   description:
     "Agentic development patterns, plan mode, git worktrees, and production strategies for building with Claude Code.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/resources/workflows",
+  },
   openGraph: {
     title: "Advanced Workflows | Claude Community Kenya",
     description:

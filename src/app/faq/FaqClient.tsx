@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { Search, X } from "lucide-react"
 import { Accordion } from "@/components/ui/Accordion"
 import { CommandPrefix } from "@/components/terminal"
+import { useSkin } from "@/contexts/SkinContext"
 import type { FAQ } from "@/data/faq"
 
 interface FaqCategory {
@@ -19,6 +20,8 @@ interface FaqClientProps {
 
 export function FaqClient({ faqs, categories }: FaqClientProps) {
   const [query, setQuery] = useState("")
+  const { skin } = useSkin()
+  const isPro = skin === "pro"
 
   const filtered = useMemo(() => {
     if (!query.trim()) return null
@@ -41,7 +44,7 @@ export function FaqClient({ faqs, categories }: FaqClientProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search questions..."
-            className="w-full bg-bg-card border border-border-default rounded px-9 py-3 font-mono text-sm text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
+            className={`w-full bg-bg-card border border-border-default rounded px-9 py-3 text-sm text-text-primary placeholder:text-text-dim focus:outline-none transition-colors ${isPro ? "focus:border-[#d97757]/60 focus:ring-1 focus:ring-[#d97757]/30" : "font-mono focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20"}`}
             aria-label="Search FAQ"
           />
           {query && (

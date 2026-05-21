@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "Getting Started with Claude | Claude Community Kenya",
   description:
     "New to Claude? Learn what Claude is, explore its products, and get started building in minutes.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/resources/getting-started",
+  },
   openGraph: {
     title: "Getting Started with Claude | Claude Community Kenya",
     description:

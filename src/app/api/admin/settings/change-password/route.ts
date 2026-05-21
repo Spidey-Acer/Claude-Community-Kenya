@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
+import { rateLimit, RateLimits } from "@/lib/rate-limit"
 
 const schema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -11,11 +13,22 @@ const schema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const session = await auth()
   if (!session?.user?.email) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
+    )
+  }
+
+  const rateLimitResult = await rateLimit(request, RateLimits.PASSWORD_RESET)
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitResult.headers }
     )
   }
 

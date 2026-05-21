@@ -33,18 +33,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
           const { email, password } = parsedCredentials.data
 
-          console.log("[auth] Attempting login for:", email)
-
           const prisma = await getPrisma()
-          console.log("[auth] Prisma client loaded")
-
           const user = await prisma.user.findUnique({ where: { email } })
-          console.log("[auth] User lookup result:", user ? "found" : "not found")
 
           if (!user || !user.active) return null
 
           const passwordMatch = await bcrypt.compare(password, user.passwordHash)
-          console.log("[auth] Password match:", passwordMatch)
 
           if (!passwordMatch) return null
 
