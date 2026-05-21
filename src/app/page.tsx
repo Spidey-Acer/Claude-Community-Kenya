@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { FeedItem } from "@/components/sections/HeroTerminal";
 import { HomeContent } from "@/components/sections/HomeContent";
-import { getUpcomingEvents, getFeaturedProjects, getBlogPosts, getCommunitySubmissions } from "@/lib/data";
+import { getUpcomingEvents, getFeaturedProjects, getBlogPosts, getCommunitySubmissions, getProjectOfTheWeek } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -32,12 +32,13 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [upcomingEvents, featuredProjects, siteSettings, blogPosts, communityData] = await Promise.all([
+  const [upcomingEvents, featuredProjects, siteSettings, blogPosts, communityData, projectOfTheWeek] = await Promise.all([
     getUpcomingEvents().catch(() => []),
     getFeaturedProjects().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getBlogPosts().catch(() => []),
     getCommunitySubmissions({ limit: 5, sort: "recent" }).catch(() => ({ items: [], total: 0 })),
+    getProjectOfTheWeek().catch(() => null),
   ]);
 
   // Build activity feed for hero terminal — interleave blogs, community, projects
@@ -156,6 +157,7 @@ export default async function Home() {
       featuredProjects={featuredProjects}
       audienceState={audienceState}
       recommendables={recommendables}
+      projectOfTheWeek={projectOfTheWeek}
     />
   );
 }
