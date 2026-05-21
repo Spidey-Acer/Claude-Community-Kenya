@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useSkin } from "@/contexts/SkinContext"
 
 const TYPES = [
   { key: "", label: "All" },
@@ -24,6 +25,8 @@ interface CommunityFiltersProps {
 export function CommunityFilters({ activeType, activeSort }: CommunityFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { skin } = useSkin()
+  const isPro = skin === "pro"
 
   function updateParams(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -44,10 +47,16 @@ export function CommunityFilters({ activeType, activeSort }: CommunityFiltersPro
             key={t.key}
             onClick={() => updateParams("type", t.key)}
             className={cn(
-              "shrink-0 border px-4 py-2 font-mono text-sm transition-all duration-200",
+              isPro
+                ? "shrink-0 rounded-full border px-4 py-1.5 text-[13px] font-medium transition-all duration-200"
+                : "shrink-0 border px-4 py-2 font-mono text-sm transition-all duration-200",
               (activeType ?? "") === t.key
-                ? "border-green-primary text-green-primary bg-green-primary/10"
-                : "border-border-default text-text-dim hover:border-border-hover hover:text-text-secondary"
+                ? isPro
+                  ? "border-[#d97757] bg-[#d97757]/15 text-[#d97757]"
+                  : "border-green-primary text-green-primary bg-green-primary/10"
+                : isPro
+                  ? "border-[#2a2a28] text-[#b0aea5] hover:border-[#3a3a37] hover:text-[#e8e6dc]"
+                  : "border-border-default text-text-dim hover:border-border-hover hover:text-text-secondary"
             )}
             aria-pressed={(activeType ?? "") === t.key}
           >
@@ -63,10 +72,16 @@ export function CommunityFilters({ activeType, activeSort }: CommunityFiltersPro
             key={s.key}
             onClick={() => updateParams("sort", s.key)}
             className={cn(
-              "shrink-0 border px-3 py-1.5 font-mono text-xs transition-all duration-200",
+              isPro
+                ? "shrink-0 rounded-full border px-3 py-1 text-[12px] font-medium transition-all duration-200"
+                : "shrink-0 border px-3 py-1.5 font-mono text-xs transition-all duration-200",
               activeSort === s.key
-                ? "border-amber/50 text-amber bg-amber/10"
-                : "border-border-default text-text-dim hover:border-border-hover hover:text-text-secondary"
+                ? isPro
+                  ? "border-[#3a3a37] bg-[#252524] text-[#e8e6dc]"
+                  : "border-amber/50 text-amber bg-amber/10"
+                : isPro
+                  ? "border-[#2a2a28] text-[#7a7870] hover:border-[#3a3a37] hover:text-[#b0aea5]"
+                  : "border-border-default text-text-dim hover:border-border-hover hover:text-text-secondary"
             )}
             aria-pressed={activeSort === s.key}
           >

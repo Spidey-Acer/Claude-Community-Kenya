@@ -1,5 +1,8 @@
+"use client";
+
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useSkin } from "@/contexts/SkinContext";
 
 interface CardProps {
   title?: string;
@@ -22,6 +25,17 @@ export function Card({
   className,
   padding = "md",
 }: CardProps) {
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
+
+  if (isPro) {
+    return (
+      <div className={cn("card-elevated rounded-2xl", className)}>
+        <div className={paddingMap[padding]}>{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -29,7 +43,6 @@ export function Card({
         className
       )}
     >
-      {/* Title bar */}
       {(showDots || title) && (
         <div className="flex items-center gap-2 border-b border-border-default px-4 py-2.5">
           {showDots && (
@@ -47,7 +60,6 @@ export function Card({
         </div>
       )}
 
-      {/* Content */}
       <div className={paddingMap[padding]}>{children}</div>
     </div>
   );
