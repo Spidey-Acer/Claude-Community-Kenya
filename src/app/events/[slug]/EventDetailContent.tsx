@@ -596,6 +596,67 @@ export function EventDetailContent({
         </ScrollReveal>
       )}
 
+      {/* Seat progress — only when both capacity and attendeeCount set on an upcoming event */}
+      {isActionable && event.capacity && event.attendeeCount !== undefined && event.attendeeCount !== null && (
+        <section className="mb-6" aria-label="Seat availability">
+          {(() => {
+            const taken = Math.min(event.attendeeCount!, event.capacity!)
+            const pct = Math.max(0, Math.min(100, Math.round((taken / event.capacity!) * 100)))
+            const remaining = Math.max(0, event.capacity! - taken)
+            const isFull = remaining === 0
+            const isAlmostFull = !isFull && pct >= 80
+            return isPro ? (
+              <div className="card-elevated rounded-2xl p-5">
+                <div className="mb-2 flex items-center justify-between text-[13px] text-[#b0aea5]">
+                  <span>
+                    <span className="text-[#faf9f5] tabular-nums">{taken}</span>
+                    <span className="text-[#7a7870]"> / </span>
+                    <span className="tabular-nums">{event.capacity}</span>{" "}
+                    seats taken
+                  </span>
+                  <span className={isFull ? "text-[#d97757]" : isAlmostFull ? "text-[#ffb000]" : "text-[#7a7870]"}>
+                    {isFull ? "Sold out" : `${remaining} left`}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2a2a28]">
+                  <div
+                    className="h-full rounded-full bg-[#d97757] transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="border border-border-default bg-bg-secondary/40 p-4 font-mono text-sm">
+                <div className="mb-2 flex items-center justify-between text-text-secondary">
+                  <span>
+                    <span className="text-green-primary tabular-nums">{taken}</span>
+                    <span className="text-text-dim"> / </span>
+                    <span className="tabular-nums">{event.capacity}</span> seats
+                  </span>
+                  <span className={isFull ? "text-red" : isAlmostFull ? "text-amber" : "text-text-dim"}>
+                    {isFull ? "// sold out" : `// ${remaining} left`}
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-bg-elevated">
+                  <div
+                    className="h-full bg-green-primary"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </div>
+            )
+          })()}
+        </section>
+      )}
+
       {/* Registration CTA */}
       {isActionable && event.registrationUrl && (
         <section className="mb-10">

@@ -64,6 +64,7 @@ export default function NewEventPage() {
   const [lumaUrl, setLumaUrl] = useState("")
   const [featured, setFeatured] = useState(false)
   const [attendeeCount, setAttendeeCount] = useState("")
+  const [capacity, setCapacity] = useState("")
   const [posterUrl, setPosterUrl] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [agenda, setAgenda] = useState<string[]>([])
@@ -105,6 +106,9 @@ export default function NewEventPage() {
 
         if (attendeeCount) {
           body.attendeeCount = parseInt(attendeeCount, 10)
+        }
+        if (capacity) {
+          body.capacity = parseInt(capacity, 10)
         }
 
         const res = await fetch("/api/admin/events", {
@@ -184,8 +188,9 @@ export default function NewEventPage() {
               <FieldSelect label="Type" value={type} onChange={setType} options={EVENT_TYPES.map(t => ({ value: t, label: TYPE_LABELS[t] }))} />
               <FieldSelect label="Status" value={status} onChange={setStatus} options={EVENT_STATUSES.map(s => ({ value: s, label: STATUS_LABELS[s] }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FieldInput label="Attendee Count" type="number" value={attendeeCount} onChange={setAttendeeCount} placeholder="Optional" />
+            <div className="grid grid-cols-3 gap-4">
+              <FieldInput label="Attendee Count" type="number" value={attendeeCount} onChange={setAttendeeCount} placeholder="Signed up" />
+              <FieldInput label="Capacity" type="number" value={capacity} onChange={setCapacity} placeholder="Max seats" />
               <div className="flex items-center gap-3 pt-5">
                 <input
                   type="checkbox"

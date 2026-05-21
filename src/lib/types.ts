@@ -26,6 +26,8 @@ export interface Event {
   partnerOrg?: string;
   highlights?: string[];
   attendeeCount?: number;
+  /** Manual seat cap. Pairs with attendeeCount to render "X / Y seats". */
+  capacity?: number;
   posterUrl?: string;
   photosUrl?: string;
   recordingUrl?: string;
