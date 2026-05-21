@@ -281,6 +281,9 @@ model Event {
   highlights      Json?       // String[]
   agenda          Json?       // String[]
   attendeeCount   Int?
+  /// Manual seat cap for the venue. Pair with attendeeCount to render
+  /// "X / Y seats" progress on the event detail. NULL = no cap shown.
+  capacity        Int?
   posterUrl       String?
   photosUrl       String?
   recordingUrl    String?
@@ -381,9 +384,18 @@ model Project {
 
 model TeamMember {
   id        String   @id @default(cuid())
+  /// URL-safe identifier for /team/[slug] pages. Backfilled from name for
+  /// existing rows; required for new rows once admin form requires it.
+  slug      String?  @unique
   name      String
   role      String
   bio       String   @db.Text
+  /// Optional longer bio rendered on the detail page (Markdown).
+  longBio   String?  @db.Text
+  /// City + country, e.g. "Nairobi, Kenya". Surfaces on the team list.
+  location  String?
+  /// One-line headline for the spotlight card, e.g. "Built MkulimaOS".
+  tagline   String?
   linkedIn  String?
   github    String?
   twitter   String?
@@ -391,9 +403,13 @@ model TeamMember {
   avatar    String?
   order     Int      @default(0)
   active    Boolean  @default(true)
+  /// Surface this member at the top of the team list and on homepage spotlight.
+  featured  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([active])
+  @@index([featured])
   @@map("team_members")
 }
 

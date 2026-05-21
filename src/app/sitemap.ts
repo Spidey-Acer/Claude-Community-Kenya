@@ -1,15 +1,16 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues } from "@/lib/data";
+import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues, getTeamMemberSlugs } from "@/lib/data";
 
 const BASE_URL = "https://www.claudekenya.org";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues] = await Promise.all([
+  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     getCommunitySubmissions().catch(() => ({ items: [] })),
     getGalleryPhotos({ limit: 1 }).catch(() => [] as { id: string }[]),
     getNewsletterIssues().catch(() => []),
+    getTeamMemberSlugs().catch(() => [] as string[]),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -41,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/newsletter`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${BASE_URL}/team`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/signup`, changeFrequency: "yearly", priority: 0.6 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
     // NOTE: /login, /forgot-password, /reset-password, /verify-email,
@@ -75,5 +77,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...newsletterRoutes];
+  const teamRoutes: MetadataRoute.Sitemap = teamSlugs.map((slug) => ({
+    url: `${BASE_URL}/team/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...newsletterRoutes, ...teamRoutes];
 }

@@ -44,6 +44,7 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     label: "Community",
     href: "/community",
     children: [
+      { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
       { label: "Projects", href: "/projects", description: "What members are shipping with Claude." },
       { label: "Community Hub", href: "/community", description: "MCPs, prompts, workflows shared by the community." },
     ],
@@ -83,6 +84,7 @@ export const FOOTER_SECTIONS = [
     title: "Community",
     links: [
       { label: "About Us", href: "/about" },
+      { label: "Team", href: "/team" },
       { label: "Join", href: "/join" },
       { label: "Discord", href: SOCIAL_LINKS.discord },
       { label: "WhatsApp", href: SOCIAL_LINKS.whatsapp },

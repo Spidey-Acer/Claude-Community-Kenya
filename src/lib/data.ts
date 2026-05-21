@@ -55,6 +55,7 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     partnerOrg: e.partnerOrg ? decodeHtmlEntities(e.partnerOrg) : undefined,
     highlights: ((e.highlights as string[]) ?? undefined)?.map(decodeHtmlEntities),
     attendeeCount: e.attendeeCount ?? undefined,
+    capacity: e.capacity ?? undefined,
     posterUrl: e.posterUrl ?? undefined,
     photosUrl: e.photosUrl ?? undefined,
     recordingUrl: e.recordingUrl ?? undefined,
@@ -188,28 +189,38 @@ function mapPrismaProject(p: PrismaProject): ProjectView {
 // ─── Team Member Types ──────────────────────────────────────────────────────
 
 export interface TeamMemberView {
+  slug?: string
   name: string
   role: string
+  tagline?: string
+  location?: string
   bio: string
+  longBio?: string
   linkedIn?: string
   github?: string
   twitter?: string
   website?: string
   avatar?: string
   active: boolean
+  featured: boolean
 }
 
 function mapPrismaTeamMember(t: PrismaTeamMember): TeamMemberView {
   return {
+    slug: t.slug ?? undefined,
     name: t.name,
     role: t.role,
+    tagline: t.tagline ?? undefined,
+    location: t.location ?? undefined,
     bio: t.bio,
+    longBio: t.longBio ?? undefined,
     linkedIn: t.linkedIn ?? undefined,
     github: t.github ?? undefined,
     twitter: t.twitter ?? undefined,
     website: t.website ?? undefined,
     avatar: t.avatar ?? undefined,
     active: t.active,
+    featured: t.featured,
   }
 }
 
@@ -379,9 +390,33 @@ export async function getEventsWithPhotos(): Promise<
 export async function getTeamMembers(): Promise<TeamMemberView[]> {
   const rows = await prisma.teamMember.findMany({
     where: { active: true },
-    orderBy: { order: "asc" },
+    orderBy: [{ featured: "desc" }, { order: "asc" }, { name: "asc" }],
   })
   return rows.map(mapPrismaTeamMember)
+}
+
+/**
+ * Fetch a single active team member by slug for the /team/[slug] page.
+ * Returns null if the slug is unknown or the member is inactive.
+ */
+export async function getTeamMemberBySlug(
+  slug: string,
+): Promise<TeamMemberView | null> {
+  const row = await prisma.teamMember.findFirst({
+    where: { slug, active: true },
+  })
+  return row ? mapPrismaTeamMember(row) : null
+}
+
+/**
+ * All active slugs — used by /team/[slug] generateStaticParams + sitemap.
+ */
+export async function getTeamMemberSlugs(): Promise<string[]> {
+  const rows = await prisma.teamMember.findMany({
+    where: { active: true, slug: { not: null } },
+    select: { slug: true },
+  })
+  return rows.map((r) => r.slug!).filter(Boolean)
 }
 
 export async function getDashboardStats() {

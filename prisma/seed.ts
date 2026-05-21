@@ -345,25 +345,37 @@ async function main() {
   console.log(`✅ Projects: ${projectsData.length} seeded`)
 
   // ─── Team Members ─────────────────────────────────────────────────────────
-  const existing = await prisma.teamMember.findFirst({
-    where: { name: "Peter Kibet" },
+  // Upsert by slug so re-runs backfill the spotlight fields (slug/tagline/
+  // location/featured) onto rows that pre-date Phase B.
+  await prisma.teamMember.upsert({
+    where: { slug: "peter-kibet" },
+    update: {
+      slug: "peter-kibet",
+      tagline: "Founder, Spidey Labs",
+      location: "Nairobi, Kenya",
+      featured: true,
+      longBio:
+        "Peter (Spidey) founded Claude Community Kenya in 2026 to give Kenyan developers a real seat at the AI table. He organised the country's first Claude Code meetup, runs Spidey Labs (the studio behind MkulimaOS), and ships production software with Claude every day. He cares about practical AI — workflows that ship, not slides that don't.",
+    },
+    create: {
+      slug: "peter-kibet",
+      name: "Peter Kibet",
+      role: "Founder & Lead Organizer",
+      tagline: "Founder, Spidey Labs",
+      location: "Nairobi, Kenya",
+      bio: "Founder and lead organizer of Claude Community Kenya. Organized Kenya's first Claude Code meetup and is passionate about bringing AI-powered development tools to every Kenyan developer.",
+      longBio:
+        "Peter (Spidey) founded Claude Community Kenya in 2026 to give Kenyan developers a real seat at the AI table. He organised the country's first Claude Code meetup, runs Spidey Labs (the studio behind MkulimaOS), and ships production software with Claude every day. He cares about practical AI — workflows that ship, not slides that don't.",
+      twitter: "https://twitter.com/spideyinc",
+      github: "https://github.com/Spidey-Acer",
+      linkedIn: "https://linkedin.com/in/peter-kibet",
+      website: "https://www.peterkibet.co.ke",
+      avatar: "/images/peter-professional.png",
+      order: 0,
+      active: true,
+      featured: true,
+    },
   })
-  if (!existing) {
-    await prisma.teamMember.create({
-      data: {
-        name: "Peter Kibet",
-        role: "Founder & Lead Organizer",
-        bio: "Founder and lead organizer of Claude Community Kenya. Organized Kenya's first Claude Code meetup and is passionate about bringing AI-powered development tools to every Kenyan developer.",
-        twitter: "https://twitter.com/spideyinc",
-        github: "https://github.com/Spidey-Acer",
-        linkedIn: "https://linkedin.com/in/peter-kibet",
-        website: "https://www.peterkibet.co.ke",
-        avatar: "/images/peter-professional.png",
-        order: 0,
-        active: true,
-      },
-    })
-  }
   console.log("✅ Team members seeded")
 
   console.log("\n🎉 Seed complete!")
