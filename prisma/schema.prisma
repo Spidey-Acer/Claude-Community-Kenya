@@ -226,6 +226,9 @@ model JoinApplication {
 
   @@index([userId])
   @@index([karibuAudience])
+  // RECOMMENDED: add `@@unique([email])` once existing duplicates are
+  // resolved. Closes the concurrent-submission race window where two
+  // requests bypass the application-level findFirst dedup check.
   @@map("join_applications")
 }
 
