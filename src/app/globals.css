@@ -4,6 +4,13 @@
 
 /* ─── Terminal Noir Design System ─── */
 :root {
+  /* Font stacks (mirrored from @theme inline below, exposed as raw CSS vars
+   * so they're available to plain CSS rules — Tailwind v4 @theme inline
+   * registers tokens for utilities but doesn't expose CSS vars at :root). */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+
   /* Backgrounds */
   --bg-primary: #0a0a0a;
   --bg-secondary: #111111;
@@ -86,17 +93,18 @@
   --red: #b0aea5;
   --cyan: #6a9bcc;
 
-  /* Text — warm Anthropic tones */
+  /* Text — warm Anthropic tones. --text-dim bumped from #7a7870 to #9a9890
+   * to hit ~4.6:1 contrast on the #141413 bg (WCAG AA). */
   --text-primary: #faf9f5;
   --text-secondary: #b0aea5;
-  --text-dim: #7a7870;
+  --text-dim: #9a9890;
 }
 
 /* Pro: refined typography — display serif for headlines, sans for body */
 .persona-pro h1,
 .persona-pro h2,
 .persona-pro h3 {
-  font-family: var(--font-serif);
+  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   font-weight: 500;
   letter-spacing: -0.025em;
   font-feature-settings: "ss01", "ss02";
@@ -112,7 +120,7 @@
 
 /* Pro: tighter optical tracking at huge sizes */
 .persona-pro .display-xl {
-  font-family: var(--font-serif);
+  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 0.95;

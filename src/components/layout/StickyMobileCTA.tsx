@@ -85,7 +85,7 @@ export function StickyMobileCTA() {
               type="button"
               onClick={dismiss}
               aria-label="Dismiss"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#7a7870] transition-colors hover:bg-[#252524] hover:text-[#b0aea5]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#9a9890] transition-colors hover:bg-[#252524] hover:text-[#b0aea5]"
             >
               <span aria-hidden="true" className="text-lg leading-none">
                 ×

@@ -550,6 +550,7 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
                   alt="Anthropic"
                   width={220}
                   height={60}
+                  style={{ width: "220px", height: "auto" }}
                   className="brightness-0 invert transition-all duration-500"
                 />
               </div>

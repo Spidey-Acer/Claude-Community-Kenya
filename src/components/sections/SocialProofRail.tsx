@@ -45,7 +45,7 @@ export function SocialProofRail({
         <span
           aria-hidden="true"
           className="absolute -top-3 left-8 select-none rounded-full bg-[#1e1e1d] px-2 font-serif text-3xl leading-none text-[#d97757]"
-          style={{ fontFamily: "var(--font-serif)" }}
+          style={{ fontFamily: 'var(--font-display), ui-serif, Georgia, serif' }}
         >
           &ldquo;
         </span>
@@ -53,7 +53,7 @@ export function SocialProofRail({
         <blockquote className="text-center">
           <p
             className="mb-6 text-[18px] italic leading-relaxed text-[#faf9f5] sm:text-[20px] md:text-[22px]"
-            style={{ fontFamily: "var(--font-serif)" }}
+            style={{ fontFamily: 'var(--font-display), ui-serif, Georgia, serif' }}
           >
             {quote}
           </p>

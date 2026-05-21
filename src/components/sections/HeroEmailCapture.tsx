@@ -119,6 +119,7 @@ export function HeroEmailCapture({
             <button
               type="submit"
               disabled={isPending || !csrfToken}
+              aria-label={isPending ? "Subscribing, please wait" : "Subscribe for event invites and the monthly digest"}
               className="btn-primary-shadow inline-flex items-center justify-center gap-2 rounded-full bg-[#d97757] px-7 py-3.5 text-[14px] font-semibold text-[#faf9f5] transition-all hover:bg-[#c06848] disabled:opacity-60"
             >
               {isPending ? (
