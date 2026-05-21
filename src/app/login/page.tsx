@@ -5,6 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Lock, Mail, AlertTriangle, Loader2, ArrowLeft } from "lucide-react";
+import { useSkin } from "@/contexts/SkinContext";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
 
@@ -27,6 +28,8 @@ function LoginInner() {
   const searchParams = useSearchParams();
   const rawCallback = searchParams.get("callbackUrl");
   const { status, data: session } = useSession();
+  const { skin } = useSkin();
+  const isPro = skin === "pro";
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +66,136 @@ function LoginInner() {
     });
   }
 
+  // ─── Pro / Glassmorphism variant ─────────────────────────────────────────
+  if (isPro) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 60% 40% at 50% -10%, rgba(217, 119, 87, 0.08), transparent 60%),
+              radial-gradient(ellipse 40% 40% at 90% 80%, rgba(106, 155, 204, 0.05), transparent 65%)
+            `,
+          }}
+        />
+
+        <div className="relative w-full max-w-md">
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-[13px] text-[#7a7870] transition-colors hover:text-[#e8e6dc]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to home
+            </Link>
+          </div>
+
+          <div className="mb-8 text-center">
+            <h1
+              className="text-[32px] font-medium text-[#faf9f5] sm:text-[40px]"
+              style={{
+                fontFamily: "var(--font-display), ui-serif, Georgia, serif",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Welcome back
+            </h1>
+            <p className="mt-2 text-[14px] text-[#b0aea5]">
+              Sign in to your Claude Community Kenya account.
+            </p>
+          </div>
+
+          <div className="card-elevated rounded-2xl p-7">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="login-email-pro"
+                  className="mb-1.5 block text-[12px] font-medium text-[#b0aea5]"
+                >
+                  <Mail className="mr-1.5 inline h-3.5 w-3.5" />
+                  Email
+                </label>
+                <input
+                  id="login-email-pro"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                  placeholder="you@email.com"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="login-password-pro"
+                  className="mb-1.5 block text-[12px] font-medium text-[#b0aea5]"
+                >
+                  <Lock className="mr-1.5 inline h-3.5 w-3.5" />
+                  Password
+                </label>
+                <input
+                  id="login-password-pro"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  minLength={8}
+                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 rounded-lg border border-[#b85a3e]/30 bg-[#b85a3e]/10 p-3 text-[12px] text-[#e89576]"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isPending}
+                className="btn-primary-shadow flex w-full items-center justify-center gap-2 rounded-full bg-[#d97757] px-5 py-3 text-[14px] font-semibold text-[#faf9f5] transition-all hover:bg-[#c06848] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Signing in…
+                  </>
+                ) : (
+                  <>
+                    Sign in <span aria-hidden="true">→</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between pt-1">
+                <Link
+                  href="/forgot-password"
+                  className="link-refined text-[13px] text-[#d97757] underline decoration-[#d97757]/40 underline-offset-2 hover:decoration-[#d97757]"
+                >
+                  Forgot password?
+                </Link>
+                <Link
+                  href="/signup"
+                  className="link-refined text-[13px] text-[#d97757] underline decoration-[#d97757]/40 underline-offset-2 hover:decoration-[#d97757]"
+                >
+                  New here? Create account
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Dev / Terminal Noir variant ────────────────────────────────────────
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
       <div
