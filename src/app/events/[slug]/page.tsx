@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getEvents, getEventBySlug, getApprovedDemosByEventId } from "@/lib/data";
+import { getEvents, getEventBySlug, getApprovedDemosByEventId, getEventPhotos } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { EventDetailContent } from "./EventDetailContent";
@@ -56,9 +56,12 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  const approvedDemos = event.id
-    ? await getApprovedDemosByEventId(event.id).catch(() => [])
-    : [];
+  const [approvedDemos, eventPhotos] = await Promise.all([
+    event.id
+      ? getApprovedDemosByEventId(event.id).catch(() => [])
+      : Promise.resolve([]),
+    getEventPhotos(event.slug).catch(() => []),
+  ]);
 
   const relatedEvents = allEvents
     .filter((e) => e.slug !== event.slug)
@@ -143,6 +146,7 @@ export default async function EventDetailPage({
         eventUrl={eventUrl}
         twitterShareUrl={twitterShareUrl}
         linkedInShareUrl={linkedInShareUrl}
+        photos={eventPhotos}
       />
     </main>
   );

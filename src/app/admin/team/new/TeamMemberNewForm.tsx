@@ -15,9 +15,13 @@ export function TeamMemberNewForm() {
     const form = new FormData(e.currentTarget)
 
     const body = {
+      slug: (form.get("slug") as string)?.trim() || null,
       name: form.get("name"),
       role: form.get("role"),
+      tagline: (form.get("tagline") as string)?.trim() || null,
+      location: (form.get("location") as string)?.trim() || null,
       bio: form.get("bio"),
+      longBio: (form.get("longBio") as string)?.trim() || null,
       linkedIn: form.get("linkedIn") || null,
       github: form.get("github") || null,
       twitter: form.get("twitter") || null,
@@ -25,6 +29,7 @@ export function TeamMemberNewForm() {
       avatar: form.get("avatar") || null,
       order: Number(form.get("order") ?? 0),
       active: form.get("active") === "on",
+      featured: form.get("featured") === "on",
     }
 
     startTransition(async () => {
@@ -48,7 +53,13 @@ export function TeamMemberNewForm() {
         <Field label="Name *" name="name" required />
         <Field label="Role / Title *" name="role" required placeholder="e.g. Community Lead" />
       </div>
-      <TextareaField label="Bio *" name="bio" required rows={4} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="URL slug" name="slug" placeholder="e.g. peter-kibet" />
+        <Field label="Location" name="location" placeholder="e.g. Nairobi, Kenya" />
+      </div>
+      <Field label="Tagline (short headline)" name="tagline" placeholder="e.g. Founder, Spidey Labs" />
+      <TextareaField label="Short bio *" name="bio" required rows={3} />
+      <TextareaField label="Long bio (for /team/[slug] detail page)" name="longBio" rows={6} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="LinkedIn URL" name="linkedIn" type="url" />
         <Field label="GitHub URL" name="github" type="url" />
@@ -56,8 +67,8 @@ export function TeamMemberNewForm() {
         <Field label="Website URL" name="website" type="url" />
       </div>
       <Field label="Avatar URL" name="avatar" type="url" placeholder="https://..." />
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[140px]">
           <label className="block text-[11px] font-mono text-[#555] mb-1.5">Display Order</label>
           <input name="order" type="number" min={0} defaultValue={0}
             className="w-full bg-[#111] border border-[#1e1e1e] rounded px-3 py-2 text-sm font-mono text-[#ccc] focus:outline-none focus:border-[#00ff41]/50" />
@@ -66,6 +77,11 @@ export function TeamMemberNewForm() {
           <input name="active" id="active-new" type="checkbox" defaultChecked
             className="w-4 h-4 accent-green-500 cursor-pointer" />
           <label htmlFor="active-new" className="text-[11px] font-mono text-[#555] cursor-pointer">Active (visible on site)</label>
+        </div>
+        <div className="flex items-center gap-2 pt-5">
+          <input name="featured" id="featured-new" type="checkbox"
+            className="w-4 h-4 accent-amber-500 cursor-pointer" />
+          <label htmlFor="featured-new" className="text-[11px] font-mono text-[#555] cursor-pointer">Featured (top of /team list)</label>
         </div>
       </div>
 

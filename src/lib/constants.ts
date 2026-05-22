@@ -12,14 +12,43 @@ export const SITE_CONFIG = {
 } as const;
 
 // ─── Navigation Links ───
-export const NAV_LINKS = [
+export interface NavLink {
+  label: string;
+  href: string;
+  description?: string;
+  children?: ReadonlyArray<NavLink>;
+}
+
+export const NAV_LINKS: ReadonlyArray<NavLink> = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
-  { label: "Events", href: "/events" },
-  { label: "Resources", href: "/resources" },
-  { label: "Projects", href: "/projects" },
-  { label: "Community", href: "/community" },
-  { label: "Blog", href: "/blog" },
+  {
+    label: "Events",
+    href: "/events",
+    children: [
+      { label: "All Events", href: "/events", description: "Upcoming meetups, workshops, and past recaps." },
+      { label: "Gallery", href: "/gallery", description: "Photos from every meetup we've hosted." },
+    ],
+  },
+  {
+    label: "Learn",
+    href: "/resources",
+    children: [
+      { label: "Resources", href: "/resources", description: "Guides for Claude Code, the API, and production." },
+      { label: "Blog", href: "/blog", description: "Posts from the community and organizers." },
+      { label: "Newsletter", href: "/newsletter", description: "Past digests + subscribe." },
+      { label: "FAQ", href: "/faq", description: "Common questions about CCK." },
+    ],
+  },
+  {
+    label: "Community",
+    href: "/community",
+    children: [
+      { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
+      { label: "Projects", href: "/projects", description: "What members are shipping with Claude." },
+      { label: "Community Hub", href: "/community", description: "MCPs, prompts, workflows shared by the community." },
+    ],
+  },
 ] as const;
 
 // ─── Social Links ───
@@ -43,8 +72,10 @@ export const FOOTER_SECTIONS = [
     links: [
       { label: "Home", href: "/" },
       { label: "Events", href: "/events" },
+      { label: "Gallery", href: "/gallery" },
       { label: "Projects", href: "/projects" },
       { label: "Blog", href: "/blog" },
+      { label: "Newsletter", href: "/newsletter" },
       { label: "FAQ", href: "/faq" },
       { label: "Merch", href: "/merch" },
     ],
@@ -53,6 +84,7 @@ export const FOOTER_SECTIONS = [
     title: "Community",
     links: [
       { label: "About Us", href: "/about" },
+      { label: "Team", href: "/team" },
       { label: "Join", href: "/join" },
       { label: "Discord", href: SOCIAL_LINKS.discord },
       { label: "WhatsApp", href: SOCIAL_LINKS.whatsapp },

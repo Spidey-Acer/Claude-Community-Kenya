@@ -5,9 +5,13 @@ import { prisma } from "@/lib/prisma"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 
 const updateSchema = z.object({
+  slug: z.string().regex(/^[a-z0-9-]{2,60}$/, "Slug must be lowercase letters, numbers, and hyphens (2-60 chars)").optional().nullable(),
   name: z.string().min(2).max(100).transform(zodSanitizeString).optional(),
   role: z.string().min(2).max(100).transform(zodSanitizeString).optional(),
+  tagline: z.string().max(120).optional().nullable().transform(v => v ? zodSanitizeString(v) : null),
+  location: z.string().max(80).optional().nullable().transform(v => v ? zodSanitizeString(v) : null),
   bio: z.string().min(10).max(1000).transform(zodSanitizeMultilineText(1000)).optional(),
+  longBio: z.string().max(5000).optional().nullable().transform(v => v ? zodSanitizeMultilineText(5000)(v) : null),
   linkedIn: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : null),
   github: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : null),
   twitter: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : null),
@@ -15,6 +19,7 @@ const updateSchema = z.object({
   avatar: z.string().url().optional().nullable().transform(v => v ? zodSanitizeUrl(v) : null),
   order: z.number().int().min(0).optional(),
   active: z.boolean().optional(),
+  featured: z.boolean().optional(),
 })
 
 export async function GET(

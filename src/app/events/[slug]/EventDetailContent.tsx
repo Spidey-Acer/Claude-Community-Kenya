@@ -9,7 +9,8 @@ import { TerminalWindow, ScrollReveal } from "@/components/terminal";
 import { useSkin } from "@/contexts/SkinContext";
 import { formatDate } from "@/lib/utils";
 import type { Event } from "@/lib/types";
-import type { DemoRequestView } from "@/lib/data";
+import type { DemoRequestView, PhotoView } from "@/lib/data";
+import { EventPhotoStrip } from "./EventPhotoStrip";
 import {
   Calendar,
   Clock,
@@ -66,6 +67,7 @@ interface EventDetailContentProps {
   eventUrl: string;
   twitterShareUrl: string;
   linkedInShareUrl: string;
+  photos?: PhotoView[];
 }
 
 export function EventDetailContent({
@@ -77,6 +79,7 @@ export function EventDetailContent({
   eventUrl,
   twitterShareUrl,
   linkedInShareUrl,
+  photos = [],
 }: EventDetailContentProps) {
   const { skin } = useSkin();
   const isPro = skin === "pro";
@@ -431,6 +434,15 @@ export function EventDetailContent({
           </section>
         )}
 
+      {/* Photos from this event */}
+      {photos.length > 0 && (
+        <ScrollReveal delay={120}>
+          <section className="mb-10" aria-labelledby="event-photos-heading">
+            <EventPhotoStrip photos={photos} eventSlug={event.slug} />
+          </section>
+        </ScrollReveal>
+      )}
+
       {/* Scheduled Demos */}
       {approvedDemos.length > 0 && (
         <ScrollReveal delay={150}>
@@ -582,6 +594,67 @@ export function EventDetailContent({
             <DemoRequestForm eventSlug={event.slug} />
           </section>
         </ScrollReveal>
+      )}
+
+      {/* Seat progress — only when both capacity and attendeeCount set on an upcoming event */}
+      {isActionable && event.capacity && event.attendeeCount !== undefined && event.attendeeCount !== null && (
+        <section className="mb-6" aria-label="Seat availability">
+          {(() => {
+            const taken = Math.min(event.attendeeCount!, event.capacity!)
+            const pct = Math.max(0, Math.min(100, Math.round((taken / event.capacity!) * 100)))
+            const remaining = Math.max(0, event.capacity! - taken)
+            const isFull = remaining === 0
+            const isAlmostFull = !isFull && pct >= 80
+            return isPro ? (
+              <div className="card-elevated rounded-2xl p-5">
+                <div className="mb-2 flex items-center justify-between text-[13px] text-[#b0aea5]">
+                  <span>
+                    <span className="text-[#faf9f5] tabular-nums">{taken}</span>
+                    <span className="text-[#7a7870]"> / </span>
+                    <span className="tabular-nums">{event.capacity}</span>{" "}
+                    seats taken
+                  </span>
+                  <span className={isFull ? "text-[#d97757]" : isAlmostFull ? "text-[#ffb000]" : "text-[#7a7870]"}>
+                    {isFull ? "Sold out" : `${remaining} left`}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2a2a28]">
+                  <div
+                    className="h-full rounded-full bg-[#d97757] transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="border border-border-default bg-bg-secondary/40 p-4 font-mono text-sm">
+                <div className="mb-2 flex items-center justify-between text-text-secondary">
+                  <span>
+                    <span className="text-green-primary tabular-nums">{taken}</span>
+                    <span className="text-text-dim"> / </span>
+                    <span className="tabular-nums">{event.capacity}</span> seats
+                  </span>
+                  <span className={isFull ? "text-red" : isAlmostFull ? "text-amber" : "text-text-dim"}>
+                    {isFull ? "// sold out" : `// ${remaining} left`}
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-bg-elevated">
+                  <div
+                    className="h-full bg-green-primary"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </div>
+            )
+          })()}
+        </section>
       )}
 
       {/* Registration CTA */}

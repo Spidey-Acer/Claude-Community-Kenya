@@ -10,6 +10,7 @@ import type { ProjectView } from "@/lib/data";
 import type { AudienceState } from "@/contexts/AudienceContext";
 import type { Recommendable } from "@/lib/recommendations";
 import { PersonalizedHero } from "@/components/sections/PersonalizedHero";
+import { ProjectOfTheWeek } from "@/components/sections/ProjectOfTheWeek";
 import { SocialProofRail } from "@/components/sections/SocialProofRail";
 import { MadeForYou } from "@/components/sections/MadeForYou";
 import { StatsBar } from "@/components/sections/StatsBar";
@@ -32,6 +33,7 @@ interface HomeContentProps {
   featuredProjects: ProjectView[];
   audienceState: AudienceState;
   recommendables: Recommendable[];
+  projectOfTheWeek?: ProjectView | null;
 }
 
 const whatWeDoItems = [
@@ -109,7 +111,7 @@ const joinPathways = [
   },
 ];
 
-export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects, audienceState, recommendables }: HomeContentProps) {
+export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects, audienceState, recommendables, projectOfTheWeek }: HomeContentProps) {
   const { skin } = useSkin();
   const isPro = skin === "pro";
 
@@ -119,6 +121,9 @@ export function HomeContent({ communityStats, feedItems, upcomingEvents, feature
       <section className="mx-auto max-w-6xl px-4 pt-8 md:pt-12 lg:pt-16 pb-4" aria-label="Hero">
         <PersonalizedHero stats={communityStats} feedItems={feedItems} />
       </section>
+
+      {/* ─── Project of the Week ─── Habit-forming weekly hero slot. */}
+      <ProjectOfTheWeek project={projectOfTheWeek ?? null} />
 
       {/* ─── Social Proof Rail ─── Trust signal right after the hero, before any other content. */}
       {isPro && <SocialProofRail />}

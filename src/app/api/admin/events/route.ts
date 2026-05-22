@@ -24,6 +24,7 @@ const eventSchema = z.object({
   highlights: z.array(z.string().max(200).transform(zodSanitizeString)).optional(),
   agenda: z.array(z.string().max(200).transform(zodSanitizeString)).optional(),
   attendeeCount: z.number().int().min(0).optional(),
+  capacity: z.number().int().min(0).optional(),
   posterUrl: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
   photosUrl: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
   featured: z.boolean().optional().default(false),

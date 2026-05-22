@@ -14,6 +14,7 @@ import type {
   DemoRequest as PrismaDemoRequest,
   CommunitySubmission as PrismaCommunitySubmission,
   CommunityComment as PrismaCommunityComment,
+  NewsletterIssue as PrismaNewsletterIssue,
 } from "@/generated/prisma/client"
 
 // ─── Event Mappers ──────────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ function mapPrismaEvent(e: PrismaEvent): Event {
     partnerOrg: e.partnerOrg ? decodeHtmlEntities(e.partnerOrg) : undefined,
     highlights: ((e.highlights as string[]) ?? undefined)?.map(decodeHtmlEntities),
     attendeeCount: e.attendeeCount ?? undefined,
+    capacity: e.capacity ?? undefined,
     posterUrl: e.posterUrl ?? undefined,
     photosUrl: e.photosUrl ?? undefined,
     recordingUrl: e.recordingUrl ?? undefined,
@@ -157,6 +159,7 @@ function mapPrismaBlog(p: PrismaBlogPost): BlogPostView {
 // ─── Project Types ──────────────────────────────────────────────────────────
 
 export interface ProjectView {
+  id: string
   name: string
   builder: string
   description: string
@@ -165,10 +168,12 @@ export interface ProjectView {
   demoUrl?: string
   repoUrl?: string
   featured: boolean
+  potwAt?: string
 }
 
 function mapPrismaProject(p: PrismaProject): ProjectView {
   return {
+    id: p.id,
     name: p.name,
     builder: p.builder,
     description: p.description,
@@ -177,34 +182,45 @@ function mapPrismaProject(p: PrismaProject): ProjectView {
     demoUrl: p.demoUrl ?? undefined,
     repoUrl: p.repoUrl ?? undefined,
     featured: p.featured,
+    potwAt: p.potwAt?.toISOString() ?? undefined,
   }
 }
 
 // ─── Team Member Types ──────────────────────────────────────────────────────
 
 export interface TeamMemberView {
+  slug?: string
   name: string
   role: string
+  tagline?: string
+  location?: string
   bio: string
+  longBio?: string
   linkedIn?: string
   github?: string
   twitter?: string
   website?: string
   avatar?: string
   active: boolean
+  featured: boolean
 }
 
 function mapPrismaTeamMember(t: PrismaTeamMember): TeamMemberView {
   return {
+    slug: t.slug ?? undefined,
     name: t.name,
     role: t.role,
+    tagline: t.tagline ?? undefined,
+    location: t.location ?? undefined,
     bio: t.bio,
+    longBio: t.longBio ?? undefined,
     linkedIn: t.linkedIn ?? undefined,
     github: t.github ?? undefined,
     twitter: t.twitter ?? undefined,
     website: t.website ?? undefined,
     avatar: t.avatar ?? undefined,
     active: t.active,
+    featured: t.featured,
   }
 }
 
@@ -260,12 +276,147 @@ export async function getFeaturedProjects(): Promise<ProjectView[]> {
   return rows.map(mapPrismaProject)
 }
 
+/**
+ * Returns the most recent Project of the Week, or null if none has been set.
+ * The current POTW is whichever project has the latest non-null `potwAt` date.
+ */
+export async function getProjectOfTheWeek(): Promise<ProjectView | null> {
+  const row = await prisma.project.findFirst({
+    where: { potwAt: { not: null } },
+    orderBy: { potwAt: "desc" },
+  })
+  return row ? mapPrismaProject(row) : null
+}
+
+// ─── Gallery ────────────────────────────────────────────────────────────────
+
+export interface PhotoView {
+  id: string
+  url: string
+  thumbnailUrl: string | null
+  alt: string | null
+  caption: string | null
+  photographer: string | null
+  featured: boolean
+  takenAt: Date | null
+  event: { slug: string; title: string; date: Date; city: string } | null
+}
+
+interface GetGalleryOptions {
+  limit?: number
+  eventSlug?: string
+  featuredOnly?: boolean
+}
+
+/**
+ * Fetches photos for the gallery aggregator.
+ * Optionally filters by event slug or featured-only.
+ */
+export async function getGalleryPhotos(
+  options: GetGalleryOptions = {},
+): Promise<PhotoView[]> {
+  const { limit, eventSlug, featuredOnly } = options
+  const rows = await prisma.meetupPhoto.findMany({
+    where: {
+      ...(eventSlug ? { event: { slug: eventSlug } } : {}),
+      ...(featuredOnly ? { featured: true } : {}),
+    },
+    include: {
+      event: {
+        select: { slug: true, title: true, date: true, city: true },
+      },
+    },
+    orderBy: [{ featured: "desc" }, { order: "asc" }, { takenAt: "desc" }, { createdAt: "desc" }],
+    ...(limit ? { take: limit } : {}),
+  })
+
+  return rows.map((p) => ({
+    id: p.id,
+    url: p.url,
+    thumbnailUrl: p.thumbnailUrl,
+    alt: p.alt,
+    caption: p.caption,
+    photographer: p.photographer,
+    featured: p.featured,
+    takenAt: p.takenAt,
+    event: p.event
+      ? {
+          slug: p.event.slug,
+          title: p.event.title,
+          date: p.event.date,
+          city: p.event.city,
+        }
+      : null,
+  }))
+}
+
+/**
+ * Fetches all photos for a single event, ordered for the album view.
+ */
+export async function getEventPhotos(slug: string): Promise<PhotoView[]> {
+  return getGalleryPhotos({ eventSlug: slug })
+}
+
+/**
+ * Returns the list of events that currently have photos, so the gallery
+ * page can render filter chips without an extra round-trip.
+ */
+export async function getEventsWithPhotos(): Promise<
+  Array<{ slug: string; title: string; date: Date; city: string; count: number }>
+> {
+  const groups = await prisma.meetupPhoto.groupBy({
+    by: ["eventId"],
+    _count: { _all: true },
+    where: { eventId: { not: null } },
+  })
+  if (groups.length === 0) return []
+  const eventIds = groups.map((g) => g.eventId!).filter(Boolean)
+  const events = await prisma.event.findMany({
+    where: { id: { in: eventIds } },
+    select: { id: true, slug: true, title: true, date: true, city: true },
+  })
+  const countByEvent = new Map(groups.map((g) => [g.eventId!, g._count._all]))
+  return events
+    .map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      date: e.date,
+      city: e.city,
+      count: countByEvent.get(e.id) ?? 0,
+    }))
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+}
+
 export async function getTeamMembers(): Promise<TeamMemberView[]> {
   const rows = await prisma.teamMember.findMany({
     where: { active: true },
-    orderBy: { order: "asc" },
+    orderBy: [{ featured: "desc" }, { order: "asc" }, { name: "asc" }],
   })
   return rows.map(mapPrismaTeamMember)
+}
+
+/**
+ * Fetch a single active team member by slug for the /team/[slug] page.
+ * Returns null if the slug is unknown or the member is inactive.
+ */
+export async function getTeamMemberBySlug(
+  slug: string,
+): Promise<TeamMemberView | null> {
+  const row = await prisma.teamMember.findFirst({
+    where: { slug, active: true },
+  })
+  return row ? mapPrismaTeamMember(row) : null
+}
+
+/**
+ * All active slugs — used by /team/[slug] generateStaticParams + sitemap.
+ */
+export async function getTeamMemberSlugs(): Promise<string[]> {
+  const rows = await prisma.teamMember.findMany({
+    where: { active: true, slug: { not: null } },
+    select: { slug: true },
+  })
+  return rows.map((r) => r.slug!).filter(Boolean)
 }
 
 export async function getDashboardStats() {
@@ -397,4 +548,52 @@ export async function getCommunityCommentsBySlug(
     orderBy: { createdAt: "asc" },
   })
   return comments.map(mapPrismaCommunityComment)
+}
+
+// ─── Newsletter Issues ─────────────────────────────────────────────────────
+
+export interface NewsletterIssueView {
+  id: string
+  slug: string
+  number: number
+  title: string
+  subject: string
+  excerpt: string
+  body: string
+  publishedAt: string
+}
+
+function mapPrismaNewsletterIssue(n: PrismaNewsletterIssue): NewsletterIssueView {
+  return {
+    id: n.id,
+    slug: n.slug,
+    number: n.number,
+    title: decodeHtmlEntities(n.title),
+    subject: decodeHtmlEntities(n.subject),
+    excerpt: decodeHtmlEntities(n.excerpt),
+    body: decodeHtmlEntities(n.body),
+    publishedAt: n.publishedAt.toISOString(),
+  }
+}
+
+/**
+ * Returns all published newsletter issues, newest first.
+ */
+export async function getNewsletterIssues(): Promise<NewsletterIssueView[]> {
+  const rows = await prisma.newsletterIssue.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: { publishedAt: "desc" },
+  })
+  return rows.map(mapPrismaNewsletterIssue)
+}
+
+/**
+ * Returns a single published newsletter issue by slug.
+ */
+export async function getNewsletterIssueBySlug(
+  slug: string
+): Promise<NewsletterIssueView | null> {
+  const row = await prisma.newsletterIssue.findUnique({ where: { slug } })
+  if (!row || row.status !== "PUBLISHED") return null
+  return mapPrismaNewsletterIssue(row)
 }

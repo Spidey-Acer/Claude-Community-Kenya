@@ -281,6 +281,9 @@ model Event {
   highlights      Json?       // String[]
   agenda          Json?       // String[]
   attendeeCount   Int?
+  /// Manual seat cap for the venue. Pair with attendeeCount to render
+  /// "X / Y seats" progress on the event detail. NULL = no cap shown.
+  capacity        Int?
   posterUrl       String?
   photosUrl       String?
   recordingUrl    String?
@@ -293,7 +296,38 @@ model Event {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  photos          MeetupPhoto[]
+
   @@map("events")
+}
+
+// ─── Meetup Photos ───────────────────────────────────────────────────────────
+
+model MeetupPhoto {
+  id            String   @id @default(cuid())
+  // Optional FK — photos without an event are "community life" general shots
+  // surfaced on the /gallery aggregator landing.
+  eventId       String?
+  url           String
+  thumbnailUrl  String?
+  alt           String?  @db.Text
+  caption       String?  @db.Text
+  photographer  String?
+  /// Curated "best of" filter — shown first on /gallery and used for
+  /// the homepage social proof if we ever want a "wall of community".
+  featured      Boolean  @default(false)
+  /// Manual display order within an event album. Lower = earlier.
+  order         Int      @default(0)
+  takenAt       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([featured])
+  @@index([order])
+  @@map("meetup_photos")
 }
 
 // ─── Blog Posts ──────────────────────────────────────────────────────────────
@@ -322,6 +356,7 @@ model BlogPost {
 
 // ─── Projects ────────────────────────────────────────────────────────────────
 
+// TODO: admin UI for setting POTW
 model Project {
   id          String   @id @default(cuid())
   name        String
@@ -335,9 +370,13 @@ model Project {
   audiences    Audience[] @default([])
   contactName  String?
   contactEmail String?
+  /// When this project held the "Project of the Week" slot. NULL = never.
+  /// Latest non-null value across all projects is the current pick.
+  potwAt       DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@index([potwAt])
   @@map("projects")
 }
 
@@ -345,9 +384,18 @@ model Project {
 
 model TeamMember {
   id        String   @id @default(cuid())
+  /// URL-safe identifier for /team/[slug] pages. Backfilled from name for
+  /// existing rows; required for new rows once admin form requires it.
+  slug      String?  @unique
   name      String
   role      String
   bio       String   @db.Text
+  /// Optional longer bio rendered on the detail page (Markdown).
+  longBio   String?  @db.Text
+  /// City + country, e.g. "Nairobi, Kenya". Surfaces on the team list.
+  location  String?
+  /// One-line headline for the spotlight card, e.g. "Built MkulimaOS".
+  tagline   String?
   linkedIn  String?
   github    String?
   twitter   String?
@@ -355,9 +403,13 @@ model TeamMember {
   avatar    String?
   order     Int      @default(0)
   active    Boolean  @default(true)
+  /// Surface this member at the top of the team list and on homepage spotlight.
+  featured  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([active])
+  @@index([featured])
   @@map("team_members")
 }
 
@@ -553,4 +605,28 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@map("newsletter_subscribers")
+}
+
+enum NewsletterStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model NewsletterIssue {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  number      Int              @unique // Issue #1, #2, ...
+  title       String
+  subject     String           // The email subject line we sent
+  excerpt     String           @db.Text
+  body        String           @db.Text // Markdown body
+  publishedAt DateTime
+  /// Soft-publish gate so drafts aren't visible.
+  status      NewsletterStatus @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([publishedAt])
+  @@index([status])
+  @@map("newsletter_issues")
 }
