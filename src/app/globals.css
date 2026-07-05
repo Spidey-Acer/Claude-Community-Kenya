@@ -37,6 +37,24 @@
   --text-secondary: #a0a0a0;
   --text-dim: #8a8a8a;
   --white: #ffffff;
+
+  /* ─── Karibu identity (warm-light redesign) ───
+   * Additive palette for the page-by-page overhaul. No Terminal Noir /
+   * persona-pro token references these, so existing pages are unaffected.
+   * Scoped in use to converted pages via the .karibu wrapper. */
+  --paper: #F4EEE3;
+  --paper-card: #FBF7F0;
+  --paper-alt: #EFE7D8;
+  --ink: #23201B;
+  --ink-soft: #5C5349;
+  --ink-muted: #6A6155;
+  --clay: #C15F3C;
+  --clay-dark: #A84E2D;
+  --clay-light: #E6906F;
+  --sand: #E4DAC8;
+  --sand-2: #DDD3C2;
+  --font-newsreader-stack: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-inter-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {
@@ -68,6 +86,23 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+
+  /* ─── Karibu identity tokens (warm-light redesign) ───
+   * Additive Tailwind utilities: bg-paper, text-ink, border-sand, etc.
+   * Named uniquely so no existing utility changes. */
+  --color-paper: var(--paper);
+  --color-paper-card: var(--paper-card);
+  --color-paper-alt: var(--paper-alt);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-clay: var(--clay);
+  --color-clay-dark: var(--clay-dark);
+  --color-clay-light: var(--clay-light);
+  --color-sand: var(--sand);
+  --color-sand-2: var(--sand-2);
+  --font-newsreader: var(--font-newsreader-stack);
+  --font-inter: var(--font-inter-stack);
 }
 
 /* ─── Pro Theme (Anthropic Brand) ─── */
@@ -573,4 +608,35 @@ body::before {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── Karibu identity (warm-light redesign) ─────────────────────────────
+ * Scoped base + animation loops for the page-by-page overhaul. Applied via
+ * the .karibu wrapper so it never leaks onto Terminal Noir pages. The global
+ * reduced-motion reset above already disables these loops when requested. */
+.karibu {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inter-stack);
+  min-height: 100vh;
+}
+.karibu ::selection {
+  background: var(--clay);
+  color: var(--paper-card);
+}
+
+@keyframes karibu-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes karibu-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes karibu-drift {
+  from { background-position: 0 0; }
+  to { background-position: 480px 0; }
+}
+.karibu [data-marquee]:hover [data-mq-track] {
+  animation-play-state: paused;
 }

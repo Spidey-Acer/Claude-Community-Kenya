@@ -5,6 +5,8 @@ import { SessionProvider } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { KaribuNav } from "@/components/karibu/KaribuNav";
+import { KaribuFooter } from "@/components/karibu/KaribuFooter";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -31,6 +33,9 @@ export function ConditionalLayout({
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isDashboard = pathname.startsWith("/dashboard");
+  // Routes migrated to the warm-light "Karibu" identity. Grows page-by-page;
+  // everything else keeps the Terminal Noir chrome until converted.
+  const isKaribu = pathname === "/";
 
   if (isAdmin) {
     return <>{children}</>;
@@ -40,19 +45,21 @@ export function ConditionalLayout({
     <SessionProvider>
       <SkinProvider>
         <AudienceProvider value={audienceState}>
-          <a href="#main-content" className="skip-nav">
-            Skip to main content
-          </a>
-          <Navbar />
-          <LoadingBar />
-          <main id="main-content">
-            <PageTransition>{children}</PageTransition>
-          </main>
-          {!isDashboard && <Footer />}
+          <div className={isKaribu ? "karibu" : undefined}>
+            <a href="#main-content" className="skip-nav">
+              Skip to main content
+            </a>
+            {isKaribu ? <KaribuNav /> : <Navbar />}
+            <LoadingBar />
+            <main id="main-content">
+              <PageTransition>{children}</PageTransition>
+            </main>
+            {isKaribu ? <KaribuFooter /> : !isDashboard && <Footer />}
+          </div>
           <EasterEggs />
           <ChatWidget />
           <KaribuBanner />
-          {!isDashboard && <StickyMobileCTA />}
+          {!isDashboard && !isKaribu && <StickyMobileCTA />}
           {showKaribu && <KaribuModal />}
         </AudienceProvider>
       </SkinProvider>

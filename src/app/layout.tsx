@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, IBM_Plex_Sans, Fraunces } from "next/font/google";
+import { JetBrains_Mono, IBM_Plex_Sans, Fraunces, Newsreader, Inter } from "next/font/google";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { WebVitals } from "@/components/WebVitals";
@@ -26,6 +26,23 @@ const fraunces = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
   axes: ["SOFT", "opsz"],
+  display: "swap",
+});
+
+// ─── Karibu identity (warm-light redesign) ───
+// Newsreader = display serif, Inter = body. Self-hosted via next/font (no CDN).
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -206,7 +223,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} antialiased`}
+        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable} antialiased`}
       >
         <GoogleAnalytics />
         <WebVitals />

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import type { FeedItem } from "@/components/sections/HeroTerminal";
-import { HomeContent } from "@/components/sections/HomeContent";
-import { getUpcomingEvents, getFeaturedProjects, getBlogPosts, getCommunitySubmissions, getProjectOfTheWeek } from "@/lib/data";
+import { KaribuHome } from "@/components/karibu/KaribuHome";
+import { getUpcomingEvents, getBlogPosts } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -32,44 +31,11 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [upcomingEvents, featuredProjects, siteSettings, blogPosts, communityData, projectOfTheWeek] = await Promise.all([
+  const [upcomingEvents, siteSettings, blogPosts] = await Promise.all([
     getUpcomingEvents().catch(() => []),
-    getFeaturedProjects().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getBlogPosts().catch(() => []),
-    getCommunitySubmissions({ limit: 5, sort: "recent" }).catch(() => ({ items: [], total: 0 })),
-    getProjectOfTheWeek().catch(() => null),
   ]);
-
-  // Build activity feed for hero terminal — interleave blogs, community, projects
-  const feedItems: FeedItem[] = [];
-  for (const post of blogPosts.slice(0, 3)) {
-    feedItems.push({
-      type: "blog",
-      label: "BLOG",
-      title: post.title,
-      meta: `by ${post.author} · ${post.readingTime} min read`,
-      href: `/blog/${post.slug}`,
-    });
-  }
-  for (const item of communityData.items.slice(0, 3)) {
-    feedItems.push({
-      type: "community",
-      label: item.type,
-      title: item.title,
-      meta: item.submitterName ? `shared by ${item.submitterName}` : item.shortDescription.slice(0, 60),
-      href: `/community/${item.slug}`,
-    });
-  }
-  for (const project of featuredProjects.slice(0, 2)) {
-    feedItems.push({
-      type: "project",
-      label: "PROJECT",
-      title: project.name,
-      meta: `by ${project.builder} · ${project.stack.slice(0, 3).join(", ")}`,
-      href: "/projects",
-    });
-  }
 
   const communityStats = siteSettings
     ? {
@@ -150,14 +116,11 @@ export default async function Home() {
   ];
 
   return (
-    <HomeContent
+    <KaribuHome
       communityStats={communityStats}
-      feedItems={feedItems}
       upcomingEvents={upcomingEvents}
-      featuredProjects={featuredProjects}
       audienceState={audienceState}
       recommendables={recommendables}
-      projectOfTheWeek={projectOfTheWeek}
     />
   );
 }
