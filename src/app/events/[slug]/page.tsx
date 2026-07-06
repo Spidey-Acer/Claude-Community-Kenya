@@ -4,7 +4,7 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEvents, getEventBySlug, getApprovedDemosByEventId, getEventPhotos } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
-import { EventDetailContent } from "./EventDetailContent";
+import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 
 export const revalidate = 1800;
 
@@ -125,7 +125,7 @@ export default async function EventDetailPage({
   };
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+    <>
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -137,17 +137,16 @@ export default async function EventDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
       />
-      <EventDetailContent
+      <KaribuEventDetail
         event={event}
         agendaEntries={agendaEntries}
         descriptionParagraphs={descriptionParagraphs}
         approvedDemos={approvedDemos}
         relatedEvents={relatedEvents}
-        eventUrl={eventUrl}
         twitterShareUrl={twitterShareUrl}
         linkedInShareUrl={linkedInShareUrl}
         photos={eventPhotos}
       />
-    </main>
+    </>
   );
 }
