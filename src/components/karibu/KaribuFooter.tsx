@@ -7,6 +7,7 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 const EXPLORE = [
@@ -31,9 +32,13 @@ export function KaribuFooter() {
         {/* Brand */}
         <div className="col-span-2 lg:col-span-1">
           <div className="mb-4 flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-clay font-newsreader text-[19px] text-paper-card">
-              ✳
-            </span>
+            <Image
+              src="/images/cck-logo.webp"
+              alt="Claude Community Kenya"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full"
+            />
             <span className="font-newsreader text-[19px] font-semibold text-paper">
               Claude Community Kenya
             </span>

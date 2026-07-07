@@ -19,6 +19,7 @@ import type { DemoRequestView, PhotoView } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
 import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm";
+import { eventCover } from "@/components/karibu/photos";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
@@ -105,18 +106,15 @@ export function KaribuEventDetail({
           <p className="mb-6 max-w-[640px] font-inter text-[17px] leading-[1.6] text-ink-soft">
             {event.description}
           </p>
-          <div
-            className="relative h-[220px] overflow-hidden rounded-[14px] border border-sand-2 sm:h-[300px]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(135deg, #EBE2D2 0 14px, #E4DAC7 14px 28px)",
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="rounded-lg border border-sand-2 bg-paper px-3 py-1.5 font-mono text-xs text-ink-muted">
-                [ cover — {event.city} {TYPE_LABEL[event.type].toLowerCase()} ]
-              </span>
-            </div>
+          <div className="relative h-[240px] overflow-hidden rounded-[14px] border border-sand-2 sm:h-[340px]">
+            <Image
+              src={eventCover(event.posterUrl, 0)}
+              alt={event.title}
+              fill
+              priority
+              sizes="(max-width: 1180px) 100vw, 1100px"
+              className="object-cover"
+            />
           </div>
         </Reveal>
       </section>

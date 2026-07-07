@@ -10,14 +10,17 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface Testimonial {
   quote: string;
   name: string;
   role: string;
-  /** Initials shown in the avatar chip until real photos are wired in. */
+  /** Initials shown in the avatar chip when no photo is available. */
   initials: string;
+  /** Optional real headshot. */
+  photo?: string;
 }
 
 const TESTIMONIALS: Testimonial[] = [
@@ -41,6 +44,7 @@ const TESTIMONIALS: Testimonial[] = [
     name: "Peter Kibet",
     role: "Founder, Claude Community Kenya",
     initials: "PK",
+    photo: "/images/peter-professional.webp",
   },
   {
     quote:
@@ -89,9 +93,19 @@ export function KaribuTestimonials() {
               &ldquo;{t.quote}&rdquo;
             </p>
             <footer className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sand font-inter text-sm font-semibold text-ink-soft">
-                {t.initials}
-              </span>
+              {t.photo ? (
+                <Image
+                  src={t.photo}
+                  alt={t.name}
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded-full object-cover ring-1 ring-sand-2"
+                />
+              ) : (
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sand font-inter text-sm font-semibold text-ink-soft">
+                  {t.initials}
+                </span>
+              )}
               <span>
                 <span className="block font-inter text-[14.5px] font-semibold text-ink">
                   {t.name}

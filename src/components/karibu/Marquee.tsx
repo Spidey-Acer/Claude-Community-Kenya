@@ -3,8 +3,11 @@
  *
  * Dumb/presentational: caller supplies the item strings (built from real
  * community stats). The track is duplicated for a seamless CSS loop; the
- * global reduced-motion reset pauses it for users who opt out.
+ * global reduced-motion reset pauses it for users who opt out. Separators use
+ * the official Claude mark.
  */
+
+import { ClaudeMark } from "@/components/karibu/ClaudeMark";
 
 interface MarqueeProps {
   /** Ordered list of short phrases to scroll. Built from live data by caller. */
@@ -17,9 +20,7 @@ export function Marquee({ items }: MarqueeProps) {
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-[26px]">
           <span>{item}</span>
-          <span className="text-clay-light" aria-hidden="true">
-            ✳
-          </span>
+          <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
         </span>
       ))}
     </div>

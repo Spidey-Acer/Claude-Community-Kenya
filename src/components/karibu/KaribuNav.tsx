@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SOCIAL_LINKS } from "@/lib/constants";
 
 const NAV_LINKS = [
@@ -29,19 +30,19 @@ export function KaribuNav() {
         {/* Brand */}
         <Link
           href="/"
-          className="group flex items-center gap-3"
+          className="group flex items-center gap-2.5"
           onClick={() => setMenuOpen(false)}
+          aria-label="Claude Community Kenya — home"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-clay text-[20px] leading-none text-paper-card transition-transform duration-500 group-hover:rotate-[20deg] group-hover:scale-110">
-            <span
-              className="inline-block"
-              style={{ animation: "karibu-spin 26s linear infinite" }}
-              aria-hidden="true"
-            >
-              ✳
-            </span>
-          </span>
-          <span className="whitespace-nowrap font-newsreader text-[20px] font-semibold tracking-[-0.01em] text-ink">
+          <Image
+            src="/images/cck-logo.webp"
+            alt="Claude Community Kenya"
+            width={38}
+            height={38}
+            priority
+            className="h-9 w-9 rounded-full ring-1 ring-sand-2 transition-transform duration-500 group-hover:scale-105"
+          />
+          <span className="whitespace-nowrap font-newsreader text-[19px] font-semibold tracking-[-0.01em] text-ink">
             Claude Community Kenya
           </span>
         </Link>
