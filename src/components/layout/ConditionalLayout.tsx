@@ -41,7 +41,9 @@ export function ConditionalLayout({
     pathname === "/about" ||
     pathname === "/resources" ||
     pathname === "/community" ||
-    pathname === "/join";
+    pathname === "/join" ||
+    pathname === "/projects" ||
+    pathname === "/team";
 
   if (isAdmin) {
     return <>{children}</>;
