@@ -19,10 +19,12 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
+import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Marquee } from "@/components/karibu/Marquee";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
+import { KaribuProjects } from "@/components/karibu/KaribuProjects";
 import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
 
 interface KaribuHomeProps {
@@ -30,6 +32,8 @@ interface KaribuHomeProps {
   upcomingEvents: Event[];
   audienceState: AudienceState;
   recommendables: Recommendable[];
+  featuredProjects: ProjectView[];
+  projectOfTheWeek: ProjectView | null;
 }
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -72,6 +76,8 @@ export function KaribuHome({
   upcomingEvents,
   audienceState,
   recommendables,
+  featuredProjects,
+  projectOfTheWeek,
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
   const memberLabel = communityStats?.totalMembers
@@ -97,6 +103,7 @@ export function KaribuHome({
       <WhatWeDo />
       <TwoTracks />
       <EventsSection events={upcomingEvents.slice(0, 3)} />
+      <KaribuProjects projectOfTheWeek={projectOfTheWeek} featuredProjects={featuredProjects} />
       <CommunityInAction />
       <HowToJoin />
       <SupportedBy />

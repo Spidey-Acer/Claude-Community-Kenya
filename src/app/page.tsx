@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { KaribuHome } from "@/components/karibu/KaribuHome";
-import { getUpcomingEvents, getBlogPosts } from "@/lib/data";
+import { getUpcomingEvents, getBlogPosts, getFeaturedProjects, getProjectOfTheWeek } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -31,10 +31,12 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [upcomingEvents, siteSettings, blogPosts] = await Promise.all([
+  const [upcomingEvents, siteSettings, blogPosts, featuredProjects, projectOfTheWeek] = await Promise.all([
     getUpcomingEvents().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getBlogPosts().catch(() => []),
+    getFeaturedProjects().catch(() => []),
+    getProjectOfTheWeek().catch(() => null),
   ]);
 
   const communityStats = siteSettings
@@ -121,6 +123,8 @@ export default async function Home() {
       upcomingEvents={upcomingEvents}
       audienceState={audienceState}
       recommendables={recommendables}
+      featuredProjects={featuredProjects}
+      projectOfTheWeek={projectOfTheWeek}
     />
   );
 }
