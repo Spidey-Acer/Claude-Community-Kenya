@@ -14,20 +14,26 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
+import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Marquee } from "@/components/karibu/Marquee";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
+import { KaribuProjects } from "@/components/karibu/KaribuProjects";
+import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
 
 interface KaribuHomeProps {
   communityStats?: CommunityStats;
   upcomingEvents: Event[];
   audienceState: AudienceState;
   recommendables: Recommendable[];
+  featuredProjects: ProjectView[];
+  projectOfTheWeek: ProjectView | null;
 }
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -70,6 +76,8 @@ export function KaribuHome({
   upcomingEvents,
   audienceState,
   recommendables,
+  featuredProjects,
+  projectOfTheWeek,
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
   const memberLabel = communityStats?.totalMembers
@@ -95,9 +103,41 @@ export function KaribuHome({
       <WhatWeDo />
       <TwoTracks />
       <EventsSection events={upcomingEvents.slice(0, 3)} />
+      <KaribuProjects projectOfTheWeek={projectOfTheWeek} featuredProjects={featuredProjects} />
       <CommunityInAction />
       <HowToJoin />
+      <SupportedBy />
     </>
+  );
+}
+
+/* ─────────────────────────── Supported by ─────────────────────────── */
+
+function SupportedBy() {
+  return (
+    <section className={`${WRAP} pb-20 pt-4`} aria-label="Supported by">
+      <Reveal>
+        <p className="mb-8 text-center font-inter text-xs font-semibold uppercase tracking-[0.22em] text-ink-muted">
+          Supported by
+        </p>
+        <div className="flex items-center justify-center">
+          <a
+            href="https://anthropic.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-2xl border border-sand bg-paper-card px-8 py-6 transition-colors hover:border-clay/50"
+          >
+            <Image
+              src="/images/anthropic-wordmark.webp"
+              alt="Anthropic"
+              width={200}
+              height={54}
+              style={{ width: "200px", height: "auto" }}
+            />
+          </a>
+        </div>
+      </Reveal>
+    </section>
   );
 }
 
@@ -152,25 +192,25 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
           </motion.div>
         </div>
 
-        {/* Hero visual — decorative placeholder; swap for a real meetup photo. */}
+        {/* Hero visual — real CCK meetup photo. */}
         <motion.div
           initial={reduce ? false : { opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
           className="relative h-[300px] overflow-hidden rounded-[14px] border border-sand-2 lg:h-[460px]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #EBE2D2 0 14px, #E4DAC7 14px 28px)",
-          }}
         >
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="rounded-lg border border-sand-2 bg-paper px-3.5 py-2 font-mono text-[12.5px] tracking-[0.04em] text-ink-muted">
-              [ community · CCK meetup ]
-            </div>
-          </div>
+          <Image
+            src={HERO_PHOTO}
+            alt="Claude Community Kenya members at a Nairobi meetup"
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 560px"
+            className="object-cover"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent" />
           {nextEvent && (
-            <div className="absolute bottom-[18px] left-[18px] rounded-xl border border-sand-2 bg-paper/[0.94] px-4 py-3 font-inter text-[13px] text-ink-soft backdrop-blur-sm">
-              <span className="font-semibold text-ink">{nextEvent.title}</span>
+            <div className="absolute bottom-[18px] left-[18px] right-[18px] rounded-xl border border-white/15 bg-ink/70 px-4 py-3 font-inter text-[13px] text-paper-card backdrop-blur-md">
+              <span className="font-semibold text-white">{nextEvent.title}</span>
               {typeof nextEvent.attendeeCount === "number" && (
                 <> · {nextEvent.attendeeCount} registered</>
               )}
@@ -444,7 +484,7 @@ function EventsSection({ events }: { events: Event[] }) {
       </Reveal>
 
       <Reveal className="grid gap-4 md:grid-cols-3">
-        {events.map((ev) => {
+        {events.map((ev, i) => {
           const cta =
             ev.type === "hackathon" || ev.status === "registration-open"
               ? "Register"
@@ -455,13 +495,15 @@ function EventsSection({ events }: { events: Event[] }) {
               href={`/events/${ev.slug}`}
               className="group block overflow-hidden rounded-[14px] border border-sand bg-paper-card transition-colors hover:border-clay"
             >
-              <div
-                className="h-[140px] border-b border-sand"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(135deg, #EFE7D8 0 12px, #E7DDCB 12px 24px)",
-                }}
-              />
+              <div className="relative h-[150px] overflow-hidden border-b border-sand">
+                <Image
+                  src={eventCover(ev.posterUrl, i)}
+                  alt={ev.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 380px"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
               <div className="p-[22px]">
                 <div className="mb-3 flex flex-wrap gap-2">
                   {ev.city && (
@@ -501,17 +543,20 @@ function CommunityInAction() {
         <div className={`${KICKER} mb-4`}>Community in action</div>
       </Reveal>
       <Reveal className="grid items-stretch gap-6 lg:grid-cols-2">
-        {/* Photo gallery placeholder — swap for real member/event photos. */}
+        {/* Real member & event photos. */}
         <div className="grid min-h-[380px] grid-cols-2 grid-rows-2 gap-3">
-          <div className="row-span-2 rounded-xl bg-[#E4DAC7]" />
-          <div className="rounded-xl bg-[#EAD9C9]" />
-          <div className="rounded-xl bg-[#DED2BC]" />
+          <div className="relative row-span-2 overflow-hidden rounded-xl">
+            <Image src={GALLERY_PHOTOS.tall} alt="CCK members building with Claude" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
+          </div>
+          <div className="relative overflow-hidden rounded-xl">
+            <Image src={GALLERY_PHOTOS.topRight} alt="Engaged audience at a CCK meetup" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
+          </div>
+          <div className="relative overflow-hidden rounded-xl">
+            <Image src={GALLERY_PHOTOS.bottomRight} alt="CCK community group photo" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
+          </div>
         </div>
         <KaribuTestimonials />
       </Reveal>
-      <p className="mt-3.5 font-mono text-xs text-[#9A8F7E]">
-        [ gallery — real CCK member &amp; event photos ]
-      </p>
     </section>
   );
 }

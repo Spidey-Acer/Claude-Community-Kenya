@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { EventsContent } from "./EventsContent";
+import { KaribuEvents } from "@/components/karibu/KaribuEvents";
+import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEvents } from "@/lib/data";
 
 export const revalidate = 1800;
@@ -23,5 +24,10 @@ export const metadata: Metadata = {
 
 export default async function EventsPage() {
   const events = await getEvents().catch(() => []);
-  return <EventsContent events={events} />;
+  return (
+    <>
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Events" }]} />
+      <KaribuEvents events={events} />
+    </>
+  );
 }

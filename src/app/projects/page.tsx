@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getProjects } from "@/lib/data";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
-import { ProjectsClient } from "./ProjectsClient";
+import { KaribuProjectsPage } from "@/components/karibu/KaribuProjectsPage";
 
 export const metadata: Metadata = {
   title: `Projects | ${SITE_CONFIG.name}`,
@@ -29,7 +29,7 @@ export default async function ProjectsPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Projects" }]} />
-      <ProjectsClient projects={projects} />
+      <KaribuProjectsPage projects={projects} />
     </>
   );
 }

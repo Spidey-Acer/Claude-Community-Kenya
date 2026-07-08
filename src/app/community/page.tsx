@@ -1,10 +1,7 @@
 import type { Metadata } from "next"
-import { ScrollReveal } from "@/components/terminal"
-import { CommunityResourceCard } from "@/components/sections/CommunityResourceCard"
 import { getCommunitySubmissions } from "@/lib/data"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
-import { CommunityFilters } from "./CommunityFilters"
-import { CommunityHeader, CommunityEmpty, CommunityCountChip } from "./CommunityHeader"
+import { KaribuCommunity } from "@/components/karibu/KaribuCommunity"
 
 export const revalidate = 1800
 
@@ -37,38 +34,9 @@ export default async function CommunityPage({
   const { items, total } = await getCommunitySubmissions({ type, sort }).catch(() => ({ items: [], total: 0 }))
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+    <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Community Hub" }]} />
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <CommunityHeader />
-
-        {/* Filters */}
-        <ScrollReveal delay={100}>
-          <CommunityFilters activeType={type} activeSort={sort} />
-        </ScrollReveal>
-
-        {/* Results count */}
-        <ScrollReveal delay={150}>
-          <CommunityCountChip total={total} />
-        </ScrollReveal>
-
-        {/* Grid */}
-        {items.length > 0 ? (
-          <ScrollReveal
-            stagger={100}
-            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-          >
-            {items.map((submission) => (
-              <CommunityResourceCard key={submission.slug} submission={submission} />
-            ))}
-          </ScrollReveal>
-        ) : (
-          <ScrollReveal>
-            <CommunityEmpty type={type} />
-          </ScrollReveal>
-        )}
-      </div>
-    </main>
+      <KaribuCommunity items={items} total={total} activeType={type} activeSort={sort} />
+    </>
   )
 }
