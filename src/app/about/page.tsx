@@ -3,7 +3,7 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getTeamMembers, getEvents } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
-import { AboutClient } from "./AboutClient";
+import { KaribuAbout } from "@/components/karibu/KaribuAbout";
 
 function formatTimelineDate(iso: string): string {
   // iso comes in as YYYY-MM-DD (already mapped by getEvents)
@@ -90,7 +90,7 @@ export default async function AboutPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "About" }]} />
-      <AboutClient stats={stats} team={team} timelineEntries={timelineEntries} />
+      <KaribuAbout stats={stats} team={team} timelineEntries={timelineEntries} />
     </>
   );
 }
