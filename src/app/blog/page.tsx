@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { BlogPostCard } from "@/components/sections/BlogPostCard";
-import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
 import { getBlogPosts } from "@/lib/data";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
+import { KaribuBlog } from "@/components/karibu/KaribuBlog";
 
 export const revalidate = 3600;
 
@@ -30,37 +27,9 @@ export default async function BlogPage() {
   const posts = await getBlogPosts().catch(() => []);
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+    <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Blog" }]} />
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <ScrollReveal>
-          <section className="mb-12">
-            <PersonaHeading
-              page="blog"
-              section="hero"
-              as="h1"
-              className="mb-4 font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-            />
-            <PersonaText
-              page="blog"
-              section="hero"
-              field="subtitle"
-              className="max-w-2xl font-sans text-lg text-text-secondary"
-            />
-          </section>
-        </ScrollReveal>
-
-        {/* Blog posts grid */}
-        <ScrollReveal
-          stagger={100}
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {posts.map((post) => (
-            <BlogPostCard key={post.slug} post={post} />
-          ))}
-        </ScrollReveal>
-      </div>
-    </main>
+      <KaribuBlog posts={posts} />
+    </>
   );
 }

@@ -43,7 +43,11 @@ export function ConditionalLayout({
     pathname === "/community" ||
     pathname === "/join" ||
     pathname === "/projects" ||
-    pathname === "/team";
+    pathname === "/team" ||
+    pathname === "/faq" ||
+    pathname === "/gallery" ||
+    pathname === "/newsletter" ||
+    pathname === "/blog";
 
   if (isAdmin) {
     return <>{children}</>;
