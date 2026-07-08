@@ -88,7 +88,7 @@ export function KaribuHome({
     memberLabel,
     ...cities,
     "Free & founder-led",
-    "Anthropic-supported via the Community Ambassador programme",
+    "Anthropic-supported via the Claude Community Ambassadors program",
     "Karibu",
   ].filter(Boolean) as string[];
 
@@ -241,7 +241,7 @@ function TrustBar({
       small: cities.length ? cities.join(" · ") : "and expanding",
     },
     { big: "100% free", small: "community-run, always open" },
-    { big: "Supported", small: "by Anthropic's Ambassador programme" },
+    { big: "Supported", small: "Claude Community Ambassadors program" },
   ];
 
   return (
