@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Search, Menu, X, ChevronDown, LayoutDashboard } from "lucide-react";
 import { NAV_LINKS, type NavLink } from "@/lib/constants";
+import { KaribuThemeToggle } from "@/components/karibu/KaribuThemeToggle";
 
 const CommandPalette = dynamic(
   () => import("@/components/terminal/CommandPalette").then((m) => ({ default: m.CommandPalette })),
@@ -87,6 +88,8 @@ export function KaribuNav() {
               </kbd>
             </button>
 
+            <KaribuThemeToggle />
+
             {/* Auth-aware CTA */}
             {isAuthed ? (
               <Link
@@ -124,6 +127,7 @@ export function KaribuNav() {
             >
               <Search size={18} />
             </button>
+            <KaribuThemeToggle />
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
