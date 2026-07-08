@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { ScrollReveal } from "@/components/terminal";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
-import { ResourceCardsGrid, type ResourceCardData } from "./ResourceCardsGrid";
+import { KaribuLearn, type LearnCard } from "@/components/karibu/KaribuLearn";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -22,7 +19,7 @@ export const metadata: Metadata = {
   },
 };
 
-const resourceCards: readonly ResourceCardData[] = [
+const resourceCards: readonly LearnCard[] = [
   {
     title: "Getting Started",
     href: "/resources/getting-started",
@@ -76,30 +73,9 @@ const resourceCards: readonly ResourceCardData[] = [
 
 export default function ResourcesPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Resources" }]} />
-      {/* Header */}
-      <ScrollReveal>
-        <section className="py-16 text-center">
-          <PersonaHeading
-            page="resources"
-            section="hero"
-            as="h1"
-            className="text-3xl font-bold text-green-primary sm:text-4xl"
-          />
-          <PersonaText
-            page="resources"
-            section="hero"
-            field="subtitle"
-            className="mx-auto mt-6 max-w-2xl text-lg text-text-secondary"
-          />
-        </section>
-      </ScrollReveal>
-
-      {/* Navigation Cards Grid */}
-      <section className="py-12">
-        <ResourceCardsGrid cards={resourceCards} />
-      </section>
-    </main>
+      <KaribuLearn cards={resourceCards} />
+    </>
   );
 }

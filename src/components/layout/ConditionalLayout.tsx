@@ -36,7 +36,10 @@ export function ConditionalLayout({
   // Routes migrated to the warm-light "Karibu" identity. Grows page-by-page;
   // everything else keeps the Terminal Noir chrome until converted.
   const isKaribu =
-    pathname === "/" || pathname.startsWith("/events") || pathname === "/about";
+    pathname === "/" ||
+    pathname.startsWith("/events") ||
+    pathname === "/about" ||
+    pathname === "/resources";
 
   if (isAdmin) {
     return <>{children}</>;
