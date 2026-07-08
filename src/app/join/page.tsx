@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
-import { JoinSwitcher } from "./JoinSwitcher";
+import { KaribuJoin } from "@/components/karibu/KaribuJoin";
 
 export const metadata: Metadata = {
   title: `Join | ${SITE_CONFIG.name}`,
@@ -24,7 +24,7 @@ export default function JoinPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Join" }]} />
-      <JoinSwitcher />
+      <KaribuJoin />
     </>
   );
 }

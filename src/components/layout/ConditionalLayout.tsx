@@ -40,7 +40,8 @@ export function ConditionalLayout({
     pathname.startsWith("/events") ||
     pathname === "/about" ||
     pathname === "/resources" ||
-    pathname === "/community";
+    pathname === "/community" ||
+    pathname === "/join";
 
   if (isAdmin) {
     return <>{children}</>;
