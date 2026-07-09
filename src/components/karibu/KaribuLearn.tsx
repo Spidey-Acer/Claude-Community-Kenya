@@ -9,7 +9,6 @@
  */
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   Rocket,
   Terminal,
@@ -20,6 +19,7 @@ import {
   Link2,
   type LucideIcon,
 } from "lucide-react";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -46,21 +46,6 @@ const PATH = [
   { n: "2", title: "Build with Claude Code", body: "Ship a small app or tool end to end." },
   { n: "3", title: "Come to a workshop", body: "Go further with people who'll help in person." },
 ];
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
   return (
