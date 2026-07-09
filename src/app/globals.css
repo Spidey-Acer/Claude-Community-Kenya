@@ -55,6 +55,14 @@
   --sand-2: #DDD3C2;
   --font-newsreader-stack: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-inter-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* ─── Motion tokens (Karibu motion layer) ─── */
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1); /* confident ease-out for entrances */
+  --ease-reversible: cubic-bezier(0.4, 0, 0.2, 1); /* symmetric, for hovers/reversible states */
+  --dur-micro: 150ms; /* hover / press */
+  --dur-reveal: 320ms; /* entrances / reveals */
+  --dur-hero: 500ms; /* large hero / page */
+  --reveal-shift: 18px;
 }
 
 @theme inline {
@@ -607,6 +615,37 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Karibu degrade-safe reveal ──────────────────────────────────────────
+ * Content is fully visible by default. The before-paint `.js` class (set in
+ * layout.tsx) introduces the hidden→visible transition; a shared observer
+ * adds `.in-view` once per element. No JS → no `.js` → content stays visible.
+ * Only opacity/transform animate. Reduced-motion → instant + always visible. */
+[data-reveal] {
+  opacity: 1;
+}
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift));
+  transition:
+    opacity var(--dur-reveal) var(--ease-entrance),
+    transform var(--dur-reveal) var(--ease-entrance);
+  transition-delay: calc(min(var(--i, 0), 5) * 60ms); /* stagger, capped at 6 steps */
+  will-change: opacity, transform;
+}
+.js [data-reveal].in-view {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    transition-delay: 0ms;
   }
 }
 
