@@ -23,6 +23,7 @@ import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Marquee } from "@/components/karibu/Marquee";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
 import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
@@ -46,30 +47,6 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   "career-talk": "Career talk",
   hackathon: "Hackathon",
 };
-
-/** Reveal-on-scroll wrapper; no-op when the visitor prefers reduced motion. */
-function Reveal({
-  children,
-  className,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1], delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuHome({
   communityStats,
