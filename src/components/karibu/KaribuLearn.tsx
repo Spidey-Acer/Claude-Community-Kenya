@@ -8,6 +8,7 @@
  * remove.
  */
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Rocket,
@@ -20,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { register, unregister } from "@/components/karibu/motion/observer";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -46,6 +48,26 @@ const PATH = [
   { n: "2", title: "Build with Claude Code", body: "Ship a small app or tool end to end." },
   { n: "3", title: "Come to a workshop", body: "Go further with people who'll help in person." },
 ];
+
+/**
+ * A thin progress line under the suggested-path steps that draws left→right on
+ * first scroll into view, reusing the shared reveal observer. The dark track is
+ * always visible (degrade-safe); only the clay fill animates.
+ */
+function ProgressLine() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    register(el);
+    return () => unregister(el);
+  }, []);
+  return (
+    <div className="mt-8 h-px w-full bg-[#3B352D]" aria-hidden="true">
+      <div ref={ref} data-progress className="h-px w-full bg-clay-light" />
+    </div>
+  );
+}
 
 export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
   return (
@@ -107,14 +129,15 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
               A suggested path
             </div>
             <div className="grid gap-6 sm:grid-cols-3">
-              {PATH.map((s) => (
-                <div key={s.n} className="border-t border-[#3B352D] pt-[18px]">
+              {PATH.map((s, i) => (
+                <Reveal key={s.n} index={i} className="border-t border-[#3B352D] pt-[18px]">
                   <div className="mb-2 font-newsreader text-[30px] text-clay-light">{s.n}</div>
                   <div className="mb-1.5 font-inter text-base font-semibold text-paper">{s.title}</div>
                   <div className="font-inter text-sm leading-[1.55] text-[#A79E90]">{s.body}</div>
-                </div>
+                </Reveal>
               ))}
             </div>
+            <ProgressLine />
             <div className="mt-8">
               <Link
                 href="/events"

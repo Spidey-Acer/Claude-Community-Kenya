@@ -649,6 +649,26 @@ body::before {
   }
 }
 
+/* Scroll-drawn progress line (degrade-safe): the parent is the static track;
+ * this fill scales from the left on first intersect (same shared observer as
+ * [data-reveal]). No JS → full width. Reduced-motion → instant full. */
+[data-progress] {
+  transform-origin: left;
+}
+.js [data-progress] {
+  transform: scaleX(0);
+  transition: transform var(--dur-hero) var(--ease-entrance);
+}
+.js [data-progress].in-view {
+  transform: scaleX(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .js [data-progress] {
+    transform: none;
+    transition: none;
+  }
+}
+
 /* ─── Karibu identity (warm-light redesign) ─────────────────────────────
  * Scoped base + animation loops for the page-by-page overhaul. Applied via
  * the .karibu wrapper so it never leaks onto Terminal Noir pages. The global
