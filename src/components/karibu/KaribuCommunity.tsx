@@ -76,7 +76,7 @@ export function KaribuCommunity({
             </div>
             <Link
               href="/community/submit"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
             >
               <Plus className="h-4 w-4" /> Share something
             </Link>
