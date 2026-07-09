@@ -50,10 +50,12 @@ export function KaribuEvents({ events }: { events: Event[] }) {
   const reduce = useReducedMotion();
 
   // Filtering re-orders events in place (FLIP) rather than hard-cutting, so the
-  // relationship between the old and new list stays legible. Reduced-motion
-  // skips the enter/exit offset; Framer disables the layout tween globally.
+  // relationship between the old and new list stays legible. Under reduced
+  // motion we drop the layout tween AND the enter/exit offset entirely (Framer
+  // defaults to reducedMotion:"never", so it will NOT do this for us) — items
+  // just cross-fade, no movement.
   const flip = {
-    layout: true,
+    layout: !reduce,
     initial: reduce ? false : { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
     exit: reduce ? { opacity: 0 } : { opacity: 0, y: -8 },

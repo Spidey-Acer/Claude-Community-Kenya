@@ -57,8 +57,11 @@ export function KaribuNav() {
             : "bg-paper/[0.86]"
         }`}
       >
+        {/* Height snaps between states (no height *animation* — only
+         * transform/opacity/paint may animate); the smooth firm-up comes from
+         * the nav's background + shadow transition above. */}
         <div
-          className={`mx-auto flex max-w-[1180px] items-center justify-between px-5 transition-[height] duration-200 md:px-10 ${
+          className={`mx-auto flex max-w-[1180px] items-center justify-between px-5 md:px-10 ${
             scrolled ? "h-14" : "h-16"
           }`}
         >
