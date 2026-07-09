@@ -34,12 +34,16 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
 
       <section className={`${WRAP} pb-16`} aria-label="Team">
         {active.length > 0 ? (
-          <Reveal className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-            {active.map((m) => (
-              <TeamCard key={m.name} member={m} />
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            {active.map((m, i) => (
+              <Reveal key={m.name} index={i}>
+                <TeamCard member={m} />
+              </Reveal>
             ))}
-          </Reveal>
+          </div>
         ) : (
+          // "Coming soon" appears instantly — we never animate attention onto
+          // an empty state.
           <p className="text-center font-inter text-ink-muted">Team coming soon.</p>
         )}
       </section>
@@ -55,10 +59,10 @@ function TeamCard({ member }: { member: TeamMemberView }) {
     .slice(0, 2)
     .toUpperCase();
   return (
-    <div className="rounded-2xl border border-sand bg-paper-card p-5 text-center">
+    <div className="group h-full rounded-2xl border border-sand bg-paper-card p-5 text-center transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
       <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-sand">
         {member.avatar ? (
-          <Image src={member.avatar} alt={member.name} width={96} height={96} className="h-full w-full object-cover" />
+          <Image src={member.avatar} alt={member.name} width={96} height={96} className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-reversible)] group-hover:scale-105" />
         ) : (
           <span className="font-newsreader text-[28px] text-ink-muted">{initials}</span>
         )}
