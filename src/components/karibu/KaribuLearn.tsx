@@ -73,7 +73,7 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
               <Link
                 key={card.href}
                 href={card.href}
-                className="group flex flex-col rounded-2xl border border-sand bg-paper-card p-7 transition-colors hover:border-clay"
+                className="group flex flex-col rounded-2xl border border-sand bg-paper-card p-7 transition-[transform,border-color] duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 hover:border-clay"
               >
                 <div className="mb-5 flex items-center justify-between">
                   <span className="font-mono text-xs text-clay">
@@ -88,7 +88,10 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
                   {card.description}
                 </p>
                 <span className="font-inter text-sm font-semibold text-clay group-hover:underline">
-                  Open →
+                  Open{" "}
+                  <span className="inline-block transition-transform duration-150 ease-[var(--ease-reversible)] group-hover:translate-x-1">
+                    →
+                  </span>
                 </span>
               </Link>
             );

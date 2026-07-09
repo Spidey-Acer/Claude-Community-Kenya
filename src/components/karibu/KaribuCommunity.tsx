@@ -161,7 +161,7 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
   return (
     <Link
       href={`/community/${submission.slug}`}
-      className="group flex h-full flex-col rounded-2xl border border-sand bg-paper-card p-6 transition-colors hover:border-clay"
+      className="group flex h-full flex-col rounded-2xl border border-sand bg-paper-card p-6 transition-[transform,border-color] duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 hover:border-clay"
       aria-label={`${submission.title} — ${TYPE_LABEL[submission.type]}`}
     >
       <div className="mb-3">
