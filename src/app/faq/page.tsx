@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { faqs } from "@/data/faq";
-import { FaqPageContent } from "./FaqPageContent";
+import { KaribuFaq } from "@/components/karibu/KaribuFaq";
 
 export const metadata: Metadata = {
   title: "FAQ | Claude Community Kenya",
@@ -59,7 +59,7 @@ export default function FaqPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <FaqPageContent faqs={faqs} categories={categories} />
+      <KaribuFaq faqs={faqs} categories={categories} />
     </>
   );
 }

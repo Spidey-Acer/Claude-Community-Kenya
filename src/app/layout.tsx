@@ -221,6 +221,16 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* Karibu theme init — runs before paint to avoid a light/dark flash.
+         * Only sets data-theme when the visitor has made an explicit choice
+         * via KaribuThemeToggle; absent that, the CSS prefers-color-scheme
+         * media query in globals.css handles the system default. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('cck-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
+          }}
+        />
       </head>
       <body
         className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable} antialiased`}

@@ -640,3 +640,40 @@ body::before {
 .karibu [data-marquee]:hover [data-mq-track] {
   animation-play-state: paused;
 }
+
+/* ─── Karibu adaptive dark mode ───────────────────────────────────────────
+ * Warm-dark overrides for the Karibu paper/ink/sand/clay tokens ONLY.
+ * Precedence: system preference (prefers-color-scheme) applies by default;
+ * an explicit user choice persisted via KaribuThemeToggle (data-theme attr
+ * on <html>) always wins over the system preference in either direction.
+ * Terminal Noir / persona-pro tokens (--bg-primary, --text-*, --green-*)
+ * are untouched — this block only redefines --paper/--ink/--clay/--sand. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1a1714;
+    --paper-card: #221d17;
+    --paper-alt: #2a231b;
+    --ink: #F4EEE3;
+    --ink-soft: #C7BEB0;
+    --ink-muted: #9a9082;
+    --clay: #d2704a;
+    --clay-dark: #A84E2D;
+    --clay-light: #E6906F;
+    --sand: #3a332a;
+    --sand-2: #473d31;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #1a1714;
+  --paper-card: #221d17;
+  --paper-alt: #2a231b;
+  --ink: #F4EEE3;
+  --ink-soft: #C7BEB0;
+  --ink-muted: #9a9082;
+  --clay: #d2704a;
+  --clay-dark: #A84E2D;
+  --clay-light: #E6906F;
+  --sand: #3a332a;
+  --sand-2: #473d31;
+}

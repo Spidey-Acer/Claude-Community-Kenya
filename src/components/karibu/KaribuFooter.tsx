@@ -87,8 +87,8 @@ export function KaribuFooter() {
 
       <div className="mx-auto max-w-[1180px] px-6 pb-9 pt-10 md:px-10">
         <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-[#8A7F6E]">
-          Independently operated. Anthropic-supported via the Community
-          Ambassador programme (event funding + API credits). Views expressed
+          Independently operated. Anthropic-supported via the Claude Community
+          Ambassadors program (event funding + API credits). Views expressed
           here are community-held, not official Anthropic positions. &ldquo;Claude&rdquo;
           is a trademark of Anthropic PBC.
         </p>

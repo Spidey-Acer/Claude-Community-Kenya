@@ -14,15 +14,23 @@ interface MarqueeProps {
   items: string[];
 }
 
+// Repeats of the phrase set per half. The track is two identical halves and
+// the animation translates by exactly one half (-50%), so the loop is seamless
+// ONLY if one half is at least as wide as the viewport. Repeating the set a few
+// times per half guarantees that even on ultra-wide screens (no visible gap).
+const REPEATS_PER_HALF = 3;
+
 export function Marquee({ items }: MarqueeProps) {
-  const Track = () => (
+  const Half = () => (
     <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-[#FBF0E8] whitespace-nowrap">
-      {items.map((item, i) => (
-        <span key={i} className="flex items-center gap-[26px]">
-          <span>{item}</span>
-          <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
-        </span>
-      ))}
+      {Array.from({ length: REPEATS_PER_HALF }).flatMap((_, r) =>
+        items.map((item, i) => (
+          <span key={`${r}-${i}`} className="flex items-center gap-[26px]">
+            <span>{item}</span>
+            <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
+          </span>
+        )),
+      )}
     </div>
   );
 
@@ -37,8 +45,8 @@ export function Marquee({ items }: MarqueeProps) {
         className="flex w-max"
         style={{ animation: "karibu-marquee 26s linear infinite" }}
       >
-        <Track />
-        <Track />
+        <Half />
+        <Half />
       </div>
     </div>
   );
