@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown, MessageSquare, Search, X } from "lucide-react";
 import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 import type { FAQ } from "@/data/faq";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -21,21 +22,6 @@ export interface FaqCategory {
   key: string;
   label: string;
   command: string;
-}
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
 }
 
 function FaqItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggle: () => void }) {

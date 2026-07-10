@@ -8,8 +8,8 @@
  * remove.
  */
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   Rocket,
   Terminal,
@@ -20,6 +20,8 @@ import {
   Link2,
   type LucideIcon,
 } from "lucide-react";
+import { Reveal } from "@/components/karibu/motion/Reveal";
+import { register, unregister } from "@/components/karibu/motion/observer";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -47,18 +49,23 @@ const PATH = [
   { n: "3", title: "Come to a workshop", body: "Go further with people who'll help in person." },
 ];
 
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
+/**
+ * A thin progress line under the suggested-path steps that draws left→right on
+ * first scroll into view, reusing the shared reveal observer. The dark track is
+ * always visible (degrade-safe); only the clay fill animates.
+ */
+function ProgressLine() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    register(el);
+    return () => unregister(el);
+  }, []);
   return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
+    <div className="mt-8 h-px w-full bg-[#3B352D]" aria-hidden="true">
+      <div ref={ref} data-progress className="h-px w-full bg-clay-light" />
+    </div>
   );
 }
 
@@ -88,7 +95,7 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
               <Link
                 key={card.href}
                 href={card.href}
-                className="group flex flex-col rounded-2xl border border-sand bg-paper-card p-7 transition-colors hover:border-clay"
+                className="group flex flex-col rounded-2xl border border-sand bg-paper-card p-7 transition-[transform,border-color] duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 hover:border-clay"
               >
                 <div className="mb-5 flex items-center justify-between">
                   <span className="font-mono text-xs text-clay">
@@ -103,7 +110,10 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
                   {card.description}
                 </p>
                 <span className="font-inter text-sm font-semibold text-clay group-hover:underline">
-                  Open →
+                  Open{" "}
+                  <span className="inline-block transition-transform duration-150 ease-[var(--ease-reversible)] group-hover:translate-x-1">
+                    →
+                  </span>
                 </span>
               </Link>
             );
@@ -119,14 +129,15 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
               A suggested path
             </div>
             <div className="grid gap-6 sm:grid-cols-3">
-              {PATH.map((s) => (
-                <div key={s.n} className="border-t border-[#3B352D] pt-[18px]">
+              {PATH.map((s, i) => (
+                <Reveal key={s.n} index={i} className="border-t border-[#3B352D] pt-[18px]">
                   <div className="mb-2 font-newsreader text-[30px] text-clay-light">{s.n}</div>
                   <div className="mb-1.5 font-inter text-base font-semibold text-paper">{s.title}</div>
                   <div className="font-inter text-sm leading-[1.55] text-[#A79E90]">{s.body}</div>
-                </div>
+                </Reveal>
               ))}
             </div>
+            <ProgressLine />
             <div className="mt-8">
               <Link
                 href="/events"

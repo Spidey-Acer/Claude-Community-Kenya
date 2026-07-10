@@ -10,9 +10,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, ExternalLink, Github, Plus } from "lucide-react";
 import type { CommunitySubmissionView } from "@/lib/data";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -36,21 +36,6 @@ const TYPE_LABEL: Record<CommunitySubmissionView["type"], string> = {
   WORKFLOW: "Workflow",
   TOOL: "Tool",
 };
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuCommunity({
   items,
@@ -91,7 +76,7 @@ export function KaribuCommunity({
             </div>
             <Link
               href="/community/submit"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
             >
               <Plus className="h-4 w-4" /> Share something
             </Link>
@@ -176,7 +161,7 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
   return (
     <Link
       href={`/community/${submission.slug}`}
-      className="group flex h-full flex-col rounded-2xl border border-sand bg-paper-card p-6 transition-colors hover:border-clay"
+      className="group flex h-full flex-col rounded-2xl border border-sand bg-paper-card p-6 transition-[transform,border-color] duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 hover:border-clay"
       aria-label={`${submission.title} — ${TYPE_LABEL[submission.type]}`}
     >
       <div className="mb-3">
