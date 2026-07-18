@@ -45,9 +45,26 @@ Open the Supabase dashboard and determine whether the project is **paused** or *
 | State | Consequence |
 |---|---|
 | **Paused** | Restore it, `pg_dump` **immediately**, then migrate at leisure. Data preserved. |
-| **Deleted** | Data is likely gone. Rebuild via `prisma migrate deploy` + reseed. Lost: join/speaker/volunteer applications, community submissions, comments, upvotes, blog posts, demo requests — all real user-submitted content. Uploaded images in bucket `cck-bucket` also unrecoverable. |
+| **Deleted** | Rebuild via `prisma migrate deploy` + `prisma db seed`. Editorial content returns; **user-generated content does not** — see the split below. |
+
+### What is actually at risk (verified against `prisma/seed.ts`)
+
+**Recoverable — `prisma/seed.ts` recreates these inline:** admin user, events,
+meetup photos, blog posts, projects, team member. Plus `src/data/` holds faq,
+resources, and persona content. Editorial content survives a full rebuild.
+
+**Unrecoverable if the project is deleted — DB-only, user-generated, no backup:**
+
+- Join / speaker / volunteer applications
+- Community submissions, comments, upvotes
+- Demo requests, contact messages, newsletter subscribers
+- Any events/blog posts created through the admin panel *after* the last seed
+- Uploaded images in bucket `cck-bucket` (posters, avatars, meetup photos)
 
 Safe either way: `public/images/community/*.webp` are committed to git.
+
+So the stakes are narrower than "everything is gone" — but the community's actual
+submissions are exactly the part with no fallback.
 
 **Do not redeploy or rotate env vars before dumping** — if the project is restorable,
 the dump is the only chance to preserve the data.
@@ -128,8 +145,10 @@ finished work.
 
 ## 3. Security — open and critical
 
-- [ ] **CSRF missing on 30 of 31 admin API routes.** Only
+- [ ] **CSRF missing on 21 of 22 admin mutation routes.** 31 admin route files exist;
+      22 export a `POST`/`PUT`/`PATCH`/`DELETE` handler, and only
       `src/app/api/admin/settings/change-password/route.ts` calls `withCsrfProtection`.
+      (GET-only routes need no CSRF, so the exposure is those 21 mutation routes.)
       RBAC (`checkApiPermission`) is present everywhere, which limits but does not
       eliminate this — CSRF rides an already-authenticated admin session.
 - [ ] **Upload `folder` param has no allowlist** — `src/app/api/admin/upload/route.ts:14`:
@@ -209,5 +228,5 @@ No `TODO`/`FIXME`/`XXX`/`@ts-expect-error` markers anywhere in `src/`.
 4. Storage swap (§1b) + upload `folder` allowlist (§3) — same code, do together.
 5. URL rewrite pass over the six columns in §1c; switch to relative paths.
 6. Open PR `redesign/karibu-darkmode` → `main` (dark mode + motion layer).
-7. CSRF sweep across the 30 admin routes.
+7. CSRF sweep across the 21 unprotected admin mutation routes.
 8. Sign-offs (§4), then the deferred conversions (§5).
