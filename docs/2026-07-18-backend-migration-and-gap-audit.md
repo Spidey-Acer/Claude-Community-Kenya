@@ -250,6 +250,16 @@ Two facts discovered during recovery that change the migration plan:
 migration remains the actual fix; the backup just means a repeat pause is now an
 inconvenience rather than a risk.
 
+> ⚠️ **This dump is a point-in-time snapshot, not the migration payload.**
+> Production is live again and taking writes (newsletter signups, join
+> applications, community submissions). **Take a FRESH dump at the moment of
+> cutover.** Restoring `cck-public-20260718.dump` onto the VPS at some later date
+> would silently discard everything submitted in between.
+
+**Provision Postgres 17 on the VPS.** The source is 17.6 and the dump was taken
+with pg17 tools; `pg_dump` output restores forward (older → newer), not reliably
+backward. A Postgres 15/16 target risks a failed or lossy restore.
+
 ---
 
 ## Recovery runbook — project confirmed PAUSED (restorable), 2026-07-18
