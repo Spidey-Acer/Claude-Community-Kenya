@@ -220,6 +220,45 @@ No `TODO`/`FIXME`/`XXX`/`@ts-expect-error` markers anywhere in `src/`.
 
 ---
 
+## Recovery runbook — project confirmed PAUSED (restorable), 2026-07-18
+
+Peter confirmed the project is paused, not deleted, and has been moved to the free
+plan. **The data is intact and recoverable.** Verified still paused as of this
+writing: `db.wqjtoljjntwvtxfbyfgw.supabase.co` → NXDOMAIN, pooler → tenant not found.
+
+> **Free-tier caveat:** free projects auto-pause again after ~7 days of inactivity.
+> This will keep recurring until the VPS cutover is done. Take the dump immediately
+> after resuming — do not leave it for later.
+
+### Step 1 — Resume (Peter, dashboard)
+Supabase dashboard → project → **Restore / Resume**. Takes a few minutes.
+
+### Step 2 — Dump immediately (blocked on tooling)
+**Use `DIRECT_URL`, not `DATABASE_URL`.** The pooler runs PgBouncer in transaction
+mode on :6543, which breaks `pg_dump`. The direct host on :5432 is required.
+
+No local `pg_dump`/`psql` binary exists on this machine. Two options:
+- **Start Docker Desktop** (CLI is installed, daemon was down), then dump via
+  `postgres:17-alpine`. Newer `pg_dump` against an older server is the supported
+  direction, so no version-matching needed.
+- Or install the Postgres client (`winget install PostgreSQL.PostgreSQL`).
+
+Dump to **`C:\Projects\_backups\cck\`** — created, and deliberately **outside the
+git repo**. The dump contains applicant PII, community submissions, and password
+hashes; `.gitignore` has no `*.sql`/`*.dump` patterns, so a dump inside the repo
+would be committable. Never put it there.
+
+Take **both** a custom-format dump (`-Fc`, for restore) and a plain SQL dump
+(readable/greppable), then verify row counts before trusting either.
+
+### Step 3 — Also export Storage
+`pg_dump` does **not** cover bucket `cck-bucket`. Download the objects separately
+(Supabase dashboard or CLI) or the posters/avatars/meetup photos are still lost.
+
+### Step 4 — Only then proceed to the VPS cutover below.
+
+---
+
 ## Recommended order
 
 1. **Determine Supabase project state (paused vs deleted).** Everything branches here.
