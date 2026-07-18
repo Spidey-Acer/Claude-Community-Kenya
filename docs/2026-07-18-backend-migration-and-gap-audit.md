@@ -220,6 +220,38 @@ No `TODO`/`FIXME`/`XXX`/`@ts-expect-error` markers anywhere in `src/`.
 
 ---
 
+## ✅ RESOLVED 2026-07-18 — project resumed, data secured, production recovered
+
+Peter resumed the paused project. Outcome:
+
+- **Production is live again.** All 6 events render on `/events`; blog/team
+  empty-states gone. The 18-day outage is over.
+- **Backup taken and verified** → `C:\Projects\_backups\cck\` (see `MANIFEST.md`).
+  `pg_dump -Fc` + plain SQL, restored into a throwaway `postgres:17-alpine`
+  container and diffed against live: **21 tables, 211 rows, exact match.**
+- **Storage exported** — bucket `cck-bucket` contains exactly one referenced
+  object (an event poster). Everything else was Unsplash placeholders or
+  repo-local paths.
+- Data preserved includes the irreplaceable set: 40 users, 74 newsletter
+  subscribers, 28 join applications, 23 audit logs, 5 community submissions.
+
+Two facts discovered during recovery that change the migration plan:
+
+1. **`db.<ref>.supabase.co` no longer resolves at all** — Supabase retired direct
+   IPv4 connections. `DIRECT_URL` in `.env` is therefore dead regardless of the
+   pause. Dumps and migrations must use the **session-mode pooler on :5432**
+   (`aws-1-eu-west-1.pooler.supabase.com:5432`), never :6543. Prisma's
+   `directUrl` needs updating to match, or migrations will fail.
+2. **`SUPABASE_SERVICE_ROLE_KEY` in local `.env` is a placeholder** (`your-se…`),
+   so local storage uploads have never worked. The real key lives only in Vercel.
+   Irrelevant after the VPS move, but explains any past local upload failures.
+
+**Still on the free plan → will auto-pause again after ~7 days idle.** The VPS
+migration remains the actual fix; the backup just means a repeat pause is now an
+inconvenience rather than a risk.
+
+---
+
 ## Recovery runbook — project confirmed PAUSED (restorable), 2026-07-18
 
 Peter confirmed the project is paused, not deleted, and has been moved to the free
