@@ -33,25 +33,25 @@ export function ConditionalLayout({
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isDashboard = pathname.startsWith("/dashboard");
-  // Routes migrated to the warm-light "Karibu" identity. Grows page-by-page;
-  // everything else keeps the Terminal Noir chrome until converted.
-  const isKaribu =
-    pathname === "/" ||
-    pathname.startsWith("/events") ||
-    pathname === "/about" ||
-    pathname === "/resources" ||
-    pathname === "/community" ||
-    pathname === "/join" ||
-    pathname === "/projects" ||
-    pathname === "/team" ||
-    pathname === "/faq" ||
-    pathname === "/gallery" ||
-    pathname === "/newsletter" ||
-    pathname === "/blog" ||
-    pathname === "/speak" ||
-    pathname === "/volunteer" ||
-    pathname === "/submit-idea" ||
-    pathname === "/submit-project";
+  // Karibu (warm-light) is the default identity. Routes still on the Terminal
+  // Noir chrome are listed here and removed as they get converted — unknown
+  // paths (404s) fall through to Karibu so dead links stay on-brand.
+  const legacyPrefixes = [
+    "/account",
+    "/chat",
+    "/code-of-conduct",
+    "/forgot-password",
+    "/login",
+    "/merch",
+    "/reset-password",
+    "/signup",
+    "/verify-email",
+    "/dashboard",
+    "/resources/",
+    "/blog/",
+    "/community/",
+  ];
+  const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
 
   if (isAdmin) {
     return <>{children}</>;
