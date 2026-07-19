@@ -226,6 +226,7 @@ function FeaturedCard({ event }: { event: Event }) {
           src={eventCover(event.posterUrl, 0)}
           alt={event.title}
           fill
+          priority
           sizes="(max-width: 768px) 100vw, 590px"
           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />

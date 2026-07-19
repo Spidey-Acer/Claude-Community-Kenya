@@ -102,6 +102,7 @@ export function KaribuAbout({
               src="/images/community/first-meetup.webp"
               alt="A Claude Community Kenya founding meetup"
               fill
+              priority
               sizes="(max-width: 768px) 100vw, 560px"
               className="object-cover"
             />
