@@ -261,6 +261,36 @@ as rollback. Deployment `dpl_E4bHBvGsNt2xu5UomPd7asTUCEwN`.
    bare `sslmode=require` as `verify-full`, which rejects the self-signed cert.
    Lesson: deploy the exact string that was tested.
 
+### Follow-ups completed 2026-07-19
+
+- ✅ **Preview/dev database** — `cck_preview` created on the same Postgres
+  instance, seeded with a copy of prod (211 rows), served by a second PgBouncer
+  `cck_pgbouncer_preview` on `:6433` (TLS, transaction pooling, ufw opened).
+  `DATABASE_URL` + `DIRECT_URL` now set for Preview and Development.
+  **Isolation verified:** a write to preview moved it 74 → 75 while production
+  stayed at 74. This fixes the long-standing "empty preview DB" without letting
+  preview form submissions write real rows.
+- ✅ **CSRF on admin routes** — `withCsrfProtection` added to **28 mutation
+  handlers across 21 files** (commit `aa53665`), following the existing
+  `settings/change-password` pattern. GET-only routes correctly left alone.
+  Verified independently: `npx tsc --noEmit` clean, `npm run build` clean,
+  and 22/22 admin files exporting POST/PUT/PATCH/DELETE now covered.
+- ✅ **PR #38 opened** — `redesign/karibu-darkmode` → `main` (16 commits: adaptive
+  dark mode + the full motion layer). Status `MERGEABLE`. Awaiting review;
+  testimonial-name and `/join` sign-offs still block a clean merge.
+
+### CORRECTION — `portfolio_postgres` exposure is intentional, do NOT close it
+
+An earlier note in this doc suggested closing `portfolio_postgres` on
+`0.0.0.0:5432`. **That advice was wrong.** `/root/portfolio-backend/docker-compose`
+documents the publish deliberately:
+
+> `# Public — Vercel functions reach it via 173.249.39.147:5432 … Strong password + ufw.`
+
+Peter's portfolio app on Vercel connects to it directly. Closing the port would
+break that site. If hardening is wanted later, the right move is what CCK now
+does — front it with PgBouncer + TLS on a non-standard port — not closing it.
+
 ### Remaining follow-ups
 
 - [ ] **Replace the self-signed cert.** `uselibpqcompat=true` is a compatibility
