@@ -220,6 +220,66 @@ No `TODO`/`FIXME`/`XXX`/`@ts-expect-error` markers anywhere in `src/`.
 
 ---
 
+## ✅✅ MIGRATION COMPLETE 2026-07-18 — production now runs on the VPS
+
+claudekenya.org no longer depends on Supabase.
+
+**Infrastructure** (`/root/cck/` on `173.249.39.147`, same conventions as the other
+stacks on that box):
+
+| Service | Detail |
+|---|---|
+| `cck_postgres` | Postgres 17.10, `127.0.0.1:5433` only, volume `cck_cck_postgres_data` |
+| `cck_pgbouncer` | public `:6432`, **TLS required**, transaction pooling (correct for serverless) |
+| backups | `/etc/cron.d/cck-backup` → nightly 02:30, 14-day retention |
+| firewall | ufw allows 6432/tcp; Postgres itself never exposed |
+
+**Verification actually performed (not assumed):**
+
+- Content equality: `md5(string_agg((row)::text))` across 10 key tables,
+  Supabase vs VPS → **10/10 exact match**
+- Read path: `/events` renders all 6 events; PgBouncer shows live traffic
+  (1 xact/s, 4.4 KB/s out) and 4 pooled connections from Vercel
+- Write path: real CSRF-authenticated POST to `/api/newsletter` → subscribers
+  74 → 75 on the VPS, then test row removed. This also proves Prisma works
+  through PgBouncer transaction pooling (the main technical risk).
+
+**Vercel env:** `DATABASE_URL` (production) + `DIRECT_URL` (all 3 envs) repointed.
+Previous values saved to `C:\Projects\_backups\cck\vercel-prod-env-before-cutover.env`
+as rollback. Deployment `dpl_E4bHBvGsNt2xu5UomPd7asTUCEwN`.
+
+### Two mistakes made during this cutover — worth remembering
+
+1. **Password leaked into the session transcript.** A redaction masked the
+   `Password:` line but missed the same value inside the connection string.
+   The credential was rotated (`ALTER USER`, PgBouncer recreated) and the old
+   one confirmed dead (`SASL authentication failed`). Lesson: never echo a file
+   containing a secret, even "redacted".
+2. **First deploy broke production reads.** The VPS connection was verified
+   locally with `uselibpqcompat=true&sslmode=require`, but the Vercel variable
+   was written *without* that flag. `@prisma/adapter-pg` (node-postgres) treats
+   bare `sslmode=require` as `verify-full`, which rejects the self-signed cert.
+   Lesson: deploy the exact string that was tested.
+
+### Remaining follow-ups
+
+- [ ] **Replace the self-signed cert.** `uselibpqcompat=true` is a compatibility
+      shim that `pg` v9 will change, and traffic is currently encrypted but
+      unauthenticated. Point `db.claudekenya.org` at `173.249.39.147`, issue
+      Let's Encrypt, then plain `sslmode=verify-full` works with no flags.
+- [ ] **Decide preview/development DB.** `DATABASE_URL` still exists only for
+      Production — this is the real cause of the long-standing "empty preview DB".
+      Recommend a separate `cck_preview` database on the same VPS rather than
+      pointing previews at production data.
+- [ ] **Prisma migrations** cannot run through PgBouncer transaction mode. Use an
+      SSH tunnel: `ssh -L 5433:127.0.0.1:5433 root@173.249.39.147`.
+- [ ] **Keep Supabase alive a few days** as a fallback before deleting. It holds
+      identical data; a free-tier re-pause is now harmless.
+- [ ] **Pre-existing, unrelated:** `portfolio_postgres` on that box is exposed on
+      `0.0.0.0:5432` (standard port, public). Worth reviewing.
+
+---
+
 ## ✅ RESOLVED 2026-07-18 — project resumed, data secured, production recovered
 
 Peter resumed the paused project. Outcome:
