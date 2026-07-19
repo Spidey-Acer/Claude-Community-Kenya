@@ -86,17 +86,17 @@ export function KaribuFooter() {
       </div>
 
       <div className="mx-auto max-w-[1180px] px-6 pb-9 pt-10 md:px-10">
-        <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-[#8A7F6E]">
+        <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-ink-faint">
           Independently operated. Anthropic-supported via the Claude Community
           Ambassadors program (event funding + API credits). Views expressed
           here are community-held, not official Anthropic positions. &ldquo;Claude&rdquo;
           is a trademark of Anthropic PBC.
         </p>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#3B352D] pt-6">
-          <div className="font-inter text-[13px] text-[#8A7F6E]">
+          <div className="font-inter text-[13px] text-ink-faint">
             © 2026 Claude Community Kenya · A community, not a product.
           </div>
-          <div className="font-inter text-[13px] text-[#8A7F6E]">
+          <div className="font-inter text-[13px] text-ink-faint">
             Built by the community, for the community.
           </div>
         </div>
@@ -114,7 +114,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <div className="mb-3.5 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+      <div className="mb-3.5 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
         {title}
       </div>
       <div className="flex flex-col gap-2 font-inter text-[14.5px] leading-[2.1] text-[#C7BEB0]">

@@ -48,6 +48,7 @@
   --ink: #23201B;
   --ink-soft: #5C5349;
   --ink-muted: #6A6155;
+  --ink-faint: #8A7F6E;
   --clay: #C15F3C;
   --clay-dark: #A84E2D;
   --clay-light: #E6906F;
@@ -96,6 +97,7 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
   --color-clay: var(--clay);
   --color-clay-dark: var(--clay-dark);
   --color-clay-light: var(--clay-light);
@@ -623,6 +625,13 @@ body::before {
 .karibu ::selection {
   background: var(--clay);
   color: var(--paper-card);
+}
+
+/* Karibu: warm focus ring (overrides the Terminal Noir neon-green default) */
+.karibu :focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 @keyframes karibu-marquee {

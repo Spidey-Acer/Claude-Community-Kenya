@@ -148,7 +148,7 @@ export function KaribuAbout({
       {activeTeam.length > 0 && (
         <section className={`${WRAP} py-10`} aria-label="Our team">
           <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               The people
             </div>
           </Reveal>
@@ -171,7 +171,7 @@ export function KaribuAbout({
       {timelineEntries.length > 0 && (
         <section className={`${WRAP} py-10`} aria-label="Community timeline">
           <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               How we got here
             </div>
           </Reveal>

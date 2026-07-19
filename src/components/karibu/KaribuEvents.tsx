@@ -159,7 +159,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
       {rest.length > 0 && (
         <section className={`${WRAP} pb-10 pt-2`} aria-label="Upcoming events">
           <Reveal>
-            <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               {bandLabel}
             </div>
             {rest.map((ev) => (
@@ -192,7 +192,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
       {past.length > 0 && (
         <section className={`${WRAP} pb-16 pt-2`} aria-label="Past events">
           <Reveal>
-            <div className="mb-4 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-4 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               Past · picha
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
