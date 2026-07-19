@@ -215,7 +215,10 @@ export default async function RootLayout({
       };
 
   return (
-    <html lang="en" className="dark persona-pro">
+    <html
+      lang="en"
+      className={`dark persona-pro ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable}`}
+    >
       <head>
         <script
           type="application/ld+json"
@@ -232,9 +235,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable} antialiased`}
-      >
+      <body className="antialiased">
         <GoogleAnalytics />
         <WebVitals />
         <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu}>
