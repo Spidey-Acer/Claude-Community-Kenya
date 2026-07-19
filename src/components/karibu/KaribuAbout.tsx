@@ -152,8 +152,8 @@ export function KaribuAbout({
             </div>
           </Reveal>
           <Reveal className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {activeTeam.slice(0, 8).map((m) => (
-              <TeamCard key={m.name} member={m} />
+            {activeTeam.slice(0, 8).map((m, i) => (
+              <TeamCard key={m.slug ?? `${m.name}-${i}`} member={m} />
             ))}
           </Reveal>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">

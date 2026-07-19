@@ -50,8 +50,8 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
       <section className={`${WRAP} pb-16`} aria-label="Team">
         {active.length > 0 ? (
           <Reveal className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-            {active.map((m) => (
-              <TeamCard key={m.name} member={m} />
+            {active.map((m, i) => (
+              <TeamCard key={m.slug ?? `${m.name}-${i}`} member={m} />
             ))}
           </Reveal>
         ) : (
