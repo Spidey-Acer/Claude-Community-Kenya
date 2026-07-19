@@ -117,7 +117,7 @@ export function KaribuTestimonials() {
         </AnimatePresence>
       </div>
 
-      <div className="mt-6 flex items-center gap-2">
+      <div className="mt-1 flex items-center">
         {TESTIMONIALS.map((item, i) => (
           <button
             key={item.name}
@@ -125,10 +125,15 @@ export function KaribuTestimonials() {
             onClick={() => go(i)}
             aria-label={`Show testimonial from ${item.name}`}
             aria-current={i === current}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === current ? "w-5 bg-clay" : "w-1.5 bg-sand-2 hover:bg-ink-muted/50"
-            }`}
-          />
+            className="group flex h-11 w-8 items-center justify-center"
+          >
+            <span
+              aria-hidden="true"
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === current ? "w-5 bg-clay" : "w-1.5 bg-sand-2 group-hover:bg-ink-muted/50"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>
