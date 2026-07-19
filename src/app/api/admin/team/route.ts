@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
+import { withCsrfProtection } from "@/lib/csrf"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 
 const createSchema = z.object({
@@ -31,6 +32,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("team", "create")
   if (!check.authorized) return check.response
 

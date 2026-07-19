@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { uploadImage } from "@/lib/supabase"
+import { withCsrfProtection } from "@/lib/csrf"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
 export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("events", "create")
   if (!check.authorized) return check.response
 

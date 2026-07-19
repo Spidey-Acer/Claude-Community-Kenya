@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { uploadImage } from "@/lib/supabase"
+import { withCsrfProtection } from "@/lib/csrf"
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
@@ -12,6 +13,9 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
  * Returns { success: true, data: { created: MeetupPhoto[], failures: string[] } }.
  */
 export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("photos", "create")
   if (!check.authorized) return check.response
 

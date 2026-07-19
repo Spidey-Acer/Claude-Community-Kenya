@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
 import { zodSanitizeString, zodSanitizeEmail } from "@/lib/input-sanitization"
 
 const createUserSchema = z.object({
@@ -15,6 +16,9 @@ const createUserSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("users", "create")
   if (!check.authorized) return check.response
 

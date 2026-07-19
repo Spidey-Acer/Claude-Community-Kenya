@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
 
 const updateUserSchema = z.object({
   role: z.enum(["SUPER_ADMIN", "ADMIN", "MODERATOR", "MEMBER"]).optional(),
@@ -15,6 +16,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("users", "edit")
   if (!check.authorized) return check.response
 

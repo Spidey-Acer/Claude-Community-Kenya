@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
+import { withCsrfProtection } from "@/lib/csrf"
 import { zodSanitizeString, zodSanitizeUrl, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 
 const updateSchema = z.object({
@@ -40,6 +41,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("team", "edit")
   if (!check.authorized) return check.response
 
@@ -62,6 +66,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = withCsrfProtection(_req)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("team", "delete")
   if (!check.authorized) return check.response
 
