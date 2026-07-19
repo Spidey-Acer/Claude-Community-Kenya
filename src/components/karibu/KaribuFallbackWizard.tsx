@@ -43,7 +43,7 @@ export function KaribuFallbackWizard({ onComplete }: { onComplete: () => void })
   return (
     <div className="space-y-4">
       <p className="text-text-primary text-sm">
-        I&apos;m having trouble reaching the Claude API right now. A quick form will get you set up:
+        Karibu! Two quick taps and we&apos;ll point you to the right corner of the community:
       </p>
       {step === "audience" && (
         <div className="space-y-2">
