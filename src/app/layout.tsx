@@ -217,6 +217,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`dark persona-pro ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable}`}
     >
       <head>
