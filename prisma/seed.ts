@@ -347,6 +347,33 @@ async function main() {
   // ─── Team Members ─────────────────────────────────────────────────────────
   // Upsert by slug so re-runs backfill the spotlight fields (slug/tagline/
   // location/featured) onto rows that pre-date Phase B.
+  //
+  // Rows created before the slug column existed have slug = NULL, so an upsert
+  // keyed on slug can never match them — it silently creates a second row and
+  // the member renders twice on /team. Backfill the slug onto the legacy row
+  // by name first so the upsert below has something to match.
+  const legacyPeter = await prisma.teamMember.findFirst({
+    where: { name: "Peter Kibet", slug: null },
+    orderBy: { createdAt: "asc" },
+  })
+  if (legacyPeter) {
+    const slugged = await prisma.teamMember.findUnique({
+      where: { slug: "peter-kibet" },
+    })
+    // A slugged row already exists — the duplicate is already minted. Retire
+    // the legacy row rather than colliding on the unique slug index.
+    if (slugged) {
+      await prisma.teamMember.delete({ where: { id: legacyPeter.id } })
+      console.log("🧹 Removed duplicate legacy team row for Peter Kibet")
+    } else {
+      await prisma.teamMember.update({
+        where: { id: legacyPeter.id },
+        data: { slug: "peter-kibet" },
+      })
+      console.log("🔗 Backfilled slug onto legacy team row for Peter Kibet")
+    }
+  }
+
   await prisma.teamMember.upsert({
     where: { slug: "peter-kibet" },
     update: {
