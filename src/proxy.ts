@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import { authConfig } from "./auth.config"
 import { NextResponse } from "next/server"
 import { randomUUID } from "crypto"
+import { rateLimit, RateLimits } from "@/lib/rate-limit"
 
 const { auth } = NextAuth(authConfig)
 
@@ -24,10 +25,34 @@ const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"])
  *     so the Karibu onboarding flow can link anonymous sessions across page
  *     loads before the user signs up. httpOnly, SameSite=lax, 1-year TTL.
  */
-export const proxy = auth((req) => {
+/**
+ * NextAuth's credentials sign-in endpoint. NextAuth owns this route, so there
+ * is no route handler of ours to wrap — the proxy is the only place we can put
+ * a throttle in front of it.
+ */
+const LOGIN_ENDPOINT = "/api/auth/callback/credentials"
+
+export const proxy = auth(async (req) => {
   const { nextUrl } = req
   const pathname = nextUrl.pathname
   const session = req.auth
+
+  // Login throttle. Without this, sign-in is completely unthrottled: an
+  // attacker can brute-force an admin password at whatever rate bcrypt allows,
+  // with no lockout and no logging. RateLimits.LOGIN existed but was never
+  // wired to anything (audit, 2026-07-20).
+  //
+  // Keyed on client IP, so it slows an attacker without letting one attacker
+  // lock a legitimate admin out of their own account.
+  if (pathname === LOGIN_ENDPOINT && req.method === "POST") {
+    const result = await rateLimit(req, RateLimits.LOGIN)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Too many sign-in attempts. Try again later." },
+        { status: 429, headers: result.headers },
+      )
+    }
+  }
 
   // Admin gate — block at the network edge so the admin page's server code
   // never executes for unauthenticated visitors.
@@ -64,5 +89,11 @@ export const proxy = auth((req) => {
 })
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|api/auth).*)"],
+  // `api/auth` stays excluded so NextAuth's own session/csrf/provider endpoints
+  // never round-trip through this proxy — with one deliberate exception, the
+  // credentials callback, which needs the login throttle above. The negative
+  // lookahead exempts that single path from the exclusion.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|images|api/auth(?!/callback/credentials)).*)",
+  ],
 }
