@@ -4,6 +4,7 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getBlogPostBySlug, getBlogPosts } from "@/lib/data";
 import { BlogPostContent } from "./BlogPostContent";
 import { SITE_CONFIG } from "@/lib/constants";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 export const revalidate = 3600;
 
@@ -95,7 +96,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
       />
       <BlogPostContent
         post={post}

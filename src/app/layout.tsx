@@ -8,6 +8,7 @@ import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import { type AudienceState } from "@/contexts/AudienceContext";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -223,7 +224,7 @@ export default async function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
         {/* Karibu theme init — runs before paint to avoid a light/dark flash.
          * Only sets data-theme when the visitor has made an explicit choice

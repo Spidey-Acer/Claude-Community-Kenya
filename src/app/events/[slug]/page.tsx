@@ -5,6 +5,7 @@ import { getEvents, getEventBySlug, getApprovedDemosByEventId, getEventPhotos } 
 import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 export const revalidate = 1800;
 
@@ -135,7 +136,7 @@ export default async function EventDetailPage({
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(eventJsonLd) }}
       />
       <KaribuEventDetail
         event={event}
