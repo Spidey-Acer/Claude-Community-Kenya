@@ -18,37 +18,11 @@
  * database gets written to; the target host is echoed before any query runs.
  */
 
-export {};
+import { requireDatabaseUrl } from "./db-target";
 
 const APPLY = process.argv.includes("--apply");
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  console.error(
-    [
-      "DATABASE_URL is not set.",
-      "",
-      "tsx does not read .env.local automatically. Set it for this command only:",
-      "",
-      '  PowerShell:  $env:DATABASE_URL="postgresql://..."; npx tsx scripts/karibu/dedupe-team-members.ts',
-      "  bash:        DATABASE_URL='postgresql://...' npx tsx scripts/karibu/dedupe-team-members.ts",
-      "",
-      "Production is the VPS pooler, not Supabase. The connection string lives in",
-      "C:\\Projects\\_backups\\cck\\vps-connection.txt and needs uselibpqcompat=true.",
-    ].join("\n"),
-  );
-  process.exit(1);
-}
-
-// Echo the target before touching anything — the repo's .env files still point
-// at the decommissioned Supabase pooler, so "which database" is a real question.
-try {
-  const target = new URL(DATABASE_URL);
-  console.log(`Target: ${target.hostname}:${target.port || 5432}${target.pathname}\n`);
-} catch {
-  console.error("DATABASE_URL is not a valid connection URL.");
-  process.exit(1);
-}
+requireDatabaseUrl();
 
 /** Higher score wins: a slugged row beats an unslugged one, then newer wins. */
 function score(row: { slug: string | null; featured: boolean; updatedAt: Date }) {
