@@ -226,14 +226,17 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
-        {/* Karibu theme init — runs before paint to avoid a light/dark flash.
-         * Only sets data-theme when the visitor has made an explicit choice
-         * via KaribuThemeToggle; absent that, the CSS prefers-color-scheme
-         * media query in globals.css handles the system default. */}
+        {/* Karibu theme + motion init — runs before paint.
+         * 1. Adds `.js` to <html> so the degrade-safe reveal CSS (globals.css)
+         *    activates its hidden→visible transition. No JS → no `.js` →
+         *    content stays fully visible (no legibility gated behind motion).
+         * 2. Sets data-theme only when the visitor made an explicit choice via
+         *    KaribuThemeToggle; absent that, the CSS prefers-color-scheme media
+         *    query in globals.css handles the system default. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('cck-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
+              "(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('cck-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
           }}
         />
       </head>

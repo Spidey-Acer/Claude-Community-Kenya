@@ -23,6 +23,8 @@ import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Marquee } from "@/components/karibu/Marquee";
+import { Reveal } from "@/components/karibu/motion/Reveal";
+import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
 import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
@@ -46,30 +48,6 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   "career-talk": "Career talk",
   hackathon: "Hackathon",
 };
-
-/** Reveal-on-scroll wrapper; no-op when the visitor prefers reduced motion. */
-function Reveal({
-  children,
-  className,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1], delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuHome({
   communityStats,
@@ -234,9 +212,15 @@ function TrustBar({
   stats?: CommunityStats;
   cities: string[];
 }) {
-  const items = [
+  const items: { big: React.ReactNode; small: string }[] = [
     {
-      big: stats?.totalMembers ? `~${stats.totalMembers.toLocaleString()}` : "Growing",
+      // Count up only the members figure — it's the one number that rewards
+      // watching it climb. City count (1–2) would read as filler animated.
+      big: stats?.totalMembers ? (
+        <CountUp target={stats.totalMembers} prefix="~" />
+      ) : (
+        "Growing"
+      ),
       small: "members & growing",
     },
     {
@@ -353,67 +337,81 @@ function WhatWeDo() {
         </h2>
       </Reveal>
 
-      <Reveal className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
+      {/* Each card reveals on its own staggered delay (--i, capped at 6 steps)
+       * and lifts 4px on hover. The grid-span classes live on the Reveal so it
+       * is the grid item; the article fills it with h-full. */}
+      <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
         {/* 01 — tall */}
-        <article className="flex flex-col justify-between rounded-2xl border border-sand bg-paper-card p-7 md:row-span-2">
-          <div className="font-mono text-xs tracking-[0.06em] text-clay">01</div>
-          <div>
-            <h3 className="mb-2.5 font-newsreader text-[26px] text-ink">
-              Events &amp; meetups
-            </h3>
-            <p className="font-inter text-[15px] leading-[1.55] text-ink-soft">
-              Regular in-person gatherings across our cities — live demos,
-              project showcases, and the hallway conversations that start real
-              projects.
-            </p>
-          </div>
-        </article>
+        <Reveal index={0} className="md:row-span-2">
+          <article className="flex h-full flex-col justify-between rounded-2xl border border-sand bg-paper-card p-7 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+            <div className="font-mono text-xs tracking-[0.06em] text-clay">01</div>
+            <div>
+              <h3 className="mb-2.5 font-newsreader text-[27px] text-ink">
+                Events &amp; meetups
+              </h3>
+              <p className="font-inter text-[15px] leading-[1.55] text-ink-soft">
+                Regular in-person gatherings across our cities — live demos,
+                project showcases, and the hallway conversations that start real
+                projects.
+              </p>
+            </div>
+          </article>
+        </Reveal>
 
         {/* 02 */}
-        <article className="rounded-2xl border border-sand bg-paper-card p-6">
-          <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay">02</div>
-          <h3 className="mb-2 font-newsreader text-[22px] text-ink">
-            Hands-on workshops
-          </h3>
-          <p className="font-inter text-sm leading-[1.5] text-ink-soft">
-            Deep dives on Claude Code, agentic patterns and shipping real apps.
-          </p>
-        </article>
-
-        {/* 03 — clay */}
-        <article className="rounded-2xl bg-clay p-6 text-paper-card">
-          <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay-light">
-            03
-          </div>
-          <h3 className="mb-2 font-newsreader text-[22px]">Online community</h3>
-          <p className="font-inter text-sm leading-[1.5] text-[#F5E4DB]">
-            WhatsApp &amp; Discord — questions answered daily, wins shared
-            nightly.
-          </p>
-        </article>
-
-        {/* 04 — wide */}
-        <article className="flex items-center gap-6 rounded-2xl border border-sand bg-paper-card p-6 md:col-span-2">
-          <div className="flex-1">
-            <div className="mb-2.5 font-mono text-xs tracking-[0.06em] text-clay">
-              04
-            </div>
+        <Reveal index={1}>
+          <article className="h-full rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay">02</div>
             <h3 className="mb-2 font-newsreader text-[22px] text-ink">
-              Learn with Claude
+              Hands-on workshops
             </h3>
             <p className="font-inter text-sm leading-[1.5] text-ink-soft">
-              Shared guides, prompts and starter projects pitched for every
-              level — from your first prompt to production.
+              Deep dives on Claude Code, agentic patterns and shipping real apps.
             </p>
-          </div>
-          <Link
-            href="/resources"
-            className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-clay hover:underline"
-          >
-            Explore resources →
-          </Link>
-        </article>
-      </Reveal>
+          </article>
+        </Reveal>
+
+        {/* 03 — clay */}
+        <Reveal index={2}>
+          <article className="h-full rounded-2xl bg-clay p-6 text-paper-card transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay-light">
+              03
+            </div>
+            <h3 className="mb-2 font-newsreader text-[22px]">Online community</h3>
+            <p className="font-inter text-sm leading-[1.5] text-[#F5E4DB]">
+              WhatsApp &amp; Discord — questions answered daily, wins shared
+              nightly.
+            </p>
+          </article>
+        </Reveal>
+
+        {/* 04 — wide */}
+        <Reveal index={3} className="md:col-span-2">
+          <article className="group flex h-full items-center gap-6 rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+            <div className="flex-1">
+              <div className="mb-2.5 font-mono text-xs tracking-[0.06em] text-clay">
+                04
+              </div>
+              <h3 className="mb-2 font-newsreader text-[22px] text-ink">
+                Learn with Claude
+              </h3>
+              <p className="font-inter text-sm leading-[1.5] text-ink-soft">
+                Shared guides, prompts and starter projects pitched for every
+                level — from your first prompt to production.
+              </p>
+            </div>
+            <Link
+              href="/resources"
+              className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-clay hover:underline"
+            >
+              Explore resources{" "}
+              <span className="inline-block transition-transform duration-150 ease-[var(--ease-reversible)] group-hover:translate-x-1">
+                →
+              </span>
+            </Link>
+          </article>
+        </Reveal>
+      </div>
     </section>
   );
 }

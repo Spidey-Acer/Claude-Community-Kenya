@@ -33,16 +33,38 @@ export function KaribuNav() {
   const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMac(navigator.platform.toUpperCase().includes("MAC"));
   }, []);
 
+  // Shrink + firm up the bar once the visitor scrolls past the hero band.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
-      <nav className="sticky top-0 z-50 border-b border-sand bg-paper/[0.86] backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-5 md:px-10">
+      <nav
+        className={`sticky top-0 z-50 border-b border-sand backdrop-blur-md transition-[background-color,box-shadow] duration-200 ${
+          scrolled
+            ? "bg-paper/[0.96] shadow-[0_2px_20px_-10px_rgba(35,32,27,0.35)]"
+            : "bg-paper/[0.86]"
+        }`}
+      >
+        {/* Height snaps between states (no height *animation* — only
+         * transform/opacity/paint may animate); the smooth firm-up comes from
+         * the nav's background + shadow transition above. */}
+        <div
+          className={`mx-auto flex max-w-[1180px] items-center justify-between px-5 md:px-10 ${
+            scrolled ? "h-14" : "h-16"
+          }`}
+        >
           {/* Brand */}
           <Link
             href="/"
@@ -109,7 +131,7 @@ export function KaribuNav() {
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-full bg-clay px-4 py-2 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                  className="rounded-full bg-clay px-4 py-2 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
                 >
                   Join
                 </Link>

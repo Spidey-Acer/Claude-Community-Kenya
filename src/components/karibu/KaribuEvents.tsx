@@ -12,12 +12,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { eventCover } from "@/components/karibu/photos";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
+const FLIP_EASE = [0.16, 1, 0.3, 1] as const;
 
 const TYPE_LABEL: Record<Event["type"], string> = {
   meetup: "Meetup",
@@ -41,34 +43,24 @@ function parseDate(d: string): Date | null {
 const fmt = (dt: Date, opts: Intl.DateTimeFormatOptions) =>
   dt.toLocaleString("en-US", opts);
 
-/** Reveal-on-scroll wrapper; inert under prefers-reduced-motion. */
-function Reveal({
-  children,
-  className,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1], delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 type Filter = { key: string; label: string };
 
 export function KaribuEvents({ events }: { events: Event[] }) {
   const [active, setActive] = useState("all");
+  const reduce = useReducedMotion();
+
+  // Filtering re-orders events in place (FLIP) rather than hard-cutting, so the
+  // relationship between the old and new list stays legible. Under reduced
+  // motion we drop the layout tween AND the enter/exit offset entirely (Framer
+  // defaults to reducedMotion:"never", so it will NOT do this for us) — items
+  // just cross-fade, no movement.
+  const flip = {
+    layout: !reduce,
+    initial: reduce ? false : { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: reduce ? { opacity: 0 } : { opacity: 0, y: -8 },
+    transition: { duration: 0.28, ease: FLIP_EASE },
+  } as const;
 
   // Build chips from real data: All + present cities + present types.
   const filters = useMemo<Filter[]>(() => {
@@ -162,9 +154,13 @@ export function KaribuEvents({ events }: { events: Event[] }) {
             <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               {bandLabel}
             </div>
-            {rest.map((ev) => (
-              <ListRow key={ev.slug} event={ev} />
-            ))}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {rest.map((ev) => (
+                <motion.div key={ev.slug} {...flip}>
+                  <ListRow event={ev} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </Reveal>
         </section>
       )}
@@ -196,9 +192,13 @@ export function KaribuEvents({ events }: { events: Event[] }) {
               Past · picha
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {past.map((ev, i) => (
-                <PastCard key={ev.slug} event={ev} index={i} />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {past.map((ev, i) => (
+                  <motion.div key={ev.slug} {...flip}>
+                    <PastCard event={ev} index={i} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </Reveal>
         </section>

@@ -8,12 +8,14 @@
  * redesigned, not removed. All content is DB-backed (team + past events + stats).
  */
 
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { TeamMemberView } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -23,21 +25,6 @@ interface TimelineEntry {
   title: string;
   description: string;
   hash: string;
-}
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
 }
 
 const VALUES = [
@@ -175,24 +162,7 @@ export function KaribuAbout({
               How we got here
             </div>
           </Reveal>
-          <Reveal>
-            <ol className="relative border-l border-sand pl-6">
-              {timelineEntries.map((t) => (
-                <li key={t.hash} className="mb-7 last:mb-0">
-                  <span className="absolute -left-[7px] mt-1.5 h-3.5 w-3.5 rounded-full border-2 border-paper bg-clay" />
-                  <div className="font-inter text-[12.5px] font-semibold uppercase tracking-[0.06em] text-clay">
-                    {t.date}
-                  </div>
-                  <div className="font-newsreader text-[20px] text-ink">{t.title}</div>
-                  {t.description && (
-                    <p className="mt-1 max-w-2xl font-inter text-[14.5px] leading-[1.55] text-ink-soft">
-                      {t.description}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </Reveal>
+          <Timeline entries={timelineEntries} />
         </section>
       )}
 
@@ -227,6 +197,50 @@ function Stat({ big, label }: { big: string; label: string }) {
   );
 }
 
+/**
+ * Community timeline with a scroll-linked clay line-draw. The static sand
+ * border is the always-visible track (degrade-safe); the clay overlay draws
+ * as the list scrolls through the viewport and is omitted under reduced
+ * motion. Each milestone reveals once via the shared degrade-safe Reveal.
+ */
+function Timeline({ entries }: { entries: TimelineEntry[] }) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLOListElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 55%"],
+  });
+  const scaleY = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  return (
+    <ol ref={ref} className="relative border-l border-sand pl-6">
+      {!reduce && (
+        <motion.span
+          aria-hidden="true"
+          style={{ scaleY, transformOrigin: "top" }}
+          className="pointer-events-none absolute -left-px top-0 h-full w-px bg-clay"
+        />
+      )}
+      {entries.map((t, i) => (
+        <li key={t.hash} className="mb-7 last:mb-0">
+          <span className="absolute -left-[7px] mt-1.5 h-3.5 w-3.5 rounded-full border-2 border-paper bg-clay" />
+          <Reveal index={i}>
+            <div className="font-inter text-[12.5px] font-semibold uppercase tracking-[0.06em] text-clay">
+              {t.date}
+            </div>
+            <div className="font-newsreader text-[20px] text-ink">{t.title}</div>
+            {t.description && (
+              <p className="mt-1 max-w-2xl font-inter text-[14.5px] leading-[1.55] text-ink-soft">
+                {t.description}
+              </p>
+            )}
+          </Reveal>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function TeamCard({ member }: { member: TeamMemberView }) {
   const initials = member.name
     .split(" ")
@@ -235,7 +249,7 @@ function TeamCard({ member }: { member: TeamMemberView }) {
     .slice(0, 2)
     .toUpperCase();
   return (
-    <div>
+    <div className="group">
       <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-sand">
         {member.avatar ? (
           <Image
@@ -243,7 +257,7 @@ function TeamCard({ member }: { member: TeamMemberView }) {
             alt={member.name}
             width={220}
             height={220}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-reversible)] group-hover:scale-105"
           />
         ) : (
           <span className="font-newsreader text-[34px] text-ink-muted">{initials}</span>

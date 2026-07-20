@@ -9,8 +9,8 @@
  */
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -26,21 +26,6 @@ const CITIES = [
   { name: "Mombasa", note: "Coast chapter", href: SOCIAL_LINKS.lumaMombasa, cta: "Luma →" },
   { name: "Kisumu", note: "Growing — say hi", href: SOCIAL_LINKS.whatsapp, cta: "WhatsApp →" },
 ];
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuJoin() {
   return (

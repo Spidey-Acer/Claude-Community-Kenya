@@ -12,7 +12,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import { Twitter, Linkedin, Link as LinkIcon } from "lucide-react";
 import type { Event } from "@/lib/types";
 import type { DemoRequestView, PhotoView } from "@/lib/data";
@@ -20,6 +19,7 @@ import { SOCIAL_LINKS } from "@/lib/constants";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
 import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm";
 import { eventCover } from "@/components/karibu/photos";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
@@ -52,21 +52,6 @@ function parseDate(d: string): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 const fmt = (dt: Date, opts: Intl.DateTimeFormatOptions) => dt.toLocaleString("en-US", opts);
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuEventDetail({
   event,
