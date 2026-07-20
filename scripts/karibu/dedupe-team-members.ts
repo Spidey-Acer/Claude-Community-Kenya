@@ -12,11 +12,43 @@
  *
  * Dry run by default — prints the plan and changes nothing.
  * Apply with:  npx tsx scripts/karibu/dedupe-team-members.ts --apply
+ *
+ * DATABASE_URL must be set in the environment — tsx does not load .env files
+ * the way Next.js does. Set it explicitly so there is no ambiguity about which
+ * database gets written to; the target host is echoed before any query runs.
  */
 
-import { prisma } from "../../src/lib/prisma";
+export {};
 
 const APPLY = process.argv.includes("--apply");
+
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error(
+    [
+      "DATABASE_URL is not set.",
+      "",
+      "tsx does not read .env.local automatically. Set it for this command only:",
+      "",
+      '  PowerShell:  $env:DATABASE_URL="postgresql://..."; npx tsx scripts/karibu/dedupe-team-members.ts',
+      "  bash:        DATABASE_URL='postgresql://...' npx tsx scripts/karibu/dedupe-team-members.ts",
+      "",
+      "Production is the VPS pooler, not Supabase. The connection string lives in",
+      "C:\\Projects\\_backups\\cck\\vps-connection.txt and needs uselibpqcompat=true.",
+    ].join("\n"),
+  );
+  process.exit(1);
+}
+
+// Echo the target before touching anything — the repo's .env files still point
+// at the decommissioned Supabase pooler, so "which database" is a real question.
+try {
+  const target = new URL(DATABASE_URL);
+  console.log(`Target: ${target.hostname}:${target.port || 5432}${target.pathname}\n`);
+} catch {
+  console.error("DATABASE_URL is not a valid connection URL.");
+  process.exit(1);
+}
 
 /** Higher score wins: a slugged row beats an unslugged one, then newer wins. */
 function score(row: { slug: string | null; featured: boolean; updatedAt: Date }) {
@@ -24,48 +56,55 @@ function score(row: { slug: string | null; featured: boolean; updatedAt: Date })
 }
 
 async function main() {
-  const rows = await prisma.teamMember.findMany({
-    where: { active: true },
-    select: { id: true, name: true, slug: true, featured: true, updatedAt: true },
-  });
+  // Imported inside main() so a missing DATABASE_URL surfaces as the guard
+  // message above rather than a SASL "password must be a string" stack trace.
+  // Dynamic rather than top-level await: tsx compiles this to CJS.
+  const { prisma } = await import("../../src/lib/prisma");
 
-  const byName = new Map<string, typeof rows>();
-  for (const row of rows) {
-    const key = row.name.trim().toLowerCase();
-    byName.set(key, [...(byName.get(key) ?? []), row]);
-  }
+  try {
+    const rows = await prisma.teamMember.findMany({
+      where: { active: true },
+      select: { id: true, name: true, slug: true, featured: true, updatedAt: true },
+    });
 
-  const retire: { id: string; name: string }[] = [];
-  for (const [, group] of byName) {
-    if (group.length < 2) continue;
-    const [keep, ...rest] = [...group].sort((a, b) => score(b) - score(a));
-    console.log(`${keep.name}: ${group.length} active rows — keeping ${keep.id} (slug=${keep.slug ?? "NULL"})`);
-    for (const row of rest) {
-      console.log(`  retire ${row.id} (slug=${row.slug ?? "NULL"})`);
-      retire.push({ id: row.id, name: row.name });
+    const byName = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const key = row.name.trim().toLowerCase();
+      byName.set(key, [...(byName.get(key) ?? []), row]);
     }
-  }
 
-  if (retire.length === 0) {
-    console.log("No duplicate active team members. Nothing to do.");
-    return;
-  }
+    const retire: { id: string; name: string }[] = [];
+    for (const [, group] of byName) {
+      if (group.length < 2) continue;
+      const [keep, ...rest] = [...group].sort((a, b) => score(b) - score(a));
+      console.log(`${keep.name}: ${group.length} active rows — keeping ${keep.id} (slug=${keep.slug ?? "NULL"})`);
+      for (const row of rest) {
+        console.log(`  retire ${row.id} (slug=${row.slug ?? "NULL"})`);
+        retire.push({ id: row.id, name: row.name });
+      }
+    }
 
-  if (!APPLY) {
-    console.log(`\nDRY RUN — ${retire.length} row(s) would be deactivated. Re-run with --apply.`);
-    return;
-  }
+    if (retire.length === 0) {
+      console.log("No duplicate active team members. Nothing to do.");
+      return;
+    }
 
-  const result = await prisma.teamMember.updateMany({
-    where: { id: { in: retire.map((r) => r.id) } },
-    data: { active: false },
-  });
-  console.log(`\nDeactivated ${result.count} duplicate row(s).`);
+    if (!APPLY) {
+      console.log(`\nDRY RUN — ${retire.length} row(s) would be deactivated. Re-run with --apply.`);
+      return;
+    }
+
+    const result = await prisma.teamMember.updateMany({
+      where: { id: { in: retire.map((r) => r.id) } },
+      data: { active: false },
+    });
+    console.log(`\nDeactivated ${result.count} duplicate row(s).`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
