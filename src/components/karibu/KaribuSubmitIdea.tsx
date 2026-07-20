@@ -11,7 +11,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -34,21 +34,6 @@ const inputCls = (hasError?: string) =>
   `w-full rounded-lg border ${
     hasError ? "border-red-500/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuSubmitIdea() {
   const [isPending, startTransition] = useTransition();

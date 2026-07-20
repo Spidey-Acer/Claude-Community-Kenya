@@ -8,27 +8,12 @@
  */
 
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
 import type { TeamMemberView } from "@/lib/data";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
-
-function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
   const active = members.filter((m) => m.active !== false);
@@ -49,12 +34,16 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
 
       <section className={`${WRAP} pb-16`} aria-label="Team">
         {active.length > 0 ? (
-          <Reveal className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-            {active.map((m) => (
-              <TeamCard key={m.name} member={m} />
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            {active.map((m, i) => (
+              <Reveal key={m.name} index={i}>
+                <TeamCard member={m} />
+              </Reveal>
             ))}
-          </Reveal>
+          </div>
         ) : (
+          // "Coming soon" appears instantly — we never animate attention onto
+          // an empty state.
           <p className="text-center font-inter text-ink-muted">Team coming soon.</p>
         )}
       </section>
@@ -70,10 +59,10 @@ function TeamCard({ member }: { member: TeamMemberView }) {
     .slice(0, 2)
     .toUpperCase();
   return (
-    <div className="rounded-2xl border border-sand bg-paper-card p-5 text-center">
+    <div className="group h-full rounded-2xl border border-sand bg-paper-card p-5 text-center transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
       <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-sand">
         {member.avatar ? (
-          <Image src={member.avatar} alt={member.name} width={96} height={96} className="h-full w-full object-cover" />
+          <Image src={member.avatar} alt={member.name} width={96} height={96} className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-reversible)] group-hover:scale-105" />
         ) : (
           <span className="font-newsreader text-[28px] text-ink-muted">{initials}</span>
         )}
