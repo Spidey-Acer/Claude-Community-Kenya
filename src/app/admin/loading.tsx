@@ -1,110 +1,31 @@
+import { Skeleton, SkeletonPage } from "@/components/ui/Skeleton";
+
+/** Route skeleton for /admin — dark noir palette, mirrors dashboard anatomy. */
 export default function AdminLoading() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#0a0a0a",
-        padding: "2rem",
-        fontFamily: "monospace",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-        }}
-      >
-        {/* Header skeleton */}
-        <div
-          style={{
-            height: "2rem",
-            width: "240px",
-            backgroundColor: "#1a1a1a",
-            borderRadius: "4px",
-            marginBottom: "2rem",
-            animation: "pulse 1.5s ease-in-out infinite",
-          }}
-        />
+    <div className="k-skeleton-noir min-h-screen bg-[#0a0a0a] p-8">
+      <SkeletonPage label="Loading admin dashboard" className="mx-auto max-w-[1200px]">
+        {/* Header */}
+        <Skeleton className="mb-8 h-8 w-60 rounded" />
 
-        {/* Stats row skeleton */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-            gap: "1rem",
-            marginBottom: "2rem",
-          }}
-        >
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: "80px",
-                backgroundColor: "#1a1a1a",
-                borderRadius: "8px",
-                border: "1px solid #222",
-                animation: "pulse 1.5s ease-in-out infinite",
-                animationDelay: `${i * 0.15}s`,
-              }}
-            />
+        {/* Stats row */}
+        <div className="mb-8 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-lg border border-[#222]" delay={i * 0.15} />
           ))}
         </div>
 
-        {/* Content skeleton bars */}
-        <div
-          style={{
-            backgroundColor: "#1a1a1a",
-            borderRadius: "8px",
-            border: "1px solid #222",
-            padding: "1.5rem",
-          }}
-        >
-          {[100, 85, 70, 90, 60].map((width, i) => (
-            <div
-              key={i}
-              style={{
-                height: "1rem",
-                width: `${width}%`,
-                backgroundColor: "#222",
-                borderRadius: "4px",
-                marginBottom: i < 4 ? "1rem" : 0,
-                animation: "pulse 1.5s ease-in-out infinite",
-                animationDelay: `${i * 0.1}s`,
-              }}
+        {/* Content panel */}
+        <div className="rounded-lg border border-[#222] p-6">
+          {["w-[100%]", "w-[85%]", "w-[70%]", "w-[90%]", "w-[60%]"].map((width, i) => (
+            <Skeleton
+              key={width}
+              className={`h-4 rounded ${width} ${i < 4 ? "mb-4" : ""}`}
+              delay={i * 0.1}
             />
           ))}
         </div>
-
-        {/* Terminal cursor blink */}
-        <div
-          style={{
-            marginTop: "2rem",
-            color: "#00ff41",
-            fontSize: "0.875rem",
-            fontFamily: "monospace",
-          }}
-        >
-          <span>Loading</span>
-          <span
-            style={{
-              animation: "blink 1s step-end infinite",
-            }}
-          >
-            _
-          </span>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-      `}</style>
+      </SkeletonPage>
     </div>
   );
 }
