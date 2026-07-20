@@ -32,10 +32,28 @@ async function main() {
       prisma.contactMessage.count(),
     ]);
 
+    // How long the oldest unreviewed item has been waiting is the number that
+    // matters — a pending count alone doesn't distinguish "came in today" from
+    // "has been ignored for months".
+    const [oldestJoin, newestJoin] = await Promise.all([
+      prisma.joinApplication.findFirst({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: { createdAt: true },
+      }),
+      prisma.joinApplication.findFirst({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
+
     const summarise = (rows: { status: string; _count: number }[]) =>
       rows.length === 0
         ? "none"
         : rows.map((r) => `${r.status.toLowerCase()}=${r._count}`).join(", ");
+
+    const days = (d: Date) => Math.floor((Date.now() - d.getTime()) / 86_400_000);
 
     console.log("=== Team roster ===");
     for (const m of team) {
@@ -54,6 +72,17 @@ async function main() {
     console.log(`  speaker   : ${summarise(speakers)}`);
     console.log(`  idea      : ${summarise(ideas)}`);
     console.log(`  contact   : ${contacts} message(s)`);
+
+    if (oldestJoin && newestJoin) {
+      console.log(
+        `\n  Oldest pending join application: ${days(oldestJoin.createdAt)} days ` +
+          `(${oldestJoin.createdAt.toISOString().slice(0, 10)})`,
+      );
+      console.log(
+        `  Most recent:                     ${days(newestJoin.createdAt)} days ` +
+          `(${newestJoin.createdAt.toISOString().slice(0, 10)})`,
+      );
+    }
   } finally {
     await prisma.$disconnect();
   }
