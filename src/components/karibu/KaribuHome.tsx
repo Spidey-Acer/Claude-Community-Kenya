@@ -89,7 +89,7 @@ export function KaribuHome({
     ...cities,
     "Free & founder-led",
     "Anthropic-supported via the Claude Community Ambassadors program",
-    "Karibu",
+    "Everyone welcome",
   ].filter(Boolean) as string[];
 
   const nextEvent = upcomingEvents[0];
@@ -591,7 +591,7 @@ const JOIN_STEPS = [
   },
   {
     n: "2",
-    title: "Say Karibu — introduce yourself",
+    title: "Introduce yourself",
     body: "Your city and what you're building or curious about.",
   },
   {

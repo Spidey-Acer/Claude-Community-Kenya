@@ -28,7 +28,7 @@ export function ResetKaribuButton() {
       disabled={pending}
       className="rounded border border-green-primary/40 bg-green-primary/10 px-4 py-2 font-mono text-sm text-green-primary transition-colors hover:bg-green-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {pending ? "Resetting…" : "Reset Karibu onboarding"}
+      {pending ? "Resetting…" : "Reset onboarding"}
     </button>
   );
 }

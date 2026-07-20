@@ -36,7 +36,7 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
     <>
       <section className={`${WRAP} pb-8 pt-16 text-center`} aria-label="Team header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>The team · Timu</div>
+          <div className={`${KICKER} mb-4`}>The team</div>
           <h1 className="mx-auto mb-4 max-w-[760px] font-newsreader text-[42px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[56px]">
             The people behind CCK
           </h1>

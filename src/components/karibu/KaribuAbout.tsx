@@ -43,7 +43,7 @@ function Reveal({ children, className }: { children: React.ReactNode; className?
 const VALUES = [
   { title: "Free, always", body: "No fees, no gatekeeping. The community stays open to everyone." },
   { title: "Hands-on", body: "We learn by building real things together, not by lecturing." },
-  { title: "Warm & local", body: "Kenyan at heart, globally connected. Karibu means karibu." },
+  { title: "Warm & local", body: "Kenyan at heart, globally connected. Everyone is welcome here." },
 ];
 
 export function KaribuAbout({
