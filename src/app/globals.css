@@ -650,6 +650,41 @@ body::before {
   animation-play-state: paused;
 }
 
+/* ─── Karibu skeleton loading ─────────────────────────────────────────────
+ * Token-driven shimmer for route-level loading states. The sweep is a
+ * translucent ink gradient, so it reads darker-on-light in light mode and
+ * lighter-on-dark in dark mode with zero extra rules. Stagger per element
+ * via the --sk-delay custom property. The global reduced-motion reset
+ * freezes the sweep automatically. */
+.k-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-alt);
+  border-radius: 8px;
+}
+.k-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--ink) 6%, transparent) 50%,
+    transparent
+  );
+  animation: karibu-shimmer 1.6s ease-in-out var(--sk-delay, 0s) infinite;
+}
+@keyframes karibu-shimmer {
+  100% { transform: translateX(100%); }
+}
+/* Terminal Noir scope (admin): remap the skeleton's tokens onto the dark
+ * admin palette so the same primitive reads correctly on #0a0a0a. */
+.k-skeleton-noir {
+  --paper-alt: #1a1a1a;
+  --ink: #e5e5e5;
+}
+
 /* ─── Karibu adaptive dark mode ───────────────────────────────────────────
  * Warm-dark overrides for the Karibu paper/ink/sand/clay tokens ONLY.
  * Precedence: system preference (prefers-color-scheme) applies by default;
