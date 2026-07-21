@@ -157,3 +157,10 @@ export const PREFERRED_TEAMMATE_BONUS = 6
 
 /** Maximum pairwise-swap improvement passes before the optimizer stops. */
 export const MAX_SWAP_PASSES = 3
+
+/**
+ * A swap is kept only if the two teams' combined score improves by more than
+ * this. A small positive epsilon (rather than `> 0`) stops floating-point noise
+ * from registering as an improvement and churning equivalent arrangements.
+ */
+export const SWAP_IMPROVEMENT_EPSILON = 1e-9

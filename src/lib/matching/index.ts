@@ -16,8 +16,10 @@ export {
 } from "./constants"
 export { scoreTeam, type ScoringContext } from "./scoring"
 export { assign } from "./algorithm"
+export { optimizeAssignment } from "./optimization"
 
 import { assign } from "./algorithm"
+import { optimizeAssignment } from "./optimization"
 import type { MatchParticipant, MatchResult, MatchSettings } from "./types"
 
 /**
@@ -28,7 +30,5 @@ export function runMatching(
   participants: MatchParticipant[],
   settings: MatchSettings
 ): MatchResult {
-  // Optimizer injected in the optimization commit; until then, the greedy
-  // assignment is returned as-is.
-  return assign(participants, settings)
+  return assign(participants, settings, optimizeAssignment)
 }
