@@ -1,0 +1,180 @@
+/**
+ * Impact Lab matching — Claude explanation layer.
+ *
+ * This is the ONLY part of the matcher that touches an LLM, and it is strictly
+ * additive: teams are already assigned by the deterministic engine. Claude only
+ * *explains* the finished assignment — it can never change who is on a team.
+ *
+ * Unlike the engine, this module is not pure (it calls the network). It is kept
+ * out of the engine's index barrel for that reason; callers import it directly.
+ *
+ * Safety properties enforced here:
+ *   - Only matching-relevant fields are sent (names, roles, skills, levels,
+ *     availability). No phone numbers, no emails, no blockedTeammates.
+ *   - Every AI suggestion is validated: unknown team ids are dropped, and role
+ *     suggestions must map to a participant actually on that team.
+ *   - Any failure (no API key, rate limit, network, invalid output) falls back
+ *     to the deterministic explanations. The caller never sees an error page.
+ */
+
+import { generateObject } from "ai"
+import { createAnthropic } from "@ai-sdk/anthropic"
+import { z } from "zod"
+import { explainTeam } from "./explanations"
+import type {
+  MatchResult,
+  NormalizedParticipant,
+  TeamExplanation,
+} from "./types"
+
+const MODEL = "claude-sonnet-5"
+
+const anthropic = createAnthropic()
+
+const SYSTEM_INSTRUCTION =
+  "Teams were already assigned by a deterministic algorithm. Your job is to " +
+  "explain the assignments so organisers understand each team's strengths and " +
+  "gaps. Never propose changing team membership. Only reference the participants " +
+  "supplied for each team. Suggested internal roles must use the given " +
+  "participant ids and only participants already on that team."
+
+const aiTeamSchema = z.object({
+  teamId: z.string(),
+  summary: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  suggestedProjectDirection: z.string().optional(),
+  suggestedInternalRoles: z.array(
+    z.object({ participantId: z.string(), role: z.string() })
+  ),
+  warnings: z.array(z.string()),
+})
+
+const aiResponseSchema = z.object({ teams: z.array(aiTeamSchema) })
+
+/** The slim, privacy-safe view of a participant sent to the model. */
+interface AiParticipantView {
+  id: string
+  fullName: string
+  roles: string[]
+  experienceLevel: string
+  skills: string[]
+  availability: string[]
+}
+
+function buildPayload(
+  result: MatchResult,
+  byId: Map<string, NormalizedParticipant>
+): { teamId: string; name: string; members: AiParticipantView[] }[] {
+  return result.teams.map((team) => ({
+    teamId: team.id,
+    name: team.name,
+    members: team.memberIds
+      .map((id) => byId.get(id))
+      .filter((p): p is NormalizedParticipant => Boolean(p))
+      .map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        roles: p.roles,
+        experienceLevel: p.experienceLevel,
+        skills: p.skills,
+        availability: p.availability,
+      })),
+  }))
+}
+
+function deterministicFor(
+  result: MatchResult,
+  byId: Map<string, NormalizedParticipant>,
+  team: MatchResult["teams"][number]
+): TeamExplanation {
+  return explainTeam(
+    team,
+    team.memberIds.map((id) => byId.get(id)!).filter(Boolean)
+  )
+}
+
+export interface AiExplanationResult {
+  explanations: TeamExplanation[]
+  warnings: string[]
+  /** True when some or all teams fell back to deterministic explanations. */
+  usedFallback: boolean
+}
+
+/**
+ * Explain a match result with Claude, validated and with deterministic fallback.
+ * `participants` are the consenting, normalized participants (the engine's view).
+ */
+export async function explainWithAi(
+  result: MatchResult,
+  participants: NormalizedParticipant[]
+): Promise<AiExplanationResult> {
+  const byId = new Map(participants.map((p) => [p.id, p]))
+
+  const allFallback = (message: string): AiExplanationResult => ({
+    explanations: result.teams.map((team) =>
+      deterministicFor(result, byId, team)
+    ),
+    warnings: [message],
+    usedFallback: true,
+  })
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return allFallback(
+      "AI explanations are disabled (no API key); showing deterministic summaries."
+    )
+  }
+
+  try {
+    const { object } = await generateObject({
+      model: anthropic(MODEL),
+      schema: aiResponseSchema,
+      system: SYSTEM_INSTRUCTION,
+      prompt:
+        "Explain each team below. Return one entry per team.\n\n" +
+        JSON.stringify(buildPayload(result, byId), null, 2),
+    })
+
+    const aiByTeam = new Map(object.teams.map((t) => [t.teamId, t]))
+    const warnings: string[] = []
+    let usedFallback = false
+
+    const explanations = result.teams.map((team): TeamExplanation => {
+      const ai = aiByTeam.get(team.id)
+      if (!ai) {
+        usedFallback = true
+        return deterministicFor(result, byId, team)
+      }
+
+      // Role suggestions must reference a participant on this team.
+      const memberIds = new Set(team.memberIds)
+      const roles: Record<string, string> = {}
+      for (const { participantId, role } of ai.suggestedInternalRoles) {
+        if (memberIds.has(participantId)) roles[participantId] = role
+      }
+
+      return {
+        teamId: team.id,
+        summary: ai.summary,
+        strengths: ai.strengths,
+        weaknesses: ai.weaknesses,
+        suggestedProjectDirection: ai.suggestedProjectDirection,
+        suggestedInternalRoles: roles,
+        warnings: ai.warnings,
+        source: "ai",
+      }
+    })
+
+    if (usedFallback) {
+      warnings.push(
+        "Some teams fell back to deterministic explanations (the AI omitted them)."
+      )
+    }
+
+    return { explanations, warnings, usedFallback }
+  } catch {
+    return allFallback(
+      "AI explanations failed; showing deterministic summaries instead."
+    )
+  }
+}
