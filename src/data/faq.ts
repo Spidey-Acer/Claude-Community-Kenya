@@ -40,7 +40,7 @@ export const faqs: FAQ[] = [
     category: "general",
     question: "How is this related to Anthropic?",
     answer:
-      "Claude Community Kenya is a community of developers building with Claude and Anthropic's tools. We are part of the broader global Claude developer community ecosystem.",
+      "Claude Community Kenya is an independent, volunteer-run community, part of Anthropic's global Claude Community Ambassador program. Anthropic supports our events through that program, but we are not an official division or representative of Anthropic PBC — the community, its content, and its opinions are our own.",
   },
   {
     id: "gen-6",

@@ -209,7 +209,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                 )}
                 {event.partnerOrg && (
                   <div className="flex justify-between">
-                    <span className="text-[#555]">Partner</span>
+                    <span className="text-[#555]">Venue & hosts</span>
                     <span className="text-[#888]">{event.partnerOrg}</span>
                   </div>
                 )}

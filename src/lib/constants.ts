@@ -117,11 +117,6 @@ export const CONTACT = {
   city: "Nairobi, Kenya",
 } as const;
 
-// ─── Partners ───
-export const partners = [
-  { name: "Anthropic", url: "https://anthropic.com" },
-] as const;
-
 // ─── Official Resource URLs ───
 export const RESOURCE_URLS = {
   claude: "https://claude.ai",

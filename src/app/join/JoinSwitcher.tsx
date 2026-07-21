@@ -143,11 +143,11 @@ export function JoinSwitcher() {
                   </p>
                 </Card>
               </Link>
-              <Link href={`mailto:${CONTACT.email}?subject=Partnership%20with%20CCK`} className="block">
-                <Card title="partner.sh" padding="md" className="cursor-pointer">
-                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">Partner with Us</h3>
+              <Link href={`mailto:${CONTACT.email}?subject=Hosting%20a%20CCK%20event`} className="block">
+                <Card title="host.sh" padding="md" className="cursor-pointer">
+                  <h3 className="mb-2 font-mono text-lg font-bold text-text-primary">Host an Event with Us</h3>
                   <p className="font-sans text-text-secondary">
-                    University, company, or venue? Let&apos;s collaborate and grow the AI developer community together.
+                    University, company, or venue? Bring a CCK meetup or workshop to your space.
                   </p>
                 </Card>
               </Link>
