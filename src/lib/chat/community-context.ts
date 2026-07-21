@@ -63,7 +63,7 @@ export async function buildCommunityContext(): Promise<string> {
   return `
 === KEY FACTS ===
 - Community name: Claude Community Kenya (CCK)
-- Africa's first Claude developer community
+- Africa's only Claude developer community
 - First meetup: January 24, 2026 at iHiT Events Space, Westlands, Nairobi
 - Events hosted (completed): ${completedCount}
 - Cities: Nairobi + Mombasa (expanding)
