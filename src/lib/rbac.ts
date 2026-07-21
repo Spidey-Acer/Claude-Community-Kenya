@@ -20,6 +20,7 @@ export type AdminResource =
   | "community"
   | "team"
   | "photos"
+  | "impact-lab"
 
 export type Action = "view" | "create" | "edit" | "delete" | "approve"
 
@@ -43,6 +44,7 @@ const rolePermissions: Record<
     community: ["view", "create", "edit", "delete", "approve"],
     team: ["view", "create", "edit", "delete"],
     photos: ["view", "create", "edit", "delete"],
+    "impact-lab": ["view", "create", "edit", "delete", "approve"],
   },
   ADMIN: {
     dashboard: ["view"],
@@ -60,6 +62,7 @@ const rolePermissions: Record<
     community: ["view", "edit", "approve"],
     team: ["view", "edit"],
     photos: ["view", "create", "edit", "delete"],
+    "impact-lab": ["view", "create", "edit", "delete"],
   },
   MODERATOR: {
     dashboard: ["view"],
@@ -77,6 +80,7 @@ const rolePermissions: Record<
     community: ["view", "approve"],
     team: ["view"],
     photos: ["view"],
+    "impact-lab": ["view"],
   },
   MEMBER: {
     // "dashboard" here means the admin dashboard. MEMBER must not have access —
@@ -96,6 +100,7 @@ const rolePermissions: Record<
     community: ["view"],
     team: [],
     photos: [],
+    "impact-lab": [],
   },
 }
 
