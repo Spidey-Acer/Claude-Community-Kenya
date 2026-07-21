@@ -164,3 +164,14 @@ export const MAX_SWAP_PASSES = 3
  * from registering as an improvement and churning equivalent arrangements.
  */
 export const SWAP_IMPROVEMENT_EPSILON = 1e-9
+
+// ─── Explanations ────────────────────────────────────────────────────────────
+
+/** A dimension's raw score at or above this reads as a team strength. */
+export const EXPLANATION_STRENGTH_THRESHOLD = 0.66
+
+/** A dimension's raw score at or below this reads as a team weakness. */
+export const EXPLANATION_WEAKNESS_THRESHOLD = 0.4
+
+/** An interest shared by at least this many members can anchor a project idea. */
+export const EXPLANATION_SHARED_INTEREST_MIN = 2
