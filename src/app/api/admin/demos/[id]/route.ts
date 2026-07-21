@@ -3,6 +3,7 @@ import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
 import { sendApplicationReviewEmail } from "@/lib/email"
 import { ApplicationStatus } from "@/generated/prisma/client"
 
@@ -30,6 +31,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("demos", "approve")
   if (!check.authorized) return check.response
 
@@ -92,6 +96,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("demos", "delete")
   if (!check.authorized) return check.response
 

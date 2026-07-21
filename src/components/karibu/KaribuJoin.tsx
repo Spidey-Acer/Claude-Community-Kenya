@@ -33,9 +33,9 @@ export function KaribuJoin() {
       {/* Header */}
       <section className={`${WRAP} pb-8 pt-16 text-center`} aria-label="Join header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Join · Karibu</div>
+          <div className={`${KICKER} mb-4`}>Join</div>
           <h1 className="mx-auto mb-5 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.02] tracking-[-0.02em] text-ink sm:text-[60px]">
-            Say <span className="italic text-clay">Karibu</span> and you&apos;re one of us.
+            Say <span className="italic text-clay">hello</span> and you&apos;re one of us.
           </h1>
           <p className="mx-auto mb-8 max-w-[560px] font-inter text-[18px] leading-[1.6] text-ink-soft">
             Free, no application. Introduce yourself and start building with a

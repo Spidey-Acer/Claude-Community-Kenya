@@ -3,6 +3,7 @@ import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
 
 const statsUpdateSchema = z.object({
   discordMembers: z.number().int().min(0).optional(),
@@ -49,6 +50,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("settings", "edit")
   if (!check.authorized) return check.response
 

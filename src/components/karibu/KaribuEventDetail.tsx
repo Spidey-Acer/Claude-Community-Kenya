@@ -298,7 +298,7 @@ export function KaribuEventDetail({
       {relatedEvents.length > 0 && (
         <section className={`${WRAP} pb-14`} aria-label="More events">
           <Reveal>
-            <div className="mb-4 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-4 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               More events
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

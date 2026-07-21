@@ -67,7 +67,7 @@ export function KaribuHome({
     ...cities,
     "Free & founder-led",
     "Anthropic-supported via the Claude Community Ambassadors program",
-    "Karibu",
+    "Everyone welcome",
   ].filter(Boolean) as string[];
 
   const nextEvent = upcomingEvents[0];
@@ -98,21 +98,24 @@ function SupportedBy() {
         <p className="mb-8 text-center font-inter text-xs font-semibold uppercase tracking-[0.22em] text-ink-muted">
           Supported by
         </p>
-        <div className="flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
           <a
             href="https://anthropic.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center rounded-2xl border border-sand bg-paper-card px-8 py-6 transition-colors hover:border-clay/50"
+            className="inline-flex items-center rounded-2xl border border-sand bg-paper-card px-7 py-5 transition-colors hover:border-clay/50"
           >
             <Image
               src="/images/anthropic-wordmark.webp"
               alt="Anthropic"
-              width={200}
-              height={54}
-              style={{ width: "200px", height: "auto" }}
+              width={160}
+              height={43}
+              style={{ width: "160px", height: "auto" }}
             />
           </a>
+          <p className="font-inter text-[12.5px] text-ink-muted">
+            via the Claude Community Ambassadors program
+          </p>
         </div>
       </Reveal>
     </section>
@@ -276,11 +279,19 @@ function MadeForYouLight({
     <section className={`${WRAP} py-16`} aria-label="Recommended for you">
       <Reveal>
         <div className={`${KICKER} mb-4`}>Made for you</div>
-        <h2 className="mb-8 font-newsreader text-[30px] font-normal tracking-[-0.015em] text-ink">
-          Three things to start with.
+        <h2 className="mb-8 font-newsreader text-[40px] font-normal leading-[1.1] tracking-[-0.015em] text-ink">
+          {ranked.length >= 3 ? "Three things to start with." : "Start with these."}
         </h2>
       </Reveal>
-      <Reveal className="grid gap-4 sm:grid-cols-3">
+      <Reveal
+        className={`grid gap-4 ${
+          ranked.length === 1
+            ? "max-w-md"
+            : ranked.length === 2
+              ? "sm:grid-cols-2"
+              : "sm:grid-cols-3"
+        }`}
+      >
         {ranked.map((item) => {
           const href =
             item.type === "event"
@@ -481,8 +492,9 @@ function EventsSection({ events }: { events: Event[] }) {
         </div>
       </Reveal>
 
-      <Reveal className="grid gap-4 md:grid-cols-3">
+      <Reveal className={`grid gap-4 ${events.length >= 3 ? "md:grid-cols-3" : events.length === 2 ? "md:grid-cols-2" : ""}`}>
         {events.map((ev, i) => {
+          const single = events.length === 1;
           const cta =
             ev.type === "hackathon" || ev.status === "registration-open"
               ? "Register"
@@ -491,14 +503,22 @@ function EventsSection({ events }: { events: Event[] }) {
             <Link
               key={ev.slug}
               href={`/events/${ev.slug}`}
-              className="group block overflow-hidden rounded-[14px] border border-sand bg-paper-card transition-colors hover:border-clay"
+              className={`group overflow-hidden rounded-[14px] border border-sand bg-paper-card transition-colors hover:border-clay ${
+                single ? "md:grid md:grid-cols-2" : "block"
+              }`}
             >
-              <div className="relative h-[150px] overflow-hidden border-b border-sand">
+              <div
+                className={`relative overflow-hidden border-sand ${
+                  single
+                    ? "h-[220px] border-b md:h-full md:min-h-[280px] md:border-b-0 md:border-r"
+                    : "h-[150px] border-b"
+                }`}
+              >
                 <Image
                   src={eventCover(ev.posterUrl, i)}
                   alt={ev.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 380px"
+                  sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
@@ -569,7 +589,7 @@ const JOIN_STEPS = [
   },
   {
     n: "2",
-    title: "Say Karibu — introduce yourself",
+    title: "Introduce yourself",
     body: "Your city and what you're building or curious about.",
   },
   {
@@ -597,7 +617,7 @@ function HowToJoin() {
             <div className="mb-4 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay-light">
               How to join
             </div>
-            <h2 className="mb-5 font-newsreader text-[38px] font-normal leading-[1.1] tracking-[-0.015em]">
+            <h2 className="mb-5 font-newsreader text-[40px] font-normal leading-[1.1] tracking-[-0.015em]">
               Three taps and you&apos;re in.
             </h2>
             <p className="mb-7 font-inter text-base leading-[1.6] text-[#C7BEB0]">

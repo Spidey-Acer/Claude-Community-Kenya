@@ -48,6 +48,7 @@
   --ink: #23201B;
   --ink-soft: #5C5349;
   --ink-muted: #6A6155;
+  --ink-faint: #8A7F6E;
   --clay: #C15F3C;
   --clay-dark: #A84E2D;
   --clay-light: #E6906F;
@@ -104,6 +105,7 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
   --color-clay: var(--clay);
   --color-clay-dark: var(--clay-dark);
   --color-clay-light: var(--clay-light);
@@ -684,6 +686,13 @@ body::before {
   color: var(--paper-card);
 }
 
+/* Karibu: warm focus ring (overrides the Terminal Noir neon-green default) */
+.karibu :focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 @keyframes karibu-marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
@@ -698,6 +707,41 @@ body::before {
 }
 .karibu [data-marquee]:hover [data-mq-track] {
   animation-play-state: paused;
+}
+
+/* ─── Karibu skeleton loading ─────────────────────────────────────────────
+ * Token-driven shimmer for route-level loading states. The sweep is a
+ * translucent ink gradient, so it reads darker-on-light in light mode and
+ * lighter-on-dark in dark mode with zero extra rules. Stagger per element
+ * via the --sk-delay custom property. The global reduced-motion reset
+ * freezes the sweep automatically. */
+.k-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-alt);
+  border-radius: 8px;
+}
+.k-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--ink) 6%, transparent) 50%,
+    transparent
+  );
+  animation: karibu-shimmer 1.6s ease-in-out var(--sk-delay, 0s) infinite;
+}
+@keyframes karibu-shimmer {
+  100% { transform: translateX(100%); }
+}
+/* Terminal Noir scope (admin): remap the skeleton's tokens onto the dark
+ * admin palette so the same primitive reads correctly on #0a0a0a. */
+.k-skeleton-noir {
+  --paper-alt: #1a1a1a;
+  --ink: #e5e5e5;
 }
 
 /* ─── Karibu adaptive dark mode ───────────────────────────────────────────

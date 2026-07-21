@@ -7,7 +7,7 @@ import { ResetKaribuButton } from "./ResetKaribuButton";
 
 export const metadata: Metadata = {
   title: "Your data | Claude Community Kenya",
-  description: "Manage the data Karibu saved for your visit.",
+  description: "Manage the data saved for your visit.",
   robots: { index: false, follow: false },
 };
 
@@ -64,11 +64,11 @@ export default async function AccountDataPage() {
           </section>
         )}
 
-        {/* Karibu audience block */}
-        <section aria-label="Karibu personalization">
+        {/* Onboarding personalization block */}
+        <section aria-label="Onboarding personalization">
           <div className="rounded-lg border border-border-default bg-bg-secondary p-6">
             <p className="font-mono text-xs uppercase tracking-widest text-text-dim mb-1">
-              Karibu audience
+              Your audience
             </p>
             <p className="font-sans text-text-primary mb-6">{audienceLabel}</p>
 
@@ -76,7 +76,7 @@ export default async function AccountDataPage() {
               <>
                 <p className="font-mono text-xs text-text-dim mb-4">
                   Resetting clears the <code>cck-audience</code> cookie and
-                  removes the linked session from the database. The Karibu
+                  removes the linked session from the database. The welcome
                   wizard will run again on your next visit.
                 </p>
                 <ResetKaribuButton />

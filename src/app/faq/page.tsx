@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { faqs } from "@/data/faq";
 import { KaribuFaq } from "@/components/karibu/KaribuFaq";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 export const metadata: Metadata = {
   title: "FAQ | Claude Community Kenya",
@@ -57,7 +58,7 @@ export default function FaqPage() {
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "FAQ" }]} />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       <KaribuFaq faqs={faqs} categories={categories} />
     </>

@@ -30,7 +30,7 @@ interface TimelineEntry {
 const VALUES = [
   { title: "Free, always", body: "No fees, no gatekeeping. The community stays open to everyone." },
   { title: "Hands-on", body: "We learn by building real things together, not by lecturing." },
-  { title: "Warm & local", body: "Kenyan at heart, globally connected. Karibu means karibu." },
+  { title: "Warm & local", body: "Kenyan at heart, globally connected. Everyone is welcome here." },
 ];
 
 export function KaribuAbout({
@@ -89,6 +89,7 @@ export function KaribuAbout({
               src="/images/community/first-meetup.webp"
               alt="A Claude Community Kenya founding meetup"
               fill
+              priority
               sizes="(max-width: 768px) 100vw, 560px"
               className="object-cover"
             />
@@ -134,13 +135,13 @@ export function KaribuAbout({
       {activeTeam.length > 0 && (
         <section className={`${WRAP} py-10`} aria-label="Our team">
           <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               The people
             </div>
           </Reveal>
           <Reveal className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {activeTeam.slice(0, 8).map((m) => (
-              <TeamCard key={m.name} member={m} />
+            {activeTeam.slice(0, 8).map((m, i) => (
+              <TeamCard key={m.slug ?? `${m.name}-${i}`} member={m} />
             ))}
           </Reveal>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">
@@ -157,7 +158,7 @@ export function KaribuAbout({
       {timelineEntries.length > 0 && (
         <section className={`${WRAP} py-10`} aria-label="Community timeline">
           <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-[#8A7F6E]">
+            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               How we got here
             </div>
           </Reveal>

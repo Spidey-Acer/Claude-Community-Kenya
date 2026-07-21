@@ -21,7 +21,7 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
     <>
       <section className={`${WRAP} pb-8 pt-16 text-center`} aria-label="Team header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>The team · Timu</div>
+          <div className={`${KICKER} mb-4`}>The team</div>
           <h1 className="mx-auto mb-4 max-w-[760px] font-newsreader text-[42px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[56px]">
             The people behind CCK
           </h1>
@@ -36,7 +36,10 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
         {active.length > 0 ? (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {active.map((m, i) => (
-              <Reveal key={m.name} index={i}>
+              // Keyed by slug, not name: two rows can share a name (production
+              // rendered "Peter Kibet" twice until 2026-07-20) and duplicate
+              // keys make React reuse the wrong card. See commit e8707cf.
+              <Reveal key={m.slug ?? `${m.name}-${i}`} index={i}>
                 <TeamCard member={m} />
               </Reveal>
             ))}

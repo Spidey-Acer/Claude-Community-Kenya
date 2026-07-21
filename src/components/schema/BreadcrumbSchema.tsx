@@ -1,6 +1,7 @@
 "use client";
 
 import { SITE_CONFIG } from "@/lib/constants";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 export interface BreadcrumbItem {
   name: string;
@@ -26,7 +27,7 @@ export function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
     />
   );
 }

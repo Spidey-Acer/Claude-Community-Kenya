@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TerminalWindow, CommandPrefix } from "@/components/terminal";
 import { SOCIAL_LINKS } from "@/lib/constants";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "404 — Page Not Found | Claude Community Kenya",
@@ -11,85 +8,51 @@ export const metadata: Metadata = {
 };
 
 const navLinks = [
-  { label: "HOME", href: "/" },
-  { label: "EVENTS", href: "/events" },
-  { label: "RESOURCES", href: "/resources" },
+  { label: "Home", href: "/" },
+  { label: "Events", href: "/events" },
+  { label: "Learn", href: "/resources" },
 ];
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg-primary px-4">
+    <div className="flex min-h-[70vh] items-center justify-center bg-paper px-6 py-24">
       <div className="w-full max-w-xl">
-        <TerminalWindow title="bash — 404" variant="command" glowing>
-          <div className="space-y-4">
-            {/* Command attempt */}
-            <div>
-              <p className="text-text-primary">
-                <CommandPrefix />
-                cd /requested-page
-              </p>
-              <p className="mt-1 text-red">
-                bash: /requested-page: No such file or directory
-              </p>
-            </div>
+        <p className="font-mono text-xs uppercase tracking-[0.22em] text-clay">
+          404 · Pole sana
+        </p>
+        <h1 className="mt-4 font-newsreader text-4xl leading-tight text-ink sm:text-5xl">
+          This page wandered off.
+        </h1>
+        <p className="mt-4 font-inter text-[15.5px] leading-[1.7] text-ink-soft">
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
+          Try one of these instead:
+        </p>
 
-            {/* Error message */}
-            <div className="border-t border-border-default pt-4">
-              <PersonaHeading
-                page="notFound"
-                section="hero"
-                as="h1"
-                className="text-lg font-bold text-amber"
-                showPrefix={false}
-              />
-              <PersonaText
-                page="notFound"
-                section="hero"
-                field="subtitle"
-                className="mt-2 font-sans text-text-secondary"
-              />
-              <p className="mt-1 font-sans text-text-dim">
-                Maybe try one of these:
-              </p>
-            </div>
-
-            {/* Navigation links */}
-            <nav
-              className="space-y-2 pt-2"
-              aria-label="Suggested pages"
+        <nav className="mt-8 flex flex-wrap gap-3" aria-label="Suggested pages">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-full border border-sand bg-paper-card px-5 py-2.5 font-inter text-sm font-semibold text-ink transition-colors hover:border-clay hover:text-clay"
             >
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="group flex items-center gap-2 text-green-primary transition-colors hover:text-amber"
-                >
-                  <span className="text-green-dim group-hover:text-amber" aria-hidden="true">
-                    &gt;
-                  </span>
-                  <span className="underline underline-offset-2">{link.label}</span>
-                </Link>
-              ))}
-            </nav>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-            {/* Discord link */}
-            <div className="border-t border-border-default pt-4">
-              <p className="font-sans text-sm text-text-dim">
-                Or report this bug on{" "}
-                <a
-                  href={SOCIAL_LINKS.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cyan underline underline-offset-2 transition-colors hover:text-green-primary"
-                >
-                  Discord
-                </a>
-                .
-              </p>
-            </div>
-          </div>
-        </TerminalWindow>
+        <p className="mt-10 border-t border-sand pt-6 font-inter text-sm text-ink-muted">
+          Think this is a broken link?{" "}
+          <a
+            href={SOCIAL_LINKS.discord}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-clay underline underline-offset-2 hover:text-clay-dark"
+          >
+            Tell us on Discord
+          </a>
+          .
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

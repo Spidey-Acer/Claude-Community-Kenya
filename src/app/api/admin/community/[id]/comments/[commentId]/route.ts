@@ -3,6 +3,7 @@ import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { withCsrfProtection } from "@/lib/csrf"
 
 const updateCommentSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
@@ -12,6 +13,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("community", "approve")
   if (!check.authorized) return check.response
 
@@ -58,6 +62,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   const check = await checkApiPermission("community", "delete")
   if (!check.authorized) return check.response
 

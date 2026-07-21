@@ -8,6 +8,7 @@ import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import { type AudienceState } from "@/contexts/AudienceContext";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
+import { serializeJsonLd } from "@/lib/json-ld"
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -215,11 +216,15 @@ export default async function RootLayout({
       };
 
   return (
-    <html lang="en" className="dark persona-pro">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`dark persona-pro ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable}`}
+    >
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
         {/* Karibu theme + motion init — runs before paint.
          * 1. Adds `.js` to <html> so the degrade-safe reveal CSS (globals.css)
@@ -235,9 +240,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${jetbrainsMono.variable} ${ibmPlexSans.variable} ${fraunces.variable} ${newsreader.variable} ${inter.variable} antialiased`}
-      >
+      <body className="antialiased">
         <GoogleAnalytics />
         <WebVitals />
         <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu}>
