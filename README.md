@@ -1,6 +1,6 @@
 # Claude Community Kenya
 
-> Africa's first Claude developer community — official community website.
+> Africa's only Claude developer community — official community website.
 
 **Live site:** [claudekenya.org](https://www.claudekenya.org)
 
