@@ -106,6 +106,15 @@ enum Experience {
   api_builder
 }
 
+// Skill ladder for Impact Lab team matching. Deliberately NOT the `Experience`
+// enum above — that one tracks Claude familiarity (never_used → api_builder),
+// whereas the matcher needs a generic beginner→advanced axis to balance teams.
+enum ImpactLabExperience {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 // ─── Users & Auth ────────────────────────────────────────────────────────────
 
 model User {
@@ -135,6 +144,7 @@ model User {
   volunteerApplications VolunteerApplication[]
   demoRequests         DemoRequest[]
   onboardingSessions   OnboardingSession[]
+  impactLabMatchRuns   ImpactLabMatchRun[]
 
   @@map("users")
 }
@@ -629,4 +639,59 @@ model NewsletterIssue {
   @@index([publishedAt])
   @@index([status])
   @@map("newsletter_issues")
+}
+
+// ─── Impact Lab Team Matching ────────────────────────────────────────────────
+
+// A hackathon participant eligible for team matching. Scoped by `cohort` so the
+// same table serves future events without collisions. Matching only ever reads
+// rows where consentToMatch = true; blockedTeammates is organiser-only and is
+// never sent to the AI layer or exposed in public/CSV export.
+model ImpactLabParticipant {
+  id                    String              @id @default(cuid())
+  cohort                String              @default("impact-lab-2026-07")
+  fullName              String
+  email                 String
+  phone                 String?
+  institution           String?
+  experienceLevel       ImpactLabExperience @default(BEGINNER)
+  primaryRole           String
+  secondaryRoles        String[]
+  technicalSkills       String[]
+  interests             String[]
+  availability          String[]
+  projectIdeas          String?             @db.Text
+  preferredTeammates    String[]            // emails — soft preference, honoured when possible
+  blockedTeammates      String[]            // emails — hard constraint, never shown publicly
+  consentToMatch        Boolean             @default(false)
+  consentToShareContact Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([cohort, email])
+  @@index([cohort])
+  @@map("impact_lab_participants")
+}
+
+// A frozen snapshot of one matching run: the settings used, the participants as
+// they were at run time, and the computed result (teams + score breakdowns +
+// warnings + unassigned). Snapshotting means a saved run stays reproducible even
+// after participants are edited. At most one run per cohort may have isFinal =
+// true — enforced in the API layer, not the DB, so we can atomically swap it.
+model ImpactLabMatchRun {
+  id                   String   @id @default(cuid())
+  cohort               String
+  name                 String
+  notes                String?  @db.Text
+  isFinal              Boolean  @default(false)
+  settings             Json
+  result               Json
+  participantsSnapshot Json
+  createdById          String?
+  createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt            DateTime @default(now())
+
+  @@index([cohort])
+  @@index([cohort, isFinal])
+  @@map("impact_lab_match_runs")
 }
