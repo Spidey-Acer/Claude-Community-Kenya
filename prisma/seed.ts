@@ -111,7 +111,7 @@ async function main() {
       description:
         "Our first university event! A career talk at Technical University of Mombasa exploring AI opportunities, Claude Code, and how students can start building with AI today.",
       fullDescription:
-        "Claude Community Kenya headed to Mombasa for our very first university event! In partnership with the Technical University of Mombasa and Swahilipot Hub Foundation, we brought an inspiring career talk on AI and development opportunities.\n\nThis event was designed specifically for university students and early-career developers. We covered what AI means for the future of software development in Kenya, how to get started with Claude and Claude Code, and the career opportunities emerging in the AI space.",
+        "Claude Community Kenya headed to Mombasa for our very first university event! Hosted at the Technical University of Mombasa, with thanks to the Swahilipot Hub Foundation, we brought an inspiring career talk on AI and development opportunities.\n\nThis event was designed specifically for university students and early-career developers. We covered what AI means for the future of software development in Kenya, how to get started with Claude and Claude Code, and the career opportunities emerging in the AI space.",
       agenda: [
         "10:00 AM — Registration & Welcome",
         "10:30 AM — Keynote: AI & The Future of Software Development in Kenya",

@@ -93,10 +93,10 @@ const contributeCards = [
   },
   {
     icon: Mail,
-    title: "Partner with us",
+    title: "Host an event with us",
     description:
-      "University, company, or venue? Let's collaborate and grow the AI developer community together.",
-    href: `mailto:${CONTACT.email}?subject=Partnership%20with%20CCK`,
+      "University, company, or venue? Bring a CCK meetup or workshop to your space.",
+    href: `mailto:${CONTACT.email}?subject=Hosting%20a%20CCK%20event`,
   },
 ];
 

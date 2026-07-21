@@ -164,8 +164,9 @@ export function AboutClient({ stats, team, timelineEntries }: AboutClientProps) 
               Still growing.
             </p>
             <p>
-              Claude Community Kenya is led by Peter Kibet, Anthropic-recognized Claude
-              Community Ambassador for Kenya.
+              Claude Community Kenya is led by Peter Kibet, Claude Community
+              Ambassador for Kenya — a volunteer role in Anthropic&apos;s founding
+              global ambassador cohort.
             </p>
             <p>
               Whether you write code, write copy, run a business, or do research —

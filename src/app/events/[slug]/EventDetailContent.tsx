@@ -302,7 +302,7 @@ export function EventDetailContent({
                       : "font-mono text-xs uppercase tracking-wider"
                   }
                 >
-                  Partner Organizations
+                  With Thanks To
                 </span>
               </div>
               <p

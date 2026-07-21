@@ -209,7 +209,10 @@ export default function NewEventPage() {
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Organizer & Links</h2>
             <div className="grid grid-cols-2 gap-4">
               <FieldInput label="Host" value={host} onChange={setHost} placeholder="Optional" />
-              <FieldInput label="Partner Org" value={partnerOrg} onChange={setPartnerOrg} placeholder="Optional" />
+              {/* Renders publicly under "With thanks to" — per ambassador program
+                  rules, never use "partner"/"co-host"/"sponsor" framing for orgs
+                  that are not listed Claude customers. */}
+              <FieldInput label="Venue / host orgs (thanks)" value={partnerOrg} onChange={setPartnerOrg} placeholder="Optional" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <FieldInput label="Registration URL" type="url" value={registrationUrl} onChange={setRegistrationUrl} placeholder="Optional" />

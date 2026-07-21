@@ -118,12 +118,12 @@ export function KaribuAbout({
             </div>
             <div>
               <div className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[0.18em] text-clay-light">
-                Official Anthropic tie
+                The Anthropic connection
               </div>
               <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-paper sm:text-[23px]">
-                CCK is backed by Kenya&apos;s{" "}
-                <span className="italic text-clay-light">Claude Community Ambassador</span> — a
-                real link to Anthropic through the Claude Community Ambassadors program,
+                CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
+                <span className="italic text-clay-light">Claude Community Ambassador</span> and
+                supported through Anthropic&apos;s Claude Community Ambassadors program —
                 kept firmly in service of the community, never a sales channel.
               </p>
             </div>
