@@ -153,6 +153,10 @@ export async function explainWithAi(
         if (memberIds.has(participantId)) roles[participantId] = role
       }
 
+      // Merge the engine's penalty-derived warnings (e.g. "No builder on the
+      // team") with the AI's, deduped — don't let the model's warnings silently
+      // replace hard signals from the deterministic scorer.
+      const engineWarnings = team.score.penalties.map((p) => p.reason)
       return {
         teamId: team.id,
         summary: ai.summary,
@@ -160,7 +164,7 @@ export async function explainWithAi(
         weaknesses: ai.weaknesses,
         suggestedProjectDirection: ai.suggestedProjectDirection,
         suggestedInternalRoles: roles,
-        warnings: ai.warnings,
+        warnings: [...new Set([...engineWarnings, ...ai.warnings])],
         source: "ai",
       }
     })
@@ -172,7 +176,10 @@ export async function explainWithAi(
     }
 
     return { explanations, warnings, usedFallback }
-  } catch {
+  } catch (error) {
+    // Log the cause (invalid key vs billing vs bug are otherwise
+    // indistinguishable) before degrading to the deterministic explanations.
+    console.error("[impact-lab] AI explanation failed; using deterministic fallback:", error)
     return allFallback(
       "AI explanations failed; showing deterministic summaries instead."
     )
