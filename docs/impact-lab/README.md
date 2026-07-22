@@ -35,6 +35,7 @@ output.
 | 10 | [AI layer](./10-ai-layer.md) | Claude explains-only; privacy by data-flow; fail-open |
 | 11 | [API layer](./11-api.md) | Routes, shared helpers, resilient CSV import |
 | 12 | [Admin UI](./12-admin-ui.md) | The three tabs; rendering the score breakdown |
+| 13 | [Audit hardening](./13-hardening.md) | Security/perf fixes from the PR review, and why |
 
 ## Try it
 
