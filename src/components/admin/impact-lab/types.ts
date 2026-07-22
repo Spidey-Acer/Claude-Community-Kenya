@@ -36,6 +36,8 @@ export interface DirectoryParticipant {
 export interface MatchResponse {
   result: MatchResult
   participants: DirectoryParticipant[]
+  /** Content signature of the generated result, echoed back on save/explain. */
+  signature: string
 }
 
 export interface RunSummary {

@@ -69,7 +69,7 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     setExplaining(true)
     setError(null)
     try {
-      const res = await apiSend<{ explanations: TeamExplanation[] }>("/api/admin/impact-lab/explain", "POST", { cohort, settings })
+      const res = await apiSend<{ explanations: TeamExplanation[] }>("/api/admin/impact-lab/explain", "POST", { cohort, settings, expectedSignature: data?.signature })
       setExplanations(res.explanations)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to explain")
@@ -83,7 +83,7 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     setSaving(true)
     setError(null)
     try {
-      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings })
+      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings, expectedSignature: data?.signature })
       setRunName("")
       onSaved()
     } catch (e) {

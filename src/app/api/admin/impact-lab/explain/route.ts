@@ -9,6 +9,7 @@ import { explainWithAi } from "@/lib/matching/ai-explanations"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
+import { resultSignature } from "@/lib/impact-lab/signature"
 
 // The Claude call can take several seconds — give it room past the default.
 export const maxDuration = 30
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  let body: { cohort?: string; settings?: unknown } = {}
+  let body: { cohort?: string; settings?: unknown; expectedSignature?: string } = {}
   try {
     body = (await request.json()) ?? {}
   } catch {
@@ -60,6 +61,17 @@ export async function POST(request: NextRequest) {
   })
   const mapped = participants.map(toMatchParticipant)
   const result = runMatching(mapped, settings)
+
+  if (body.expectedSignature && resultSignature(result) !== body.expectedSignature) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Participants changed since these teams were generated. Regenerate first.",
+      },
+      { status: 409 }
+    )
+  }
+
   const normalized = normalizeParticipants(mapped.filter((p) => p.consentToMatch))
 
   const explained = await explainWithAi(result, normalized)

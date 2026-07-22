@@ -7,6 +7,7 @@ import { runMatching } from "@/lib/matching"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
+import { resultSignature } from "@/lib/impact-lab/signature"
 
 /**
  * Generate a match for a cohort. Pure computation — nothing is persisted here;
@@ -62,5 +63,8 @@ export async function POST(request: NextRequest) {
     consentToShareContact: p.consentToShareContact,
   }))
 
-  return NextResponse.json({ success: true, data: { result, participants: directory } })
+  return NextResponse.json({
+    success: true,
+    data: { result, participants: directory, signature: resultSignature(result) },
+  })
 }

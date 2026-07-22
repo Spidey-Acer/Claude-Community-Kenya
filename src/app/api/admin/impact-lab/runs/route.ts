@@ -8,12 +8,16 @@ import { runMatching, type MatchResult } from "@/lib/matching"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
+import { resultSignature } from "@/lib/impact-lab/signature"
 
 const saveSchema = z.object({
   cohort: z.string().max(60).optional(),
   name: z.string().min(1).max(120),
   notes: z.string().max(1000).optional(),
   settings: z.unknown().optional(),
+  // Signature of the result the organiser reviewed. If the recomputed result
+  // differs (a participant was edited since Generate), we refuse to save.
+  expectedSignature: z.string().max(64).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -85,6 +89,20 @@ export async function POST(request: NextRequest) {
   const participants = await prisma.impactLabParticipant.findMany({ where: { cohort } })
   const mapped = participants.map(toMatchParticipant)
   const result = runMatching(mapped, settings)
+
+  // Refuse to freeze a run that differs from what the organiser reviewed.
+  if (
+    validation.data.expectedSignature &&
+    resultSignature(result) !== validation.data.expectedSignature
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Participants changed since these teams were generated. Regenerate before saving.",
+      },
+      { status: 409 }
+    )
+  }
 
   // JSON.parse(JSON.stringify(...)) yields plain JSON values for Prisma's Json columns.
   const run = await prisma.impactLabMatchRun.create({
