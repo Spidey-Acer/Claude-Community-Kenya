@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
-import { rateLimit, RateLimits } from "@/lib/rate-limit"
+import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { runMatching, normalizeParticipants } from "@/lib/matching"
 import { explainWithAi } from "@/lib/matching/ai-explanations"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
+
+// The Claude call can take several seconds — give it room past the default.
+export const maxDuration = 30
 
 /**
  * Explain a match with Claude. The result is recomputed server-side from the
@@ -22,7 +25,13 @@ export async function POST(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
   if (!check.authorized) return check.response
 
-  const limit = await rateLimit(request, RateLimits.STRICT)
+  // Key by user id, not IP: on event day every organiser shares the venue NAT,
+  // so an IP-keyed limit would throttle the whole team to a handful of calls.
+  const limit = await rateLimit(request, {
+    maxRequests: 20,
+    windowInSeconds: 3600,
+    identifier: () => `impact-lab-explain:${check.user.id}`,
+  })
   if (!limit.success) {
     return NextResponse.json(
       { success: false, error: "AI explanation rate limit reached. Try again later." },
