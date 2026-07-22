@@ -4,21 +4,25 @@ import { useMemo, useState } from "react"
 import { Loader2, Play, Sparkles, Save } from "lucide-react"
 import { apiSend } from "./api"
 import type { DirectoryParticipant, MatchResponse, TeamExplanation } from "./types"
+// Import path is the constants module directly (not the "@/lib/matching" barrel)
+// so the client bundle gets only the constant objects, not the engine code.
+import { DEFAULT_SETTINGS as ENGINE_DEFAULTS } from "@/lib/matching/constants"
 
 interface MatchingTabProps {
   cohort: string
   onSaved: () => void
 }
 
+// Seed the form from the engine's defaults rather than re-hardcoding them here.
 const DEFAULT_SETTINGS = {
-  desiredTeamSize: 4,
-  minTeamSize: 3,
-  maxTeamSize: 5,
-  requireBuilder: true,
-  requirePresenter: true,
-  preventBeginnerOnlyTeams: true,
-  distributeAdvancedParticipants: true,
-  allowUnassignedParticipants: true,
+  desiredTeamSize: ENGINE_DEFAULTS.desiredTeamSize,
+  minTeamSize: ENGINE_DEFAULTS.minTeamSize,
+  maxTeamSize: ENGINE_DEFAULTS.maxTeamSize,
+  requireBuilder: ENGINE_DEFAULTS.requireBuilder,
+  requirePresenter: ENGINE_DEFAULTS.requirePresenter,
+  preventBeginnerOnlyTeams: ENGINE_DEFAULTS.preventBeginnerOnlyTeams,
+  distributeAdvancedParticipants: ENGINE_DEFAULTS.distributeAdvancedParticipants,
+  allowUnassignedParticipants: ENGINE_DEFAULTS.allowUnassignedParticipants,
 }
 
 const DIMENSION_LABEL: Record<string, string> = {

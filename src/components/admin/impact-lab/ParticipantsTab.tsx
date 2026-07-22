@@ -128,7 +128,20 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
       const rows = parseCsv(await file.text())
       if (rows.length < 2) throw new Error("CSV has no data rows")
       const headers = rows[0].map((h) => h.trim().toLowerCase())
-      const idx = (name: string) => headers.indexOf(name.toLowerCase())
+      // Accept a few common header spellings so a raw Luma/Google Forms export
+      // doesn't silently import zero rows.
+      const ALIASES: Record<string, string[]> = {
+        fullname: ["fullname", "full name", "name"],
+        email: ["email", "e-mail", "email address"],
+      }
+      const idx = (name: string) => {
+        const candidates = ALIASES[name.toLowerCase()] ?? [name.toLowerCase()]
+        for (const c of candidates) {
+          const i = headers.indexOf(c)
+          if (i >= 0) return i
+        }
+        return -1
+      }
       const drafts = rows.slice(1).map((r) => {
         const get = (name: string) => (idx(name) >= 0 ? r[idx(name)] ?? "" : "")
         return {
@@ -194,6 +207,10 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
         </div>
       </div>
 
+      <p className="text-[10px] font-mono text-[#444]">
+        Import expects comma-delimited UTF-8 with headers matching the Export
+        format (fullName, email, primaryRole, …); multi-value cells split on ; or ,.
+      </p>
       {importMsg && (
         <div className="p-2 bg-[#00d4ff]/10 border border-[#00d4ff]/30 rounded text-[11px] font-mono text-[#00d4ff]">{importMsg}</div>
       )}
