@@ -86,7 +86,7 @@ export function ProfileEditor({
       <div className="flex flex-wrap items-start gap-4 rounded-lg border border-border-default bg-bg-secondary p-5">
         <div className="flex-1 min-w-0">
           <p className="font-mono text-[11px] uppercase tracking-wider text-text-dim mb-2">
-            // ./profile
+            {"// ./profile"}
           </p>
           <p className="font-mono text-sm text-text-primary">
             {initialFirstName} {initialLastName}

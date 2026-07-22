@@ -5,7 +5,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getUpcomingEvents } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
-import { Calendar, MessageSquare, BookOpen, Sparkles, Code2 } from "lucide-react";
+import { DEFAULT_COHORT } from "@/lib/impact-lab/constants";
+import { extractFrozenTeams } from "@/lib/impact-lab/member";
+import { Calendar, MessageSquare, BookOpen, Sparkles, Code2, FlaskConical } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
 import { VerifyEmailBanner } from "./VerifyEmailBanner";
 import { ProfileEditor } from "./ProfileEditor";
@@ -80,6 +82,41 @@ export default async function DashboardPage() {
 
   const nextEvent = upcomingEvents[0];
 
+  // Impact Lab hackathon status — mirrors the states on /dashboard/impact-lab.
+  let impactLabStatus: ImpactLabStatus = "verify";
+  if (user.emailVerified) {
+    // No .catch(() => null) here: swallowing a DB error would show a
+    // registered participant the affirmative "Registration not found" copy.
+    // A down DB surfaces via the page error boundary, same as the user query.
+    const participant = await prisma.impactLabParticipant.findUnique({
+      where: {
+        cohort_email: {
+          cohort: DEFAULT_COHORT,
+          email: user.email.toLowerCase(),
+        },
+      },
+      select: { id: true, consentToMatch: true },
+    });
+    if (!participant) {
+      impactLabStatus = "not-registered";
+    } else {
+      const finalRun = await prisma.impactLabMatchRun.findFirst({
+        where: { cohort: DEFAULT_COHORT, isFinal: true },
+        orderBy: { createdAt: "desc" },
+        select: { result: true },
+      });
+      // Frozen JSON, not schema-enforced — a malformed run degrades to waiting.
+      const teams = finalRun ? extractFrozenTeams(finalRun.result) : null;
+      if (!teams) {
+        impactLabStatus = participant.consentToMatch ? "waiting" : "profile";
+      } else {
+        impactLabStatus = teams.some((t) => t.memberIds.includes(participant.id))
+          ? "revealed"
+          : "unassigned";
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen bg-bg-primary pt-24 pb-24">
       <div className="mx-auto max-w-5xl px-4">
@@ -111,6 +148,10 @@ export default async function DashboardPage() {
         </header>
 
         {!user.emailVerified && <VerifyEmailBanner />}
+
+        <section className="mb-8" aria-label="Impact Lab hackathon">
+          <ImpactLabCard status={impactLabStatus} />
+        </section>
 
         <section className="mb-8" aria-label="Profile">
           <ProfileEditor
@@ -153,7 +194,7 @@ export default async function DashboardPage() {
         {/* Quick Links Grid */}
         <section aria-label="Quick links">
           <h2 className="mb-4 font-mono text-xs uppercase tracking-wider text-text-dim">
-            // ./quick-links
+            {"// ./quick-links"}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DashboardCard
@@ -206,7 +247,7 @@ export default async function DashboardPage() {
         {totalSubmissions > 0 && (
           <section className="mt-12" aria-label="My submissions">
             <h2 className="mb-4 font-mono text-xs uppercase tracking-wider text-text-dim">
-              // ./my-submissions
+              {"// ./my-submissions"}
             </h2>
             <div className="space-y-3">
               {myIdeas.map((s) => (
@@ -246,7 +287,7 @@ export default async function DashboardPage() {
           <div className="grid gap-3 rounded-lg border border-border-default bg-bg-secondary/60 p-5 sm:grid-cols-2">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim mb-1">
-                // roadmap
+                {"// roadmap"}
               </p>
               <p className="font-mono text-xs text-text-secondary leading-relaxed">
                 Member features in progress: saved events, 2FA for admins, and
@@ -255,7 +296,7 @@ export default async function DashboardPage() {
             </div>
             <div className="sm:text-right">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim mb-1">
-                // feedback
+                {"// feedback"}
               </p>
               <p className="font-mono text-xs text-text-secondary leading-relaxed">
                 Have an idea?{" "}
@@ -274,6 +315,80 @@ export default async function DashboardPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+type ImpactLabStatus =
+  | "verify"
+  | "not-registered"
+  | "profile"
+  | "waiting"
+  | "revealed"
+  | "unassigned";
+
+const IMPACT_LAB_COPY: Record<
+  ImpactLabStatus,
+  { title: string; description: string }
+> = {
+  verify: {
+    title: "Verify your email to unlock",
+    description:
+      "Your hackathon matching profile opens once your email is verified.",
+  },
+  "not-registered": {
+    title: "Registration not found",
+    description:
+      "We couldn't match your account email to a Luma registration. Open for details.",
+  },
+  profile: {
+    title: "Complete your matching profile",
+    description: "Two minutes — it's how we place you on the right team.",
+  },
+  waiting: {
+    title: "Profile complete",
+    description: "Teams drop Saturday morning — check back here.",
+  },
+  revealed: {
+    title: "Your team is ready",
+    description: "Meet your teammates and see your suggested project direction.",
+  },
+  unassigned: {
+    title: "Teams are finalized",
+    description: "You weren't placed on a team — contact the organizers.",
+  },
+};
+
+function ImpactLabCard({ status }: { status: ImpactLabStatus }) {
+  const copy = IMPACT_LAB_COPY[status];
+  const green = status === "revealed" || status === "waiting";
+  const cardClass = green
+    ? "group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-6 transition-all hover:border-green-primary/40"
+    : "group flex flex-wrap items-start gap-4 rounded-lg border border-amber/20 bg-bg-secondary p-6 transition-all hover:border-amber/40";
+  const iconBoxClass = green
+    ? "flex h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10"
+    : "flex h-12 w-12 shrink-0 items-center justify-center rounded border border-amber/30 bg-amber/10";
+  const eyebrowClass = green
+    ? "font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1"
+    : "font-mono text-[11px] uppercase tracking-wider text-amber mb-1";
+
+  return (
+    <Link href="/dashboard/impact-lab" className={cardClass}>
+      <div className={iconBoxClass}>
+        <FlaskConical
+          className={green ? "h-6 w-6 text-green-primary" : "h-6 w-6 text-amber"}
+        />
+      </div>
+      <div className="flex-1">
+        <p className={eyebrowClass}>Impact Lab hackathon</p>
+        <h2 className="font-mono text-base font-bold text-text-primary group-hover:text-green-primary transition-colors">
+          {copy.title}
+        </h2>
+        <p className="mt-1 text-sm text-text-secondary">{copy.description}</p>
+      </div>
+      <span className="font-mono text-sm text-text-dim group-hover:text-green-primary transition-colors">
+        Open &rarr;
+      </span>
+    </Link>
   );
 }
 
