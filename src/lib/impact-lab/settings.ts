@@ -46,11 +46,17 @@ export const settingsSchema = z
  */
 export function resolveSettings(input: unknown): MatchSettings {
   const parsed = settingsSchema.parse(input ?? {})
-  return {
+  const resolved: MatchSettings = {
     ...DEFAULT_SETTINGS,
     ...parsed,
     numberOfTeams: parsed.numberOfTeams ?? null,
     lockedTeams: parsed.lockedTeams ?? DEFAULT_SETTINGS.lockedTeams,
     weights: { ...DEFAULT_WEIGHTS, ...(parsed.weights ?? {}) },
   }
+  // Cross-field check zod can't express when a bound is omitted: an inverted
+  // range silently produces garbage teams, so reject it here (routes → 400).
+  if (resolved.minTeamSize > resolved.maxTeamSize) {
+    throw new Error("minTeamSize cannot exceed maxTeamSize")
+  }
+  return resolved
 }

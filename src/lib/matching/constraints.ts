@@ -118,6 +118,7 @@ export function resolveLockedTeams(
   lockedTeams.forEach((team, index) => {
     const label = team.name ?? `locked team ${index + 1}`
     const memberIds: string[] = []
+    const members: NormalizedParticipant[] = []
 
     for (const rawEmail of team.memberEmails) {
       const email = rawEmail.toLowerCase().trim()
@@ -132,6 +133,19 @@ export function resolveLockedTeams(
       }
       lockedIds.add(participant.id)
       memberIds.push(participant.id)
+      members.push(participant)
+    }
+
+    // Blocks are unconditional — but a locked team is passed through untouched,
+    // so a block inside one can't be auto-resolved. Surface it loudly instead.
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        if (participantsConflict(members[i], members[j])) {
+          warnings.push(
+            `${label}: ${members[i].fullName} and ${members[j].fullName} blocked each other but are pinned together.`
+          )
+        }
+      }
     }
 
     if (memberIds.length > 0) teams.push({ name: team.name, memberIds })
