@@ -83,20 +83,32 @@ export async function PATCH(
     const approveCheck = await checkApiPermission("impact-lab", "approve")
     if (!approveCheck.authorized) return approveCheck.response
 
-    await prisma.$transaction([
-      prisma.impactLabMatchRun.updateMany({
-        where: { cohort: existing.cohort, isFinal: true, NOT: { id } },
-        data: { isFinal: false },
-      }),
-      prisma.impactLabMatchRun.update({
-        where: { id },
-        data: {
-          isFinal: true,
-          ...(name !== undefined ? { name } : {}),
-          ...(notes !== undefined ? { notes } : {}),
-        },
-      }),
-    ])
+    try {
+      await prisma.$transaction([
+        prisma.impactLabMatchRun.updateMany({
+          where: { cohort: existing.cohort, isFinal: true, NOT: { id } },
+          data: { isFinal: false },
+        }),
+        prisma.impactLabMatchRun.update({
+          where: { id },
+          data: {
+            isFinal: true,
+            ...(name !== undefined ? { name } : {}),
+            ...(notes !== undefined ? { notes } : {}),
+          },
+        }),
+      ])
+    } catch (error) {
+      // The partial unique index (one final per cohort) rejects a concurrent
+      // mark-final race that the transaction alone can't stop under read-committed.
+      if ((error as { code?: string }).code === "P2002") {
+        return NextResponse.json(
+          { success: false, error: "Another run was just marked final. Refresh and try again." },
+          { status: 409 }
+        )
+      }
+      throw error
+    }
   } else {
     await prisma.impactLabMatchRun.update({
       where: { id },

@@ -668,8 +668,9 @@ model ImpactLabParticipant {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
+  // @@unique([cohort, email]) already indexes the cohort prefix, so a standalone
+  // @@index([cohort]) would be redundant.
   @@unique([cohort, email])
-  @@index([cohort])
   @@map("impact_lab_participants")
 }
 
@@ -691,7 +692,13 @@ model ImpactLabMatchRun {
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
 
-  @@index([cohort])
+  // @@index([cohort, isFinal]) also covers plain cohort lookups (prefix).
+  // "At most one final run per cohort" is additionally enforced at the DB level
+  // by a PARTIAL UNIQUE index (`... ON (cohort) WHERE "isFinal"`) added in the
+  // 20260722120000_impact_lab_hardening migration. Prisma can't express partial
+  // indexes, so it lives only in SQL — if `prisma migrate dev` ever proposes
+  // dropping it as "drift", keep it.
   @@index([cohort, isFinal])
+  @@index([createdById])
   @@map("impact_lab_match_runs")
 }
