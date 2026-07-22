@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
+import { checkApiPermission } from "@/lib/rbac"
+import { prisma } from "@/lib/prisma"
+import { withCsrfProtection } from "@/lib/csrf"
+import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { runMatching, type MatchResult } from "@/lib/matching"
+import { safeCohort } from "@/lib/impact-lab/constants"
+import { toMatchParticipant } from "@/lib/impact-lab/mappers"
+import { resolveSettings } from "@/lib/impact-lab/settings"
+import { resultSignature } from "@/lib/impact-lab/signature"
+
+const saveSchema = z.object({
+  cohort: z.string().max(60).optional(),
+  name: z.string().min(1).max(120),
+  notes: z.string().max(1000).optional(),
+  settings: z.unknown().optional(),
+  // Signature of the result the organiser reviewed. If the recomputed result
+  // differs (a participant was edited since Generate), we refuse to save.
+  expectedSignature: z.string().max(64).optional(),
+})
+
+export async function GET(request: NextRequest) {
+  const check = await checkApiPermission("impact-lab", "view")
+  if (!check.authorized) return check.response
+
+  const { searchParams } = new URL(request.url)
+  const cohort = safeCohort(searchParams.get("cohort"))
+
+  // Only the fields the summary needs — skip the heavy participantsSnapshot and
+  // settings JSONB (the list computes three numbers from `result`).
+  const runs = await prisma.impactLabMatchRun.findMany({
+    where: { cohort },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      notes: true,
+      isFinal: true,
+      createdAt: true,
+      result: true,
+    },
+  })
+
+  // Surface a lightweight summary; the full result lives on the detail route.
+  const data = runs.map((run) => {
+    const result = run.result as unknown as MatchResult
+    return {
+      id: run.id,
+      name: run.name,
+      notes: run.notes,
+      isFinal: run.isFinal,
+      createdAt: run.createdAt,
+      teamCount: result.teams?.length ?? 0,
+      averageScore: result.averageScore ?? 0,
+      unassignedCount: result.unassignedIds?.length ?? 0,
+    }
+  })
+
+  return NextResponse.json({ success: true, data })
+}
+
+/**
+ * Save the current match as a frozen run. The result is recomputed server-side
+ * from the cohort + settings so a saved run is always a legitimate output of the
+ * engine, and the participants are snapshotted for reproducibility.
+ */
+export async function POST(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
+  const check = await checkApiPermission("impact-lab", "create")
+  if (!check.authorized) return check.response
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 })
+  }
+
+  const validation = saveSchema.safeParse(body)
+  if (!validation.success) {
+    return NextResponse.json(
+      { success: false, error: "Validation failed", details: validation.error.issues },
+      { status: 400 }
+    )
+  }
+
+  const cohort = safeCohort(validation.data.cohort)
+
+  let settings
+  try {
+    settings = resolveSettings(validation.data.settings)
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid settings" }, { status: 400 })
+  }
+
+  const participants = await prisma.impactLabParticipant.findMany({ where: { cohort } })
+  const mapped = participants.map(toMatchParticipant)
+  const result = runMatching(mapped, settings)
+
+  // Refuse to freeze a run that differs from what the organiser reviewed.
+  if (
+    validation.data.expectedSignature &&
+    resultSignature(result) !== validation.data.expectedSignature
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Participants changed since these teams were generated. Regenerate before saving.",
+      },
+      { status: 409 }
+    )
+  }
+
+  // JSON.parse(JSON.stringify(...)) yields plain JSON values for Prisma's Json columns.
+  const run = await prisma.impactLabMatchRun.create({
+    data: {
+      cohort,
+      name: validation.data.name,
+      notes: validation.data.notes ?? null,
+      settings: JSON.parse(JSON.stringify(settings)),
+      result: JSON.parse(JSON.stringify(result)),
+      participantsSnapshot: JSON.parse(JSON.stringify(mapped)),
+      createdById: check.user.id || null,
+    },
+  })
+
+  await logAudit({
+    userId: check.user.id,
+    userName: check.user.name,
+    userEmail: check.user.email,
+    action: "CREATE",
+    entity: "ImpactLabMatchRun",
+    entityId: run.id,
+    changes: { name: run.name, cohort },
+    ...getRequestMetadata(request),
+  })
+
+  return NextResponse.json({ success: true, data: run }, { status: 201 })
+}

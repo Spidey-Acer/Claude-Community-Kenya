@@ -21,6 +21,7 @@ import {
   UsersRound,
   Sparkles,
   Camera,
+  Network,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/admin/photos", label: "Photos", icon: Camera },
   { href: "/admin/blog", label: "Blog Posts", icon: FileText },
   { href: "/admin/community", label: "Community Hub", icon: Library },
+  { href: "/admin/impact-lab", label: "Impact Lab", icon: Network },
   { href: "/admin/contact", label: "Contact Messages", icon: MessageSquare },
   { href: "/admin/team", label: "Team", icon: UsersRound },
   { href: "/admin/settings", label: "Settings", icon: Settings },
