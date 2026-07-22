@@ -235,6 +235,35 @@ assert(
   "every team score is within [0, 100]"
 )
 
+console.log("\nEdge cases")
+// Empty cohort must not crash.
+const emptyRun = runMatching([], SETTINGS)
+assert(
+  emptyRun.teams.length === 0 && emptyRun.unassignedIds.length === 0,
+  "empty participant list yields no teams and does not crash"
+)
+
+// Oversized locked team: pin 6 people (> maxTeamSize 5). It must pass through
+// intact, carry a size-violation penalty, and — since Felix blocks Amina and
+// both are pinned — surface the blocked-pair warning.
+const oversizedSettings: MatchSettings = {
+  ...SETTINGS,
+  lockedTeams: [
+    { name: "Oversized", memberEmails: PARTICIPANTS.slice(0, 6).map((x) => x.email) },
+  ],
+}
+const oversizedRun = runMatching(PARTICIPANTS, oversizedSettings)
+const bigTeam = oversizedRun.teams.find((t) => t.locked && t.memberIds.length === 6)
+assert(bigTeam != null, "oversized locked team (6 > max 5) is preserved intact")
+assert(
+  !!bigTeam && bigTeam.score.penalties.some((p) => p.reason.startsWith("Team size")),
+  "oversized locked team carries a size-violation penalty"
+)
+assert(
+  oversizedRun.warnings.some((w) => w.includes("blocked each other but are pinned together")),
+  "a blocked pair pinned into a locked team is flagged with a warning"
+)
+
 // ─── Human-readable dump ─────────────────────────────────────────────────────
 
 const normalized = normalizeParticipants(PARTICIPANTS.filter((x) => x.consentToMatch))
