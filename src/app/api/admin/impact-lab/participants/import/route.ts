@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit } from "@/lib/rate-limit"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { safeCohort } from "@/lib/impact-lab/constants"
 import { participantDraftSchema } from "@/lib/impact-lab/participant-schema"
 
 // A large import must finish in one function invocation — give it headroom
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = parsed.data.cohort ?? DEFAULT_COHORT
+  const cohort = safeCohort(parsed.data.cohort)
   const errors: { row: number; error: string }[] = []
 
   // Validate every row; dedupe by email (last occurrence wins) so a repeated

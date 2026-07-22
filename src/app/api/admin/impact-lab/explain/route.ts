@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { runMatching, normalizeParticipants } from "@/lib/matching"
 import { explainWithAi } from "@/lib/matching/ai-explanations"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { safeCohort } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Defaults are fine.
   }
 
-  const cohort = body.cohort ?? DEFAULT_COHORT
+  const cohort = safeCohort(body.cohort)
 
   let settings
   try {

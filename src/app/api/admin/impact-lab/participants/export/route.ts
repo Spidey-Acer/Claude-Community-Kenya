@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { safeCohort } from "@/lib/impact-lab/constants"
 import { toCsv } from "@/lib/impact-lab/csv"
 
 const HEADERS = [
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const cohort = searchParams.get("cohort") ?? DEFAULT_COHORT
+  const cohort = safeCohort(searchParams.get("cohort"))
 
   const participants = await prisma.impactLabParticipant.findMany({
     where: { cohort },

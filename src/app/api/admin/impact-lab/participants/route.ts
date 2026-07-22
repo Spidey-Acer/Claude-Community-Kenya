@@ -3,7 +3,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { withCsrfProtection } from "@/lib/csrf"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { safeCohort } from "@/lib/impact-lab/constants"
 import { participantDraftSchema } from "@/lib/impact-lab/participant-schema"
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const cohort = searchParams.get("cohort") ?? DEFAULT_COHORT
+  const cohort = safeCohort(searchParams.get("cohort"))
 
   const participants = await prisma.impactLabParticipant.findMany({
     where: { cohort },
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const cohort = searchParams.get("cohort") ?? DEFAULT_COHORT
+  const cohort = safeCohort(searchParams.get("cohort"))
 
   const validation = participantDraftSchema.safeParse(body)
   if (!validation.success) {

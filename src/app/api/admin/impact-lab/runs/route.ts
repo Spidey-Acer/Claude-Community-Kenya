@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { runMatching, type MatchResult } from "@/lib/matching"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { safeCohort } from "@/lib/impact-lab/constants"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -25,11 +25,21 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const cohort = searchParams.get("cohort") ?? DEFAULT_COHORT
+  const cohort = safeCohort(searchParams.get("cohort"))
 
+  // Only the fields the summary needs — skip the heavy participantsSnapshot and
+  // settings JSONB (the list computes three numbers from `result`).
   const runs = await prisma.impactLabMatchRun.findMany({
     where: { cohort },
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      notes: true,
+      isFinal: true,
+      createdAt: true,
+      result: true,
+    },
   })
 
   // Surface a lightweight summary; the full result lives on the detail route.
@@ -77,7 +87,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = validation.data.cohort ?? DEFAULT_COHORT
+  const cohort = safeCohort(validation.data.cohort)
 
   let settings
   try {
