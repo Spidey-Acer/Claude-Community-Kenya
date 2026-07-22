@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const check = await checkApiPermission("impact-lab", "view")
+  // Requires create, not view — this spends on a paid Claude call, so a
+  // read-only moderator must not be able to trigger it.
+  const check = await checkApiPermission("impact-lab", "create")
   if (!check.authorized) return check.response
 
   // Key by user id, not IP: on event day every organiser shares the venue NAT,

@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const check = await checkApiPermission("impact-lab", "view")
+  // Generating teams is an organiser action, not a read — a view-only moderator
+  // must not be able to run it (explain additionally spends on the AI call).
+  const check = await checkApiPermission("impact-lab", "create")
   if (!check.authorized) return check.response
 
   const limit = await rateLimit(request, RateLimits.ADMIN)
