@@ -53,10 +53,22 @@ export async function PATCH(
     }
   }
 
-  const updated = await prisma.impactLabParticipant.update({
-    where: { id },
-    data: validation.data,
-  })
+  let updated
+  try {
+    updated = await prisma.impactLabParticipant.update({
+      where: { id },
+      data: validation.data,
+    })
+  } catch (error) {
+    // Race on the (cohort, email) unique index when the email is changed.
+    if ((error as { code?: string }).code === "P2002") {
+      return NextResponse.json(
+        { success: false, error: "Another participant in this cohort already uses that email." },
+        { status: 409 }
+      )
+    }
+    throw error
+  }
 
   await logAudit({
     userId: check.user.id,

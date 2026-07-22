@@ -49,19 +49,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const existing = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort, email: validation.data.email } },
-  })
-  if (existing) {
-    return NextResponse.json(
-      { success: false, error: "A participant with this email already exists in this cohort." },
-      { status: 409 }
-    )
+  // Rely on the (cohort, email) unique index rather than a find-then-create,
+  // which has a race window under concurrent submits. P2002 → clean 409.
+  let created
+  try {
+    created = await prisma.impactLabParticipant.create({
+      data: { ...validation.data, cohort },
+    })
+  } catch (error) {
+    if ((error as { code?: string }).code === "P2002") {
+      return NextResponse.json(
+        { success: false, error: "A participant with this email already exists in this cohort." },
+        { status: 409 }
+      )
+    }
+    throw error
   }
-
-  const created = await prisma.impactLabParticipant.create({
-    data: { ...validation.data, cohort },
-  })
 
   await logAudit({
     userId: check.user.id,
