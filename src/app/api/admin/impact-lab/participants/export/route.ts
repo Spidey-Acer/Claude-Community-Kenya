@@ -16,7 +16,9 @@ const HEADERS = [
   "interests",
   "availability",
   "preferredTeammates",
-  "blockedTeammates",
+  // blockedTeammates is deliberately NOT exported — the schema contract says it
+  // is never exposed in a CSV. One shared export file would reveal who blocked
+  // whom. Organisers edit blocks in the admin UI, not via round-tripped CSV.
   "consentToMatch",
   "consentToShareContact",
 ]
@@ -46,7 +48,6 @@ export async function GET(request: NextRequest) {
     p.interests.join("; "),
     p.availability.join("; "),
     p.preferredTeammates.join("; "),
-    p.blockedTeammates.join("; "),
     p.consentToMatch,
     p.consentToShareContact,
   ])

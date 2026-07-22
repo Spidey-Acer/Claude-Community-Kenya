@@ -13,7 +13,23 @@ export async function GET(
   if (!check.authorized) return check.response
 
   const { id } = await params
-  const run = await prisma.impactLabMatchRun.findUnique({ where: { id } })
+  // participantsSnapshot is deliberately omitted — it holds every participant's
+  // email + blockedTeammates (including non-consenting people) and is only
+  // needed server-side for the final-teams export, never by the client.
+  const run = await prisma.impactLabMatchRun.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      cohort: true,
+      name: true,
+      notes: true,
+      isFinal: true,
+      settings: true,
+      result: true,
+      createdById: true,
+      createdAt: true,
+    },
+  })
   if (!run) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
 
   return NextResponse.json({ success: true, data: run })
