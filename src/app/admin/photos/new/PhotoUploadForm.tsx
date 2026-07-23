@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react"
+import { csrfToken } from "@/lib/csrf-client"
 
 interface EventOption {
   id: string
@@ -32,6 +33,7 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
     startTransition(async () => {
       const res = await fetch("/api/admin/photos/upload", {
         method: "POST",
+        headers: { "x-csrf-token": await csrfToken() },
         body: data,
       })
       const json = (await res.json()) as { success: boolean; error?: string; data?: UploadResult }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react"
+import { csrfHeaders, csrfToken } from "@/lib/csrf-client"
 
 interface EventOption {
   id: string
@@ -48,7 +49,7 @@ export function PhotoEditForm({ photo, events }: { photo: Photo; events: EventOp
     startTransition(async () => {
       const res = await fetch(`/api/admin/photos/${photo.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: await csrfHeaders(),
         body: JSON.stringify(body),
       })
       const json = await res.json()
@@ -63,7 +64,10 @@ export function PhotoEditForm({ photo, events }: { photo: Photo; events: EventOp
   function handleDelete() {
     if (!window.confirm("Delete this photo? This is permanent.")) return
     startDelete(async () => {
-      await fetch(`/api/admin/photos/${photo.id}`, { method: "DELETE" })
+      await fetch(`/api/admin/photos/${photo.id}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": await csrfToken() },
+      })
       router.push("/admin/photos")
     })
   }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2 } from "lucide-react"
+import { csrfHeaders } from "@/lib/csrf-client"
 
 export function TeamMemberNewForm() {
   const router = useRouter()
@@ -35,7 +36,7 @@ export function TeamMemberNewForm() {
     startTransition(async () => {
       const res = await fetch("/api/admin/team", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await csrfHeaders(),
         body: JSON.stringify(body),
       })
       const json = await res.json()
