@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react"
 import { formatDate } from "@/lib/utils"
+import { csrfHeaders } from "@/lib/csrf-client"
 
 interface AdminUser {
   id: string
@@ -80,7 +81,7 @@ export function AdminUserManager({
       try {
         const res = await fetch("/api/admin/settings/users", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify(addForm),
         })
         const data = await res.json()
@@ -108,7 +109,7 @@ export function AdminUserManager({
       try {
         const res = await fetch(`/api/admin/settings/users/${userId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify({ active: !currentActive }),
         })
         const data = await res.json()
@@ -131,7 +132,7 @@ export function AdminUserManager({
       try {
         const res = await fetch(`/api/admin/settings/users/${userId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify({ role: newRole }),
         })
         const data = await res.json()
@@ -159,7 +160,7 @@ export function AdminUserManager({
       try {
         const res = await fetch(`/api/admin/settings/users/${userId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify({ resetPassword: newPassword }),
         })
         const data = await res.json()

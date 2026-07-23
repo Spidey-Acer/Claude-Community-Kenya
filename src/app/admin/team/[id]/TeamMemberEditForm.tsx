@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react"
+import { csrfHeaders, csrfToken } from "@/lib/csrf-client"
 
 interface TeamMember {
   id: string
@@ -55,7 +56,7 @@ export function TeamMemberEditForm({ member }: { member: TeamMember }) {
     startTransition(async () => {
       const res = await fetch(`/api/admin/team/${member.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: await csrfHeaders(),
         body: JSON.stringify(body),
       })
       const json = await res.json()
@@ -70,7 +71,10 @@ export function TeamMemberEditForm({ member }: { member: TeamMember }) {
   function handleDelete() {
     if (!confirm(`Delete ${member.name}? This cannot be undone.`)) return
     startDelete(async () => {
-      await fetch(`/api/admin/team/${member.id}`, { method: "DELETE" })
+      await fetch(`/api/admin/team/${member.id}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": await csrfToken() },
+      })
       router.push("/admin/team")
     })
   }

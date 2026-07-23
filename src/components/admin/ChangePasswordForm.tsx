@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { Lock, Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { csrfHeaders } from "@/lib/csrf-client"
 
 export function ChangePasswordForm() {
   const [isPending, startTransition] = useTransition()
@@ -28,7 +29,7 @@ export function ChangePasswordForm() {
       try {
         const res = await fetch("/api/admin/settings/change-password", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify({ currentPassword, newPassword }),
         })
         const data = await res.json()

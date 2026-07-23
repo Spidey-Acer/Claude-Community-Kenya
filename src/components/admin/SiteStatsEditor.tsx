@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { BarChart3, Save, Loader2, CheckCircle } from "lucide-react"
+import { csrfHeaders } from "@/lib/csrf-client"
 
 interface SiteStats {
   discordMembers: number
@@ -33,7 +34,7 @@ export function SiteStatsEditor({ initialStats }: { initialStats: SiteStats }) {
       try {
         const res = await fetch("/api/admin/settings/stats", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: await csrfHeaders(),
           body: JSON.stringify({ ...stats, citiesActive }),
         })
         const data = await res.json()
