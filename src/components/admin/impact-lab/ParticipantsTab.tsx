@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Loader2, Plus, Trash2, Upload, Download } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { isLumaExport, mapLumaRows } from "@/lib/impact-lab/luma"
 import type { ParticipantRow } from "./types"
 
 const EXPERIENCE = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const
@@ -125,8 +126,30 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
     setBusy(true)
     setImportMsg(null)
     try {
-      const rows = parseCsv(await file.text())
+      // Luma exports lead with a UTF-8 BOM; strip it or the first header
+      // ("guest_id") never matches and format detection silently fails.
+      const rows = parseCsv((await file.text()).replace(/^\uFEFF/, ""))
       if (rows.length < 2) throw new Error("CSV has no data rows")
+
+      if (isLumaExport(rows[0])) {
+        const luma = mapLumaRows(rows[0], rows.slice(1))
+        if (luma.drafts.length === 0) {
+          throw new Error("No approved guests with an email found in this Luma export")
+        }
+        const result = await apiSend<{ created: number; updated: number; failed: number }>(
+          "/api/admin/impact-lab/participants/import",
+          "POST",
+          { cohort, participants: luma.drafts }
+        )
+        setImportMsg(
+          `Luma export: ${result.created} added, ${result.updated} updated, ${result.failed} skipped` +
+            ` · ${luma.notApproved} not approved ignored` +
+            (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : "")
+        )
+        await load()
+        return
+      }
+
       const headers = rows[0].map((h) => h.trim().toLowerCase())
       // Accept a few common header spellings so a raw Luma/Google Forms export
       // doesn't silently import zero rows.
@@ -208,8 +231,9 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
       </div>
 
       <p className="text-[10px] font-mono text-[#444]">
-        Import expects comma-delimited UTF-8 with headers matching the Export
-        format (fullName, email, primaryRole, …); multi-value cells split on ; or ,.
+        Import accepts a raw Luma guest export (only approved guests are pulled;
+        waitlist/declined ignored) or the Export format (fullName, email,
+        primaryRole, …); multi-value cells split on ; or ,.
       </p>
       {importMsg && (
         <div className="p-2 bg-[#00d4ff]/10 border border-[#00d4ff]/30 rounded text-[11px] font-mono text-[#00d4ff]">{importMsg}</div>
