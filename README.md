@@ -141,6 +141,12 @@ Contributions are welcome! Please read the [Contributing Guide](./CONTRIBUTING.m
 - Request features via [GitHub Issues](https://github.com/Spidey-Acer/Claude-Community-Kenya/issues)
 - Join the community on [Discord](https://discord.gg/CkD9QWjsHm)
 
+See [CONTRIBUTORS.md](./CONTRIBUTORS.md) for the people behind the code.
+
+## Credits
+
+- **[Edwin Lungatso](https://github.com/best-ed)** (Co-organizer) — designed and built the **Impact Lab team-matching system**: the deterministic matching engine, the Claude-powered explanation layer, and the admin tooling. Based on his own [HackMatch-AI](https://github.com/best-ed/HackMatch-AI) project.
+
 ## Community Links
 
 | Platform | Link |
