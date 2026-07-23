@@ -84,17 +84,25 @@ export async function POST(request: NextRequest) {
 
   let created = 0
   let updated = 0
-  const ops = drafts.map((draft) => {
-    const id = idByEmail.get(draft.email)
-    if (id) {
-      updated++
-      return prisma.impactLabParticipant.update({ where: { id }, data: draft })
-    }
-    created++
-    return prisma.impactLabParticipant.create({ data: { ...draft, cohort } })
-  })
-
-  await prisma.$transaction(ops)
+  // Prisma's default 5s transaction timeout is too tight for a full-cohort
+  // import through PgBouncer (120 rows took ~5.2s in prod — P2028 rollback).
+  // maxDuration above is 60s; give the transaction most of that budget. The
+  // batch (array) form can't take a timeout, so this is an interactive tx.
+  await prisma.$transaction(
+    async (tx) => {
+      for (const draft of drafts) {
+        const id = idByEmail.get(draft.email)
+        if (id) {
+          await tx.impactLabParticipant.update({ where: { id }, data: draft })
+          updated++
+        } else {
+          await tx.impactLabParticipant.create({ data: { ...draft, cohort } })
+          created++
+        }
+      }
+    },
+    { timeout: 55_000, maxWait: 10_000 }
+  )
 
   await logAudit({
     userId: check.user.id,
