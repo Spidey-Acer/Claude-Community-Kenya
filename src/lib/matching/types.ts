@@ -101,6 +101,13 @@ export interface MatchSettings {
   requirePresenter: boolean
   preventBeginnerOnlyTeams: boolean
   distributeAdvancedParticipants: boolean
+  /**
+   * Treat declared preferred-teammate connections as a hard keep-together
+   * constraint: connected participants are placed onto one team as a unit
+   * (blocks still win; chains larger than maxTeamSize are split with a
+   * warning). When false, preferences fall back to the soft placement bonus.
+   */
+  keepPreferredTogether: boolean
   lockedTeams: LockedTeam[]
   weights: MatchWeights
 }

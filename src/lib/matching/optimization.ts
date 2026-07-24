@@ -56,10 +56,15 @@ export function optimizeAssignment(
   for (let pass = 0; pass < MAX_SWAP_PASSES; pass++) {
     let improved = false
 
+    const pinned = context.pinnedTogetherIds
     for (let i = 0; i < editable.length; i++) {
       for (let j = i + 1; j < editable.length; j++) {
         for (let ai = 0; ai < editable[i].ids.length; ai++) {
+          // A member of a kept-together group never swaps — moving one member
+          // alone would split the group.
+          if (pinned?.has(editable[i].ids[ai])) continue
           for (let bj = 0; bj < editable[j].ids.length; bj++) {
+            if (pinned?.has(editable[j].ids[bj])) continue
             const idsI = editable[i].ids.map((id, idx) =>
               idx === ai ? editable[j].ids[bj] : id
             )

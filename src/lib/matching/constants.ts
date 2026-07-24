@@ -107,7 +107,10 @@ export const DEFAULT_WEIGHTS: MatchWeights = {
   roleCoverage: 2,
   skillBalance: 1.5,
   experienceBalance: 1.4,
-  interestAlignment: 1,
+  // Interests carry the participants' track choices, and each track is one
+  // fixed problem — a team that doesn't share a track can't share a project.
+  // Weighted at the top alongside role coverage for that reason.
+  interestAlignment: 2.5,
   availabilityOverlap: 1,
   participantPreferences: 0.8,
 }
@@ -126,6 +129,7 @@ export const DEFAULT_SETTINGS: MatchSettings = {
   requirePresenter: true,
   preventBeginnerOnlyTeams: true,
   distributeAdvancedParticipants: true,
+  keepPreferredTogether: true,
   lockedTeams: [],
   weights: DEFAULT_WEIGHTS,
 }

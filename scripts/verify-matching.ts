@@ -74,6 +74,7 @@ const PARTICIPANTS: MatchParticipant[] = [
     technicalSkills: ["roadmapping"],
     interests: ["fintech"],
     blockedTeammates: ["amina@x.io"], // Felix should never be with Amina
+    preferredTeammates: ["amina@x.io"], // …even though he asked for her: blocks win
   }),
   p("u07", "Grace", "grace@x.io", "BEGINNER", "Designer", {
     technicalSkills: ["design"],
@@ -90,6 +91,9 @@ const PARTICIPANTS: MatchParticipant[] = [
   p("u10", "James", "james@x.io", "BEGINNER", "Developer", {
     technicalSkills: ["html", "css"],
     interests: ["health"],
+    // Declared trio — James named both; neither named him back. One-way
+    // declarations are the Luma norm (one member fills the form for the team).
+    preferredTeammates: ["david@x.io", "grace@x.io"],
   }),
   p("u11", "Khadija", "khadija@x.io", "INTERMEDIATE", "Data analyst", {
     technicalSkills: ["sql", "viz"],
@@ -227,6 +231,65 @@ assert(alpha != null, "the pinned locked team is present in the result")
 assert(
   JSON.stringify(alphaIds) === JSON.stringify([emailToId.get("maria@x.io"), emailToId.get("noah@x.io")].sort()),
   "locked team contains exactly its pinned members, unchanged"
+)
+
+console.log("\nDeclared-teammate groups (keepPreferredTogether)")
+function teamOf(run: typeof runA, id: string): string | null {
+  return run.teams.find((t) => t.memberIds.includes(id))?.id ?? null
+}
+assert(
+  teamOf(runA, "u03") !== null && teamOf(runA, "u03") === teamOf(runA, "u01"),
+  "Cynthia is on Amina's team — a declared preference is a hard keep-together"
+)
+assert(
+  teamOf(runA, "u10") !== null &&
+    teamOf(runA, "u10") === teamOf(runA, "u04") &&
+    teamOf(runA, "u10") === teamOf(runA, "u07"),
+  "James's declared trio (James, David, Grace) shares one team"
+)
+assert(
+  teamOf(runA, "u06") !== teamOf(runA, "u01"),
+  "Felix asked for Amina but blocked her — blocks beat preferences"
+)
+assert(
+  runA.warnings.some((w) => w.includes("kept together")),
+  "run reports how many declared groups were kept together"
+)
+
+// With the flag off, preferences are soft again: run must still succeed and
+// carry no keep-together warning.
+const softRun = runMatching(PARTICIPANTS, {
+  ...SETTINGS,
+  keepPreferredTogether: false,
+})
+assert(
+  !softRun.warnings.some((w) => w.includes("kept together")),
+  "keepPreferredTogether=false produces no keep-together warnings"
+)
+assert(
+  JSON.stringify(softRun) ===
+    JSON.stringify(runMatching(PARTICIPANTS, { ...SETTINGS, keepPreferredTogether: false })),
+  "soft-preference mode is still deterministic"
+)
+
+// A preference chain longer than maxTeamSize must be split with a warning,
+// and no resulting team may exceed the max.
+const CHAIN: MatchParticipant[] = [
+  "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8",
+].map((id, i) =>
+  p(id, `Chain${i + 1}`, `${id}@x.io`, "INTERMEDIATE", "Developer", {
+    // c1→c2→…→c6 declared in a line: unions into one 6-person group (> max 5).
+    preferredTeammates: i < 5 ? [`c${i + 2}@x.io`] : [],
+  })
+)
+const chainRun = runMatching(CHAIN, { ...DEFAULT_SETTINGS, lockedTeams: [] })
+assert(
+  chainRun.warnings.some((w) => w.includes("was split")),
+  "an oversized declared chain is split with an explicit warning"
+)
+assert(
+  chainRun.teams.every((t) => t.memberIds.length <= DEFAULT_SETTINGS.maxTeamSize),
+  "no team exceeds maxTeamSize even with an oversized declared chain"
 )
 
 console.log("\nScores in range")

@@ -22,13 +22,11 @@ const QUESTION_PREFIXES = {
   track: "your track - each carries one fixed problem",
   trackSecond: "second choice, if your first track fills up",
   demoSlice: "what will exist and work by",
-  teamStatus: "teams are 3-5 people",
   teammates: "if you have team-mates",
   fullNight: "can you commit to the full night",
 } as const
 
 const EMAIL_PATTERN = /[\w.+-]+@[\w-]+\.[\w.-]+/g
-const FULL_TEAM_PREFIX = "i have a full team"
 
 // participant-schema.ts limits — kept in sync manually (the zod schema is the
 // source of truth; these only pre-clamp so rows survive validation).
@@ -104,7 +102,6 @@ export function mapLumaRows(headers: string[], rows: string[][]): LumaImportResu
       continue
     }
 
-    const teamStatus = get(q.teamStatus).toLowerCase()
     const interests = [get(q.track), get(q.trackSecond)]
       .map((v) => clamp(v, MAX_TOKEN))
       .filter(Boolean)
@@ -123,11 +120,13 @@ export function mapLumaRows(headers: string[], rows: string[][]): LumaImportResu
       projectIdeas: clamp(get(q.demoSlice), MAX_IDEAS) || null,
       preferredTeammates: (get(q.teammates).match(EMAIL_PATTERN) ?? []).slice(0, MAX_TOKENS),
       blockedTeammates: [],
-      // Pre-formed full teams are placed manually by organisers (locked
-      // teams), so the matcher must not move them; everyone else approved
-      // registered for a team-formation event and is matchable.
-      consentToMatch: !teamStatus.startsWith(FULL_TEAM_PREFIX),
-      consentToShareContact: false,
+      // Organiser decision (2026-07-24): everyone approved registered for a
+      // team-formation event, so everyone is matchable and teammates may see
+      // each other's contact details. Pre-formed teams stay together via
+      // their declared teammate emails (the engine's keep-together groups),
+      // not by exclusion. Individuals can still opt out from their profile.
+      consentToMatch: true,
+      consentToShareContact: true,
     })
   }
 

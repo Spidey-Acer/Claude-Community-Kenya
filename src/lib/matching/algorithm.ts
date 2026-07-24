@@ -9,11 +9,13 @@
  *   1. partition by consent          (constraints)
  *   2. normalize                     (normalization)
  *   3. resolve locked teams          (constraints)
+ *      + resolve declared-teammate together-groups (groups)
  *   4. size the run — how many teams
- *   5. seed each team with a scarce / high-impact role
+ *   5. place together-groups as units, then seed each still-empty team with a
+ *      scarce / high-impact role
  *   6. distribute advanced participants round-robin
  *   7. greedy fill by marginal contribution
- *   8. (optimization pass — wired in optimization.ts)
+ *   8. (optimization pass — wired in optimization.ts; never splits a group)
  *   9. assemble scored teams + warnings
  */
 
@@ -29,6 +31,7 @@ import {
   partitionByConsent,
   resolveLockedTeams,
 } from "./constraints"
+import { resolveTogetherGroups, type TogetherGroups } from "./groups"
 import { normalizeParticipants } from "./normalization"
 import { scoreTeam, scoreTeamTotal, type ScoringContext } from "./scoring"
 import type {
@@ -226,6 +229,55 @@ function chooseFillTeam(
   return best
 }
 
+// ─── Step 5.5: place declared-teammate groups as units ───────────────────────
+
+/**
+ * Place a whole together-group onto one team. Candidates are non-locked teams
+ * with room for the entire group and no block conflict against any current
+ * member; among them, highest summed marginal contribution wins (ties toward
+ * the smaller team, then index). Returns false only when every team has a
+ * block conflict with the group — the caller then leaves the group unassigned
+ * rather than break a block, which is inviolable.
+ */
+function placeGroup(
+  group: NormalizedParticipant[],
+  teams: WorkingTeam[],
+  byId: Map<string, NormalizedParticipant>,
+  context: ScoringContext
+): boolean {
+  const settings = context.settings
+  const blockFree = teams.filter(
+    (t) =>
+      !t.locked &&
+      group.every((g) => !hasBlockConflict(g, membersOf(t, byId)))
+  )
+  if (blockFree.length === 0) return false
+  const withRoom = blockFree.filter(
+    (t) => t.memberIds.length + group.length <= settings.maxTeamSize
+  )
+  const pickFrom = withRoom.length > 0 ? withRoom : blockFree
+
+  let best: WorkingTeam | null = null
+  let bestScore = -Infinity
+  for (const team of pickFrom) {
+    const members = membersOf(team, byId)
+    const score =
+      scoreTeamTotal([...members, ...group], context) -
+      scoreTeamTotal(members, context) -
+      SIZE_BALANCE_PENALTY_PER_MEMBER * members.length
+    if (
+      best === null ||
+      score > bestScore ||
+      (score === bestScore && team.memberIds.length < best.memberIds.length)
+    ) {
+      best = team
+      bestScore = score
+    }
+  }
+  best!.memberIds.push(...group.map((g) => g.id))
+  return true
+}
+
 // ─── Step 6: distribute advanced participants ────────────────────────────────
 
 function advancedCount(
@@ -360,6 +412,12 @@ export function assign(
 
   const pool = normalized.filter((p) => !lockedIds.has(p.id))
 
+  // Step 3.5: resolve declared-teammate groups — hard keep-together units.
+  const together: TogetherGroups = settings.keepPreferredTogether
+    ? resolveTogetherGroups(pool, settings)
+    : { groups: [], groupedIds: new Set<string>(), warnings: [] }
+  context.pinnedTogetherIds = together.groupedIds
+
   // Step 4: size the run.
   const count = targetTeamCount(pool.length, settings)
   const generated: WorkingTeam[] = Array.from({ length: count }, () => ({
@@ -368,17 +426,44 @@ export function assign(
   }))
   const teams: WorkingTeam[] = [...lockedWorking, ...generated]
 
-  // Step 5: seed one scarce/high-impact-role participant per generated team.
-  const seeded = new Set<string>()
-  if (count > 0) {
-    const order = seedOrder(pool, countPrimaryRoles(pool))
-    for (let i = 0; i < count && i < order.length; i++) {
-      generated[i].memberIds.push(order[i].id)
-      seeded.add(order[i].id)
+  // Step 5: place together-groups first (as whole units), then seed one
+  // scarce/high-impact-role participant into each team still empty. Groups go
+  // first so they claim empty teams before seeding scatters individuals.
+  const placed = new Set<string>()
+  const groupWarnings = [...together.warnings]
+  const unassignedIds: string[] = []
+  for (const group of together.groups) {
+    if (placeGroup(group, generated, byId, context)) {
+      for (const member of group) placed.add(member.id)
+    } else {
+      // Every team block-conflicts with this group — blocks are inviolable,
+      // so the group sits out rather than being forced next to a blocker.
+      groupWarnings.push(
+        `Could not place the declared team of ${group.map((g) => g.fullName).join(", ")} — a blocked pair stands in the way on every team.`
+      )
+      for (const member of group) {
+        unassignedIds.push(member.id)
+        placed.add(member.id)
+      }
+    }
+  }
+  if (together.groups.length > 0) {
+    groupWarnings.push(
+      `${together.groups.length} declared teammate group(s) kept together.`
+    )
+  }
+
+  const unseededPool = pool.filter((p) => !placed.has(p.id))
+  const emptyTeams = generated.filter((t) => t.memberIds.length === 0)
+  if (emptyTeams.length > 0) {
+    const order = seedOrder(unseededPool, countPrimaryRoles(unseededPool))
+    for (let i = 0; i < emptyTeams.length && i < order.length; i++) {
+      emptyTeams[i].memberIds.push(order[i].id)
+      placed.add(order[i].id)
     }
   }
 
-  let remaining = pool.filter((p) => !seeded.has(p.id))
+  let remaining = unseededPool.filter((p) => !placed.has(p.id))
 
   // Step 6: distribute advanced participants first (if enabled).
   if (settings.distributeAdvancedParticipants) {
@@ -391,7 +476,6 @@ export function assign(
   }
 
   // Step 7: greedy fill by marginal contribution (id order = deterministic).
-  const unassignedIds: string[] = []
   for (const candidate of remaining) {
     const team = chooseFillTeam(candidate, teams, byId, context)
     if (team) team.memberIds.push(candidate.id)
@@ -409,7 +493,7 @@ export function assign(
       assembled,
       unassignedIds,
       excludedIds,
-      lockedWarnings,
+      [...lockedWarnings, ...groupWarnings],
       settings
     ),
     averageScore: averageScore(assembled),
