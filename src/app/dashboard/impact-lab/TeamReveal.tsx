@@ -111,6 +111,17 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
         </p>
       </motion.section>
 
+      {team.summary && (
+        <motion.section variants={item} aria-label="Why this team">
+          <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
+            {"// ./why-this-team"}
+          </h3>
+          <blockquote className="rounded-lg border border-green-primary/20 bg-green-primary/5 p-5 text-sm leading-relaxed text-text-secondary">
+            {team.summary}
+          </blockquote>
+        </motion.section>
+      )}
+
       {team.strengths.length > 0 && (
         <motion.section variants={item} aria-label="Team strengths">
           <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">

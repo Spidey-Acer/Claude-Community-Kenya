@@ -10,6 +10,17 @@ import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
 
+const explanationSchema = z.object({
+  teamId: z.string().max(40),
+  summary: z.string().max(4000),
+  strengths: z.array(z.string().max(1000)).max(20),
+  weaknesses: z.array(z.string().max(1000)).max(20),
+  suggestedProjectDirection: z.string().max(2000).optional(),
+  suggestedInternalRoles: z.record(z.string().max(40), z.string().max(200)).optional(),
+  warnings: z.array(z.string().max(1000)).max(20),
+  source: z.enum(["deterministic", "ai"]),
+})
+
 const saveSchema = z.object({
   cohort: z.string().max(60).optional(),
   name: z.string().min(1).max(120),
@@ -18,6 +29,10 @@ const saveSchema = z.object({
   // Signature of the result the organiser reviewed. If the recomputed result
   // differs (a participant was edited since Generate), we refuse to save.
   expectedSignature: z.string().max(64).optional(),
+  // The explanations the organiser reviewed (Claude or deterministic). Stored
+  // with the run so the member reveal shows the same wording; optional because
+  // an organiser may save without ever clicking Explain.
+  explanations: z.array(explanationSchema).max(200).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -114,6 +129,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Only keep explanations that describe teams actually in the recomputed
+  // result — a stale teamId (from a different generate) must not be frozen.
+  const resultTeamIds = new Set(result.teams.map((t) => t.id))
+  const explanations = (validation.data.explanations ?? []).filter((e) =>
+    resultTeamIds.has(e.teamId)
+  )
+
   // JSON.parse(JSON.stringify(...)) yields plain JSON values for Prisma's Json columns.
   const run = await prisma.impactLabMatchRun.create({
     data: {
@@ -123,6 +145,7 @@ export async function POST(request: NextRequest) {
       settings: JSON.parse(JSON.stringify(settings)),
       result: JSON.parse(JSON.stringify(result)),
       participantsSnapshot: JSON.parse(JSON.stringify(mapped)),
+      explanations: explanations.length > 0 ? explanations : undefined,
       createdById: check.user.id || null,
     },
   })

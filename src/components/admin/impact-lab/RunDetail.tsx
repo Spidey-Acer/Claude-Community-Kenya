@@ -9,6 +9,8 @@ import type { MatchResult } from "./types"
 interface RunDetailData {
   id: string
   result: MatchResult
+  /** Explanations frozen at save time (usually Claude's); null on legacy runs. */
+  explanations: { teamId: string; summary: string; source: "deterministic" | "ai" }[] | null
 }
 
 /** Minimal shape needed to resolve a member id to a display name. */
@@ -67,6 +69,9 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
   if (!detail) return null
 
   const { result } = detail
+  const summaryByTeam = new Map(
+    (detail.explanations ?? []).map((e) => [e.teamId, e])
+  )
 
   return (
     <div className="p-4 space-y-3 bg-[#0a0a0a] border-t border-[#1e1e1e]">
@@ -96,6 +101,15 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
                 </div>
               ))}
             </div>
+
+            {summaryByTeam.has(team.id) && (
+              <p className="text-[11px] leading-relaxed text-[#8a8a8a] border-l-2 border-[#00ff41]/30 pl-2">
+                {summaryByTeam.get(team.id)!.summary}
+                {summaryByTeam.get(team.id)!.source === "ai" && (
+                  <span className="ml-1.5 text-[9px] font-mono uppercase text-[#00ff41]/60">claude</span>
+                )}
+              </p>
+            )}
 
             <div className="space-y-1 pt-1">
               {team.score.dimensions.map((d) => (

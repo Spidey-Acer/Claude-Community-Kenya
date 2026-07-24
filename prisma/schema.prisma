@@ -688,6 +688,10 @@ model ImpactLabMatchRun {
   settings             Json
   result               Json
   participantsSnapshot Json
+  /// TeamExplanation[] captured at save time (Claude or deterministic) so the
+  /// reviewed wording survives the save — the member reveal and run detail read
+  /// this instead of recomputing. Null on legacy runs → deterministic fallback.
+  explanations         Json?
   createdById          String?
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
