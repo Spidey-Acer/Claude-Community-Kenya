@@ -429,7 +429,7 @@ function ShareLink({
   internal?: boolean;
 }) {
   const cls =
-    "flex h-9 w-9 items-center justify-center rounded-full border border-sand-2 text-ink-soft transition-colors hover:border-ink hover:text-ink";
+    "flex h-11 w-11 items-center justify-center rounded-full border border-sand-2 text-ink-soft transition-colors hover:border-ink hover:text-ink";
   if (internal) {
     return (
       <Link href={href} aria-label={label} className={cls}>

@@ -144,7 +144,7 @@ export function KaribuNav() {
             <button
               type="button"
               onClick={openCommandPalette}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-soft"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-soft"
               aria-label="Search"
             >
               <Search size={18} />
@@ -153,7 +153,7 @@ export function KaribuNav() {
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-sand-2 text-ink"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-sand-2 text-ink"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
             >

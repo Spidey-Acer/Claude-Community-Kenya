@@ -19,7 +19,7 @@ const splitMulti = (v: string): string[] =>
   v.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
 
 const inputClass =
-  "w-full bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
+  "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
 export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFormProps) {
@@ -251,6 +251,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
           <input
             id="il-preferredTeammates"
             type="text"
+            inputMode="email"
             value={preferredTeammates}
             onChange={(e) => setPreferredTeammates(e.target.value)}
             className={inputClass}
@@ -264,6 +265,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
           <input
             id="il-blockedTeammates"
             type="text"
+            inputMode="email"
             value={blockedTeammates}
             onChange={(e) => setBlockedTeammates(e.target.value)}
             className={inputClass}
@@ -332,7 +334,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
         <button
           type="submit"
           disabled={isPending || !csrfToken}
-          className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-2.5 text-xs font-mono font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50 sm:w-auto"
         >
           {isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -346,7 +348,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-red/40 hover:text-red transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-2.5 text-xs font-mono text-text-secondary transition-colors hover:border-red/40 hover:text-red disabled:opacity-50"
           >
             <X className="h-3 w-3" />
             Cancel
