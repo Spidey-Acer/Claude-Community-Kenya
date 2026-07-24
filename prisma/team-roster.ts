@@ -53,12 +53,13 @@ export const TEAM_ROSTER = [
     featured: false,
   },
   {
-    // No photo yet — TeamCard falls back to initials. Peter is filling in the
-    // remaining details from the admin panel.
+    // Photo added; Peter is filling in the remaining details (tagline, links)
+    // from the admin panel.
     slug: "edwin-lungatso",
     name: "Edwin Lungatso",
     role: "Co-organizer",
     bio: "Co-organizer at Claude Community Kenya.",
+    avatar: "/images/team/edwin-lungatso.jpg",
     order: 3,
     featured: false,
   },
