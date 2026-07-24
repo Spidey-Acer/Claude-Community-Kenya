@@ -28,12 +28,12 @@ output.
 | 03 | [Normalization](./03-normalization.md) | Canonicalizing messy input; the determinism backbone |
 | 04 | [Constraints](./04-constraints.md) | The four hard rules; hard vs soft |
 | 05 | [Scoring](./05-scoring.md) | Six weighted dimensions; penalties; the transparent breakdown |
-| 06 | [Algorithm](./06-algorithm.md) | Seed → distribute → greedy fill; the seeding sort trick |
+| 06 | [Algorithm](./06-algorithm.md) | Together-groups → seed → distribute → greedy fill; the seeding sort trick |
 | 07 | [Optimization](./07-optimization.md) | Pairwise-swap local search; keeping constraints safe |
 | 08 | [Explanations](./08-explanations.md) | The deterministic fallback, built first |
 | 09 | [Verification](./09-verification.md) | Asserting determinism + constraint compliance without a test runner |
 | 10 | [AI layer](./10-ai-layer.md) | Claude explains-only; privacy by data-flow; fail-open |
-| 11 | [API layer](./11-api.md) | Routes, shared helpers, resilient CSV import |
+| 11 | [API layer](./11-api.md) | Routes, shared helpers, resilient CSV + Luma import |
 | 12 | [Admin UI](./12-admin-ui.md) | The three tabs; rendering the score breakdown |
 | 13 | [Audit hardening](./13-hardening.md) | Security/perf fixes from the PR review, and why |
 

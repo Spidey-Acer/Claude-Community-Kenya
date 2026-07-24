@@ -32,6 +32,11 @@ want to work with B, we keep them apart whether or not B reciprocated. Blocks ar
 the one place `blockedTeammates` is read — and it's read only here, never passed
 to scoring, explanations, or the AI layer. Privacy by data-flow, not by promise.
 
+Blocks reach one step further than placement: `groups.ts` ([06](./06-algorithm.md))
+calls this same `participantsConflict` before turning a declared preferred-teammate
+into a keep-together edge, so a blocked pair can never be unioned into the same
+group either. Blocks beat preferences at every stage, not just at placement time.
+
 ### 3. Locked teams — pass through untouched
 
 `resolveLockedTeams` maps organiser-pinned teams (given by email, the identifier

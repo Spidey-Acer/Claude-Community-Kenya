@@ -9,8 +9,9 @@ the locally best legal move, then (next commit) polish with swaps.
 ## The pipeline
 
 ```
-consent filter → normalize → resolve locked teams → size the run
-   → seed → distribute advanced → greedy fill → optimize → assemble
+consent filter → normalize → resolve locked teams → resolve together-groups
+   → size the run → place groups → seed remaining empties → distribute advanced
+   → greedy fill → optimize → assemble
 ```
 
 ### Step 4 — sizing the run
@@ -21,11 +22,26 @@ teams that nobody is forced above `maxTeamSize`, and (b) we never make more team
 than we have people. Locked teams are *additional* — the count sizes only the
 unlocked pool.
 
-### Step 5 — seeding (the clever bit)
+### Step 5 — together-groups, then seeding (the clever bit)
 
-We sort the pool by, in order: **role priority** (presenter → builder),
-**scarcity** (rarer primary role first), **experience** (advanced first), then
-id. Then we drop the first *N* onto the *N* teams, one each.
+**Together-groups place first.** When `keepPreferredTogether` is on (the
+default), participants who declared each other as preferred teammates were
+already resolved, before sizing, into whole groups by a union-find over the
+unlocked pool ([groups.ts](../../src/lib/matching/groups.ts)) — blocked pairs
+never link (see [04](./04-constraints.md)), and a chain longer than
+`maxTeamSize` was already split, deterministically in id order, into
+max-sized chunks with a warning. Each group lands here, as a unit, on the
+team — among those it doesn't block-conflict with — with the best summed
+marginal contribution, ties broken by smaller team then team index. Groups
+place *before* seeding so they claim empty teams first; a group that
+block-conflicts with every team goes unassigned with a warning rather than
+sit next to a blocker. With the flag off, declared preferences revert to the
+old soft `+6` bonus applied during greedy fill below.
+
+**Then seeding.** We sort whatever's left of the pool by, in order: **role
+priority** (presenter → builder), **scarcity** (rarer primary role first),
+**experience** (advanced first), then id. Then we drop the first *N* onto the
+*N* teams still empty, one each.
 
 Why this spreads scarce roles correctly: if presenters are both high-priority and
 scarce, they sort to the front, so the first few teams each get one presenter —
@@ -53,7 +69,10 @@ marginal = score(team + candidate) − score(team)     // how much they help
 
 The size penalty is what keeps teams balanced instead of everyone landing on the
 one strong team. The preferred-teammate bonus is soft — it steers ties, it never
-overrides score or a hard constraint.
+overrides score or a hard constraint. Grouped members never reach this step at
+all (they were already placed in Step 5); the bonus only fires for a
+preference that didn't resolve into a group — a teammate outside the pool, or
+`keepPreferredTogether` turned off.
 
 If nobody's a legal home: unassigned (when allowed), else the least-bad
 block-legal team even if it goes over max — the size penalty then shows up

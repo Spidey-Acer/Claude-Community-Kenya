@@ -33,8 +33,11 @@ total       = clamp(base − Σ penalties, 0, 100)
 Normalizing by `maxWeighted` means the total is always on a 0–100 scale
 regardless of how the weights are set — an organiser can double a weight without
 blowing the scale. Default weights (role coverage 2, skill 1.5, experience 1.4,
-interest 1, availability 1, preferences 0.8) come straight from the spec and live
-in `constants.ts`.
+interest 2.5, availability 1, preferences 0.8) live in `constants.ts`.
+`interestAlignment` was raised from the spec's original 1 to sit alongside
+`roleCoverage` at the top: for this event, interests carry each participant's
+declared track choice, and each track is one fixed problem, so aligning on
+interests now means aligning on the actual problem a team will build.
 
 ## Penalties are separate from dimensions — deliberately
 
