@@ -11,8 +11,11 @@ import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
 
-// The Claude call can take several seconds — give it room past the default.
-export const maxDuration = 30
+// One Claude call explains EVERY team in a single structured response — at
+// real cohort size (30 teams) that runs well past 30s and the platform kills
+// the function before even the deterministic fallback can return (observed:
+// 504 at exactly 30s in prod, 2026-07-24).
+export const maxDuration = 120
 
 /**
  * Explain a match with Claude. The result is recomputed server-side from the
