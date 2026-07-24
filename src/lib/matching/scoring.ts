@@ -36,6 +36,12 @@ import type {
 export interface ScoringContext {
   settings: MatchSettings
   eligibleEmails: Set<string>
+  /**
+   * Ids belonging to a declared-teammate together-group (set by the algorithm
+   * when keepPreferredTogether is on). Scoring ignores it; the optimizer reads
+   * it so a swap never splits a kept-together group.
+   */
+  pinnedTogetherIds?: Set<string>
 }
 
 // ─── Small numeric helpers ───────────────────────────────────────────────────

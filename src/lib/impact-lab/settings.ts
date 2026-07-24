@@ -34,6 +34,7 @@ export const settingsSchema = z
     requirePresenter: z.boolean(),
     preventBeginnerOnlyTeams: z.boolean(),
     distributeAdvancedParticipants: z.boolean(),
+    keepPreferredTogether: z.boolean(),
     lockedTeams: z.array(lockedTeamSchema),
     weights: weightsSchema,
   })

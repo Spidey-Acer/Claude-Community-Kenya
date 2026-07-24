@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, Plus, Trash2, Upload, Download } from "lucide-react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Loader2, Plus, Trash2, Upload, Download, Pencil, Search, Save, X } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { isLumaExport, mapLumaRows } from "@/lib/impact-lab/luma"
 import type { ParticipantRow } from "./types"
@@ -13,6 +13,9 @@ const LEVEL_COLOR: Record<string, string> = {
   INTERMEDIATE: "#00d4ff",
   ADVANCED: "#00ff41",
 }
+
+const TRACK_COLOR = "#ffb000"
+const TEAMMATES_COLOR = "#00d4ff"
 
 /** Quote-aware CSV parser — good enough for Luma / Google Form exports. */
 function parseCsv(text: string): string[][] {
@@ -57,6 +60,41 @@ const EMPTY_FORM = {
   consentToShareContact: false,
 }
 
+/** Editable subset of a participant, mirrored as comma/semicolon-joined strings for text inputs. */
+interface EditFormState {
+  fullName: string
+  email: string
+  phone: string
+  institution: string
+  experienceLevel: (typeof EXPERIENCE)[number]
+  primaryRole: string
+  technicalSkills: string
+  interests: string
+  availability: string
+  preferredTeammates: string
+  projectIdeas: string
+  consentToMatch: boolean
+  consentToShareContact: boolean
+}
+
+function toEditForm(p: ParticipantRow): EditFormState {
+  return {
+    fullName: p.fullName,
+    email: p.email,
+    phone: p.phone ?? "",
+    institution: p.institution ?? "",
+    experienceLevel: p.experienceLevel,
+    primaryRole: p.primaryRole,
+    technicalSkills: p.technicalSkills.join(", "),
+    interests: p.interests.join(", "),
+    availability: p.availability.join(", "),
+    preferredTeammates: p.preferredTeammates.join(", "),
+    projectIdeas: p.projectIdeas ?? "",
+    consentToMatch: p.consentToMatch,
+    consentToShareContact: p.consentToShareContact,
+  }
+}
+
 export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
   const [participants, setParticipants] = useState<ParticipantRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,6 +103,9 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<EditFormState | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -112,9 +153,50 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
     setBusy(true)
     try {
       await apiSend(`/api/admin/impact-lab/participants/${id}`, "DELETE")
+      if (editingId === id) { setEditingId(null); setEditForm(null) }
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function startEdit(p: ParticipantRow) {
+    setError(null)
+    setEditingId(p.id)
+    setEditForm(toEditForm(p))
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditForm(null)
+  }
+
+  async function saveEdit() {
+    if (!editingId || !editForm) return
+    setBusy(true)
+    setError(null)
+    try {
+      const updated = await apiSend<ParticipantRow>(`/api/admin/impact-lab/participants/${editingId}`, "PATCH", {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        phone: editForm.phone || null,
+        institution: editForm.institution || null,
+        experienceLevel: editForm.experienceLevel,
+        primaryRole: editForm.primaryRole,
+        technicalSkills: splitMulti(editForm.technicalSkills),
+        interests: splitMulti(editForm.interests),
+        availability: splitMulti(editForm.availability),
+        preferredTeammates: splitMulti(editForm.preferredTeammates),
+        projectIdeas: editForm.projectIdeas || null,
+        consentToMatch: editForm.consentToMatch,
+        consentToShareContact: editForm.consentToShareContact,
+      })
+      setParticipants((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+      cancelEdit()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update")
     } finally {
       setBusy(false)
     }
@@ -201,13 +283,36 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
 
   const consenting = participants.filter((p) => p.consentToMatch).length
 
+  const filteredParticipants = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return participants
+    return participants.filter((p) =>
+      p.fullName.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      (p.institution ?? "").toLowerCase().includes(q) ||
+      p.interests.some((i) => i.toLowerCase().includes(q))
+    )
+  }, [participants, search])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-mono text-[#555]">
           {participants.length} participants · {consenting} consenting
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
+            <label htmlFor="participant-search" className="sr-only">Search participants</label>
+            <input
+              id="participant-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, email, institution, track…"
+              className="pl-7 pr-2 py-1.5 w-56 bg-[#111] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#e0e0e0] placeholder:text-[#444] focus:outline-none focus:border-[#00ff41]/40"
+            />
+          </div>
           <button
             onClick={() => setShowForm((s) => !s)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] transition-all"
@@ -280,37 +385,130 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
           <div className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin text-[#333] mx-auto" /></div>
         ) : participants.length === 0 ? (
           <div className="p-8 text-center text-sm font-mono text-[#555]">No participants yet — add or import.</div>
+        ) : filteredParticipants.length === 0 ? (
+          <div className="p-8 text-center text-sm font-mono text-[#555]">No participants match &quot;{search}&quot;.</div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#1e1e1e]">
-                {["Name", "Role", "Level", "Skills", "Consent", ""].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#141414]">
-              {participants.map((p) => (
-                <tr key={p.id} className="hover:bg-[#111]">
-                  <td className="px-4 py-3">
-                    <div className="text-sm font-mono text-[#e0e0e0]">{p.fullName}</div>
-                    <div className="text-[11px] font-mono text-[#444]">{p.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-[11px] font-mono text-[#888]">{p.primaryRole}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded border" style={{ color: LEVEL_COLOR[p.experienceLevel], borderColor: `${LEVEL_COLOR[p.experienceLevel]}40` }}>{p.experienceLevel}</span>
-                  </td>
-                  <td className="px-4 py-3 text-[11px] font-mono text-[#666] max-w-xs truncate">{p.technicalSkills.join(", ")}</td>
-                  <td className="px-4 py-3 text-[11px] font-mono">
-                    <span className={p.consentToMatch ? "text-[#00ff41]" : "text-[#ff3333]"}>{p.consentToMatch ? "yes" : "no"}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => remove(p.id)} disabled={busy} className="text-[#ff3333]/70 hover:text-[#ff3333] disabled:opacity-40"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#1e1e1e]">
+                  {["Name", "Role", "Level", "Track", "Skills", "Teammates", "Consent", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#141414]">
+                {filteredParticipants.map((p) => (
+                  <Fragment key={p.id}>
+                    <tr className="hover:bg-[#111]">
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-mono text-[#e0e0e0]">{p.fullName}</div>
+                        <div className="text-[11px] font-mono text-[#444]">{p.email}</div>
+                      </td>
+                      <td className="px-4 py-3 text-[11px] font-mono text-[#888]">{p.primaryRole}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded border" style={{ color: LEVEL_COLOR[p.experienceLevel], borderColor: `${LEVEL_COLOR[p.experienceLevel]}40` }}>{p.experienceLevel}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {p.interests[0] ? (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded border" style={{ color: TRACK_COLOR, borderColor: `${TRACK_COLOR}40` }}>{p.interests[0]}</span>
+                        ) : (
+                          <span className="text-[11px] font-mono text-[#333]">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[11px] font-mono text-[#666] max-w-xs truncate">{p.technicalSkills.join(", ")}</td>
+                      <td className="px-4 py-3">
+                        {p.preferredTeammates.length > 0 ? (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded border" style={{ color: TEAMMATES_COLOR, borderColor: `${TEAMMATES_COLOR}40` }}>+{p.preferredTeammates.length} teammates</span>
+                        ) : (
+                          <span className="text-[11px] font-mono text-[#333]">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[11px] font-mono">
+                        <div className="flex flex-col gap-0.5">
+                          <span className={p.consentToMatch ? "text-[#00ff41]" : "text-[#ff3333]"}>{p.consentToMatch ? "yes" : "no"}</span>
+                          {!p.consentToMatch && (
+                            <span className="text-[9px] font-mono text-[#ff3333]/60 italic">excluded from matching</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2.5">
+                          <button
+                            onClick={() => (editingId === p.id ? cancelEdit() : startEdit(p))}
+                            disabled={busy}
+                            aria-label={editingId === p.id ? `Cancel editing ${p.fullName}` : `Edit ${p.fullName}`}
+                            aria-expanded={editingId === p.id}
+                            className="text-[#00d4ff]/70 hover:text-[#00d4ff] disabled:opacity-40"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => remove(p.id)}
+                            disabled={busy}
+                            aria-label={`Delete ${p.fullName}`}
+                            className="text-[#ff3333]/70 hover:text-[#ff3333] disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {editingId === p.id && editForm && (
+                      <tr className="bg-[#0a0a0a]">
+                        <td colSpan={8} className="px-4 py-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <Input label="Full name" value={editForm.fullName} onChange={(v) => setEditForm({ ...editForm, fullName: v })} />
+                            <Input label="Email" value={editForm.email} onChange={(v) => setEditForm({ ...editForm, email: v })} />
+                            <Input label="Phone" value={editForm.phone} onChange={(v) => setEditForm({ ...editForm, phone: v })} />
+                            <Input label="Institution" value={editForm.institution} onChange={(v) => setEditForm({ ...editForm, institution: v })} />
+                            <Input label="Primary role" value={editForm.primaryRole} onChange={(v) => setEditForm({ ...editForm, primaryRole: v })} />
+                            <div>
+                              <label className="block text-[10px] font-mono text-[#555] mb-1 uppercase">Experience</label>
+                              <select
+                                value={editForm.experienceLevel}
+                                onChange={(e) => setEditForm({ ...editForm, experienceLevel: e.target.value as (typeof EXPERIENCE)[number] })}
+                                className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0]"
+                              >
+                                {EXPERIENCE.map((l) => <option key={l} value={l}>{l}</option>)}
+                              </select>
+                            </div>
+                            <Input label="Skills (; or ,)" value={editForm.technicalSkills} onChange={(v) => setEditForm({ ...editForm, technicalSkills: v })} />
+                            <Input label="Interests (; or ,)" value={editForm.interests} onChange={(v) => setEditForm({ ...editForm, interests: v })} />
+                            <Input label="Availability (; or ,)" value={editForm.availability} onChange={(v) => setEditForm({ ...editForm, availability: v })} />
+                            <Input label="Preferred teammates (emails)" value={editForm.preferredTeammates} onChange={(v) => setEditForm({ ...editForm, preferredTeammates: v })} />
+                            <div className="col-span-2">
+                              <Textarea label="Project ideas" value={editForm.projectIdeas} onChange={(v) => setEditForm({ ...editForm, projectIdeas: v })} />
+                            </div>
+                            <div className="col-span-2 flex items-center gap-4 flex-wrap">
+                              <Check label="Consent to match" checked={editForm.consentToMatch} onChange={(v) => setEditForm({ ...editForm, consentToMatch: v })} />
+                              <Check label="Consent to share contact" checked={editForm.consentToShareContact} onChange={(v) => setEditForm({ ...editForm, consentToShareContact: v })} />
+                              <div className="ml-auto flex items-center gap-2">
+                                <button
+                                  onClick={cancelEdit}
+                                  disabled={busy}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] disabled:opacity-40"
+                                >
+                                  <X className="w-3 h-3" /> Cancel
+                                </button>
+                                <button
+                                  onClick={saveEdit}
+                                  disabled={busy || !editForm.fullName || !editForm.email || !editForm.primaryRole}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] disabled:opacity-40"
+                                >
+                                  {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -322,6 +520,20 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
     <div>
       <label className="block text-[10px] font-mono text-[#555] mb-1 uppercase">{label}</label>
       <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0]" />
+    </div>
+  )
+}
+
+function Textarea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-[10px] font-mono text-[#555] mb-1 uppercase">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={3}
+        className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0] resize-y"
+      />
     </div>
   )
 }

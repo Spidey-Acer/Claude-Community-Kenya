@@ -32,11 +32,25 @@ Exit 0 = all checks passed; exit 1 = something regressed.
 - the locked team keeps exactly its pinned members,
 - every score lands in `[0, 100]`.
 
+**Together-groups** — the keep-together mechanism from [06](./06-algorithm.md):
+- a declared pair and a declared trio each land on one team,
+- someone who both asked for and blocked the same person never joins them —
+  blocks beat preferences even at group-forming time,
+- a run reports how many declared groups it kept together,
+- a preference chain longer than `maxTeamSize` is split with an explicit
+  warning, and no resulting team exceeds the max,
+- with `keepPreferredTogether` off, no keep-together warnings appear, and that
+  soft-preference run is itself still deterministic.
+
 ## The fixture is chosen to exercise the hard paths
 
 It isn't random data. It deliberately includes:
 - a **block** (Felix blocks Amina) — the run proves they never share a team,
-- a **preference** (Cynthia wants Amina) — visibly satisfied in the output,
+  and that his preference for her never unions them into a group either,
+- a declared-teammate **pair** (Cynthia → Amina) and **trio** (James, David,
+  Grace) — proven to land on one team each, now a hard keep-together rather
+  than a soft nudge; a separate 8-person chain fixture proves an over-length
+  chain is split into `maxTeamSize` chunks with a warning,
 - three **advanced** participants — to show they get distributed, not clustered,
 - a **locked pair** — pinned, undersized, and correctly penalised rather than
   quietly "fixed",

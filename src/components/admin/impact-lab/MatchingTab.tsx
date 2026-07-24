@@ -1,12 +1,15 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Loader2, Play, Sparkles, Save } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { ChevronRight, Loader2, Play, RotateCcw, Sparkles, Save } from "lucide-react"
 import { apiSend } from "./api"
 import type { DirectoryParticipant, MatchResponse, TeamExplanation } from "./types"
 // Import path is the constants module directly (not the "@/lib/matching" barrel)
 // so the client bundle gets only the constant objects, not the engine code.
 import { DEFAULT_SETTINGS as ENGINE_DEFAULTS } from "@/lib/matching/constants"
+// Types are erased at compile time, so importing from the types module (rather
+// than the constants module) never pulls engine code into the client bundle.
+import type { MatchWeightKey, MatchWeights } from "@/lib/matching/types"
 
 interface MatchingTabProps {
   cohort: string
@@ -18,12 +21,19 @@ const DEFAULT_SETTINGS = {
   desiredTeamSize: ENGINE_DEFAULTS.desiredTeamSize,
   minTeamSize: ENGINE_DEFAULTS.minTeamSize,
   maxTeamSize: ENGINE_DEFAULTS.maxTeamSize,
+  numberOfTeams: ENGINE_DEFAULTS.numberOfTeams,
   requireBuilder: ENGINE_DEFAULTS.requireBuilder,
   requirePresenter: ENGINE_DEFAULTS.requirePresenter,
   preventBeginnerOnlyTeams: ENGINE_DEFAULTS.preventBeginnerOnlyTeams,
   distributeAdvancedParticipants: ENGINE_DEFAULTS.distributeAdvancedParticipants,
   allowUnassignedParticipants: ENGINE_DEFAULTS.allowUnassignedParticipants,
+  keepPreferredTogether: ENGINE_DEFAULTS.keepPreferredTogether,
+  weights: ENGINE_DEFAULTS.weights,
 }
+
+type MatchTabSettings = typeof DEFAULT_SETTINGS
+
+const STORAGE_KEY = "cck-impact-lab-match-settings"
 
 const DIMENSION_LABEL: Record<string, string> = {
   roleCoverage: "Role coverage",
@@ -34,8 +44,32 @@ const DIMENSION_LABEL: Record<string, string> = {
   participantPreferences: "Preferences",
 }
 
+const WEIGHT_META: { key: MatchWeightKey; label: string; description: string }[] = [
+  { key: "roleCoverage", label: "Role coverage", description: "All five roles covered on each team" },
+  { key: "skillBalance", label: "Skill balance", description: "Complementary, non-overlapping skills" },
+  { key: "experienceBalance", label: "Experience balance", description: "Mix of levels + at least one experienced member" },
+  { key: "interestAlignment", label: "Interest alignment", description: "Shared track — teams build one problem per track" },
+  { key: "availabilityOverlap", label: "Availability overlap", description: "Members share committed time slots" },
+  { key: "participantPreferences", label: "Participant preferences", description: "Requested teammates end up together" },
+]
+
+/**
+ * Merges a stored settings object over the current defaults so old localStorage
+ * payloads that predate a new field (e.g. keepPreferredTogether, weights) still
+ * hydrate cleanly instead of leaving that field undefined.
+ */
+function mergeStoredSettings(stored: Partial<MatchTabSettings>): MatchTabSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    weights: { ...DEFAULT_SETTINGS.weights, ...(stored.weights ?? {}) },
+  }
+}
+
 export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<MatchTabSettings>(DEFAULT_SETTINGS)
+  const [hydrated, setHydrated] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [data, setData] = useState<MatchResponse | null>(null)
   const [explanations, setExplanations] = useState<TeamExplanation[] | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -43,6 +77,25 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
   const [saving, setSaving] = useState(false)
   const [runName, setRunName] = useState("")
   const [error, setError] = useState<string | null>(null)
+
+  // localStorage is read after mount — reading it during render would make the
+  // server and client HTML disagree and trigger a hydration error.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        setSettings(mergeStoredSettings(JSON.parse(raw) as Partial<MatchTabSettings>))
+      }
+    } catch {
+      // Malformed or foreign localStorage payload — fall back to defaults.
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  }, [settings, hydrated])
 
   const directory = useMemo(() => {
     const map = new Map<string, DirectoryParticipant>()
@@ -112,7 +165,72 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
           <Toggle label="No beginner-only teams" checked={settings.preventBeginnerOnlyTeams} onChange={(v) => setSettings({ ...settings, preventBeginnerOnlyTeams: v })} />
           <Toggle label="Distribute advanced" checked={settings.distributeAdvancedParticipants} onChange={(v) => setSettings({ ...settings, distributeAdvancedParticipants: v })} />
           <Toggle label="Allow unassigned" checked={settings.allowUnassignedParticipants} onChange={(v) => setSettings({ ...settings, allowUnassignedParticipants: v })} />
+          <Toggle
+            label="Keep declared teammates together"
+            checked={settings.keepPreferredTogether}
+            onChange={(v) => setSettings({ ...settings, keepPreferredTogether: v })}
+            helper="People who named each other on the Luma form are placed as one unit"
+          />
         </div>
+
+        <div className="pt-1 border-t border-[#1e1e1e]">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((prev) => !prev)}
+            aria-expanded={advancedOpen}
+            aria-controls="matching-advanced-settings"
+            className="flex items-center gap-1.5 pt-2 text-[10px] font-mono text-[#888] uppercase tracking-wider hover:text-[#e0e0e0]"
+          >
+            <ChevronRight className={`w-3 h-3 transition-transform ${advancedOpen ? "rotate-90" : ""}`} />
+            Advanced settings
+          </button>
+
+          {advancedOpen && (
+            <div id="matching-advanced-settings" className="pt-3 space-y-4">
+              <div className="flex items-end justify-between gap-3">
+                <div className="w-40">
+                  <label htmlFor="number-of-teams" className="block text-[10px] font-mono text-[#555] mb-1 uppercase">
+                    Number of teams
+                  </label>
+                  <input
+                    id="number-of-teams"
+                    type="number"
+                    min={1}
+                    value={settings.numberOfTeams ?? ""}
+                    placeholder="Auto"
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      setSettings({ ...settings, numberOfTeams: raw === "" ? null : Number(raw) })
+                    }}
+                    className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0]"
+                  />
+                  <p className="text-[10px] font-mono text-[#555] mt-1">Leave blank to compute from team size</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings(DEFAULT_SETTINGS)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#161616] hover:bg-[#1e1e1e] border border-[#2a2a2a] rounded text-[11px] font-mono text-[#888]"
+                >
+                  <RotateCcw className="w-3 h-3" /> Reset to defaults
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                {WEIGHT_META.map(({ key, label, description }) => (
+                  <WeightSlider
+                    key={key}
+                    id={`weight-${key}`}
+                    label={label}
+                    description={description}
+                    value={settings.weights[key]}
+                    onChange={(v) => setSettings({ ...settings, weights: { ...settings.weights, [key]: v } as MatchWeights })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center gap-2 pt-1">
           <button onClick={generate} disabled={generating} className="flex items-center gap-1.5 px-4 py-2 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[11px] font-mono font-semibold text-[#00ff41] disabled:opacity-40">
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Generate teams
@@ -221,11 +339,53 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
   )
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ label, checked, onChange, helper }: { label: string; checked: boolean; onChange: (v: boolean) => void; helper?: string }) {
   return (
-    <label className="flex items-center gap-2 text-[11px] font-mono text-[#888] cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-[#00ff41]" />
-      {label}
+    <label className="flex flex-col gap-0.5 max-w-[220px]">
+      <span className="flex items-center gap-2 text-[11px] font-mono text-[#888] cursor-pointer">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-[#00ff41]" />
+        {label}
+      </span>
+      {helper && <span className="text-[10px] font-mono text-[#555] pl-5">{helper}</span>}
     </label>
+  )
+}
+
+function WeightSlider({
+  id,
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  id: string
+  label: string
+  description: string
+  value: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label htmlFor={id} className="text-[10px] font-mono text-[#555] uppercase">{label}</label>
+        <span className="text-[10px] font-mono text-[#888]">{value.toFixed(1)}</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={5}
+        step={0.1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={5}
+        aria-valuenow={value}
+        aria-valuetext={value.toFixed(1)}
+        className="w-full accent-[#00ff41]"
+      />
+      <p className="text-[10px] font-mono text-[#555]">{description}</p>
+    </div>
   )
 }

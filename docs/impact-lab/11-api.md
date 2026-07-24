@@ -49,6 +49,28 @@ Import upserts on `(cohort, email)` — re-importing a corrected sheet updates
 existing people instead of duplicating them, which the scoped unique index makes
 safe.
 
+## Luma guest-list import is auto-detected
+
+`isLumaExport(headers)` ([`luma.ts`](../../src/lib/impact-lab/luma.ts)) flags a
+CSV as a Luma export by the presence of Luma's own `guest_id` and
+`approval_status` columns. When detected, `mapLumaRows` maps Luma's custom
+registration questions onto participant drafts by case-insensitive header
+**prefix**, so a minor wording tweak in the Luma form doesn't silently break
+the import; only `approval_status === "approved"` rows become participants,
+with `notApproved` and `missingEmail` counted so the organiser sees the split
+rather than a silently truncated list.
+
+Every approved, emailed guest now imports with `consentToMatch: true` and
+`consentToShareContact: true` — an organiser decision (2026-07-24) that
+everyone who registered for a team-formation event is matchable and may share
+contact details with teammates, with an opt-out still available from the
+participant's own profile afterward. This replaces the earlier behaviour of
+importing full-team declarers with `consentToMatch: false` for manual locked
+placement: pre-formed teams named in the "if you have team-mates" question now
+stay together automatically through the together-groups mechanism
+([06](./06-algorithm.md)) instead of requiring the organiser to hand-build a
+locked team.
+
 ## Why `blockedTeammates` is in export but not the AI payload
 
 The participant CSV export includes `blockedTeammates` because it's the

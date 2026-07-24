@@ -1,28 +1,62 @@
 "use client";
 
-import { Lightbulb, Mail, Users } from "lucide-react";
+import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Check, Copy, Lightbulb, Mail, PartyPopper, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
 
 /**
  * The finalized team, as qualities rather than numbers — the API already
  * strips scores; this view shows teammates, roles, strengths, and direction.
+ * This is the hero moment of the hackathon dashboard, so it carries a
+ * one-time entrance animation (skipped entirely under prefers-reduced-motion).
  */
 export function TeamReveal({ team }: { team: TeamRevealView }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  const container = {
+    hidden: {},
+    show: {
+      transition: { staggerChildren: prefersReducedMotion ? 0 : 0.08 },
+    },
+  };
+  const item = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, y: 12 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+      };
+
   return (
-    <div className="space-y-6">
-      <section
-        className="rounded-lg border border-green-primary/30 bg-bg-secondary p-6"
+    <motion.div
+      className="space-y-6"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.section
+        variants={item}
+        className="relative overflow-hidden rounded-lg border border-green-primary/30 bg-bg-secondary p-6"
         aria-label="Your team"
       >
-        <div className="flex flex-wrap items-start gap-4">
+        {!prefersReducedMotion && (
+          <motion.div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-green-primary/10 via-transparent to-transparent"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+          />
+        )}
+        <div className="relative flex flex-wrap items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10">
-            <Users className="h-6 w-6 text-green-primary" />
+            <PartyPopper className="h-6 w-6 text-green-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
               {"// ./your-team"}
             </p>
-            <h2 className="font-mono text-2xl font-bold text-text-primary">
+            <h2 className="font-mono text-2xl font-bold text-text-primary sm:text-3xl">
               {team.teamName}
             </h2>
             <p className="mt-1 text-sm text-text-secondary">
@@ -30,9 +64,9 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
             </p>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section aria-label="Teammates">
+      <motion.section variants={item} aria-label="Teammates">
         <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
           {"// ./teammates"}
         </h3>
@@ -62,13 +96,7 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
               )}
               <span className="ml-auto">
                 {member.email ? (
-                  <a
-                    href={`mailto:${member.email}`}
-                    className="inline-flex items-center gap-1.5 font-mono text-[11px] text-text-secondary hover:text-green-primary transition-colors"
-                  >
-                    <Mail className="h-3 w-3" />
-                    {member.email}
-                  </a>
+                  <EmailAction email={member.email} />
                 ) : !member.isSelf ? (
                   <span className="font-mono text-[11px] text-text-dim">
                     contact private
@@ -81,10 +109,10 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
         <p className="mt-2 font-mono text-[10px] text-text-dim">
           Emails appear only for teammates who chose to share their contact.
         </p>
-      </section>
+      </motion.section>
 
       {team.strengths.length > 0 && (
-        <section aria-label="Team strengths">
+        <motion.section variants={item} aria-label="Team strengths">
           <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
             {"// ./strengths"}
           </h3>
@@ -101,11 +129,11 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
               </li>
             ))}
           </ul>
-        </section>
+        </motion.section>
       )}
 
       {team.projectDirection && (
-        <section aria-label="Suggested project direction">
+        <motion.section variants={item} aria-label="Suggested project direction">
           <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
             {"// ./suggested-direction"}
           </h3>
@@ -115,8 +143,72 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
               {team.projectDirection}
             </p>
           </div>
-        </section>
+        </motion.section>
       )}
-    </div>
+
+      <motion.section variants={item} aria-label="First 30 minutes">
+        <h3 className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-dim">
+          <Users className="h-3.5 w-3.5 text-green-primary" />
+          {"// ./first-30-minutes"}
+        </h3>
+        <ol className="space-y-2.5 rounded-lg border border-border-default bg-bg-secondary p-5 text-sm text-text-secondary">
+          <li className="flex items-start gap-2.5">
+            <span className="mt-0.5 font-mono text-xs text-green-primary">1.</span>
+            <span>Find your teammates in the room — say hi, sit together.</span>
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="mt-0.5 font-mono text-xs text-green-primary">2.</span>
+            <span>
+              Agree on your track&apos;s problem — pick one angle from the
+              suggested direction above and commit to it.
+            </span>
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="mt-0.5 font-mono text-xs text-green-primary">3.</span>
+            <span>Set up a group chat so you can coordinate for the rest of the build.</span>
+          </li>
+        </ol>
+      </motion.section>
+    </motion.div>
+  );
+}
+
+/** Mailto link + copy-to-clipboard affordance for a teammate's email. */
+function EmailAction({ email }: { email: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API can be unavailable (permissions, insecure context) —
+      // the mailto link next to this button still works either way.
+    }
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <a
+        href={`mailto:${email}`}
+        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-text-secondary hover:text-green-primary transition-colors"
+      >
+        <Mail className="h-3 w-3" />
+        {email}
+      </a>
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label={copied ? "Email copied" : `Copy ${email} to clipboard`}
+        className="rounded p-1 text-text-dim transition-colors hover:text-green-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-primary/60"
+      >
+        {copied ? (
+          <Check className="h-3 w-3 text-green-primary" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </button>
+    </span>
   );
 }

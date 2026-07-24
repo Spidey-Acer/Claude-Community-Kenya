@@ -38,6 +38,12 @@ Two properties make this safe:
    and skips illegal ones. Hard constraints still win, always.
 2. **Locked teams must not move.** They're filtered out before optimization and
    spliced back untouched in their original positions.
+3. **Together-group members must not move either.** A group is a hard unit from
+   placement onward, so a swap that pulled one member out would silently break
+   it. Unlike locked teams, grouped members stay in the optimizable pool — the
+   loop just skips any candidate found in `context.pinnedTogetherIds`
+   ([groups.ts](../../src/lib/matching/groups.ts)), the same set the algorithm
+   populated in [06, Step 5](./06-algorithm.md).
 
 ## Determinism, again
 

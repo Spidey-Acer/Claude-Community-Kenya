@@ -86,6 +86,22 @@ export const ROLE_SYNONYMS: Readonly<Record<string, CanonicalRole>> = {
   "project manager": "product",
   strategist: "product",
   business: "product",
+
+  // Occupational answers seen in the real Luma export ("What is your role?"
+  // was answered with job titles, not hackathon roles). Conservative mappings
+  // only — pure "student"/"intern" answers carry no role signal and stay
+  // unmapped on purpose.
+  founder: "product",
+  ceo: "product",
+  cto: "builder",
+  "computer science": "builder",
+  "data science": "data",
+  "web developer": "builder",
+  architect: "builder",
+  architecture: "builder",
+  devops: "builder",
+  engineering: "builder",
+  "software engineering": "builder",
 }
 
 // ─── Experience ──────────────────────────────────────────────────────────────
@@ -107,7 +123,10 @@ export const DEFAULT_WEIGHTS: MatchWeights = {
   roleCoverage: 2,
   skillBalance: 1.5,
   experienceBalance: 1.4,
-  interestAlignment: 1,
+  // Interests carry the participants' track choices, and each track is one
+  // fixed problem — a team that doesn't share a track can't share a project.
+  // Weighted at the top alongside role coverage for that reason.
+  interestAlignment: 2.5,
   availabilityOverlap: 1,
   participantPreferences: 0.8,
 }
@@ -126,6 +145,7 @@ export const DEFAULT_SETTINGS: MatchSettings = {
   requirePresenter: true,
   preventBeginnerOnlyTeams: true,
   distributeAdvancedParticipants: true,
+  keepPreferredTogether: true,
   lockedTeams: [],
   weights: DEFAULT_WEIGHTS,
 }
