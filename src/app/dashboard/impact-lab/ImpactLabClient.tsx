@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Clock, Pencil, SearchX } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Laptop,
+  Pencil,
+  SearchX,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import type {
   MemberProfile,
   MemberTeamStatus,
@@ -133,7 +142,8 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
               <span className="font-mono text-text-primary">{sessionEmail}</span>.
               Make sure this account uses the same email you registered with on
               Luma. Registered with a different address, or just signed up on
-              site? Message the organizers and we&apos;ll sort it out.
+              site? Message the organizers below and we&apos;ll sort it out
+              before the event.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a
@@ -168,32 +178,39 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
           className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
           aria-label="Team status"
         >
-          <h2 className="font-mono text-base font-bold text-text-primary">
-            Teams are finalized
-          </h2>
-          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            {profile.consentToMatch
-              ? "You weren't placed on a team this round. Reach out to the organizers on "
-              : "Your matching profile wasn't completed before the deadline, so the matcher couldn't include you this round. Reach out to the organizers on "}
-            <a
-              href={SOCIAL_LINKS.discord}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-green-primary hover:underline"
-            >
-              Discord
-            </a>{" "}
-            or{" "}
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-green-primary hover:underline"
-            >
-              WhatsApp
-            </a>{" "}
-            and we&apos;ll find you a spot.
-          </p>
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-amber/30 bg-amber/10">
+              <Users className="h-5 w-5 text-amber" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-mono text-base font-bold text-text-primary">
+                Teams are finalized
+              </h2>
+              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                {profile.consentToMatch
+                  ? "You weren't placed on a team this round. That's on us, not you — find an organizer at the venue, or reach out on "
+                  : "Your matching profile wasn't completed before the deadline, so the matcher couldn't include you this round. Find an organizer at the venue, or reach out on "}
+                <a
+                  href={SOCIAL_LINKS.discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-primary hover:underline"
+                >
+                  Discord
+                </a>{" "}
+                or{" "}
+                <a
+                  href={SOCIAL_LINKS.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-primary hover:underline"
+                >
+                  WhatsApp
+                </a>{" "}
+                and we&apos;ll find you a spot on a team.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section
@@ -240,10 +257,72 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
                 Profile saved — you&apos;re in the matching pool
               </h2>
               <p className="mt-1 text-sm text-text-secondary">
-                Teams drop Saturday morning. Check back here.
+                Teams drop Saturday morning, during the event. This page
+                updates itself the moment your team is ready — no need to
+                refresh on the hour.
               </p>
             </div>
           </div>
+        </section>
+
+        <section
+          aria-label="What happens next"
+          className="rounded-lg border border-border-default bg-bg-secondary p-5"
+        >
+          <h3 className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-dim">
+            <Sparkles className="h-3.5 w-3.5 text-amber" />
+            {"// ./whats-next"}
+          </h3>
+          <ol className="space-y-2.5 text-sm text-text-secondary">
+            <li className="flex items-start gap-2.5">
+              <span className="mt-0.5 font-mono text-xs text-green-primary">1.</span>
+              <span>
+                Organizers run the matcher against everyone&apos;s profile —
+                roles, skills, and interests get grouped into balanced teams.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="mt-0.5 font-mono text-xs text-green-primary">2.</span>
+              <span>
+                Teams are finalized and revealed here on 25–26 July, during
+                AI Mashinani itself — not before.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="mt-0.5 font-mono text-xs text-green-primary">3.</span>
+              <span>
+                This page flips straight to your team, teammates, and
+                suggested project direction. No separate announcement to
+                chase.
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <section
+          aria-label="What to bring"
+          className="rounded-lg border border-border-default bg-bg-secondary p-5"
+        >
+          <h3 className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-dim">
+            <Laptop className="h-3.5 w-3.5 text-cyan" />
+            {"// ./bring-checklist"}
+          </h3>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {[
+              "Laptop + charger",
+              "Anthropic / Claude account signed in and ready",
+              "A project idea or two — even half-formed",
+              "Comfort with your team meeting as strangers",
+            ].map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2 text-sm text-text-secondary"
+              >
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-primary" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section
@@ -276,6 +355,10 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
               Edit profile
             </button>
           </div>
+          <p className="mt-3 text-[11px] font-mono text-text-dim">
+            Changed your mind about a skill or track? You can edit up until
+            teams are matched.
+          </p>
         </section>
       </div>
     );

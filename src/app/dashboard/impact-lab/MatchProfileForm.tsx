@@ -97,10 +97,16 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
       <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
         $ vim ./matching-profile
       </p>
-      <p className="mb-4 text-xs text-text-secondary">
-        Two minutes. This is how we place you on the right team.
+      <p className="mb-1 text-xs text-text-secondary">
+        Two minutes. Every field here feeds the matcher that builds your team —
+        the more accurate, the better the fit.
+      </p>
+      <p className="mb-5 text-[11px] font-mono text-text-dim">
+        We pre-filled what you told us on Luma. Check it over and fix anything
+        that&apos;s changed.
       </p>
 
+      <SectionHeading eyebrow="01" title="About you" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="il-fullName" className={labelClass}>
@@ -116,6 +122,44 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
             className={inputClass}
           />
         </div>
+        <div>
+          <label htmlFor="il-experienceLevel" className={labelClass}>
+            Experience level
+          </label>
+          <select
+            id="il-experienceLevel"
+            value={experienceLevel}
+            onChange={(e) =>
+              setExperienceLevel(e.target.value as MemberProfile["experienceLevel"])
+            }
+            className={inputClass}
+          >
+            <option value="BEGINNER">Beginner</option>
+            <option value="INTERMEDIATE">Intermediate</option>
+            <option value="ADVANCED">Advanced</option>
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="il-availability" className={labelClass}>
+            Availability (comma-separated)
+          </label>
+          <input
+            id="il-availability"
+            type="text"
+            value={availability}
+            onChange={(e) => setAvailability(e.target.value)}
+            className={inputClass}
+            placeholder="e.g. Saturday all day, Sunday morning"
+          />
+        </div>
+      </div>
+
+      <SectionHeading
+        eyebrow="02"
+        title="Your skills & track"
+        helper="This is the core matching signal — role, skills, and what you want to build decide who you're paired with."
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="il-primaryRole" className={labelClass}>
             Primary role
@@ -138,23 +182,6 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
             <option value="Data" />
             <option value="Product" />
           </datalist>
-        </div>
-        <div>
-          <label htmlFor="il-experienceLevel" className={labelClass}>
-            Experience level
-          </label>
-          <select
-            id="il-experienceLevel"
-            value={experienceLevel}
-            onChange={(e) =>
-              setExperienceLevel(e.target.value as MemberProfile["experienceLevel"])
-            }
-            className={inputClass}
-          >
-            <option value="BEGINNER">Beginner</option>
-            <option value="INTERMEDIATE">Intermediate</option>
-            <option value="ADVANCED">Advanced</option>
-          </select>
         </div>
         <div>
           <label htmlFor="il-secondaryRoles" className={labelClass}>
@@ -195,19 +222,28 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
             placeholder="e.g. agriculture, health, fintech"
           />
         </div>
-        <div>
-          <label htmlFor="il-availability" className={labelClass}>
-            Availability (comma-separated)
+        <div className="sm:col-span-2">
+          <label htmlFor="il-projectIdeas" className={labelClass}>
+            Project ideas (optional)
           </label>
-          <input
-            id="il-availability"
-            type="text"
-            value={availability}
-            onChange={(e) => setAvailability(e.target.value)}
+          <textarea
+            id="il-projectIdeas"
+            rows={3}
+            maxLength={2000}
+            value={projectIdeas}
+            onChange={(e) => setProjectIdeas(e.target.value)}
             className={inputClass}
-            placeholder="e.g. Saturday all day, Sunday morning"
+            placeholder="Anything you'd love to build this weekend"
           />
         </div>
+      </div>
+
+      <SectionHeading
+        eyebrow="03"
+        title="Teammates"
+        helper="Optional. If you already know who you want to build with, tell us — the matcher tries to honor both lists."
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="il-preferredTeammates" className={labelClass}>
             Teammates you&apos;d like (their emails, optional)
@@ -235,20 +271,6 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
           <p className="mt-1 text-[10px] font-mono text-text-dim">
             Private — only organizers ever see this.
           </p>
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="il-projectIdeas" className={labelClass}>
-            Project ideas (optional)
-          </label>
-          <textarea
-            id="il-projectIdeas"
-            rows={3}
-            maxLength={2000}
-            value={projectIdeas}
-            onChange={(e) => setProjectIdeas(e.target.value)}
-            className={inputClass}
-            placeholder="Anything you'd love to build this weekend"
-          />
         </div>
       </div>
 
@@ -332,5 +354,28 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
         )}
       </div>
     </form>
+  );
+}
+
+/** Numbered section divider inside the matching-profile form. */
+function SectionHeading({
+  eyebrow,
+  title,
+  helper,
+}: {
+  eyebrow: string;
+  title: string;
+  helper?: string;
+}) {
+  return (
+    <div className="mt-6 mb-3 border-t border-border-default/60 pt-5">
+      <h3 className="flex items-baseline gap-2 font-mono text-xs font-bold uppercase tracking-wider text-text-primary">
+        <span className="text-green-primary">{eyebrow}</span>
+        {title}
+      </h3>
+      {helper && (
+        <p className="mt-1 text-[11px] text-text-dim leading-relaxed">{helper}</p>
+      )}
+    </div>
   );
 }
