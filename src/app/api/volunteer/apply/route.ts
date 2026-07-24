@@ -8,18 +8,36 @@ import { sendVolunteerApplicationNotification } from "@/lib/email"
 import { VolunteerRole } from "@/generated/prisma/client"
 import { getSessionUserId } from "@/lib/auth-helpers"
 
+/**
+ * Profile links arrive as people actually type them ("github.com/name") — add
+ * the https:// scheme when it's missing, then validate as a URL. Empty strings
+ * count as absent so an untouched optional field never fails validation.
+ */
+const lenientUrl = z
+  .string()
+  .max(300)
+  .optional()
+  .transform((v) => {
+    const trimmed = v?.trim()
+    if (!trimmed) return undefined
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  })
+  .pipe(z.string().url().optional())
+  .transform((v) => (v ? zodSanitizeUrl(v) : undefined))
+
 const volunteerSchema = z.object({
   name: z.string().min(2).max(100).transform(zodSanitizeString),
   email: z.string().email().transform(zodSanitizeEmail),
   phone: z.string().max(20).optional().transform(v => v ? zodSanitizeString(v) : undefined),
   role: z.nativeEnum(VolunteerRole),
+  city: z.string().max(60).optional().transform(v => v ? zodSanitizeString(v) : undefined),
   experience: z.string().min(20).max(2000).transform(zodSanitizeMultilineText(2000)),
   availability: z.string().min(2).max(200).transform(zodSanitizeString),
   motivation: z.string().min(20).max(2000).transform(zodSanitizeMultilineText(2000)),
-  linkedIn: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
-  github: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
-  twitter: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
-  portfolio: z.string().url().optional().transform(v => v ? zodSanitizeUrl(v) : undefined),
+  linkedIn: lenientUrl,
+  github: lenientUrl,
+  twitter: lenientUrl,
+  portfolio: lenientUrl,
 })
 
 export async function POST(request: NextRequest) {
@@ -66,6 +84,7 @@ export async function POST(request: NextRequest) {
         email: data.email,
         phone: data.phone,
         role: data.role,
+        city: data.city,
         experience: data.experience,
         availability: data.availability,
         motivation: data.motivation,

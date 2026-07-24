@@ -105,6 +105,8 @@ export interface TeamMemberView {
 export interface TeamRevealView {
   teamName: string
   members: TeamMemberView[]
+  /** The saved (usually Claude-written) team writeup, addressed to the team. */
+  summary: string | null
   strengths: string[]
   projectDirection: string | null
 }
