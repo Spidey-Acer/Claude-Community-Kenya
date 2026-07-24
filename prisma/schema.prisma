@@ -463,6 +463,12 @@ enum VolunteerRole {
   COMMUNITY_MANAGER
   CONTENT_CREATOR
   EVENT_COORDINATOR
+  EVENT_SUPPORT
+  MENTOR
+  DESIGNER
+  PHOTOGRAPHER
+  TECH_SUPPORT
+  PARTNERSHIPS
 }
 
 model VolunteerApplication {
@@ -472,6 +478,9 @@ model VolunteerApplication {
   email        String
   phone        String?
   role         VolunteerRole
+  /// Chapter the volunteer can show up for (Nairobi / Mombasa / Remote) —
+  /// lets admins route applications; optional for older rows.
+  city         String?
   experience   String            @db.Text
   availability String
   motivation   String            @db.Text

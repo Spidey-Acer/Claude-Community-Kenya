@@ -7,30 +7,26 @@
  * /api/csrf-token, POST /api/volunteer/apply, field-level errors, success
  * screen) — only the styling differs. The dark version stays until the
  * persona cleanup PR removes it.
+ *
+ * Role source of truth: src/lib/volunteer-roles.ts.
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { HandHeart, Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { KaribuSelect } from "@/components/karibu/KaribuSelect";
+import {
+  VOLUNTEER_ROLES,
+  VOLUNTEER_CITIES,
+  VOLUNTEER_AVAILABILITY_OPTIONS,
+} from "@/lib/volunteer-roles";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+const GROUP_LABEL = "mb-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted";
 
-const VOLUNTEER_ROLES = [
-  { value: "SOCIAL_MEDIA_MANAGER", label: "Social Media Manager", description: "Manage Twitter/X, LinkedIn posting and engagement" },
-  { value: "COMMUNITY_MANAGER", label: "Community Manager", description: "Manage Discord/WhatsApp, welcome members, moderate" },
-  { value: "CONTENT_CREATOR", label: "Content Creator", description: "Write blog posts, create graphics, video content" },
-  { value: "EVENT_COORDINATOR", label: "Event Coordinator", description: "Help organize and run meetups in Nairobi/Mombasa" },
-] as const;
-
-const AVAILABILITY_OPTIONS = [
-  "Weekday evenings",
-  "Weekends only",
-  "Flexible schedule",
-  "A few hours per week",
-  "Full commitment",
-] as const;
+const CITY_OPTIONS = VOLUNTEER_CITIES.map((c) => ({ value: c, label: c }));
 
 const inputCls = (hasError?: string) =>
   `w-full rounded-lg border ${
@@ -38,27 +34,47 @@ const inputCls = (hasError?: string) =>
   } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
 
 function Field({
+  id,
   label,
   error,
+  helper,
   children,
 }: {
+  id: string;
   label: string;
   error?: string;
+  helper?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label htmlFor={id} className={GROUP_LABEL}>
         {label}
       </label>
+      {helper && <p className="mb-1.5 font-inter text-[12px] text-ink-soft">{helper}</p>}
       {children}
-      {error && <FieldError msg={error} />}
+      {error && <FieldError id={`${id}-error`} msg={error} />}
     </div>
   );
 }
 
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-red-600">{msg}</p>;
+function FieldError({ id, msg }: { id?: string; msg: string }) {
+  return (
+    <p id={id} role="alert" className="mt-1 font-inter text-[11px] text-red-600">
+      {msg}
+    </p>
+  );
+}
+
+function CharCount({ value, max }: { value: string; max: number }) {
+  const nearLimit = value.length > max * 0.9;
+  return (
+    <div className="mt-1 flex justify-end">
+      <span className={`font-inter text-[11px] ${nearLimit ? "text-amber-600" : "text-ink-muted"}`}>
+        {value.length} / {max}
+      </span>
+    </div>
+  );
 }
 
 export function KaribuVolunteer() {
@@ -66,23 +82,47 @@ export function KaribuVolunteer() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [role, setRole] = useState("");
   const [experience, setExperience] = useState("");
-  const [availability, setAvailability] = useState("");
+  const [availabilitySelections, setAvailabilitySelections] = useState<string[]>([]);
   const [motivation, setMotivation] = useState("");
   const [linkedIn, setLinkedIn] = useState("");
   const [github, setGithub] = useState("");
   const [twitter, setTwitter] = useState("");
   const [portfolio, setPortfolio] = useState("");
 
+  useEffect(() => {
+    if (success) successHeadingRef.current?.focus();
+  }, [success]);
+
+  function toggleAvailability(opt: string) {
+    setAvailabilitySelections((prev) =>
+      prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
+    );
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setFieldErrors({});
+
+    const manualErrors: Record<string, string> = {};
+    if (!role) manualErrors.role = "Select a volunteer role";
+    if (availabilitySelections.length === 0) {
+      manualErrors.availability = "Select at least one availability option";
+    }
+
+    if (Object.keys(manualErrors).length > 0) {
+      setFieldErrors(manualErrors);
+      setError("Please fix the errors below");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -99,9 +139,10 @@ export function KaribuVolunteer() {
             name,
             email,
             phone: phone || undefined,
+            city: city || undefined,
             role,
             experience,
-            availability,
+            availability: availabilitySelections.join(", "),
             motivation,
             linkedIn: linkedIn || undefined,
             github: github || undefined,
@@ -126,12 +167,18 @@ export function KaribuVolunteer() {
 
   if (success) {
     return (
-      <section className={`${WRAP} py-24`} aria-label="Application submitted">
+      <section className={`${WRAP} py-24`} aria-label="Application submitted" role="status" aria-live="polite">
         <div className="mx-auto max-w-lg rounded-2xl border border-sand bg-paper-card py-10 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-clay/10 text-clay">
             <CheckCircle className="h-7 w-7" />
           </div>
-          <h1 className="mb-2 font-newsreader text-[22px] text-ink">Application submitted</h1>
+          <h1
+            ref={successHeadingRef}
+            tabIndex={-1}
+            className="mb-2 font-newsreader text-[22px] text-ink outline-none"
+          >
+            Application submitted
+          </h1>
           <p className="mx-auto mb-6 max-w-md px-4 font-inter text-sm text-ink-soft">
             Thank you for volunteering with Claude Community Kenya. We&apos;ll review
             your application and get back to you soon.
@@ -162,7 +209,7 @@ export function KaribuVolunteer() {
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Volunteer header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Volunteer · Kujitolea</div>
+          <div className={`${KICKER} mb-4`}>Volunteer</div>
           <h1 className="mb-4 max-w-[700px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Give a few hours. <span className="italic text-clay">Grow the community.</span>
           </h1>
@@ -173,59 +220,48 @@ export function KaribuVolunteer() {
         </Reveal>
       </section>
 
-      {/* Available roles */}
-      <section className={`${WRAP} py-5`} aria-label="Available roles">
-        <Reveal className="grid gap-4 sm:grid-cols-2">
-          {VOLUNTEER_ROLES.map((r) => (
-            <div
-              key={r.value}
-              className="rounded-2xl border border-sand bg-paper-card p-5"
-            >
-              <div className="mb-1.5 flex items-center gap-2">
-                <HandHeart className="h-4 w-4 text-clay" />
-                <span className="font-inter text-sm font-semibold text-ink">{r.label}</span>
-              </div>
-              <p className="font-inter text-[13px] leading-[1.5] text-ink-soft">
-                {r.description}
-              </p>
-            </div>
-          ))}
-        </Reveal>
-      </section>
-
       {/* Form */}
       <section className={`${WRAP} py-10`} aria-label="Volunteer application form">
         <Reveal>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Name *" error={fieldErrors.name}>
+                <Field id="name" label="Name *" error={fieldErrors.name}>
                   <input
+                    id="name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={fieldErrors.name ? "name-error" : undefined}
                     minLength={2}
                     maxLength={100}
                     placeholder="Your full name"
                     className={inputCls(fieldErrors.name)}
                   />
                 </Field>
-                <Field label="Email *" error={fieldErrors.email}>
+                <Field id="email" label="Email *" error={fieldErrors.email}>
                   <input
+                    id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.email}
+                    aria-describedby={fieldErrors.email ? "email-error" : undefined}
                     placeholder="you@example.com"
                     className={inputCls(fieldErrors.email)}
                   />
                 </Field>
               </div>
 
-              <div className="mt-4">
-                <Field label="Phone (optional)">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field id="phone" label="Phone (optional)">
                   <input
+                    id="phone"
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -234,108 +270,195 @@ export function KaribuVolunteer() {
                     className={inputCls()}
                   />
                 </Field>
+                <KaribuSelect
+                  id="city"
+                  label="City (optional)"
+                  value={city}
+                  onChange={setCity}
+                  options={CITY_OPTIONS}
+                  placeholder="Select a city..."
+                  error={fieldErrors.city}
+                />
               </div>
 
-              <div className="mt-4">
-                <Field label="Volunteer role *" error={fieldErrors.role}>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    required
-                    className={inputCls(fieldErrors.role)}
-                  >
-                    <option value="">Select a role...</option>
-                    {VOLUNTEER_ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </Field>
+              {/* Role picker */}
+              <div className="mt-5">
+                <div id="role-group-label" className={GROUP_LABEL}>
+                  Volunteer role *
+                </div>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="role-group-label"
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.role}
+                  aria-describedby={fieldErrors.role ? "role-error" : undefined}
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                >
+                  {VOLUNTEER_ROLES.map((r) => {
+                    const checked = role === r.value;
+                    return (
+                      <label
+                        key={r.value}
+                        className={`relative flex cursor-pointer flex-col gap-1 rounded-xl border p-4 pl-5 transition-colors motion-reduce:transition-none ${
+                          checked ? "border-clay bg-clay/5" : "border-sand-2 hover:border-clay/50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value={r.value}
+                          checked={checked}
+                          onChange={() => setRole(r.value)}
+                          className="sr-only"
+                        />
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-2 top-[1.35rem] h-1.5 w-1.5 rounded-full"
+                          style={{
+                            backgroundColor: checked ? r.color : "transparent",
+                            boxShadow: checked ? "none" : `inset 0 0 0 1.5px ${r.color}66`,
+                          }}
+                        />
+                        <span className="font-inter text-sm font-semibold text-ink">{r.label}</span>
+                        <span className="font-inter text-[12px] leading-[1.5] text-ink-soft">
+                          {r.description}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {fieldErrors.role && <FieldError id="role-error" msg={fieldErrors.role} />}
               </div>
 
-              <div className="mt-4">
-                <Field label="Availability *" error={fieldErrors.availability}>
-                  <select
-                    value={availability}
-                    onChange={(e) => setAvailability(e.target.value)}
-                    required
-                    className={inputCls(fieldErrors.availability)}
-                  >
-                    <option value="">Select availability...</option>
-                    {AVAILABILITY_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </Field>
+              {/* Availability */}
+              <div className="mt-5">
+                <div id="availability-group-label" className={GROUP_LABEL}>
+                  Availability *
+                </div>
+                <div
+                  role="group"
+                  aria-labelledby="availability-group-label"
+                  aria-describedby={fieldErrors.availability ? "availability-error" : undefined}
+                  className="flex flex-wrap gap-2"
+                >
+                  {VOLUNTEER_AVAILABILITY_OPTIONS.map((opt) => {
+                    const selected = availabilitySelections.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => toggleAvailability(opt)}
+                        className={`rounded-full border px-3.5 py-1.5 font-inter text-[13px] font-medium transition-colors motion-reduce:transition-none ${
+                          selected
+                            ? "border-clay bg-clay/10 text-clay"
+                            : "border-sand-2 text-ink-soft hover:border-clay/50"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+                {fieldErrors.availability && (
+                  <FieldError id="availability-error" msg={fieldErrors.availability} />
+                )}
               </div>
 
-              <div className="mt-4">
-                <Field label="Relevant experience * (min 20 chars)" error={fieldErrors.experience}>
+              <div className="mt-5">
+                <Field
+                  id="experience"
+                  label="Relevant experience * (min 20 chars)"
+                  helper="What have you done that prepares you for this role?"
+                  error={fieldErrors.experience}
+                >
                   <textarea
+                    id="experience"
                     value={experience}
                     onChange={(e) => setExperience(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.experience}
+                    aria-describedby={fieldErrors.experience ? "experience-error" : undefined}
                     minLength={20}
                     maxLength={2000}
                     rows={4}
-                    placeholder="Tell us about your experience relevant to this role..."
+                    placeholder="Tell us what you've done that's relevant..."
                     className={`${inputCls(fieldErrors.experience)} resize-none`}
                   />
+                  <CharCount value={experience} max={2000} />
                 </Field>
               </div>
 
               <div className="mt-4">
-                <Field label="Why do you want to volunteer? * (min 20 chars)" error={fieldErrors.motivation}>
+                <Field
+                  id="motivation"
+                  label="Why volunteer? * (min 20 chars)"
+                  helper="What do you want to get out of it, and why CCK?"
+                  error={fieldErrors.motivation}
+                >
                   <textarea
+                    id="motivation"
                     value={motivation}
                     onChange={(e) => setMotivation(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.motivation}
+                    aria-describedby={fieldErrors.motivation ? "motivation-error" : undefined}
                     minLength={20}
                     maxLength={2000}
                     rows={3}
                     placeholder="What excites you about contributing to Claude Community Kenya?"
                     className={`${inputCls(fieldErrors.motivation)} resize-none`}
                   />
+                  <CharCount value={motivation} max={2000} />
                 </Field>
               </div>
 
               <div className="mt-5">
-                <div className="mb-3 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                  Social links (optional)
-                </div>
+                <div className={`${GROUP_LABEL} mb-3`}>Links (optional)</div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="LinkedIn">
+                  <Field id="linkedIn" label="LinkedIn">
                     <input
-                      type="url"
+                      id="linkedIn"
+                      type="text"
+                      inputMode="url"
                       value={linkedIn}
                       onChange={(e) => setLinkedIn(e.target.value)}
-                      placeholder="https://linkedin.com/in/..."
+                      placeholder="linkedin.com/in/yourname"
                       className={inputCls()}
                     />
                   </Field>
-                  <Field label="GitHub">
+                  <Field id="github" label="GitHub">
                     <input
-                      type="url"
+                      id="github"
+                      type="text"
+                      inputMode="url"
                       value={github}
                       onChange={(e) => setGithub(e.target.value)}
-                      placeholder="https://github.com/..."
+                      placeholder="github.com/yourname"
                       className={inputCls()}
                     />
                   </Field>
-                  <Field label="Twitter / X">
+                  <Field id="twitter" label="Twitter / X">
                     <input
-                      type="url"
+                      id="twitter"
+                      type="text"
+                      inputMode="url"
                       value={twitter}
                       onChange={(e) => setTwitter(e.target.value)}
-                      placeholder="https://twitter.com/..."
+                      placeholder="x.com/yourname"
                       className={inputCls()}
                     />
                   </Field>
-                  <Field label="Portfolio">
+                  <Field id="portfolio" label="Portfolio">
                     <input
-                      type="url"
+                      id="portfolio"
+                      type="text"
+                      inputMode="url"
                       value={portfolio}
                       onChange={(e) => setPortfolio(e.target.value)}
-                      placeholder="https://..."
+                      placeholder="yoursite.com"
                       className={inputCls()}
                     />
                   </Field>
@@ -344,7 +467,10 @@ export function KaribuVolunteer() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-inter text-sm text-red-700">
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-inter text-sm text-red-700"
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
