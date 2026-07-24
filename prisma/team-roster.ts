@@ -28,7 +28,7 @@ export const TEAM_ROSTER = [
     github: "https://github.com/Spidey-Acer",
     linkedIn: "https://linkedin.com/in/peter-kibet",
     website: "https://www.peterkibet.co.ke",
-    avatar: "/images/peter-professional.png",
+    avatar: "/images/peter-professional.webp",
     order: 0,
     featured: true,
   },

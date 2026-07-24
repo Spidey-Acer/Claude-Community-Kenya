@@ -6,7 +6,6 @@ export const SITE_CONFIG = {
   description:
     "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   url: "https://www.claudekenya.org",
-  logo: "/logo.svg",
   locale: "en_KE",
   twitterHandle: "@ClaudeCommunityKE",
 } as const;

@@ -43,7 +43,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/newsletter`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/team`, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${BASE_URL}/signup`, changeFrequency: "yearly", priority: 0.6 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
     // NOTE: /login, /forgot-password, /reset-password, /verify-email,
     // /account/* deliberately omitted — auth/account pages should not be
