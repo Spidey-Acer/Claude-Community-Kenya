@@ -52,6 +52,15 @@ const aiTeamSchema = z.object({
 
 const aiResponseSchema = z.object({ teams: z.array(aiTeamSchema) })
 
+/**
+ * Teams per Claude call. One call covering a full cohort hits the model's
+ * output-token ceiling — observed in prod (2026-07-24, 30 teams): finishReason
+ * "length", truncated "{}" output, schema validation failure, silent
+ * deterministic fallback. Small batches answer well within the ceiling and run
+ * in parallel, so wall-clock stays near a single small call.
+ */
+const TEAMS_PER_CALL = 6
+
 /** The slim, privacy-safe view of a participant sent to the model. */
 interface AiParticipantView {
   id: string
@@ -126,16 +135,43 @@ export async function explainWithAi(
   }
 
   try {
-    const { object } = await generateObject({
-      model: anthropic(MODEL),
-      schema: aiResponseSchema,
-      system: SYSTEM_INSTRUCTION,
-      prompt:
-        "Explain each team below. Return one entry per team.\n\n" +
-        JSON.stringify(buildPayload(result, byId), null, 2),
-    })
+    const payload = buildPayload(result, byId)
+    const batches: (typeof payload)[] = []
+    for (let i = 0; i < payload.length; i += TEAMS_PER_CALL) {
+      batches.push(payload.slice(i, i + TEAMS_PER_CALL))
+    }
 
-    const aiByTeam = new Map(object.teams.map((t) => [t.teamId, t]))
+    // Batches run in parallel and fail independently: a failed batch only
+    // sends ITS teams to the deterministic fallback, never the whole run.
+    const settled = await Promise.allSettled(
+      batches.map((batch) =>
+        generateObject({
+          model: anthropic(MODEL),
+          schema: aiResponseSchema,
+          system: SYSTEM_INSTRUCTION,
+          prompt:
+            "Explain each team below. Return one entry per team.\n\n" +
+            JSON.stringify(batch, null, 2),
+        })
+      )
+    )
+
+    const aiByTeam = new Map<string, z.infer<typeof aiTeamSchema>>()
+    let failedBatches = 0
+    for (const outcome of settled) {
+      if (outcome.status === "fulfilled") {
+        for (const team of outcome.value.object.teams) aiByTeam.set(team.teamId, team)
+      } else {
+        failedBatches++
+        console.error("[impact-lab] AI explanation batch failed:", outcome.reason)
+      }
+    }
+    if (failedBatches === settled.length) {
+      return allFallback(
+        "AI explanations failed; showing deterministic summaries instead."
+      )
+    }
+
     const warnings: string[] = []
     let usedFallback = false
 
