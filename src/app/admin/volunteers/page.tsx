@@ -4,22 +4,12 @@ import { StatusBadge } from "@/components/admin/StatusBadge"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { ChevronRight, HandHeart } from "lucide-react"
+import {
+  VOLUNTEER_ROLE_LABELS as ROLE_LABELS,
+  VOLUNTEER_ROLE_COLORS as ROLE_COLORS,
+} from "@/lib/volunteer-roles"
 
 export const dynamic = "force-dynamic"
-
-const ROLE_LABELS: Record<string, string> = {
-  SOCIAL_MEDIA_MANAGER: "Social Media",
-  COMMUNITY_MANAGER: "Community Mgr",
-  CONTENT_CREATOR: "Content Creator",
-  EVENT_COORDINATOR: "Event Coordinator",
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  SOCIAL_MEDIA_MANAGER: "#5865F2",
-  COMMUNITY_MANAGER: "#25D366",
-  CONTENT_CREATOR: "#ffb000",
-  EVENT_COORDINATOR: "#00d4ff",
-}
 
 export default async function VolunteersPage() {
   const applications = await prisma.volunteerApplication.findMany({

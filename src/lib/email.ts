@@ -4,6 +4,7 @@
  */
 
 import { Resend } from "resend"
+import { VOLUNTEER_ROLE_LABELS as SHARED_VOLUNTEER_ROLE_LABELS } from "@/lib/volunteer-roles"
 
 // Lazy initialization — avoids build-time error when env var is not set
 let _resend: Resend | null = null
@@ -283,12 +284,7 @@ export async function sendJoinApplicationNotification(data: {
   return adminSent
 }
 
-const VOLUNTEER_ROLE_LABELS: Record<string, string> = {
-  SOCIAL_MEDIA_MANAGER: "Social Media Manager",
-  COMMUNITY_MANAGER: "Community Manager",
-  CONTENT_CREATOR: "Content Creator",
-  EVENT_COORDINATOR: "Event Coordinator",
-}
+const VOLUNTEER_ROLE_LABELS: Record<string, string> = SHARED_VOLUNTEER_ROLE_LABELS
 
 export async function sendVolunteerApplicationNotification(data: {
   name: string
