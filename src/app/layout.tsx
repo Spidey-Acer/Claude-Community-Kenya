@@ -114,7 +114,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Claude Community Kenya",
     description:
-      "Kenya's Claude developer community — independent, volunteer-run, and Anthropic-supported. Building, learning, and shipping with Claude.",
+      "Kenya's independent, volunteer-run Claude developer community. Building, learning, and shipping with Claude.",
     url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
@@ -124,7 +124,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Claude Community Kenya",
     description:
-      "Kenya's Claude developer community — independent, volunteer-run, and Anthropic-supported. Building, learning, and shipping with Claude.",
+      "Kenya's independent, volunteer-run Claude developer community. Building, learning, and shipping with Claude.",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -143,7 +143,6 @@ const jsonLd = {
     "Anthropic-supported Claude developer community — building, learning, and shipping with Claude.",
   sameAs: [
     "https://twitter.com/ClaudeCommunityKE",
-    "https://github.com/claude-community-kenya",
     "https://discord.gg/CkD9QWjsHm",
     "https://linkedin.com/company/claude-community-kenya",
   ],

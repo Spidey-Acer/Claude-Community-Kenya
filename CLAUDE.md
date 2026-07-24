@@ -1,5 +1,5 @@
 # Claude Community Kenya
-Africa's first Claude developer community. Live at **claudekenya.org**.
+Kenya's independent, volunteer-run Claude developer community. Live at **claudekenya.org**.
 
 ## Stack
 

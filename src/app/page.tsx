@@ -7,13 +7,13 @@ import type { AudienceState } from "@/contexts/AudienceContext";
 import type { Recommendable } from "@/lib/recommendations";
 
 export const metadata: Metadata = {
-  title: "Claude Community Kenya | Africa's Only Claude Developer Community",
+  title: "Claude Community Kenya — Build with Claude AI",
   description:
-    "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
+    "Kenya's independent, volunteer-run Claude developer community. Join meetups, workshops, and build with Claude AI.",
   openGraph: {
-    title: "Claude Community Kenya | Africa's Only Claude Developer Community",
+    title: "Claude Community Kenya — Build with Claude AI",
     description:
-      "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
+      "Kenya's independent, volunteer-run Claude developer community. Join meetups, workshops, and build with Claude AI.",
     url: "https://www.claudekenya.org",
     siteName: "Claude Community Kenya",
     locale: "en_KE",
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Claude Community Kenya | Africa's Only Claude Developer Community",
+    title: "Claude Community Kenya — Build with Claude AI",
     description:
-      "Africa's only Anthropic-supported Claude developer community. Join meetups, workshops, and build with Claude AI.",
+      "Kenya's independent, volunteer-run Claude developer community. Join meetups, workshops, and build with Claude AI.",
   },
 };
 

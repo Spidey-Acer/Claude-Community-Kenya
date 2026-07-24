@@ -66,7 +66,7 @@ export async function buildKaribuPrompt(): Promise<string> {
     .map((r) => `- "${r.title}" — for: ${r.audiences.join(", ") || "all"}`)
     .join("\n");
 
-  return `You are Claude, greeting a first-time visitor to Claude Community Kenya (CCK), Africa's only Anthropic-supported Claude developer community.
+  return `You are Claude, greeting a first-time visitor to Claude Community Kenya (CCK), Kenya's independent, volunteer-run Claude developer community.
 
 # Your job
 Run a SHORT (4 turns max) onboarding conversation. By the end, call the record_visitor tool ONCE with everything you learned. The conversation must feel like a warm, fast greeting — not a form.

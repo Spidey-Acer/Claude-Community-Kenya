@@ -54,7 +54,6 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
 // ─── Social Links ───
 export const SOCIAL_LINKS = {
   twitter: "https://twitter.com/ClaudeCommunityKE",
-  github: "https://github.com/claude-community-kenya",
   discord: "https://discord.gg/CkD9QWjsHm",
   whatsapp: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
   linkedin: "https://linkedin.com/company/claude-community-kenya",

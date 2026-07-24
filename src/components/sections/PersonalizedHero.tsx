@@ -11,7 +11,7 @@ const COPY: Record<
   { headline: string; sub: string; ctaLabel: string; ctaHref: string }
 > = {
   dev: {
-    headline: "Africa's only Claude developer community",
+    headline: "Kenya's Claude developer community",
     sub: "Build, ship, and learn with Kenya's strongest AI engineers",
     ctaLabel: "Join Discord",
     ctaHref: "https://discord.gg/CkD9QWjsHm",
