@@ -45,14 +45,22 @@ export async function POST(request: NextRequest) {
   const baseUrl = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
   const verifyUrl = `${baseUrl}/verify-email?token=${token}`
 
-  sendEmailVerificationEmail({
+  // Awaited on purpose: a fire-and-forget send dies when the serverless
+  // function freezes after the response. The user explicitly asked for this
+  // email, so a failed send is reported honestly instead of claiming success.
+  const sent = await sendEmailVerificationEmail({
     to: user.email,
     firstName: user.firstName,
     verifyUrl,
     expiresInHours: VERIFICATION_TTL_HOURS,
-  }).catch((err) => {
-    console.error("[resend-verification] send failed:", err)
   })
+  if (!sent) {
+    console.error(`[resend-verification] send failed for user ${user.id}`)
+    return NextResponse.json(
+      { success: false, error: "Could not send the email right now. Please try again shortly." },
+      { status: 502 }
+    )
+  }
 
   return NextResponse.json({
     success: true,

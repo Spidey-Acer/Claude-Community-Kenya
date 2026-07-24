@@ -85,16 +85,19 @@ export async function POST(request: NextRequest) {
   const baseUrl = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
   const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`
 
-  // Fire-and-forget: signup should not fail if email delivery hiccups.
-  // The user can request a resend from the dashboard.
-  sendEmailVerificationEmail({
+  // Awaited on purpose: on serverless, returning the response freezes the
+  // function and kills an in-flight fire-and-forget send — the email silently
+  // never leaves. Signup still succeeds if delivery fails (sendEmail catches
+  // internally); the user can resend from the dashboard.
+  const sent = await sendEmailVerificationEmail({
     to: created.email,
     firstName: created.firstName,
     verifyUrl,
     expiresInHours: VERIFICATION_TTL_HOURS,
-  }).catch((err) => {
-    console.error("[signup] sendEmailVerificationEmail failed:", err)
   })
+  if (!sent) {
+    console.error(`[signup] verification email not sent for user ${created.id}`)
+  }
 
   return NextResponse.json({
     success: true,

@@ -63,16 +63,18 @@ export async function POST(request: NextRequest) {
   const baseUrl = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
   const resetUrl = `${baseUrl}/reset-password?token=${token}`
 
-  // Don't await — the user shouldn't have to wait on Resend, and we always
-  // return the generic message regardless of email send success.
-  sendPasswordResetEmail({
+  // Awaited on purpose: a fire-and-forget promise dies when the serverless
+  // function freezes after the response, so the email silently never leaves.
+  // The response stays generic either way — account enumeration gets no signal.
+  const sent = await sendPasswordResetEmail({
     to: user.email,
     firstName: user.firstName,
     resetUrl,
     expiresInMinutes: TOKEN_TTL_MINUTES,
-  }).catch((err) => {
-    console.error("[forgot-password] sendPasswordResetEmail failed:", err)
   })
+  if (!sent) {
+    console.error(`[forgot-password] reset email not sent for user ${user.id}`)
+  }
 
   return genericResponse
 }
