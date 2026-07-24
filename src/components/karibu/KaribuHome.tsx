@@ -110,10 +110,11 @@ function SupportedBy() {
               alt="Anthropic"
               width={160}
               height={43}
+              className="anthropic-mark"
               style={{ width: "160px", height: "auto" }}
             />
           </a>
-          <p className="font-inter text-[12.5px] text-ink-muted">
+          <p className="font-inter text-[12.5px] text-ink-soft">
             via the Claude Community Ambassadors program
           </p>
         </div>

@@ -780,3 +780,17 @@ body::before {
   --sand: #3a332a;
   --sand-2: #473d31;
 }
+
+/* ─── Anthropic wordmark: dark-theme legibility ───────────────────────────
+ * The wordmark asset is a solid near-black mark on transparency, so it
+ * vanishes on the dark paper-card. Invert it to a soft off-white in the
+ * Karibu dark theme. Same precedence as the palette tokens above: system
+ * preference by default, an explicit data-theme choice wins either way. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .anthropic-mark {
+    filter: invert(1);
+  }
+}
+:root[data-theme="dark"] .anthropic-mark {
+  filter: invert(1);
+}
