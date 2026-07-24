@@ -292,6 +292,31 @@ assert(
   "no team exceeds maxTeamSize even with an oversized declared chain"
 )
 
+console.log("\nRole canonicalization (free text)")
+// Real Luma answers are job titles and sentences, not slugs — the canonicalizer
+// must find role words in free text without matching inside other words.
+import { canonicalizeRole } from "../src/lib/matching/normalization"
+assert(
+  canonicalizeRole("Lead Machine Learning Engineer, Student") === "data",
+  'free text "Lead Machine Learning Engineer, Student" maps to data (longest key wins)'
+)
+assert(
+  canonicalizeRole("Software developer") === "builder",
+  'free text "Software developer" maps to builder'
+)
+assert(
+  canonicalizeRole("Solutions Architecture Intern") === "builder",
+  'free text "Solutions Architecture Intern" maps to builder'
+)
+assert(
+  canonicalizeRole("Student") === null,
+  '"Student" carries no role signal and stays unmapped'
+)
+assert(
+  canonicalizeRole("email specialist") === null,
+  'short keys like "ai"/"ml" never match inside other words'
+)
+
 console.log("\nScores in range")
 assert(
   runA.teams.every((t) => t.score.total >= 0 && t.score.total <= 100),

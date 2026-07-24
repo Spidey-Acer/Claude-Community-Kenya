@@ -86,6 +86,22 @@ export const ROLE_SYNONYMS: Readonly<Record<string, CanonicalRole>> = {
   "project manager": "product",
   strategist: "product",
   business: "product",
+
+  // Occupational answers seen in the real Luma export ("What is your role?"
+  // was answered with job titles, not hackathon roles). Conservative mappings
+  // only — pure "student"/"intern" answers carry no role signal and stay
+  // unmapped on purpose.
+  founder: "product",
+  ceo: "product",
+  cto: "builder",
+  "computer science": "builder",
+  "data science": "data",
+  "web developer": "builder",
+  architect: "builder",
+  architecture: "builder",
+  devops: "builder",
+  engineering: "builder",
+  "software engineering": "builder",
 }
 
 // ─── Experience ──────────────────────────────────────────────────────────────

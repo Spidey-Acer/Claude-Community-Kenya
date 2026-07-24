@@ -24,14 +24,33 @@ export function normalizeEmail(value: string): string {
   return value.toLowerCase().trim().replace(/\s/g, "")
 }
 
+/** Synonym keys longest-first, so "data scientist" wins over "data". */
+const SYNONYM_KEYS_BY_LENGTH = Object.keys(ROLE_SYNONYMS).sort(
+  (a, b) => b.length - a.length || (a < b ? -1 : 1)
+)
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 /**
  * Map a raw role string to a canonical role, or null if it maps to nothing
- * known. Unmapped roles are dropped rather than guessed — see 02-engine-design.
+ * known. Exact synonym lookup first; when that misses, real-world free text
+ * ("Lead Machine Learning Engineer, Student") is scanned for synonym keys as
+ * whole words, longest key first. Word boundaries prevent short keys like "ai"
+ * or "ml" matching inside other words. Still conservative: text containing no
+ * known role word maps to nothing — see 02-engine-design.
  */
 export function canonicalizeRole(raw: string): CanonicalRole | null {
   const token = normalizeToken(raw)
   if (!token) return null
-  return ROLE_SYNONYMS[token] ?? null
+  const exact = ROLE_SYNONYMS[token]
+  if (exact) return exact
+  for (const key of SYNONYM_KEYS_BY_LENGTH) {
+    const pattern = new RegExp(`(^|[^a-z0-9])${escapeRegExp(key)}([^a-z0-9]|$)`)
+    if (pattern.test(token)) return ROLE_SYNONYMS[key]
+  }
+  return null
 }
 
 /**
