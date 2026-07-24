@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useState } from "react"
-import { Loader2, Trash2, Download, CheckCircle2, ChevronRight, ChevronDown, Pencil, Save, X } from "lucide-react"
+import { Loader2, Trash2, Download, CheckCircle2, ChevronRight, ChevronDown, Pencil, Save, X, Send } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { RunDetail } from "./RunDetail"
 import type { ParticipantRow, RunSummary } from "./types"
@@ -25,6 +25,9 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
   const [nameDraft, setNameDraft] = useState("")
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState("")
+
+  const [notifyingRunId, setNotifyingRunId] = useState<string | null>(null)
+  const [notifyResult, setNotifyResult] = useState<{ sent: number; failed: number; recipients: number } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -114,9 +117,39 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
     }
   }
 
+  async function emailReveal(run: RunSummary) {
+    if (!window.confirm("Email every matched participant that their team is ready? This sends real email.")) return
+    setNotifyingRunId(run.id)
+    setError(null)
+    setNotifyResult(null)
+    try {
+      const result = await apiSend<{ sent: number; failed: number; recipients: number }>(
+        "/api/admin/impact-lab/notify",
+        "POST",
+        { type: "reveal" }
+      )
+      setNotifyResult(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send emails")
+    } finally {
+      setNotifyingRunId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {error && <div className="p-2 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-[11px] font-mono text-[#ff3333]">{error}</div>}
+      {notifyResult && (
+        <div role="status" className="p-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] flex items-center justify-between gap-2">
+          <span>
+            Sent {notifyResult.sent} of {notifyResult.recipients} emails
+            {notifyResult.failed > 0 && <span className="text-[#ff3333]">, {notifyResult.failed} failed</span>}
+          </span>
+          <button onClick={() => setNotifyResult(null)} aria-label="Dismiss notification status" className="text-[#00ff41]/60 hover:text-[#00ff41]">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
       <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin text-[#333] mx-auto" /></div>
@@ -216,6 +249,17 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
                         <div className="flex items-center justify-end gap-2">
                           {!run.isFinal && (
                             <button onClick={() => markFinal(run.id)} disabled={busy} title="Mark final" className="text-[#00ff41]/70 hover:text-[#00ff41] disabled:opacity-40"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                          )}
+                          {run.isFinal && (
+                            <button
+                              onClick={() => emailReveal(run)}
+                              disabled={busy || notifyingRunId !== null}
+                              title="Email team reveal"
+                              aria-label={`Email team reveal for ${run.name}`}
+                              className="text-[#ffb000]/70 hover:text-[#ffb000] disabled:opacity-40"
+                            >
+                              {notifyingRunId === run.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            </button>
                           )}
                           <a href={`/api/admin/impact-lab/runs/${run.id}/export`} title="Export teams CSV" className="text-[#00d4ff]/70 hover:text-[#00d4ff]"><Download className="w-3.5 h-3.5" /></a>
                           <button onClick={() => remove(run.id)} disabled={busy} title="Delete" className="text-[#ff3333]/70 hover:text-[#ff3333] disabled:opacity-40"><Trash2 className="w-3.5 h-3.5" /></button>

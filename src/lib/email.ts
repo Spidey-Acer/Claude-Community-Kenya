@@ -76,6 +76,62 @@ export async function sendEmail({
   }
 }
 
+// ─── Batch sending ───────────────────────────────────────────────────────────
+
+export interface BatchEmailItem {
+  to: string
+  subject: string
+  html: string
+}
+
+/**
+ * Send many emails via Resend's batch API (100 per call — the API's own
+ * ceiling). Failures are counted per chunk: if a chunk's call throws, all its
+ * items count as failed; a successful call counts all its items as sent.
+ * Without an API key, logs a mock line per item and reports everything failed.
+ */
+export async function sendEmailBatch(
+  items: BatchEmailItem[]
+): Promise<{ sent: number; failed: number }> {
+  if (items.length === 0) return { sent: 0, failed: 0 }
+
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[EMAIL] RESEND_API_KEY not configured, batch not sent")
+    for (const item of items) {
+      console.log(`[EMAIL MOCK] To: ${item.to} | Subject: ${item.subject}`)
+    }
+    return { sent: 0, failed: items.length }
+  }
+
+  const from = `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`
+  let sent = 0
+  let failed = 0
+  for (let i = 0; i < items.length; i += 100) {
+    const chunk = items.slice(i, i + 100)
+    try {
+      const { error } = await getResend().batch.send(
+        chunk.map((item) => ({
+          from,
+          to: [item.to],
+          subject: item.subject,
+          html: item.html,
+          text: stripHtml(item.html),
+        }))
+      )
+      if (error) {
+        console.error("[EMAIL] Batch chunk rejected:", error)
+        failed += chunk.length
+      } else {
+        sent += chunk.length
+      }
+    } catch (err) {
+      console.error("[EMAIL] Batch chunk failed:", err)
+      failed += chunk.length
+    }
+  }
+  return { sent, failed }
+}
+
 // ─── CCK-specific email templates ───────────────────────────────────────────
 
 export async function sendSpeakerApplicationNotification(data: {
@@ -376,6 +432,62 @@ export async function sendPasswordResetEmail(data: {
     subject: "Reset your CCK password",
     html,
   })
+}
+
+/**
+ * Impact Lab: account-setup instructions, sent to every approved participant
+ * before matching goes live. The recipient's own address is spelled out because
+ * signing up with a DIFFERENT email is the one mistake that locks them out of
+ * their team reveal.
+ */
+export function impactLabAccountEmail(data: {
+  to: string
+  firstName: string
+}): BatchEmailItem {
+  const html = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Impact Lab: your team drops tonight</h2>
+      <p>Hi ${esc(data.firstName)},</p>
+      <p>You're approved for <strong>Impact Lab: AI Mashinani</strong> (25&ndash;26 July). Teams are being matched tonight — here's how to see yours the moment it lands:</p>
+      <ol style="line-height:1.8;">
+        <li><a href="${APP_URL}/signup" style="color:#00ff41;">Create your account</a> using <strong>this exact email address</strong> (${esc(data.to)}) — it's how we match you to your registration.</li>
+        <li>Verify your email (the link arrives right after signup).</li>
+        <li>Open <a href="${APP_URL}/dashboard/impact-lab" style="color:#00ff41;">your Impact Lab dashboard</a> and check your matching profile — your Luma answers are pre-filled and editable.</li>
+      </ol>
+      <p>Already set up? You're done — your team will appear on that same page.</p>
+      <p style="margin:24px 0;">
+        <a href="${APP_URL}/signup" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Create my account →</a>
+      </p>
+      <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  return { to: data.to, subject: "Impact Lab: set up your account — teams drop tonight", html }
+}
+
+/**
+ * Impact Lab: the team-is-ready announcement. Deliberately contains only the
+ * team name — teammates, contacts, and the writeup live behind the verified
+ * dashboard, never in email.
+ */
+export function impactLabRevealEmail(data: {
+  to: string
+  firstName: string
+  teamName: string
+}): BatchEmailItem {
+  const html = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
+      <h2 style="color:#00ff41;">Your Impact Lab team is ready</h2>
+      <p>Hi ${esc(data.firstName)},</p>
+      <p>Matching is done — you're on <strong>${esc(data.teamName)}</strong>.</p>
+      <p>Your teammates, their contacts, and why this team was put together are waiting on your dashboard:</p>
+      <p style="margin:24px 0;">
+        <a href="${APP_URL}/dashboard/impact-lab" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Meet ${esc(data.teamName)} →</a>
+      </p>
+      <p style="color:#8a8a8a;font-size:12px;">No account yet? <a href="${APP_URL}/signup" style="color:#00ff41;">Sign up</a> with this exact email address (${esc(data.to)}), verify it, and your team unlocks on the dashboard.</p>
+      <p style="color:#8a8a8a;font-size:12px;">See you at the venue. Claude Community Kenya · ${APP_URL}</p>
+    </div>
+  `
+  return { to: data.to, subject: `Impact Lab: you're on ${data.teamName}`, html }
 }
 
 export async function sendApplicationReviewEmail(data: {

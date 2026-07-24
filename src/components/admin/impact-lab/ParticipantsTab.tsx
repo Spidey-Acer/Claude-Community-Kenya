@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Loader2, Plus, Trash2, Upload, Download, Pencil, Search, Save, X } from "lucide-react"
+import { Loader2, Plus, Trash2, Upload, Download, Pencil, Search, Save, X, Mail } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { isLumaExport, mapLumaRows } from "@/lib/impact-lab/luma"
 import type { ParticipantRow } from "./types"
@@ -106,6 +106,8 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
   const [search, setSearch] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<EditFormState | null>(null)
+  const [notifying, setNotifying] = useState(false)
+  const [notifyResult, setNotifyResult] = useState<{ sent: number; failed: number; recipients: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -199,6 +201,25 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
       setError(e instanceof Error ? e.message : "Failed to update")
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function sendOnboardingEmails() {
+    if (!window.confirm(`Email account-setup instructions to all ${participants.length} participants? This sends real email.`)) return
+    setNotifying(true)
+    setError(null)
+    setNotifyResult(null)
+    try {
+      const result = await apiSend<{ sent: number; failed: number; recipients: number }>(
+        "/api/admin/impact-lab/notify",
+        "POST",
+        { type: "onboarding" }
+      )
+      setNotifyResult(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send emails")
+    } finally {
+      setNotifying(false)
     }
   }
 
@@ -331,6 +352,14 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
           >
             <Download className="w-3 h-3" /> Export
           </a>
+          <button
+            onClick={sendOnboardingEmails}
+            disabled={notifying || participants.length === 0}
+            aria-label="Email signup instructions to all participants"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] transition-all disabled:opacity-40"
+          >
+            {notifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />} Email signup instructions
+          </button>
           <input ref={fileRef} type="file" accept=".csv" onChange={onFile} className="hidden" />
         </div>
       </div>
@@ -342,6 +371,17 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
       </p>
       {importMsg && (
         <div className="p-2 bg-[#00d4ff]/10 border border-[#00d4ff]/30 rounded text-[11px] font-mono text-[#00d4ff]">{importMsg}</div>
+      )}
+      {notifyResult && (
+        <div role="status" className="p-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] flex items-center justify-between gap-2">
+          <span>
+            Sent {notifyResult.sent} of {notifyResult.recipients} emails
+            {notifyResult.failed > 0 && <span className="text-[#ff3333]">, {notifyResult.failed} failed</span>}
+          </span>
+          <button onClick={() => setNotifyResult(null)} aria-label="Dismiss notification status" className="text-[#00ff41]/60 hover:text-[#00ff41]">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
       )}
       {error && (
         <div className="p-2 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-[11px] font-mono text-[#ff3333]">{error}</div>
