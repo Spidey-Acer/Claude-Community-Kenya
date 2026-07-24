@@ -140,7 +140,9 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     setSaving(true)
     setError(null)
     try {
-      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings, expectedSignature: data?.signature })
+      // Explanations ride along so the reviewed wording (usually Claude's) is
+      // frozen with the run — the member reveal shows exactly what was saved.
+      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings, expectedSignature: data?.signature, explanations: explanations ?? undefined })
       setRunName("")
       onSaved()
     } catch (e) {

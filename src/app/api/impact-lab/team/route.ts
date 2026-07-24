@@ -12,7 +12,29 @@ import {
   normalizeParticipants,
   type MatchParticipant,
   type NormalizedParticipant,
+  type TeamExplanation,
 } from "@/lib/matching"
+
+/**
+ * Loose guard over the run's stored `explanations` JSON: returns the entry for
+ * the given team when it looks like a TeamExplanation, else null (legacy runs
+ * or drifted JSON degrade to the deterministic explanation, never throw).
+ */
+function storedExplanationFor(
+  explanations: unknown,
+  teamId: string
+): TeamExplanation | null {
+  if (!Array.isArray(explanations)) return null
+  const entry = explanations.find(
+    (e) => typeof e === "object" && e !== null && (e as { teamId?: unknown }).teamId === teamId
+  )
+  if (!entry) return null
+  const candidate = entry as Partial<TeamExplanation>
+  if (typeof candidate.summary !== "string" || !Array.isArray(candidate.strengths)) {
+    return null
+  }
+  return candidate as TeamExplanation
+}
 
 /**
  * Members see strengths as qualities, never numbers — strip the "(NN%)"
@@ -67,10 +89,14 @@ export async function GET() {
     normalizeParticipants(snapshot).map((p) => [p.id, p])
   )
 
+  // Prefer the explanation frozen with the run (usually Claude's, reviewed by
+  // the organiser) — recompute deterministically only for legacy runs saved
+  // without one.
   const members = team.memberIds
     .map((id) => normalizedById.get(id))
     .filter((p): p is NormalizedParticipant => p !== undefined)
-  const explanation = explainTeam(team, members)
+  const explanation =
+    storedExplanationFor(run.explanations, team.id) ?? explainTeam(team, members)
 
   const live = await prisma.impactLabParticipant.findMany({
     where: { cohort: DEFAULT_COHORT, id: { in: team.memberIds } },
@@ -95,6 +121,7 @@ export async function GET() {
   const teamView: TeamRevealView = {
     teamName: team.name,
     members: memberViews,
+    summary: explanation.summary || null,
     strengths: withoutPercentages(explanation.strengths),
     projectDirection: explanation.suggestedProjectDirection ?? null,
   }

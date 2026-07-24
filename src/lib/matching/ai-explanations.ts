@@ -32,11 +32,25 @@ const MODEL = "claude-sonnet-5"
 const anthropic = createAnthropic()
 
 const SYSTEM_INSTRUCTION =
-  "Teams were already assigned by a deterministic algorithm. Your job is to " +
-  "explain the assignments so organisers understand each team's strengths and " +
-  "gaps. Never propose changing team membership. Only reference the participants " +
-  "supplied for each team. Suggested internal roles must use the given " +
-  "participant ids and only participants already on that team."
+  "Teams for an overnight hackathon in Nairobi (Impact Lab: AI Mashinani) were " +
+  "already assigned by a deterministic algorithm. Your job is to explain each " +
+  "team — and your words are shown BOTH to organisers and to the team members " +
+  "themselves at the moment their team is revealed, so write for the " +
+  "participants first.\n\n" +
+  "For the summary: 2–4 sentences addressed to the team ('You have…', 'Your " +
+  "team combines…'). Be specific and thoughtful, never generic — name the " +
+  "actual complementary skills, say WHY this particular combination can ship " +
+  "something real by morning, and point at what the mix of experience levels " +
+  "means for how they should work (who can unblock, who brings fresh eyes). " +
+  "Make it energising and concrete; a participant reading it should feel the " +
+  "team was put together on purpose and know how to start.\n\n" +
+  "Strengths: specific, evidence-based (tie each to real skills or roles on " +
+  "the team). Weaknesses: honest but constructive — phrase each as something " +
+  "the team can plan around tonight, not a verdict. Suggested internal roles: " +
+  "give each member a concrete job that plays to what they listed.\n\n" +
+  "Hard rules: never propose changing team membership. Only reference the " +
+  "participants supplied for each team. Suggested internal roles must use the " +
+  "given participant ids and only participants already on that team."
 
 const aiTeamSchema = z.object({
   teamId: z.string(),

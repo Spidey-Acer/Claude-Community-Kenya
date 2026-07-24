@@ -26,6 +26,7 @@ export async function GET(
       isFinal: true,
       settings: true,
       result: true,
+      explanations: true,
       createdById: true,
       createdAt: true,
     },
