@@ -178,7 +178,7 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
           initial={reduce ? false : { opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
-          className="relative h-[300px] overflow-hidden rounded-[14px] border border-sand-2 lg:h-[460px]"
+          className="relative h-[300px] overflow-hidden rounded-2xl border border-sand-2 lg:h-[460px]"
         >
           <Image
             src={HERO_PHOTO}
@@ -303,7 +303,7 @@ function MadeForYouLight({
             <Link
               key={`${item.type}-${item.id}`}
               href={href}
-              className="group rounded-xl border border-sand bg-paper-card p-5 transition-colors hover:border-clay"
+              className="group rounded-2xl border border-sand bg-paper-card p-5 transition-colors hover:border-clay"
             >
               <span className="font-inter text-[11px] font-semibold uppercase tracking-[0.1em] text-clay">
                 {item.type}
@@ -343,7 +343,7 @@ function WhatWeDo() {
       <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
         {/* 01 — tall */}
         <Reveal index={0} className="md:row-span-2">
-          <article className="flex h-full flex-col justify-between rounded-2xl border border-sand bg-paper-card p-7 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+          <article className="flex h-full flex-col justify-between rounded-2xl border border-sand bg-paper-card p-7 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay">
             <div className="font-mono text-xs tracking-[0.06em] text-clay">01</div>
             <div>
               <h3 className="mb-2.5 font-newsreader text-[27px] text-ink">
@@ -360,7 +360,7 @@ function WhatWeDo() {
 
         {/* 02 */}
         <Reveal index={1}>
-          <article className="h-full rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+          <article className="h-full rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay">
             <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay">02</div>
             <h3 className="mb-2 font-newsreader text-[22px] text-ink">
               Hands-on workshops
@@ -387,7 +387,7 @@ function WhatWeDo() {
 
         {/* 04 — wide */}
         <Reveal index={3} className="md:col-span-2">
-          <article className="group flex h-full items-center gap-6 rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+          <article className="group flex h-full flex-col items-center gap-6 rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay md:flex-row">
             <div className="flex-1">
               <div className="mb-2.5 font-mono text-xs tracking-[0.06em] text-clay">
                 04
@@ -503,7 +503,7 @@ function EventsSection({ events }: { events: Event[] }) {
             <Link
               key={ev.slug}
               href={`/events/${ev.slug}`}
-              className={`group overflow-hidden rounded-[14px] border border-sand bg-paper-card transition-colors hover:border-clay ${
+              className={`group overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay active:border-clay active:-translate-y-0.5 ${
                 single ? "md:grid md:grid-cols-2" : "block"
               }`}
             >
@@ -602,7 +602,7 @@ const JOIN_STEPS = [
 function HowToJoin() {
   return (
     <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
-      <Reveal className="relative overflow-hidden rounded-[18px] bg-ink p-9 text-paper sm:p-[54px]">
+      <Reveal className="relative overflow-hidden rounded-2xl bg-ink p-9 text-paper sm:p-[54px]">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
