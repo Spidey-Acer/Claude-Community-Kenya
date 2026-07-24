@@ -38,7 +38,7 @@ export function FloatingDiscordCTA() {
       </a>
       <button
         onClick={() => setDismissed(true)}
-        className="p-1.5 rounded-full bg-bg-card border border-border-default text-text-dim hover:text-text-secondary transition-colors"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-card border border-border-default text-text-dim hover:text-text-secondary transition-colors"
         aria-label="Dismiss"
       >
         <X className="h-3 w-3" />

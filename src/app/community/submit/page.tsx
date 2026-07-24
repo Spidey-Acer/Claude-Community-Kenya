@@ -207,7 +207,7 @@ export default function CommunitySubmitPage() {
           </Field>
 
           {/* URLs */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="URL" hint="Live demo or docs">
               <input
                 type="url"
@@ -284,7 +284,7 @@ export default function CommunitySubmitPage() {
           {/* Submitter info */}
           <div className="rounded border border-border-default bg-bg-card p-5 space-y-4">
             <h2 className="font-mono text-sm font-medium text-text-secondary">About You (Optional)</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Your Name">
                 <input
                   type="text"
