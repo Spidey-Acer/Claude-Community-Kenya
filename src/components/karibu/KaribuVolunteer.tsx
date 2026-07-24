@@ -9,7 +9,7 @@
  * persona cleanup PR removes it.
  */
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, cloneElement, isValidElement, type ReactElement } from "react";
 import Link from "next/link";
 import { HandHeart, Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
@@ -46,12 +46,22 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const id = `f-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      >
         {label}
       </label>
-      {children}
+      {control}
       {error && <FieldError msg={error} />}
     </div>
   );
@@ -202,6 +212,7 @@ export function KaribuVolunteer() {
                 <Field label="Name *" error={fieldErrors.name}>
                   <input
                     type="text"
+                    autoComplete="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -214,6 +225,7 @@ export function KaribuVolunteer() {
                 <Field label="Email *" error={fieldErrors.email}>
                   <input
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -227,6 +239,7 @@ export function KaribuVolunteer() {
                 <Field label="Phone (optional)">
                   <input
                     type="tel"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     maxLength={20}
