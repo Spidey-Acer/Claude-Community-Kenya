@@ -173,6 +173,22 @@ assert(
     .success,
   "an over-long pitch is rejected"
 )
+assert(
+  !submissionInputSchema.safeParse({ ...validInput, projectName: "   " })
+    .success,
+  "a whitespace-only project name is rejected"
+)
+assert(
+  !submissionInputSchema.safeParse({ ...validInput, pitch: "<b></b>" }).success,
+  "a tags-only pitch is rejected"
+)
+assert(
+  submissionInputSchema.safeParse({
+    ...validInput,
+    projectName: "Farm Ledger v2",
+  }).success,
+  "a normal value with internal whitespace is still accepted"
+)
 
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`)
 process.exit(failures === 0 ? 0 : 1)

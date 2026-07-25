@@ -6,6 +6,12 @@
  * for a rejected scheme rather than throwing, so every URL field refines on
  * non-empty afterwards — otherwise "javascript:alert(1)" would be stored
  * silently as an empty string instead of being reported to the submitter.
+ *
+ * Required text fields follow the same shape: sanitise first, refine on
+ * non-empty afterwards. zodSanitizeString/zodSanitizeMultilineText trim and
+ * strip markup, so a raw string that looks non-empty ("   ", "<b></b>") can
+ * still sanitise down to "". Checking .min(1) on the raw input would miss
+ * that and let a blank submission through silently.
  */
 
 import { z } from "zod"
@@ -42,26 +48,36 @@ const optionalUrl = z
   .transform((v) => (v === "" ? null : zodSanitizeUrl(v)))
   .refine((v) => v !== "", { message: "That link is not a valid http(s) URL" })
 
+/**
+ * A required single-line field: sanitise, then refine on non-empty. Catches
+ * whitespace-only and markup-only input, which .min(1) on the raw string
+ * would miss since sanitising happens after that check.
+ */
+function requiredText(max: number) {
+  return z
+    .string()
+    .max(max)
+    .transform(zodSanitizeString)
+    .refine((v) => v !== "", { message: "This field is required" })
+}
+
+/** Same as requiredText, but for multi-line fields using the multiline sanitiser. */
+function requiredMultilineText(max: number) {
+  return z
+    .string()
+    .max(max)
+    .transform(zodSanitizeMultilineText(max))
+    .refine((v) => v !== "", { message: "This field is required" })
+}
+
 export const submissionInputSchema = z.object({
-  projectName: z.string().min(1).max(120).transform(zodSanitizeString),
-  pitch: z.string().min(1).max(200).transform(zodSanitizeString),
-  description: z
-    .string()
-    .min(1)
-    .max(MAX_LONG_TEXT)
-    .transform(zodSanitizeMultilineText(MAX_LONG_TEXT)),
-  worksVsMocked: z
-    .string()
-    .min(1)
-    .max(MAX_LONG_TEXT)
-    .transform(zodSanitizeMultilineText(MAX_LONG_TEXT)),
-  claudeUsage: z
-    .string()
-    .min(1)
-    .max(MAX_LONG_TEXT)
-    .transform(zodSanitizeMultilineText(MAX_LONG_TEXT)),
-  track: z.string().min(1).max(80).transform(zodSanitizeString),
-  problemTackled: z.string().min(1).max(300).transform(zodSanitizeString),
+  projectName: requiredText(120),
+  pitch: requiredText(200),
+  description: requiredMultilineText(MAX_LONG_TEXT),
+  worksVsMocked: requiredMultilineText(MAX_LONG_TEXT),
+  claudeUsage: requiredMultilineText(MAX_LONG_TEXT),
+  track: requiredText(80),
+  problemTackled: requiredText(300),
   repoUrl: requiredUrl,
   demoUrl: optionalUrl,
   videoUrl: optionalUrl,
