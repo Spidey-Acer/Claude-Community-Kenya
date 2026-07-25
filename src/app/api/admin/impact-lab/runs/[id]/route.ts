@@ -54,14 +54,15 @@ const updateSchema = z.object({
   // Lets the Matching tab attach explanations to a run it auto-saved before
   // Claude had finished writing them. Filtered to the run's own teams.
   explanations: z.array(explanationSchema).max(200).optional(),
-  // ISO 8601 with an explicit offset, or null to remove the deadline
-  // (submissions stay open). z.string().datetime() rejects an offset-less
-  // string like "2026-07-26T09:00" from a bare <input type="datetime-local">
-  // value — accepting that would let `new Date(str)` parse it in the
-  // server's timezone (UTC on Vercel), silently shifting an organiser's
-  // intended EAT deadline by hours. The UI is responsible for converting to
-  // an offset-bearing string before it ever reaches this endpoint.
-  submissionsCloseAt: z.string().datetime().nullable().optional(),
+  // ISO 8601 with an explicit offset (either "Z" or a numeric offset like
+  // "+03:00"), or null to remove the deadline (submissions stay open).
+  // { offset: true } rejects an offset-less string like "2026-07-26T09:00"
+  // from a bare <input type="datetime-local"> value — accepting that would
+  // let `new Date(str)` parse it in the server's timezone (UTC on Vercel),
+  // silently shifting an organiser's intended EAT deadline by hours. The UI
+  // is responsible for converting to an offset-bearing string (Z or numeric)
+  // before it ever reaches this endpoint.
+  submissionsCloseAt: z.string().datetime({ offset: true }).nullable().optional(),
 })
 
 /**

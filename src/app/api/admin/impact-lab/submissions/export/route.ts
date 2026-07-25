@@ -10,9 +10,16 @@ import {
 } from "@/lib/impact-lab/submission-state"
 
 /**
- * Judging CSV: one row per submission. Member emails appear only where the
- * live participant row consents to sharing contact — the same rule as the
- * teams export. toCsv escapes formula-injection prefixes.
+ * Judging CSV: one row per submission, scoped to the cohort's final run.
+ * Team ids are positional (`team-${index+1}`), reassigned fresh every time a
+ * run is generated — so a submission from a superseded run must never be
+ * paired with the current run's team roster. When there is no final run yet,
+ * export headers only (zero rows) rather than falling back to unfiltered
+ * cohort submissions; stale submissions stay visible to organisers via the
+ * admin submissions list, which already flags them with `isStale`. Member
+ * emails appear only where the live participant row consents to sharing
+ * contact — the same rule as the teams export. toCsv escapes
+ * formula-injection prefixes.
  */
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
@@ -21,16 +28,19 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const cohort = safeCohort(searchParams.get("cohort"))
 
-  const submissions = await prisma.impactLabSubmission.findMany({
-    where: { cohort },
-    orderBy: { teamName: "asc" },
-  })
-
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
+
+  const submissions = run
+    ? await prisma.impactLabSubmission.findMany({
+        where: { runId: run.id },
+        orderBy: { teamName: "asc" },
+      })
+    : []
+
   const teams = run ? (extractFrozenTeams(run.result) ?? []) : []
   const memberIdsByTeam = new Map(teams.map((t) => [t.id, t.memberIds]))
 
