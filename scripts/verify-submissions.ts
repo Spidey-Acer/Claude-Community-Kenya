@@ -127,6 +127,34 @@ assert(
     String(row[row.length - 1]).startsWith("2026-07-26"),
   "last column is an ISO timestamp"
 )
+assert(row[2] === "=SUM(A1:A9)", "pitch formula prefix is not double-escaped")
+// Full positional check: catches a field-order swap in submissionCsvRow that
+// none of the above would — a swap between two string columns still passes
+// row.length, row[0], the substring check and the timestamp check.
+const expectedRow = [
+  "Team 1",
+  "Clinic Queue",
+  "=SUM(A1:A9)",
+  "afya (health)",
+  "Queue times",
+  "Long text",
+  "Login works; payments mocked",
+  "Claude Code wrote the API",
+  "https://github.com/x/y",
+  "",
+  "",
+  "",
+  "",
+  "PENDING",
+  "Amina; Brian",
+  "amina@x.io",
+  "brian@x.io",
+  "2026-07-26T05:47:00.000Z",
+]
+assert(
+  JSON.stringify(row) === JSON.stringify(expectedRow),
+  "every column lands in the position matching SUBMISSION_CSV_HEADERS"
+)
 
 console.log("\nInput validation")
 const validInput = {
