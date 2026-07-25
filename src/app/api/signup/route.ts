@@ -7,6 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { zodSanitizeEmail, zodSanitizeString } from "@/lib/input-sanitization"
 import { sendEmailVerificationEmail } from "@/lib/email"
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification"
 
 const VERIFICATION_TTL_HOURS = 24
 
@@ -65,6 +66,27 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
+
+  // With verification off, no token is minted and no mail is sent — the quota
+  // stays available for password resets. See @/lib/email-verification.
+  if (!REQUIRE_EMAIL_VERIFICATION) {
+    await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        role: "MEMBER",
+        active: true,
+        emailVerified: true,
+      },
+    })
+    return NextResponse.json({
+      success: true,
+      message: "Account created. You can sign in now.",
+    })
+  }
+
   const verificationToken = crypto.randomBytes(32).toString("hex")
   const verificationExpires = new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60_000)
 
