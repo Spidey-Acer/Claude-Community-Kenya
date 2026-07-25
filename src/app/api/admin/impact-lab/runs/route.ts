@@ -21,19 +21,92 @@ const explanationSchema = z.object({
   source: z.enum(["deterministic", "ai"]),
 })
 
+// The reviewed result as displayed by the Matching tab — a structural mirror of
+// the engine's MatchResult, validated field by field before it may be frozen.
+const dimensionSchema = z.object({
+  key: z.string().max(40),
+  raw: z.number(),
+  weight: z.number(),
+  weighted: z.number(),
+})
+const scoreSchema = z.object({
+  total: z.number().min(0).max(100),
+  dimensions: z.array(dimensionSchema).max(10),
+  penalties: z.array(z.object({ reason: z.string().max(300), points: z.number() })).max(10),
+  penaltyTotal: z.number(),
+})
+const teamSchema = z.object({
+  id: z.string().max(40),
+  name: z.string().max(120),
+  memberIds: z.array(z.string().max(40)).min(1).max(20),
+  locked: z.boolean(),
+  score: scoreSchema,
+})
+const resultSchema = z.object({
+  teams: z.array(teamSchema).max(200),
+  unassignedIds: z.array(z.string().max(40)).max(1000),
+  warnings: z.array(z.string().max(600)).max(200),
+  averageScore: z.number(),
+  settingsUsed: z.unknown(),
+})
+
 const saveSchema = z.object({
   cohort: z.string().max(60).optional(),
   name: z.string().min(1).max(120),
   notes: z.string().max(1000).optional(),
   settings: z.unknown().optional(),
-  // Signature of the result the organiser reviewed. If the recomputed result
-  // differs (a participant was edited since Generate), we refuse to save.
+  // The result the organiser reviewed on screen. When present it is frozen
+  // as-is (after structural + constraint validation) — participants editing
+  // their profiles between Generate and Save can no longer block the save.
+  result: resultSchema.optional(),
+  // Legacy fallback only (no `result` in the payload): signature of the
+  // reviewed result; the server recomputes and refuses on mismatch.
   expectedSignature: z.string().max(64).optional(),
   // The explanations the organiser reviewed (Claude or deterministic). Stored
   // with the run so the member reveal shows the same wording; optional because
   // an organiser may save without ever clicking Explain.
   explanations: z.array(explanationSchema).max(200).optional(),
 })
+
+/**
+ * Constraint checks on a client-submitted result: every referenced participant
+ * must exist in the cohort, nobody may be assigned twice, and no team may pair
+ * participants who blocked each other. Returns an error string or null.
+ */
+function validateReviewedResult(
+  result: z.infer<typeof resultSchema>,
+  rowsById: Map<string, { email: string; blockedTeammates: string[] }>
+): string | null {
+  const seen = new Set<string>()
+  for (const team of result.teams) {
+    for (const id of team.memberIds) {
+      if (!rowsById.has(id)) {
+        return "The reviewed teams reference a participant who no longer exists. Regenerate and try again."
+      }
+      if (seen.has(id)) {
+        return "The reviewed teams assign a participant to two teams. Regenerate and try again."
+      }
+      seen.add(id)
+    }
+    const members = team.memberIds.map((id) => rowsById.get(id)!)
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        if (
+          members[i].blockedTeammates.includes(members[j].email) ||
+          members[j].blockedTeammates.includes(members[i].email)
+        ) {
+          return "The reviewed teams place a blocked pair together. Regenerate and try again."
+        }
+      }
+    }
+  }
+  for (const id of result.unassignedIds) {
+    if (seen.has(id)) {
+      return "A participant is both assigned and unassigned. Regenerate and try again."
+    }
+  }
+  return null
+}
 
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
@@ -113,20 +186,36 @@ export async function POST(request: NextRequest) {
 
   const participants = await prisma.impactLabParticipant.findMany({ where: { cohort } })
   const mapped = participants.map(toMatchParticipant)
-  const result = runMatching(mapped, settings)
 
-  // Refuse to freeze a run that differs from what the organiser reviewed.
-  if (
-    validation.data.expectedSignature &&
-    resultSignature(result) !== validation.data.expectedSignature
-  ) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Participants changed since these teams were generated. Regenerate before saving.",
-      },
-      { status: 409 }
+  let result: MatchResult
+  if (validation.data.result) {
+    // Freeze exactly what the organiser reviewed. Recomputing here used to
+    // 409 whenever ANY participant edited their profile between Generate and
+    // Save — with a live cohort editing constantly, that dead-ended every
+    // save. Constraint validation replaces bit-exact recompute.
+    const rowsById = new Map(
+      participants.map((p) => [p.id, { email: p.email, blockedTeammates: p.blockedTeammates }])
     )
+    const constraintError = validateReviewedResult(validation.data.result, rowsById)
+    if (constraintError) {
+      return NextResponse.json({ success: false, error: constraintError }, { status: 409 })
+    }
+    result = validation.data.result as MatchResult
+  } else {
+    // Legacy path (older clients): recompute and refuse on signature drift.
+    result = runMatching(mapped, settings)
+    if (
+      validation.data.expectedSignature &&
+      resultSignature(result) !== validation.data.expectedSignature
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Participants changed since these teams were generated. Regenerate before saving.",
+        },
+        { status: 409 }
+      )
+    }
   }
 
   // Only keep explanations that describe teams actually in the recomputed

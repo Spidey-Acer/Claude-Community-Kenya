@@ -36,10 +36,24 @@ export async function GET(
   return NextResponse.json({ success: true, data: run })
 }
 
+const explanationSchema = z.object({
+  teamId: z.string().max(40),
+  summary: z.string().max(4000),
+  strengths: z.array(z.string().max(1000)).max(20),
+  weaknesses: z.array(z.string().max(1000)).max(20),
+  suggestedProjectDirection: z.string().max(2000).optional(),
+  suggestedInternalRoles: z.record(z.string().max(40), z.string().max(200)).optional(),
+  warnings: z.array(z.string().max(1000)).max(20),
+  source: z.enum(["deterministic", "ai"]),
+})
+
 const updateSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   notes: z.string().max(1000).nullable().optional(),
   isFinal: z.boolean().optional(),
+  // Lets the Matching tab attach explanations to a run it auto-saved before
+  // Claude had finished writing them. Filtered to the run's own teams.
+  explanations: z.array(explanationSchema).max(200).optional(),
 })
 
 /**
@@ -79,6 +93,17 @@ export async function PATCH(
 
   const { name, notes, isFinal } = validation.data
 
+  // Explanations may only describe teams that exist in this run's frozen result.
+  let explanationsUpdate: Record<string, unknown> | undefined
+  if (validation.data.explanations) {
+    const teams = (existing.result as { teams?: { id?: string }[] } | null)?.teams ?? []
+    const teamIds = new Set(teams.map((t) => t.id))
+    const kept = validation.data.explanations.filter((e) => teamIds.has(e.teamId))
+    if (kept.length > 0) {
+      explanationsUpdate = { explanations: JSON.parse(JSON.stringify(kept)) }
+    }
+  }
+
   if (isFinal === true) {
     // Approving a final run requires the `approve` permission, not just `edit`.
     const approveCheck = await checkApiPermission("impact-lab", "approve")
@@ -96,6 +121,7 @@ export async function PATCH(
             isFinal: true,
             ...(name !== undefined ? { name } : {}),
             ...(notes !== undefined ? { notes } : {}),
+            ...explanationsUpdate,
           },
         }),
       ])
@@ -117,6 +143,7 @@ export async function PATCH(
         ...(name !== undefined ? { name } : {}),
         ...(notes !== undefined ? { notes } : {}),
         ...(isFinal === false ? { isFinal: false } : {}),
+        ...explanationsUpdate,
       },
     })
   }

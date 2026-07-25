@@ -77,6 +77,9 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
   const [saving, setSaving] = useState(false)
   const [runName, setRunName] = useState("")
   const [error, setError] = useState<string | null>(null)
+  /** Run created automatically at generate time; explanations get patched onto it. */
+  const [autoSavedRunId, setAutoSavedRunId] = useState<string | null>(null)
+  const [autoSaveNote, setAutoSaveNote] = useState<string | null>(null)
 
   // localStorage is read after mount — reading it during render would make the
   // server and client HTML disagree and trigger a hydration error.
@@ -113,8 +116,32 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     setGenerating(true)
     setError(null)
     setExplanations(null)
+    setAutoSavedRunId(null)
+    setAutoSaveNote(null)
     try {
-      setData(await apiSend<MatchResponse>("/api/admin/impact-lab/match", "POST", { cohort, settings }))
+      const res = await apiSend<MatchResponse>("/api/admin/impact-lab/match", "POST", { cohort, settings })
+      setData(res)
+
+      // Auto-save immediately: a generated result that only lives in this tab
+      // is one refresh away from being lost, and the reveal needs a SAVED run.
+      // Named by clock time so successive runs stay tellable apart; rename or
+      // delete from the Runs tab.
+      try {
+        const stamp = new Date().toLocaleString("en-KE", { dateStyle: "short", timeStyle: "short" })
+        const run = await apiSend<{ id: string }>("/api/admin/impact-lab/runs", "POST", {
+          cohort,
+          name: `Auto-save · ${stamp}`,
+          settings,
+          result: res.result,
+        })
+        setAutoSavedRunId(run.id)
+        setAutoSaveNote("Saved automatically — find it in the Runs tab.")
+        onSaved()
+      } catch (saveError) {
+        setAutoSaveNote(
+          `Generated, but auto-save failed: ${saveError instanceof Error ? saveError.message : "unknown error"}. Save manually below.`
+        )
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate")
     } finally {
@@ -128,6 +155,20 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     try {
       const res = await apiSend<{ explanations: TeamExplanation[] }>("/api/admin/impact-lab/explain", "POST", { cohort, settings, expectedSignature: data?.signature })
       setExplanations(res.explanations)
+
+      // Attach the writeups to the run auto-saved at generate time, so what
+      // participants see on the reveal matches what's on screen here.
+      if (autoSavedRunId) {
+        try {
+          await apiSend(`/api/admin/impact-lab/runs/${autoSavedRunId}`, "PATCH", {
+            explanations: res.explanations,
+          })
+          setAutoSaveNote("Saved automatically, explanations attached — see the Runs tab.")
+          onSaved()
+        } catch {
+          setAutoSaveNote("Explanations ready, but attaching them to the auto-saved run failed. Save manually below.")
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to explain")
     } finally {
@@ -140,9 +181,10 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     setSaving(true)
     setError(null)
     try {
-      // Explanations ride along so the reviewed wording (usually Claude's) is
-      // frozen with the run — the member reveal shows exactly what was saved.
-      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings, expectedSignature: data?.signature, explanations: explanations ?? undefined })
+      // The reviewed result and its explanations ride along so the run
+      // freezes exactly what's on screen — profile edits by participants
+      // between Generate and Save can no longer block the save with a 409.
+      await apiSend("/api/admin/impact-lab/runs", "POST", { cohort, name: runName.trim(), settings, result: data?.result, expectedSignature: data?.signature, explanations: explanations ?? undefined })
       setRunName("")
       onSaved()
     } catch (e) {
@@ -246,6 +288,19 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
       </div>
 
       {error && <div className="p-2 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-[11px] font-mono text-[#ff3333]">{error}</div>}
+
+      {autoSaveNote && (
+        <div
+          role="status"
+          className={`p-2 border rounded text-[11px] font-mono ${
+            autoSavedRunId
+              ? "bg-[#00ff41]/5 border-[#00ff41]/30 text-[#00ff41]"
+              : "bg-[#ffb000]/5 border-[#ffb000]/30 text-[#ffb000]"
+          }`}
+        >
+          {autoSaveNote}
+        </div>
+      )}
 
       {data && (
         <>

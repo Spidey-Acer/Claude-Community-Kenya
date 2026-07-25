@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useState } from "react"
-import { Loader2, Trash2, Download, CheckCircle2, ChevronRight, ChevronDown, Pencil, Save, X } from "lucide-react"
+import { Loader2, Trash2, Download, CheckCircle2, ChevronRight, ChevronDown, Pencil, Save, X, Send } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { RunDetail } from "./RunDetail"
 import type { ParticipantRow, RunSummary } from "./types"
@@ -9,6 +9,18 @@ import type { ParticipantRow, RunSummary } from "./types"
 interface RunsTabProps {
   cohort: string
   refreshKey: number
+}
+
+/** Which slice of the cohort a notify blast targets — see /api/admin/impact-lab/notify. */
+type EmailGroup = "all" | "first" | "second"
+const GROUP_LABEL: Record<EmailGroup, string> = { all: "All", first: "1st half", second: "2nd half" }
+
+interface NotifyResult {
+  sent: number
+  failed: number
+  recipients: number
+  group: EmailGroup
+  cohortSize: number
 }
 
 export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
@@ -25,6 +37,10 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
   const [nameDraft, setNameDraft] = useState("")
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState("")
+
+  const [notifyingRunId, setNotifyingRunId] = useState<string | null>(null)
+  const [notifyingGroup, setNotifyingGroup] = useState<EmailGroup | null>(null)
+  const [notifyResult, setNotifyResult] = useState<NotifyResult | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -114,9 +130,45 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
     }
   }
 
+  async function emailReveal(run: RunSummary, group: EmailGroup) {
+    const confirmText =
+      group === "all"
+        ? "Email every matched participant that their team is ready? This sends real email."
+        : `Email the ${group === "first" ? "first" : "second"} half of matched participants that their team is ready? This sends real email.`
+    if (!window.confirm(confirmText)) return
+    setNotifyingRunId(run.id)
+    setNotifyingGroup(group)
+    setError(null)
+    setNotifyResult(null)
+    try {
+      const result = await apiSend<NotifyResult>(
+        "/api/admin/impact-lab/notify",
+        "POST",
+        { type: "reveal", group }
+      )
+      setNotifyResult(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send emails")
+    } finally {
+      setNotifyingRunId(null)
+      setNotifyingGroup(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {error && <div className="p-2 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-[11px] font-mono text-[#ff3333]">{error}</div>}
+      {notifyResult && (
+        <div role="status" className="p-2 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] flex items-center justify-between gap-2">
+          <span>
+            {GROUP_LABEL[notifyResult.group]}: sent {notifyResult.sent} of {notifyResult.recipients} emails
+            {notifyResult.failed > 0 && <span className="text-[#ff3333]">, {notifyResult.failed} failed</span>}
+          </span>
+          <button onClick={() => setNotifyResult(null)} aria-label="Dismiss notification status" className="text-[#00ff41]/60 hover:text-[#00ff41]">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
       <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin text-[#333] mx-auto" /></div>
@@ -216,6 +268,35 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
                         <div className="flex items-center justify-end gap-2">
                           {!run.isFinal && (
                             <button onClick={() => markFinal(run.id)} disabled={busy} title="Mark final" className="text-[#00ff41]/70 hover:text-[#00ff41] disabled:opacity-40"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                          )}
+                          {run.isFinal && (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => emailReveal(run, "all")}
+                                disabled={busy || notifyingRunId !== null}
+                                title="Email team reveal to all"
+                                aria-label={`Email team reveal to all matched participants for ${run.name}`}
+                                className="text-[#ffb000]/70 hover:text-[#ffb000] disabled:opacity-40"
+                              >
+                                {notifyingRunId === run.id && notifyingGroup === "all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => emailReveal(run, "first")}
+                                disabled={busy || notifyingRunId !== null}
+                                aria-label={`Email team reveal to the first half for ${run.name}`}
+                                className="text-[10px] font-mono text-[#ffb000]/70 hover:text-[#ffb000] disabled:opacity-40"
+                              >
+                                {notifyingRunId === run.id && notifyingGroup === "first" ? <Loader2 className="w-3 h-3 animate-spin" /> : "1st half"}
+                              </button>
+                              <button
+                                onClick={() => emailReveal(run, "second")}
+                                disabled={busy || notifyingRunId !== null}
+                                aria-label={`Email team reveal to the second half for ${run.name}`}
+                                className="text-[10px] font-mono text-[#ffb000]/70 hover:text-[#ffb000] disabled:opacity-40"
+                              >
+                                {notifyingRunId === run.id && notifyingGroup === "second" ? <Loader2 className="w-3 h-3 animate-spin" /> : "2nd half"}
+                              </button>
+                            </div>
                           )}
                           <a href={`/api/admin/impact-lab/runs/${run.id}/export`} title="Export teams CSV" className="text-[#00d4ff]/70 hover:text-[#00d4ff]"><Download className="w-3.5 h-3.5" /></a>
                           <button onClick={() => remove(run.id)} disabled={busy} title="Delete" className="text-[#ff3333]/70 hover:text-[#ff3333] disabled:opacity-40"><Trash2 className="w-3.5 h-3.5" /></button>
