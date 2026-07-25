@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "verify:matching": "tsx scripts/verify-matching.ts",
     "verify:submissions": "tsx scripts/verify-submissions.ts",
-    "verify:rematch": "tsx scripts/verify-rematch.ts"
+    "verify:rematch": "tsx scripts/verify-rematch.ts",
+    "import:manual-teams": "tsx scripts/import-manual-teams.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
