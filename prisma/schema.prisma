@@ -701,6 +701,11 @@ model ImpactLabMatchRun {
   /// reviewed wording survives the save — the member reveal and run detail read
   /// this instead of recomputing. Null on legacy runs → deterministic fallback.
   explanations         Json?
+  /// Submission window for the teams this run published. Null = open with no
+  /// deadline. Editable by an organiser so a slipped demo slot needs a field
+  /// change, not a database edit.
+  submissionsCloseAt   DateTime?
+  submissions          ImpactLabSubmission[]
   createdById          String?
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
@@ -714,4 +719,42 @@ model ImpactLabMatchRun {
   @@index([cohort, isFinal])
   @@index([createdById])
   @@map("impact_lab_match_runs")
+}
+
+/// One project submission per team, for the run that published those teams.
+/// Teams have no table of their own — they live inside ImpactLabMatchRun.result
+/// JSON — so `teamId` is the id from that JSON and cannot be a foreign key.
+/// Any member of the team may create or edit the row until the run's
+/// submissionsCloseAt passes.
+model ImpactLabSubmission {
+  id                String            @id @default(cuid())
+  cohort            String
+  runId             String
+  teamId            String
+  /// Denormalised so exports stay readable without re-parsing the run JSON.
+  teamName          String
+  projectName       String
+  pitch             String
+  description       String            @db.Text
+  worksVsMocked     String            @db.Text
+  claudeUsage       String            @db.Text
+  track             String
+  problemTackled    String
+  repoUrl           String
+  demoUrl           String?
+  videoUrl          String?
+  /// Link to a deck (Drive/Figma/etc). Never an uploaded file — see the spec.
+  slidesUrl         String?
+  screenshotUrl     String?
+  status            ApplicationStatus @default(PENDING)
+  createdByEmail    String
+  lastEditedByEmail String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, teamId])
+  @@index([cohort, status])
+  @@map("impact_lab_submissions")
 }
