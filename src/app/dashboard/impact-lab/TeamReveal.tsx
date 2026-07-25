@@ -5,7 +5,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Check, Copy, Lightbulb, Mail, PartyPopper, UserCheck, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
 import { csrfHeaders } from "@/lib/csrf-client";
+import { useRouter } from "next/navigation";
 import { SubmitProject } from "./SubmitProject";
+import { TeamRoster } from "./TeamRoster";
 
 interface TeamResponse {
   success?: boolean;
@@ -22,6 +24,7 @@ const TEAMMATE_POLL_INTERVAL_MS = 30_000;
  */
 export function TeamReveal({ team }: { team: TeamRevealView }) {
   const prefersReducedMotion = useReducedMotion();
+  const router = useRouter();
 
   // Seeded from the team payload (the caller is always one of the members),
   // then flipped locally the moment the check-in call succeeds — no reload
@@ -297,6 +300,16 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
           </li>
         </ol>
       </motion.section>
+
+      <TeamRoster
+        members={team.members}
+        onChanged={() => {
+          // The roster lives in the server-rendered payload, so a change is
+          // only visible after a refetch — reload rather than patch local
+          // state, so everyone sees the same roster the server now holds.
+          router.refresh();
+        }}
+      />
 
       <SubmitProject />
     </motion.div>

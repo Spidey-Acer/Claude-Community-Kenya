@@ -60,3 +60,6 @@ next-env.d.ts
 # Local scratch / dev screenshots
 .tmp/
 .gstack/
+
+# Script output — contains participant names/ids; never commit (public repo)
+scripts/output/
