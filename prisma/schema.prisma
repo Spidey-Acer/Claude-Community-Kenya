@@ -713,6 +713,7 @@ model ImpactLabMatchRun {
   /// change, not a database edit.
   submissionsCloseAt   DateTime?
   submissions          ImpactLabSubmission[]
+  scores               ImpactLabScore[]
   createdById          String?
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
@@ -764,4 +765,34 @@ model ImpactLabSubmission {
   @@unique([runId, teamId])
   @@index([cohort, status])
   @@map("impact_lab_submissions")
+}
+
+/// One judge's scorecard for one team. Judges score independently and the
+/// leaderboard averages them, so a team seen by four judges is not beaten by
+/// an identical team seen by three.
+///
+/// `scores` holds the raw 1-5 value per criterion key (see lib/impact-lab/
+/// judging.ts). The weighted total is derived, never stored: the weights are
+/// published and may be corrected, and a stored total would silently disagree
+/// with the criteria it claims to represent.
+model ImpactLabScore {
+  id         String   @id @default(cuid())
+  cohort     String
+  runId      String
+  /// Team id from the run's result JSON — teams have no table, so no FK.
+  teamId     String
+  judgeEmail String
+  judgeName  String
+  scores     Json
+  feedback   String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  /// One scorecard per judge per team: a second submission edits the first
+  /// rather than double-counting that judge's opinion.
+  @@unique([runId, teamId, judgeEmail])
+  @@index([cohort, teamId])
+  @@map("impact_lab_scores")
 }
