@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { getUpcomingEvents } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants";
@@ -84,7 +85,10 @@ export default async function DashboardPage() {
 
   // Impact Lab hackathon status — mirrors the states on /dashboard/impact-lab.
   let impactLabStatus: ImpactLabStatus = "verify";
-  if (user.emailVerified) {
+  // Same flag the API and the Impact Lab page use: with verification off we
+  // send no verification mail, so gating on emailVerified alone would strand
+  // every pre-flag account on the "verify" card permanently.
+  if (!REQUIRE_EMAIL_VERIFICATION || user.emailVerified) {
     // No .catch(() => null) here: swallowing a DB error would show a
     // registered participant the affirmative "Registration not found" copy.
     // A down DB surfaces via the page error boundary, same as the user query.
@@ -147,7 +151,7 @@ export default async function DashboardPage() {
           </div>
         </header>
 
-        {!user.emailVerified && <VerifyEmailBanner />}
+        {REQUIRE_EMAIL_VERIFICATION && !user.emailVerified && <VerifyEmailBanner />}
 
         <section className="mb-8" aria-label="Impact Lab hackathon">
           <ImpactLabCard status={impactLabStatus} />

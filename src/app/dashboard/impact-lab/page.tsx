@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
@@ -47,7 +48,12 @@ export default async function ImpactLabPage() {
           </p>
         </header>
 
-        {!user.emailVerified ? (
+        {/* Gate on the same flag the API uses. When verification is off we send
+            no verification mail, so blocking here on emailVerified alone locks
+            out every account created before the flag flipped, with no way to
+            comply — the participant is told to check an inbox nothing was sent
+            to. */}
+        {REQUIRE_EMAIL_VERIFICATION && !user.emailVerified ? (
           <>
             <VerifyEmailBanner />
             <p className="font-mono text-sm text-text-secondary">
