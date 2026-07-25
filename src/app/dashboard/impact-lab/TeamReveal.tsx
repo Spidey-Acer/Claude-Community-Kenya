@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Copy, Lightbulb, Mail, PartyPopper, UserCheck, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
 import { csrfHeaders } from "@/lib/csrf-client";
 import { SubmitProject } from "./SubmitProject";
+
+interface TeamResponse {
+  success?: boolean;
+  team?: TeamRevealView;
+}
+
+const TEAMMATE_POLL_INTERVAL_MS = 30_000;
 
 /**
  * The finalized team, as qualities rather than numbers — the API already
@@ -24,6 +31,41 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
   );
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
+
+  // Someone is staring at this screen waiting for "has my teammate arrived
+  // yet?" to change on its own — a snapshot from page load isn't enough.
+  // Polled independently of `checkedIn` above (which stays purely local —
+  // it's the source of truth for the user's own check-in and must never be
+  // overwritten by a background fetch racing the tap that just set it).
+  // Keyed by teammate id, self excluded on purpose.
+  const [teammateCheckedIn, setTeammateCheckedIn] = useState<Record<string, boolean>>(
+    () =>
+      Object.fromEntries(
+        team.members.filter((m) => !m.isSelf).map((m) => [m.id, m.checkedIn])
+      )
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/impact-lab/team")
+        .then((res) => (res.ok ? (res.json() as Promise<TeamResponse>) : null))
+        .then((json) => {
+          if (!json?.success || !json.team) return; // keep showing current data, retry next tick
+          setTeammateCheckedIn((prev) => {
+            const next = { ...prev };
+            for (const m of json.team!.members) {
+              if (!m.isSelf) next[m.id] = m.checkedIn;
+            }
+            return next;
+          });
+        })
+        // A failed background refresh must not blank or error out a screen
+        // someone is mid-read of — just leave what's on screen and retry
+        // on the next tick.
+        .catch(() => {});
+    }, TEAMMATE_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleCheckIn() {
     setCheckingIn(true);
@@ -127,8 +169,11 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
         <ul className="space-y-3">
           {team.members.map((member) => {
             // Self reflects the locally-updated state (no reload needed
-            // right after checking in); teammates reflect the server view.
-            const memberCheckedIn = member.isSelf ? checkedIn : member.checkedIn;
+            // right after checking in); teammates reflect the polled server
+            // view, falling back to the initial payload before the first poll.
+            const memberCheckedIn = member.isSelf
+              ? checkedIn
+              : teammateCheckedIn[member.id] ?? member.checkedIn;
             return (
             <li
               key={member.id}
