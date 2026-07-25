@@ -21,6 +21,8 @@ export interface ParticipantRow {
   blockedTeammates: string[]
   consentToMatch: boolean
   consentToShareContact: boolean
+  checkedInAt: string | null
+  checkedInBy: string | null
 }
 
 /** Slim participant directory returned alongside a match result. */

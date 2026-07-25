@@ -19,6 +19,13 @@ export { assign } from "./algorithm"
 export { optimizeAssignment } from "./optimization"
 export { explainTeam, explainResult } from "./explanations"
 export { normalizeParticipants } from "./normalization"
+export {
+  computeRematch,
+  type RematchParticipant,
+  type RematchMove,
+  type RematchSummary,
+  type RematchOutcome,
+} from "./rematch"
 
 import { assign } from "./algorithm"
 import { optimizeAssignment } from "./optimization"

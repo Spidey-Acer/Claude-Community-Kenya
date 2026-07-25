@@ -674,6 +674,13 @@ model ImpactLabParticipant {
   blockedTeammates      String[]            // emails — hard constraint, never shown publicly
   consentToMatch        Boolean             @default(false)
   consentToShareContact Boolean             @default(false)
+  /// When this person confirmed they are physically at the event. Null means
+  /// not checked in — which is what makes them a candidate for rematching.
+  checkedInAt           DateTime?
+  /// Who recorded the check-in: "self" when the participant tapped it on their
+  /// own dashboard, otherwise the organiser's email. Kept so a disputed
+  /// check-in can be traced rather than argued about.
+  checkedInBy           String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 

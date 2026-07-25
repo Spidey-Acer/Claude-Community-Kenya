@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Check, Copy, Lightbulb, Mail, PartyPopper, Users } from "lucide-react";
+import { Check, Copy, Lightbulb, Mail, PartyPopper, UserCheck, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
+import { csrfHeaders } from "@/lib/csrf-client";
 import { SubmitProject } from "./SubmitProject";
+
+interface TeamResponse {
+  success?: boolean;
+  team?: TeamRevealView;
+}
+
+const TEAMMATE_POLL_INTERVAL_MS = 30_000;
 
 /**
  * The finalized team, as qualities rather than numbers — the API already
@@ -14,6 +22,70 @@ import { SubmitProject } from "./SubmitProject";
  */
 export function TeamReveal({ team }: { team: TeamRevealView }) {
   const prefersReducedMotion = useReducedMotion();
+
+  // Seeded from the team payload (the caller is always one of the members),
+  // then flipped locally the moment the check-in call succeeds — no reload
+  // needed to show the confirmed state.
+  const [checkedIn, setCheckedIn] = useState(
+    () => team.members.find((m) => m.isSelf)?.checkedIn ?? false
+  );
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+
+  // Someone is staring at this screen waiting for "has my teammate arrived
+  // yet?" to change on its own — a snapshot from page load isn't enough.
+  // Polled independently of `checkedIn` above (which stays purely local —
+  // it's the source of truth for the user's own check-in and must never be
+  // overwritten by a background fetch racing the tap that just set it).
+  // Keyed by teammate id, self excluded on purpose.
+  const [teammateCheckedIn, setTeammateCheckedIn] = useState<Record<string, boolean>>(
+    () =>
+      Object.fromEntries(
+        team.members.filter((m) => !m.isSelf).map((m) => [m.id, m.checkedIn])
+      )
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/impact-lab/team")
+        .then((res) => (res.ok ? (res.json() as Promise<TeamResponse>) : null))
+        .then((json) => {
+          if (!json?.success || !json.team) return; // keep showing current data, retry next tick
+          setTeammateCheckedIn((prev) => {
+            const next = { ...prev };
+            for (const m of json.team!.members) {
+              if (!m.isSelf) next[m.id] = m.checkedIn;
+            }
+            return next;
+          });
+        })
+        // A failed background refresh must not blank or error out a screen
+        // someone is mid-read of — just leave what's on screen and retry
+        // on the next tick.
+        .catch(() => {});
+    }, TEAMMATE_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function handleCheckIn() {
+    setCheckingIn(true);
+    setCheckInError(null);
+    try {
+      const res = await fetch("/api/impact-lab/check-in", {
+        method: "POST",
+        headers: await csrfHeaders(),
+      });
+      const json: { success?: boolean; error?: string } = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Check-in failed");
+      }
+      setCheckedIn(true);
+    } catch (e) {
+      setCheckInError(e instanceof Error ? e.message : "Check-in failed");
+    } finally {
+      setCheckingIn(false);
+    }
+  }
 
   const container = {
     hidden: {},
@@ -64,7 +136,30 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
               {team.members.length} members &middot; see you at the hackathon.
             </p>
           </div>
+          <div className="shrink-0">
+            {checkedIn ? (
+              <span className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-1.5 font-mono text-xs font-semibold text-green-primary">
+                <UserCheck className="h-3.5 w-3.5" />
+                You&apos;re checked in
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCheckIn}
+                disabled={checkingIn}
+                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-1.5 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50"
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                {checkingIn ? "Checking in…" : "I'm here — check in"}
+              </button>
+            )}
+          </div>
         </div>
+        {checkInError && (
+          <p role="alert" className="relative mt-3 font-mono text-xs text-red">
+            {checkInError}
+          </p>
+        )}
       </motion.section>
 
       <motion.section variants={item} aria-label="Teammates">
@@ -72,11 +167,24 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
           {"// ./teammates"}
         </h3>
         <ul className="space-y-3">
-          {team.members.map((member) => (
+          {team.members.map((member) => {
+            // Self reflects the locally-updated state (no reload needed
+            // right after checking in); teammates reflect the polled server
+            // view, falling back to the initial payload before the first poll.
+            const memberCheckedIn = member.isSelf
+              ? checkedIn
+              : teammateCheckedIn[member.id] ?? member.checkedIn;
+            return (
             <li
               key={member.id}
               className="flex flex-wrap items-center gap-3 rounded border border-border-default bg-bg-secondary px-4 py-3"
             >
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  memberCheckedIn ? "bg-green-primary" : "bg-text-dim/40"
+                }`}
+              />
               <span className="font-mono text-sm text-text-primary">
                 {member.fullName}
               </span>
@@ -85,6 +193,13 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
                   you
                 </span>
               )}
+              <span
+                className={`font-mono text-[10px] uppercase tracking-wider ${
+                  memberCheckedIn ? "text-green-primary" : "text-text-dim"
+                }`}
+              >
+                {memberCheckedIn ? "here" : "not yet here"}
+              </span>
               {member.primaryRole && (
                 <span className="rounded border border-border-default bg-bg-card px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim">
                   {member.primaryRole}
@@ -105,7 +220,8 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
                 ) : null}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
         <p className="mt-2 font-mono text-[10px] text-text-dim">
           Emails appear only for teammates who chose to share their contact.

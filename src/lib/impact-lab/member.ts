@@ -100,6 +100,12 @@ export interface TeamMemberView {
   isSelf: boolean
   /** Only set for self, or for teammates with consentToShareContact = true. */
   email: string | null
+  /**
+   * Whether this teammate has confirmed they're at the event. Boolean only —
+   * never the timestamp or who recorded it, so teammates can see who's here
+   * without auditing each other.
+   */
+  checkedIn: boolean
 }
 
 /** A member's finalized team — no scores, no snapshot leakage. */

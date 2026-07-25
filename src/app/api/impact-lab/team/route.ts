@@ -115,6 +115,7 @@ export async function GET() {
       suggestedInternalRole: explanation.suggestedInternalRoles?.[id] ?? null,
       isSelf,
       email: shareEmail ? (liveP?.email ?? (isSelf ? check.email : null)) : null,
+      checkedIn: Boolean(liveP?.checkedInAt),
     }
   })
 

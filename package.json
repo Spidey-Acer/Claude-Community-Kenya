@@ -13,7 +13,8 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "verify:matching": "tsx scripts/verify-matching.ts",
-    "verify:submissions": "tsx scripts/verify-submissions.ts"
+    "verify:submissions": "tsx scripts/verify-submissions.ts",
+    "verify:rematch": "tsx scripts/verify-rematch.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
