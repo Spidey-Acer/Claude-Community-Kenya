@@ -5,7 +5,7 @@
  */
 
 import type { ImpactLabParticipant } from "@/generated/prisma/client"
-import type { ExperienceLevel, MatchParticipant } from "@/lib/matching"
+import type { ExperienceLevel, MatchParticipant, RematchParticipant } from "@/lib/matching"
 
 export function toMatchParticipant(
   row: ImpactLabParticipant
@@ -24,4 +24,15 @@ export function toMatchParticipant(
     blockedTeammates: row.blockedTeammates,
     consentToMatch: row.consentToMatch,
   }
+}
+
+/**
+ * Like `toMatchParticipant`, plus the one fact the rematch engine needs: is
+ * this person physically at the event right now. The null check happens here
+ * — at the DB boundary — so the pure rematch logic never reads a Date.
+ */
+export function toRematchParticipant(
+  row: ImpactLabParticipant
+): RematchParticipant {
+  return { ...toMatchParticipant(row), checkedIn: row.checkedInAt !== null }
 }
