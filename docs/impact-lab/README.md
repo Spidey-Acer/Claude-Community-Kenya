@@ -36,6 +36,7 @@ output.
 | 11 | [API layer](./11-api.md) | Routes, shared helpers, resilient CSV + Luma import |
 | 12 | [Admin UI](./12-admin-ui.md) | The three tabs; rendering the score breakdown |
 | 13 | [Audit hardening](./13-hardening.md) | Security/perf fixes from the PR review, and why |
+| 14 | [Team project submissions](./14-submissions.md) | One row per team, links-only, deadline on the run, judging CSV |
 
 ## Try it
 

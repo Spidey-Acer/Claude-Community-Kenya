@@ -12,7 +12,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "verify:matching": "tsx scripts/verify-matching.ts"
+    "verify:matching": "tsx scripts/verify-matching.ts",
+    "verify:submissions": "tsx scripts/verify-submissions.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
