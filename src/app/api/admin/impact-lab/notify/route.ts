@@ -21,7 +21,24 @@ export const maxDuration = 60
 const notifySchema = z.object({
   cohort: z.string().max(60).optional(),
   type: z.enum(["onboarding", "reveal"]),
+  /**
+   * Which half of the cohort to send to. Daily provider quotas can be smaller
+   * than the cohort, so a blast can be split across a quota reset. The split is
+   * deterministic (email-sorted, first half then the rest), so the two halves
+   * never overlap and together cover everyone.
+   */
+  group: z.enum(["all", "first", "second"]).default("all"),
 })
+
+function selectGroup<T extends { to: string }>(
+  items: T[],
+  group: "all" | "first" | "second"
+): T[] {
+  if (group === "all") return items
+  const sorted = [...items].sort((a, b) => (a.to < b.to ? -1 : a.to > b.to ? 1 : 0))
+  const half = Math.ceil(sorted.length / 2)
+  return group === "first" ? sorted.slice(0, half) : sorted.slice(half)
+}
 
 function firstNameOf(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "there"
@@ -114,7 +131,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { sent, failed } = await sendEmailBatch(items)
+  const selected = selectGroup(items, parsed.data.group)
+  const { sent, failed } = await sendEmailBatch(selected)
 
   await logAudit({
     userId: check.user.id,
@@ -123,12 +141,24 @@ export async function POST(request: NextRequest) {
     action: "CREATE",
     entity: "ImpactLabParticipant",
     entityId: `notify:${parsed.data.type}:${cohort}`,
-    changes: { type: parsed.data.type, recipients: items.length, sent, failed },
+    changes: {
+      type: parsed.data.type,
+      group: parsed.data.group,
+      recipients: selected.length,
+      sent,
+      failed,
+    },
     ...getRequestMetadata(request),
   })
 
   return NextResponse.json({
     success: true,
-    data: { sent, failed, recipients: items.length },
+    data: {
+      sent,
+      failed,
+      recipients: selected.length,
+      group: parsed.data.group,
+      cohortSize: items.length,
+    },
   })
 }
