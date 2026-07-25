@@ -1,20 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Network, Save, FileText } from "lucide-react"
+import { Users, Network, Save, FileText, UserCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ParticipantsTab } from "./ParticipantsTab"
 import { MatchingTab } from "./MatchingTab"
 import { RunsTab } from "./RunsTab"
 import { SubmissionsTab } from "./SubmissionsTab"
+import { CheckInTab } from "./CheckInTab"
 
-type Tab = "participants" | "matching" | "runs" | "submissions"
+type Tab = "participants" | "matching" | "runs" | "submissions" | "checkin"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "participants", label: "Participants", icon: Users },
   { key: "matching", label: "Matching", icon: Network },
   { key: "runs", label: "Runs", icon: Save },
   { key: "submissions", label: "Submissions", icon: FileText },
+  { key: "checkin", label: "Check-in", icon: UserCheck },
 ]
 
 export function ImpactLabDashboard({ cohort }: { cohort: string }) {
@@ -53,6 +55,7 @@ export function ImpactLabDashboard({ cohort }: { cohort: string }) {
       )}
       {tab === "runs" && <RunsTab cohort={cohort} refreshKey={runsKey} />}
       {tab === "submissions" && <SubmissionsTab cohort={cohort} />}
+      {tab === "checkin" && <CheckInTab cohort={cohort} />}
     </div>
   )
 }
