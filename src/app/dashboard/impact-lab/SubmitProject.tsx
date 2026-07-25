@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Send, CheckCircle } from "lucide-react";
+import { AlertTriangle, Loader2, Send, CheckCircle } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import type { SubmissionView } from "@/lib/impact-lab/submission-schema";
 
@@ -93,13 +93,18 @@ export function SubmitProject() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Separate from `error` (a save failure): a load failure leaves `status`
+   *  null forever otherwise, so it needs its own state to escape the
+   *  "Loading…" spinner and offer a retry. */
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoadError(null);
     try {
       const res = await fetch("/api/impact-lab/submission");
       const json: GetResponse = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error ?? "Could not load your submission.");
+        setLoadError(json.error ?? "Could not load your submission.");
         return;
       }
       setStatus(json.status ?? "no_team");
@@ -109,7 +114,7 @@ export function SubmitProject() {
         setLastEditedBy(json.submission.lastEditedByName);
       }
     } catch {
-      setError("Could not load your submission.");
+      setLoadError("Could not load your submission.");
     }
   }, []);
 
@@ -128,10 +133,18 @@ export function SubmitProject() {
         headers: await csrfHeaders(),
         body: JSON.stringify(form),
       });
-      const json: { success: boolean; error?: string; submission?: SubmissionView } =
-        await res.json();
+      const json: {
+        success: boolean;
+        error?: string;
+        code?: string;
+        submission?: SubmissionView;
+      } = await res.json();
       if (!res.ok || !json.success) {
         setError(json.error ?? "Could not save your submission.");
+        // The deadline passed while this form was open. Re-fetch so status
+        // flips to "closed" and the read-only view matches what the error
+        // just said — otherwise Save stays enabled and every retry 403s again.
+        if (json.code === "SUBMISSIONS_CLOSED") void load();
         return;
       }
       if (json.submission) setLastEditedBy(json.submission.lastEditedByName);
@@ -144,6 +157,23 @@ export function SubmitProject() {
   }
 
   if (status === null) {
+    if (loadError) {
+      return (
+        <div className="rounded-lg border border-red/30 bg-red/10 p-5">
+          <p role="alert" className="flex items-center gap-2 font-mono text-sm text-red">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {loadError}
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
     return (
       <p className="font-mono text-xs text-text-dim">
         <Loader2 className="mr-1.5 inline h-3 w-3 animate-spin" />
@@ -156,6 +186,14 @@ export function SubmitProject() {
 
   const remaining = timeLeft(closeAt);
   const readOnly = status === "closed";
+
+  // A further edit invalidates the last "Saved" confirmation — leaving it up
+  // while someone keeps typing reads as a promise that the new text is
+  // already stored, which it isn't.
+  function updateField(key: keyof FormState, value: string) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setSaved(false);
+  }
 
   const field = (
     key: keyof FormState,
@@ -173,7 +211,7 @@ export function SubmitProject() {
           rows={3}
           value={form[key]}
           disabled={readOnly}
-          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+          onChange={(e) => updateField(key, e.target.value)}
           className={inputClass}
         />
       ) : (
@@ -182,7 +220,7 @@ export function SubmitProject() {
           type="text"
           value={form[key]}
           disabled={readOnly}
-          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+          onChange={(e) => updateField(key, e.target.value)}
           className={inputClass}
         />
       )}
