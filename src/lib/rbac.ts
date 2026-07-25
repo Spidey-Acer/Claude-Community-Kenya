@@ -62,7 +62,12 @@ const rolePermissions: Record<
     community: ["view", "edit", "approve"],
     team: ["view", "edit"],
     photos: ["view", "create", "edit", "delete"],
-    "impact-lab": ["view", "create", "edit", "delete"],
+    // `approve` is what marks a match run final, which is the action that
+    // publishes teams to participants' dashboards. Withholding it from ADMIN
+    // left organisers able to generate, save and even delete runs but not
+    // reveal them — the one step the whole event depends on. ADMIN already
+    // holds `delete` here, which is strictly more destructive.
+    "impact-lab": ["view", "create", "edit", "delete", "approve"],
   },
   MODERATOR: {
     dashboard: ["view"],
