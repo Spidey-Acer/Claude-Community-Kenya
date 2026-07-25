@@ -14,7 +14,7 @@ the same session + CSRF the rest of the admin panel uses.
 split every admin page in the repo uses — server for the shell, client for
 interactivity — so the new pages sit naturally alongside the existing ones.
 
-## Three tabs, three jobs
+## Four tabs, four jobs
 
 - **Participants** — the roster. Table, add form, resilient CSV import (parsed
   and column-mapped in the browser, then posted as drafts), and CSV export.
@@ -22,6 +22,14 @@ interactivity — so the new pages sit naturally alongside the existing ones.
   button, results as team cards, an Explain-with-Claude button, and a Save-run
   field.
 - **Runs** — the archive. Saved runs with mark-final, export-teams, and delete.
+- **Submissions** — judging day. Shows `N / teamCount` teams submitted, an
+  editable submissions-close deadline, the list of teams that haven't
+  submitted yet (with member names, for chasing in the room), a per-submission
+  status dropdown, an expandable detail view of each team's write-up, and a
+  Download CSV button for the judging sheet. A submission left over from an
+  earlier final run is labelled "stale" and excluded from both the count and
+  the export — see [14-submissions](./14-submissions.md) for why marking a new
+  run final detaches previously-filed submissions.
 
 ## The team card renders the score breakdown directly
 
