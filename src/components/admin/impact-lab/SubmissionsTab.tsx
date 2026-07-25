@@ -141,7 +141,9 @@ export function SubmissionsTab({ cohort }: { cohort: string }) {
           <span>
             {data.submissions.filter((s) => s.isStale).length} submission(s) belong to an
             earlier final run and are detached from the teams currently published. Re-marking
-            a run final does not move submissions — check before judging.
+            a run final does not move submissions — check before judging. These submissions
+            are excluded from the judging CSV download; the teams that made them need to
+            resubmit or be re-added before judging.
           </span>
         </div>
       )}
@@ -266,9 +268,9 @@ export function SubmissionsTab({ cohort }: { cohort: string }) {
                     <select
                       aria-label={`Status for ${s.teamName}`}
                       value={s.status}
-                      disabled={busy}
+                      disabled={busy || s.isStale}
                       onChange={(e) => setStatus(s.id, e.target.value)}
-                      className="bg-[#111] border border-[#1e1e1e] rounded px-1.5 py-1 text-[10px] font-mono text-[#e0e0e0]"
+                      className="bg-[#111] border border-[#1e1e1e] rounded px-1.5 py-1 text-[10px] font-mono text-[#e0e0e0] disabled:opacity-40"
                     >
                       {["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED"].map((v) => (
                         <option key={v} value={v}>
@@ -276,6 +278,11 @@ export function SubmissionsTab({ cohort }: { cohort: string }) {
                         </option>
                       ))}
                     </select>
+                    {s.isStale && (
+                      <p className="mt-1 text-[9px] font-mono text-[#ffb000]">
+                        excluded from CSV
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-[10px] font-mono text-[#555]">
                     {new Date(s.updatedAt).toLocaleString()}
