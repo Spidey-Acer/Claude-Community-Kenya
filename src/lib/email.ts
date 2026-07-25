@@ -435,10 +435,11 @@ export async function sendPasswordResetEmail(data: {
 }
 
 /**
- * Impact Lab: account-setup instructions, sent to every approved participant
- * before matching goes live. The recipient's own address is spelled out because
- * signing up with a DIFFERENT email is the one mistake that locks them out of
- * their team reveal.
+ * Impact Lab: how to reach your team. Optional backup for the Luma
+ * announcement — teams are published to the dashboard, never emailed. The
+ * recipient's own address is spelled out because signing up with a DIFFERENT
+ * email is the one mistake that hides their team from them. Sign-up needs no
+ * confirmation mail, so the steps are only two.
  */
 export function impactLabAccountEmail(data: {
   to: string
@@ -446,48 +447,22 @@ export function impactLabAccountEmail(data: {
 }): BatchEmailItem {
   const html = `
     <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
-      <h2 style="color:#00ff41;">Impact Lab: your team drops tonight</h2>
+      <h2 style="color:#00ff41;">Impact Lab: meet your team</h2>
       <p>Hi ${esc(data.firstName)},</p>
-      <p>You're approved for <strong>Impact Lab: AI Mashinani</strong> (25&ndash;26 July). Teams are being matched tonight — here's how to see yours the moment it lands:</p>
+      <p>Teams for <strong>Impact Lab: AI Mashinani</strong> are matched. Here's how to see yours:</p>
       <ol style="line-height:1.8;">
-        <li><a href="${APP_URL}/signup" style="color:#00ff41;">Create your account</a> using <strong>this exact email address</strong> (${esc(data.to)}) — it's how we match you to your registration.</li>
-        <li>Verify your email (the link arrives right after signup).</li>
-        <li>Open <a href="${APP_URL}/dashboard/impact-lab" style="color:#00ff41;">your Impact Lab dashboard</a> and check your matching profile — your Luma answers are pre-filled and editable.</li>
+        <li><a href="${APP_URL}/signup" style="color:#00ff41;">Create your account</a> using <strong>this exact email address</strong> (${esc(data.to)}) — it's how we find your registration. A different one won't match.</li>
+        <li>Open <a href="${APP_URL}/dashboard/impact-lab" style="color:#00ff41;">your Impact Lab dashboard</a>.</li>
       </ol>
-      <p>Already set up? You're done — your team will appear on that same page.</p>
+      <p>You'll find your teammates and how to reach them, what each person brings, why your team was put together this way, and a suggested direction for your build.</p>
       <p style="margin:24px 0;">
-        <a href="${APP_URL}/signup" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Create my account →</a>
+        <a href="${APP_URL}/dashboard/impact-lab" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">See my team →</a>
       </p>
+      <p style="color:#8a8a8a;font-size:12px;">Already have an account? Just open the dashboard link.</p>
       <p style="color:#8a8a8a;font-size:12px;">Claude Community Kenya · ${APP_URL}</p>
     </div>
   `
-  return { to: data.to, subject: "Impact Lab: set up your account — teams drop tonight", html }
-}
-
-/**
- * Impact Lab: the team-is-ready announcement. Deliberately contains only the
- * team name — teammates, contacts, and the writeup live behind the verified
- * dashboard, never in email.
- */
-export function impactLabRevealEmail(data: {
-  to: string
-  firstName: string
-  teamName: string
-}): BatchEmailItem {
-  const html = `
-    <div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;border:1px solid #00ff41;">
-      <h2 style="color:#00ff41;">Your Impact Lab team is ready</h2>
-      <p>Hi ${esc(data.firstName)},</p>
-      <p>Matching is done — you're on <strong>${esc(data.teamName)}</strong>.</p>
-      <p>Your teammates, their contacts, and why this team was put together are waiting on your dashboard:</p>
-      <p style="margin:24px 0;">
-        <a href="${APP_URL}/dashboard/impact-lab" style="display:inline-block;background:#00ff41;color:#0a0a0a;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;">Meet ${esc(data.teamName)} →</a>
-      </p>
-      <p style="color:#8a8a8a;font-size:12px;">No account yet? <a href="${APP_URL}/signup" style="color:#00ff41;">Sign up</a> with this exact email address (${esc(data.to)}), verify it, and your team unlocks on the dashboard.</p>
-      <p style="color:#8a8a8a;font-size:12px;">See you at the venue. Claude Community Kenya · ${APP_URL}</p>
-    </div>
-  `
-  return { to: data.to, subject: `Impact Lab: you're on ${data.teamName}`, html }
+  return { to: data.to, subject: "Impact Lab: meet your team", html }
 }
 
 export async function sendApplicationReviewEmail(data: {

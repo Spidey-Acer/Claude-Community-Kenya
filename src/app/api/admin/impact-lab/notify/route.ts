@@ -6,13 +6,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { rateLimit } from "@/lib/rate-limit"
 import { safeCohort } from "@/lib/impact-lab/constants"
-import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import {
-  impactLabAccountEmail,
-  impactLabRevealEmail,
-  sendEmailBatch,
-  type BatchEmailItem,
-} from "@/lib/email"
+import { impactLabAccountEmail, sendEmailBatch, type BatchEmailItem } from "@/lib/email"
 
 // A full-cohort blast is ~125 emails = 2 Resend batch calls; give the function
 // room for slow API responses.
@@ -20,7 +14,10 @@ export const maxDuration = 60
 
 const notifySchema = z.object({
   cohort: z.string().max(60).optional(),
-  type: z.enum(["onboarding", "reveal"]),
+  // Only account-setup mail is sent to participants. The team reveal is
+  // published by marking a run final — it appears on their dashboard, and no
+  // mail is spent on it (the daily quota is smaller than the cohort).
+  type: z.enum(["onboarding"]),
   /**
    * Which half of the cohort to send to. Daily provider quotas can be smaller
    * than the cohort, so a blast can be split across a quota reset. The split is
@@ -84,52 +81,14 @@ export async function POST(request: NextRequest) {
   }
 
   const cohort = safeCohort(parsed.data.cohort)
-  let items: BatchEmailItem[]
 
-  if (parsed.data.type === "onboarding") {
-    const participants = await prisma.impactLabParticipant.findMany({
-      where: { cohort },
-      select: { email: true, fullName: true },
-    })
-    items = participants.map((p) =>
-      impactLabAccountEmail({ to: p.email, firstName: firstNameOf(p.fullName) })
-    )
-  } else {
-    const run = await prisma.impactLabMatchRun.findFirst({
-      where: { cohort, isFinal: true },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, result: true },
-    })
-    if (!run) {
-      return NextResponse.json(
-        { success: false, error: "No final run — mark a run as final before announcing teams." },
-        { status: 409 }
-      )
-    }
-    const teams = extractFrozenTeams(run.result)
-    if (!teams) {
-      return NextResponse.json(
-        { success: false, error: "The final run's result is malformed." },
-        { status: 409 }
-      )
-    }
-
-    const teamNameById = new Map<string, string>()
-    for (const team of teams) {
-      for (const id of team.memberIds) teamNameById.set(id, team.name)
-    }
-    const assigned = await prisma.impactLabParticipant.findMany({
-      where: { cohort, id: { in: [...teamNameById.keys()] } },
-      select: { id: true, email: true, fullName: true },
-    })
-    items = assigned.map((p) =>
-      impactLabRevealEmail({
-        to: p.email,
-        firstName: firstNameOf(p.fullName),
-        teamName: teamNameById.get(p.id) ?? "your team",
-      })
-    )
-  }
+  const participants = await prisma.impactLabParticipant.findMany({
+    where: { cohort },
+    select: { email: true, fullName: true },
+  })
+  const items: BatchEmailItem[] = participants.map((p) =>
+    impactLabAccountEmail({ to: p.email, firstName: firstNameOf(p.fullName) })
+  )
 
   const selected = selectGroup(items, parsed.data.group)
   const { sent, failed } = await sendEmailBatch(selected)

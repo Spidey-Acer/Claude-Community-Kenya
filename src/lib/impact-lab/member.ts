@@ -13,6 +13,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import type { ImpactLabParticipant } from "@/generated/prisma/client"
 import type { Team } from "@/lib/matching"
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification"
 import { participantDraftSchema } from "./participant-schema"
 
 // ─── Member-editable profile ─────────────────────────────────────────────────
@@ -171,7 +172,7 @@ export async function checkMemberAccess(): Promise<MemberAccessResult> {
       ),
     }
   }
-  if (!user.emailVerified) {
+  if (REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
     return {
       authorized: false,
       response: NextResponse.json(
