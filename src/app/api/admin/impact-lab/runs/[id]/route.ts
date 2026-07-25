@@ -54,6 +54,15 @@ const updateSchema = z.object({
   // Lets the Matching tab attach explanations to a run it auto-saved before
   // Claude had finished writing them. Filtered to the run's own teams.
   explanations: z.array(explanationSchema).max(200).optional(),
+  // ISO 8601 with an explicit offset (either "Z" or a numeric offset like
+  // "+03:00"), or null to remove the deadline (submissions stay open).
+  // { offset: true } rejects an offset-less string like "2026-07-26T09:00"
+  // from a bare <input type="datetime-local"> value — accepting that would
+  // let `new Date(str)` parse it in the server's timezone (UTC on Vercel),
+  // silently shifting an organiser's intended EAT deadline by hours. The UI
+  // is responsible for converting to an offset-bearing string (Z or numeric)
+  // before it ever reaches this endpoint.
+  submissionsCloseAt: z.string().datetime({ offset: true }).nullable().optional(),
 })
 
 /**
@@ -91,7 +100,12 @@ export async function PATCH(
   const existing = await prisma.impactLabMatchRun.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
 
-  const { name, notes, isFinal } = validation.data
+  const { name, notes, isFinal, submissionsCloseAt } = validation.data
+
+  const closeAtUpdate =
+    submissionsCloseAt === undefined
+      ? {}
+      : { submissionsCloseAt: submissionsCloseAt ? new Date(submissionsCloseAt) : null }
 
   // Explanations may only describe teams that exist in this run's frozen result.
   let explanationsUpdate: Record<string, unknown> | undefined
@@ -122,6 +136,7 @@ export async function PATCH(
             ...(name !== undefined ? { name } : {}),
             ...(notes !== undefined ? { notes } : {}),
             ...explanationsUpdate,
+            ...closeAtUpdate,
           },
         }),
       ])
@@ -144,6 +159,7 @@ export async function PATCH(
         ...(notes !== undefined ? { notes } : {}),
         ...(isFinal === false ? { isFinal: false } : {}),
         ...explanationsUpdate,
+        ...closeAtUpdate,
       },
     })
   }
@@ -155,7 +171,11 @@ export async function PATCH(
     action: isFinal === true ? "APPROVE" : "UPDATE",
     entity: "ImpactLabMatchRun",
     entityId: id,
-    changes: { ...(name ? { name } : {}), ...(isFinal !== undefined ? { isFinal } : {}) },
+    changes: {
+      ...(name ? { name } : {}),
+      ...(isFinal !== undefined ? { isFinal } : {}),
+      ...(submissionsCloseAt !== undefined ? { submissionsCloseAt } : {}),
+    },
     ...getRequestMetadata(request),
   })
 

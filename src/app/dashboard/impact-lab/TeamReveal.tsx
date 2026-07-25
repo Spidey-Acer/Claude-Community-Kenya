@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Copy, Lightbulb, Mail, PartyPopper, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
+import { SubmitProject } from "./SubmitProject";
 
 /**
  * The finalized team, as qualities rather than numbers — the API already
@@ -180,6 +181,8 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
           </li>
         </ol>
       </motion.section>
+
+      <SubmitProject />
     </motion.div>
   );
 }
