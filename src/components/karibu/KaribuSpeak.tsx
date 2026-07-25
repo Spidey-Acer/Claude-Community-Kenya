@@ -8,7 +8,7 @@
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, cloneElement, isValidElement, type ReactElement } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -150,13 +150,13 @@ export function KaribuSpeak() {
             <h2 className="mb-5 font-newsreader text-[20px] text-ink">About you</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name *" error={fieldErrors.name}>
-                <input name="name" type="text" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+                <input name="name" type="text" autoComplete="name" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
               </Field>
               <Field label="Email *" error={fieldErrors.email}>
-                <input name="email" type="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+                <input name="email" type="email" autoComplete="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
               </Field>
               <Field label="Phone (optional)">
-                <input name="phone" type="tel" className={inputCls()} placeholder="+254 ..." />
+                <input name="phone" type="tel" autoComplete="tel" className={inputCls()} placeholder="+254 ..." />
               </Field>
               <Field label="LinkedIn (optional)">
                 <input name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
@@ -286,12 +286,22 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const id = `f-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      >
         {label}
       </label>
-      {children}
+      {control}
       {error && <FieldError msg={error} />}
     </div>
   );

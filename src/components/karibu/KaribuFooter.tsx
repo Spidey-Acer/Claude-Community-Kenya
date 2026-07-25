@@ -22,7 +22,6 @@ const COMMUNITY = [
   { label: "WhatsApp", href: SOCIAL_LINKS.whatsapp },
   { label: "Discord", href: SOCIAL_LINKS.discord },
   { label: "Twitter / X", href: SOCIAL_LINKS.twitter },
-  { label: "GitHub", href: SOCIAL_LINKS.github },
 ];
 
 export function KaribuFooter() {

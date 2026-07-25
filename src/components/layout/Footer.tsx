@@ -181,15 +181,6 @@ export function Footer() {
               Twitter
             </a>
             <a
-              href={SOCIAL_LINKS.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={isPro ? "text-xs text-text-dim transition-colors hover:text-text-primary" : "font-mono text-xs text-text-dim transition-colors hover:text-cyan"}
-              aria-label="GitHub"
-            >
-              GitHub
-            </a>
-            <a
               href={SOCIAL_LINKS.discord}
               target="_blank"
               rel="noopener noreferrer"

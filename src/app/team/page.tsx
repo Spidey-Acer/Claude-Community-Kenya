@@ -8,12 +8,12 @@ export const revalidate = 1800
 export const metadata: Metadata = {
   title: "The team behind CCK | Claude Community Kenya",
   description:
-    "Meet the organizers, ambassadors, and contributors who run Claude Community Kenya — Africa's only Claude developer community.",
+    "Meet the organizers, ambassadors, and contributors who run Claude Community Kenya — Kenya's independent, volunteer-run Claude developer community.",
   alternates: { canonical: "https://www.claudekenya.org/team" },
   openGraph: {
     title: "The team behind CCK | Claude Community Kenya",
     description:
-      "Meet the organizers and ambassadors running Africa's only Claude developer community.",
+      "Meet the organizers and ambassadors running Kenya's independent, volunteer-run Claude developer community.",
     url: "https://www.claudekenya.org/team",
     siteName: "Claude Community Kenya",
     type: "website",

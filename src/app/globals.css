@@ -49,8 +49,8 @@
   --ink-soft: #5C5349;
   --ink-muted: #6A6155;
   --ink-faint: #8A7F6E;
-  --clay: #C15F3C;
-  --clay-dark: #A84E2D;
+  --clay: #A84E2D;
+  --clay-dark: #8F4023;
   --clay-light: #E6906F;
   --sand: #E4DAC8;
   --sand-2: #DDD3C2;
@@ -779,4 +779,18 @@ body::before {
   --clay-light: #E6906F;
   --sand: #3a332a;
   --sand-2: #473d31;
+}
+
+/* ─── Anthropic wordmark: dark-theme legibility ───────────────────────────
+ * The wordmark asset is a solid near-black mark on transparency, so it
+ * vanishes on the dark paper-card. Invert it to a soft off-white in the
+ * Karibu dark theme. Same precedence as the palette tokens above: system
+ * preference by default, an explicit data-theme choice wins either way. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .anthropic-mark {
+    filter: invert(1);
+  }
+}
+:root[data-theme="dark"] .anthropic-mark {
+  filter: invert(1);
 }

@@ -84,8 +84,8 @@ const CONTENT: Record<string, PageDef> = {
     hero: {
       heading: { dev: "cat README.md", pro: "Our Story" },
       subtitle: {
-        dev: "Africa's only Claude developer community. Not the first — the only one.",
-        pro: "Africa's only Claude community. Not the first — the only one.",
+        dev: "Kenya's independent, volunteer-run Claude developer community.",
+        pro: "Kenya's independent, volunteer-run Claude community.",
       },
     },
     origin: {

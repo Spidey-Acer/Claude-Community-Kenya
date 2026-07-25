@@ -43,7 +43,7 @@ function buildStaticIndex(): SearchResult[] {
       id: `faq-${faq.id}`,
       label: faq.question,
       category: "FAQ",
-      path: `/faq#${faq.id}`,
+      path: `/faq#faq-question-${faq.id}`,
       description: faq.answer.slice(0, 80) + "...",
     });
   });
