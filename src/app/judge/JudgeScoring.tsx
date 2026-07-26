@@ -46,6 +46,10 @@ export function JudgeScoring() {
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  // "Unscored" first, because the failure at 5 AM is a team nobody reached —
+  // and that is invisible on a list sorted by table number.
+  const [filter, setFilter] = useState<"all" | "unscored" | "scored">("all");
 
   const load = useCallback(async () => {
     try {
@@ -132,9 +136,72 @@ export function JudgeScoring() {
     return <p className="text-sm text-text-dim">No teams are published yet.</p>;
   }
 
+  const scoredIds = new Set(
+    Object.entries(sheets)
+      .filter(([, sheet]) => Object.keys(sheet ?? {}).length > 0)
+      .map(([id]) => id)
+  );
+
+  const needle = query.trim().toLowerCase();
+  const visible = data.teams.filter((team) => {
+    if (filter === "scored" && !scoredIds.has(team.teamId)) return false;
+    if (filter === "unscored" && scoredIds.has(team.teamId)) return false;
+    if (!needle) return true;
+    // Judges are told "table 12" over a microphone, so the table number in the
+    // team name has to match as readily as the project title.
+    return (
+      team.teamName.toLowerCase().includes(needle) ||
+      (team.submission?.projectName ?? "").toLowerCase().includes(needle)
+    );
+  });
+
+  const FILTERS: { key: "all" | "unscored" | "scored"; label: string }[] = [
+    { key: "all", label: `All ${data.teams.length}` },
+    { key: "unscored", label: `Not scored ${data.teams.length - scoredIds.size}` },
+    { key: "scored", label: `Scored ${scoredIds.size}` },
+  ];
+
   return (
     <div className="space-y-3">
-      {data.teams.map((team) => {
+      <div className="sticky top-0 z-10 -mx-1 space-y-2 bg-bg-primary px-1 pb-2 pt-1">
+        <label htmlFor="judge-team-search" className="sr-only">
+          Search teams
+        </label>
+        <input
+          id="judge-team-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search table number or project"
+          autoComplete="off"
+          className="w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base text-text-primary placeholder:text-text-dim focus:border-green-primary focus:outline-none"
+        />
+        <div className="flex gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              aria-pressed={filter === f.key}
+              className={`flex-1 rounded-lg border px-2 py-2 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+                filter === f.key
+                  ? "border-green-primary bg-green-primary/15 text-green-primary"
+                  : "border-border-default bg-bg-card text-text-secondary"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {visible.length === 0 && (
+        <p className="py-6 text-center text-sm text-text-dim">
+          No team matches that.
+        </p>
+      )}
+
+      {visible.map((team) => {
         const sheet = sheets[team.teamId] ?? {};
         const total = weightedTotal(sheet);
         const scoredCount = JUDGING_CRITERIA.filter(
