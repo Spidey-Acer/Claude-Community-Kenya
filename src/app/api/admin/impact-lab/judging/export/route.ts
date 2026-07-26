@@ -7,23 +7,31 @@ import { toCsv } from "@/lib/impact-lab/csv"
 import {
   JUDGING_CRITERIA,
   standings,
+  trackOf,
+  trackWinners,
   type JudgingCriterion,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
 
 const HEADERS = [
   "Team",
+  "Track",
   "Project",
   "Judges",
   "Weighted average (/100)",
+  "Track winner",
+  "Champion",
   ...JUDGING_CRITERIA.map((c: JudgingCriterion) => `${c.label} (avg /5)`),
   "Judge feedback",
 ]
 
 /**
- * The sheet the winner is read from: one row per team, sorted by weighted
- * average descending. Reuses `standings` for the maths rather than
- * re-averaging here, and `toCsv` for escaping — including the
+ * The sheet the winners are read from: one row per team, sorted by weighted
+ * average descending, carrying its own "Track winner" and "Champion" flags —
+ * the program promises both, and this sheet needs to stand alone rather than
+ * sending someone back to the leaderboard tab to know who actually won.
+ * Reuses `standings` and `trackWinners` for the maths rather than
+ * re-deriving either, and `toCsv` for escaping — including the
  * formula-injection guard, since a team or project name is free text a
  * participant chose.
  */
@@ -81,6 +89,10 @@ export async function GET(request: NextRequest) {
   )
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
 
+  const nameById = new Map(teams.map((t) => [t.id, t.name]))
+  const { winners, champion } = trackWinners(table, nameById)
+  const trackWinnerIds = new Set(winners.map((w) => w.teamId))
+
   const rows = teams
     .map((t) => {
       const standing = standingByTeam.get(t.id)
@@ -88,9 +100,12 @@ export async function GET(request: NextRequest) {
         average: standing?.average ?? 0,
         cells: [
           t.name,
+          trackOf(t.name),
           projectByTeam.get(t.id) ?? "",
           standing?.judgeCount ?? 0,
           standing?.average ?? 0,
+          trackWinnerIds.has(t.id) ? "Yes" : "",
+          champion?.teamId === t.id ? "Yes" : "",
           ...JUDGING_CRITERIA.map((c: JudgingCriterion) => standing?.criterionAverages[c.key] ?? 0),
           feedbackByTeam.get(t.id) ?? "",
         ],
