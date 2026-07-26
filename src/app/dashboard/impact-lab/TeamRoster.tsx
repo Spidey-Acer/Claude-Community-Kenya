@@ -90,6 +90,35 @@ export function TeamRoster({
   }
 
   const memberIds = new Set(members.map((m) => m.id));
+  const leader = members.find((m) => m.isLeader) ?? null;
+  const iAmLeader = leader?.isSelf ?? false;
+
+  // Somebody has to be the one who presents and who organisers chase. Any
+  // member may claim it and a later claim replaces an earlier one — teams
+  // re-decide, and a first-come lock would leave a team stuck with whoever
+  // tapped fastest.
+  async function claimLeadership() {
+    setBusyId("leader");
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/impact-lab/team/leader", {
+        method: "POST",
+        headers: await csrfHeaders(),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || "That did not work. Try again.");
+        return;
+      }
+      setNotice(json.message ?? "You are now the team leader.");
+      onChanged();
+    } catch {
+      setError("That did not work. Check your connection.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <section className="mt-8 rounded-xl border border-border-default bg-bg-card p-5">
@@ -111,6 +140,33 @@ export function TeamRoster({
         >
           {open ? "Done" : "Edit team"}
         </button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border-default pt-4">
+        <span className="font-mono text-xs uppercase tracking-wider text-text-dim">
+          Team leader
+        </span>
+        {leader ? (
+          <span className="rounded border border-green-primary/30 bg-green-primary/10 px-2.5 py-1 font-mono text-xs text-green-primary">
+            {leader.isSelf ? "You" : leader.fullName}
+          </span>
+        ) : (
+          <span className="text-sm text-text-dim">Nobody yet</span>
+        )}
+        {!iAmLeader && (
+          <button
+            type="button"
+            onClick={claimLeadership}
+            disabled={busyId === "leader"}
+            className="rounded-lg border border-border-default px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary disabled:opacity-50"
+          >
+            {busyId === "leader"
+              ? "Saving…"
+              : leader
+                ? "Take over as leader"
+                : "I'll be team leader"}
+          </button>
+        )}
       </div>
 
       {open && (
