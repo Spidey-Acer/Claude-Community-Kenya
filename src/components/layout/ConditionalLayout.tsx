@@ -35,7 +35,7 @@ export function ConditionalLayout({
   const isDashboard = pathname.startsWith("/dashboard");
   // /timer is a projector display for the room — no nav, no footer, no chrome
   // competing with a clock people read from across a hall.
-  const isBareDisplay = pathname.startsWith("/timer");
+  const isBareDisplay = pathname.startsWith("/timer") || pathname.startsWith("/judge");
   // Karibu (warm-light) is the default identity. Routes still on the Terminal
   // Noir chrome are listed here and removed as they get converted — unknown
   // paths (404s) fall through to Karibu so dead links stay on-brand.
