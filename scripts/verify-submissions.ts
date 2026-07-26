@@ -197,7 +197,7 @@ assert(
   "a javascript: URL is rejected rather than silently emptied"
 )
 assert(
-  !submissionInputSchema.safeParse({ ...validInput, pitch: "x".repeat(300) })
+  !submissionInputSchema.safeParse({ ...validInput, pitch: "x".repeat(600) })
     .success,
   "an over-long pitch is rejected"
 )
