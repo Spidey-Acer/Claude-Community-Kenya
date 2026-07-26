@@ -23,6 +23,13 @@ interface TeamRow {
   } | null;
 }
 
+interface AssistResult {
+  readsAs: string;
+  observations: { criterion: string; note: string }[];
+  questionsToAsk: string[];
+  watchFor: string;
+}
+
 interface Payload {
   teams: TeamRow[];
   mine: Record<string, { scores: ScoreSheet; feedback: string | null }>;
@@ -50,6 +57,8 @@ export function JudgeScoring() {
   // "Unscored" first, because the failure at 5 AM is a team nobody reached —
   // and that is invisible on a list sorted by table number.
   const [filter, setFilter] = useState<"all" | "unscored" | "scored">("all");
+  const [assist, setAssist] = useState<Record<string, AssistResult>>({});
+  const [assisting, setAssisting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -85,6 +94,30 @@ export function JudgeScoring() {
     // A new edit means the previous "saved" confirmation no longer describes
     // what is on screen.
     setSaved((prev) => ({ ...prev, [teamId]: false }));
+  }
+
+  // Optional reading help. Returns observations and questions, never scores —
+  // a suggested number would anchor the judge before they had formed a view.
+  async function askClaude(teamId: string) {
+    setAssisting(teamId);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/impact-lab/judging/assist", {
+        method: "POST",
+        headers: await csrfHeaders(),
+        body: JSON.stringify({ teamId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || "Could not read that submission.");
+        return;
+      }
+      setAssist((prev) => ({ ...prev, [teamId]: json.data as AssistResult }));
+    } catch {
+      setError("Could not read that submission. Check your connection.");
+    } finally {
+      setAssisting(null);
+    }
   }
 
   async function save(teamId: string) {
@@ -271,6 +304,56 @@ export function JudgeScoring() {
                     </div>
                   </div>
                 )}
+
+                <div className="mb-6">
+                  {!assist[team.teamId] ? (
+                    <button
+                      type="button"
+                      onClick={() => void askClaude(team.teamId)}
+                      disabled={assisting === team.teamId || !team.submission}
+                      className="w-full rounded-lg border border-cyan/30 bg-cyan/5 px-3 py-2.5 font-mono text-xs uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10 disabled:opacity-40"
+                    >
+                      {assisting === team.teamId
+                        ? "Reading the submission…"
+                        : team.submission
+                          ? "Ask Claude to read this submission"
+                          : "Nothing submitted to read"}
+                    </button>
+                  ) : (
+                    <div className="rounded-lg border border-cyan/30 bg-cyan/5 p-4">
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-cyan">
+                        Reading help · not a score
+                      </p>
+                      <p className="mt-2 text-sm text-text-primary">
+                        {assist[team.teamId].readsAs}
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {assist[team.teamId].observations.map((o) => (
+                          <li key={o.criterion} className="text-xs leading-relaxed">
+                            <span className="text-text-dim">{o.criterion}: </span>
+                            <span className="text-text-secondary">{o.note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                        Ask them
+                      </p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {assist[team.teamId].questionsToAsk.map((q) => (
+                          <li key={q} className="text-xs text-text-secondary">
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-xs text-amber">
+                        Watch for: {assist[team.teamId].watchFor}
+                      </p>
+                      <p className="mt-3 text-[11px] text-text-dim">
+                        Claude read only what this team wrote. The score is yours.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <div className="space-y-6">
                   {JUDGING_CRITERIA.map((criterion) => (
