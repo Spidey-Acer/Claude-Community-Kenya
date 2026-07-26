@@ -157,3 +157,70 @@ export function standings(scores: JudgeScore[]): TeamStanding[] {
 
   return rows.sort((a, b) => b.average - a.average || a.teamId.localeCompare(b.teamId))
 }
+
+/**
+ * The track a team belongs to, read from its name.
+ *
+ * Teams carry their track in the name they were assigned at the door — e.g.
+ * "Table 12 — Kilimo (Agriculture)". There is no track column because there is
+ * no team table at all, so the name is the only place it lives. Anything
+ * unparseable becomes "Unassigned" rather than throwing: a malformed name must
+ * not be able to hide a team from the track winners at 5 AM.
+ */
+export function trackOf(teamName: string): string {
+  const dash = teamName.split(/[—–-]/)
+  const tail = dash.length > 1 ? dash.slice(1).join("-").trim() : ""
+  return tail || "Unassigned"
+}
+
+export interface TrackWinner {
+  track: string
+  teamId: string
+  teamName: string
+  average: number
+  judgeCount: number
+}
+
+/**
+ * Top team per track, plus the overall champion.
+ *
+ * The program promises track winners AND an overall champion, so both are
+ * derived here rather than left to be eyeballed off a leaderboard at 5:30 AM.
+ * Teams nobody scored are excluded — a zero from "not judged" would otherwise
+ * be indistinguishable from a zero that was earned.
+ */
+export function trackWinners(
+  table: TeamStanding[],
+  nameById: Map<string, string>
+): { winners: TrackWinner[]; champion: TrackWinner | null } {
+  const best = new Map<string, TrackWinner>()
+
+  for (const row of table) {
+    if (row.judgeCount === 0) continue
+    const teamName = nameById.get(row.teamId) ?? row.teamId
+    const track = trackOf(teamName)
+    const candidate: TrackWinner = {
+      track,
+      teamId: row.teamId,
+      teamName,
+      average: row.average,
+      judgeCount: row.judgeCount,
+    }
+    const current = best.get(track)
+    // `table` arrives already sorted by average desc then id, so the first
+    // sighting of a track is its winner; keep it and ignore the rest.
+    if (!current) best.set(track, candidate)
+  }
+
+  const winners = [...best.values()].sort((a, b) => a.track.localeCompare(b.track))
+  const champion =
+    winners.length === 0
+      ? null
+      : winners.reduce((top, w) =>
+          w.average > top.average || (w.average === top.average && w.teamId < top.teamId)
+            ? w
+            : top
+        )
+
+  return { winners, champion }
+}

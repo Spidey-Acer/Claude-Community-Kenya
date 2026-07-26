@@ -15,6 +15,8 @@ import {
   weightedTotal,
   isComplete,
   standings,
+  trackOf,
+  trackWinners,
   type ScoreSheet,
 } from "../src/lib/impact-lab/judging"
 
@@ -131,6 +133,42 @@ assert(
   standings([{ judgeEmail: "a@x.io", teamId: "t", sheet: { impact: 5, demo: 3 } }])[0]
     .criterionAverages.impact === 5,
   "per-criterion averages report the raw 1-5 value for the breakdown"
+)
+
+console.log("\nTracks and winners")
+assert(
+  trackOf("Table 12 — Kilimo (Agriculture)") === "Kilimo (Agriculture)",
+  "the track is read off the team name"
+)
+assert(trackOf("Table 4") === "Unassigned", "a name with no track is Unassigned, not a crash")
+assert(trackOf("") === "Unassigned", "an empty name is Unassigned")
+
+const names = new Map([
+  ["t-afya-1", "Table 1 — Afya (Health)"],
+  ["t-afya-2", "Table 2 — Afya (Health)"],
+  ["t-kilimo-1", "Table 9 — Kilimo (Agriculture)"],
+  ["t-unjudged", "Table 30 — Biashara (Small Business)"],
+])
+const scored = standings([
+  { judgeEmail: "a@x.io", teamId: "t-afya-1", sheet: sheetOf(3) },
+  { judgeEmail: "a@x.io", teamId: "t-afya-2", sheet: sheetOf(5) },
+  { judgeEmail: "a@x.io", teamId: "t-kilimo-1", sheet: sheetOf(4) },
+])
+const { winners, champion } = trackWinners(scored, names)
+
+assert(winners.length === 2, "one winner per track that was actually judged")
+assert(
+  winners.find((w) => w.track === "Afya (Health)")?.teamId === "t-afya-2",
+  "the higher-scoring team wins its track"
+)
+assert(champion?.teamId === "t-afya-2", "the champion is the best across all tracks")
+assert(
+  !winners.some((w) => w.teamId === "t-unjudged"),
+  "a team nobody scored cannot win a track — an unjudged zero is not an earned zero"
+)
+assert(
+  trackWinners([], new Map()).champion === null,
+  "no scores means no champion, rather than a phantom winner"
 )
 
 console.log(
