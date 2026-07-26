@@ -4,14 +4,19 @@ import { prisma } from "@/lib/prisma"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { toCsv } from "@/lib/impact-lab/csv"
-import { JUDGING_CRITERIA, standings, type ScoreSheet } from "@/lib/impact-lab/judging"
+import {
+  JUDGING_CRITERIA,
+  standings,
+  type JudgingCriterion,
+  type ScoreSheet,
+} from "@/lib/impact-lab/judging"
 
 const HEADERS = [
   "Team",
   "Project",
   "Judges",
   "Weighted average (/100)",
-  ...JUDGING_CRITERIA.map((c) => `${c.label} (avg /5)`),
+  ...JUDGING_CRITERIA.map((c: JudgingCriterion) => `${c.label} (avg /5)`),
   "Judge feedback",
 ]
 
@@ -86,7 +91,7 @@ export async function GET(request: NextRequest) {
           projectByTeam.get(t.id) ?? "",
           standing?.judgeCount ?? 0,
           standing?.average ?? 0,
-          ...JUDGING_CRITERIA.map((c) => standing?.criterionAverages[c.key] ?? 0),
+          ...JUDGING_CRITERIA.map((c: JudgingCriterion) => standing?.criterionAverages[c.key] ?? 0),
           feedbackByTeam.get(t.id) ?? "",
         ],
       }
