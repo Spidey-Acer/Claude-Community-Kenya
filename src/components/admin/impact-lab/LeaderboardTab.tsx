@@ -1,9 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { AlertTriangle, Download, Loader2 } from "lucide-react"
+import { AlertTriangle, Download, Loader2, Trophy } from "lucide-react"
 import { apiGet } from "./api"
-import { JUDGING_CRITERIA } from "@/lib/impact-lab/judging"
+import {
+  JUDGING_CRITERIA,
+  trackWinners,
+  type JudgingCriterion,
+  type TeamStanding,
+} from "@/lib/impact-lab/judging"
 
 interface LeaderboardTeam {
   teamId: string
@@ -12,17 +17,10 @@ interface LeaderboardTeam {
   submission: { projectName: string } | null
 }
 
-interface Standing {
-  teamId: string
-  average: number
-  judgeCount: number
-  criterionAverages: Record<string, number>
-}
-
 interface JudgingData {
   finalRunId: string | null
   teams: LeaderboardTeam[]
-  standings: Standing[]
+  standings: TeamStanding[]
 }
 
 /**
@@ -79,8 +77,10 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
   }
 
   const nameByTeam = new Map(data.teams.map((t) => [t.teamId, t]))
+  const teamNameById = new Map(data.teams.map((t) => [t.teamId, t.teamName]))
   const scoredIds = new Set(data.standings.map((s) => s.teamId))
   const unscored = data.teams.filter((t) => !scoredIds.has(t.teamId))
+  const { winners, champion } = trackWinners(data.standings, teamNameById)
 
   return (
     <div className="space-y-4">
@@ -96,6 +96,54 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
           <Download className="h-3 w-3" /> Download results CSV
         </a>
       </div>
+
+      {/* The program promises a per-track winner AND an overall champion — the
+          ranked table below answers "who scored highest overall", not "who won
+          Kilimo", so both need their own surface rather than making someone
+          eyeball it off the full list at 5am. */}
+      {champion && (
+        <div className="flex items-center gap-3 rounded-lg border border-[#ffb000]/40 bg-[#ffb000]/10 p-4">
+          <Trophy className="h-6 w-6 shrink-0 text-[#ffb000]" />
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
+              Overall champion
+            </p>
+            <p className="text-base font-mono font-bold text-[#e0e0e0]">{champion.teamName}</p>
+            <p className="text-[11px] font-mono text-[#888]">
+              {champion.track} · {champion.average}/100 · {champion.judgeCount} judge
+              {champion.judgeCount === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {winners.length > 0 && (
+        <div>
+          <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-[#555]">
+            Track winners
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {winners.map((w) => (
+              <div
+                key={w.track}
+                className={`rounded-lg border p-3 ${
+                  w.teamId === champion?.teamId
+                    ? "border-[#ffb000]/40 bg-[#ffb000]/5"
+                    : "border-[#1e1e1e] bg-[#0d0d0d]"
+                }`}
+              >
+                <p className="truncate text-[9px] font-mono uppercase tracking-wider text-[#555]">
+                  {w.track}
+                </p>
+                <p className="mt-0.5 truncate text-[12px] font-mono font-semibold text-[#e0e0e0]">
+                  {w.teamName}
+                </p>
+                <p className="text-[11px] font-mono text-[#00ff41]">{w.average}/100</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {unscored.length > 0 && (
         <div
@@ -117,7 +165,14 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#1e1e1e]">
-                {["Rank", "Team", "Project", "Judges", "Average", ...JUDGING_CRITERIA.map((c) => c.label)].map(
+                {[
+                  "Rank",
+                  "Team",
+                  "Project",
+                  "Judges",
+                  "Average",
+                  ...JUDGING_CRITERIA.map((c: JudgingCriterion) => c.label),
+                ].map(
                   (h) => (
                     <th
                       key={h}
@@ -147,7 +202,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                     <td className="px-4 py-3 text-[11px] font-mono font-semibold text-[#00ff41]">
                       {s.average}
                     </td>
-                    {JUDGING_CRITERIA.map((c) => (
+                    {JUDGING_CRITERIA.map((c: JudgingCriterion) => (
                       <td key={c.key} className="px-4 py-3 text-[11px] font-mono text-[#888]">
                         {s.criterionAverages[c.key] ?? 0}
                       </td>

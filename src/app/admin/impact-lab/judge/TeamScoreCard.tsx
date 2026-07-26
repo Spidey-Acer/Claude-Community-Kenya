@@ -7,6 +7,7 @@ import {
   MIN_SCORE,
   SCORE_LABELS,
   weightedTotal,
+  type JudgingCriterion,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
 
@@ -103,7 +104,7 @@ export function TeamScoreCard({
       </div>
 
       <div className="space-y-5">
-        {JUDGING_CRITERIA.map((criterion) => {
+        {JUDGING_CRITERIA.map((criterion: JudgingCriterion) => {
           const selected = draft.scores[criterion.key]
           return (
             <div key={criterion.key}>
