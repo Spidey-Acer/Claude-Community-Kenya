@@ -114,6 +114,9 @@ export async function GET() {
       primaryRole: liveP?.primaryRole ?? snap?.primaryRole ?? "",
       suggestedInternalRole: explanation.suggestedInternalRoles?.[id] ?? null,
       isSelf,
+      // leaderId is an optional extra field on the frozen team; runs written
+      // before leaders existed simply have none.
+      isLeader: (team as { leaderId?: string }).leaderId === id,
       email: shareEmail ? (liveP?.email ?? (isSelf ? check.email : null)) : null,
       checkedIn: Boolean(liveP?.checkedInAt),
     }

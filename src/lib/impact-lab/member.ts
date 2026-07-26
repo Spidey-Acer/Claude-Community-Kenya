@@ -98,6 +98,8 @@ export interface TeamMemberView {
   primaryRole: string
   suggestedInternalRole: string | null
   isSelf: boolean
+  /** Self-declared team leader. Absent on runs written before leaders existed. */
+  isLeader: boolean
   /** Only set for self, or for teammates with consentToShareContact = true. */
   email: string | null
   /**
