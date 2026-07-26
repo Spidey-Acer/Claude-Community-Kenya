@@ -21,7 +21,12 @@ import {
   zodSanitizeUrl,
 } from "@/lib/input-sanitization"
 
-const MAX_LONG_TEXT = 2000
+// Raised mid-event: teams were hitting the ceiling while writing up what
+// works versus what is mocked, and a submission you cannot finish is worse
+// than a long one. Every one of these columns is Postgres `text` (Prisma
+// `String`/`@db.Text`), so there is no storage limit behind these numbers —
+// they exist only to bound abuse, and can be raised freely.
+const MAX_LONG_TEXT = 10_000
 
 /** Adds https:// when a scheme is absent; leaves empty input untouched. */
 function withScheme(value: string): string {
@@ -32,7 +37,7 @@ function withScheme(value: string): string {
 
 const requiredUrl = z
   .string()
-  .max(300)
+  .max(1000)
   .transform(withScheme)
   .refine((v) => v !== "", { message: "A link is required" })
   .transform(zodSanitizeUrl)
@@ -42,7 +47,7 @@ const requiredUrl = z
 // rejected scheme surfaces as a validation error instead of a silent null.
 const optionalUrl = z
   .string()
-  .max(300)
+  .max(1000)
   .optional()
   .transform((v) => withScheme(v ?? ""))
   .transform((v) => (v === "" ? null : zodSanitizeUrl(v)))
@@ -71,13 +76,13 @@ function requiredMultilineText(max: number) {
 }
 
 export const submissionInputSchema = z.object({
-  projectName: requiredText(120),
-  pitch: requiredText(200),
+  projectName: requiredText(200),
+  pitch: requiredText(500),
   description: requiredMultilineText(MAX_LONG_TEXT),
   worksVsMocked: requiredMultilineText(MAX_LONG_TEXT),
   claudeUsage: requiredMultilineText(MAX_LONG_TEXT),
-  track: requiredText(80),
-  problemTackled: requiredText(300),
+  track: requiredText(200),
+  problemTackled: requiredText(1000),
   repoUrl: requiredUrl,
   demoUrl: optionalUrl,
   videoUrl: optionalUrl,
