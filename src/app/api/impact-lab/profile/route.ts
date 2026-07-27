@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import {
   checkMemberAccess,
   memberProfileSchema,
@@ -36,6 +37,9 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
+
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
 
   const rl = await rateLimit(request, RateLimits.FORM)
   if (!rl.success) {

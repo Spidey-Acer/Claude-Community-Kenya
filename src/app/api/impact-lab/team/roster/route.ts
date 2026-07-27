@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { Team } from "@/lib/matching"
 
@@ -96,6 +97,9 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
+
   const rl = await rateLimit(request, RateLimits.FORM)
   if (!rl.success) {
     return NextResponse.json(
@@ -155,6 +159,9 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
+
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
 
   const rl = await rateLimit(request, RateLimits.FORM)
   if (!rl.success) {

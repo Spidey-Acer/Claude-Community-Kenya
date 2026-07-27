@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { getUpcomingEvents } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants";
+import { DEFAULT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
 import { extractFrozenTeams } from "@/lib/impact-lab/member";
 import { Calendar, MessageSquare, BookOpen, Sparkles, Code2, FlaskConical } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
@@ -84,11 +84,25 @@ export default async function DashboardPage() {
   const nextEvent = upcomingEvents[0];
 
   // Impact Lab hackathon status — mirrors the states on /dashboard/impact-lab.
-  let impactLabStatus: ImpactLabStatus = "verify";
+  // null hides the card entirely: with the cohort closed, someone who never
+  // took part has no reason to see a hackathon card at all, and every live
+  // status ("complete your profile", "teams drop Saturday") would be a lie.
+  const cohortActive = isCohortActive(DEFAULT_COHORT);
+  let impactLabStatus: ImpactLabStatus | null = cohortActive ? "verify" : null;
   // Same flag the API and the Impact Lab page use: with verification off we
   // send no verification mail, so gating on emailVerified alone would strand
   // every pre-flag account on the "verify" card permanently.
-  if (!REQUIRE_EMAIL_VERIFICATION || user.emailVerified) {
+  if (!cohortActive) {
+    // Closed cohort: the card is a link to the record, and only for people who
+    // actually have one.
+    const participant = await prisma.impactLabParticipant.findUnique({
+      where: {
+        cohort_email: { cohort: DEFAULT_COHORT, email: user.email.toLowerCase() },
+      },
+      select: { id: true },
+    });
+    impactLabStatus = participant ? "archived" : null;
+  } else if (!REQUIRE_EMAIL_VERIFICATION || user.emailVerified) {
     // No .catch(() => null) here: swallowing a DB error would show a
     // registered participant the affirmative "Registration not found" copy.
     // A down DB surfaces via the page error boundary, same as the user query.
@@ -153,9 +167,11 @@ export default async function DashboardPage() {
 
         {REQUIRE_EMAIL_VERIFICATION && !user.emailVerified && <VerifyEmailBanner />}
 
-        <section className="mb-8" aria-label="Impact Lab hackathon">
-          <ImpactLabCard status={impactLabStatus} />
-        </section>
+        {impactLabStatus && (
+          <section className="mb-8" aria-label="Impact Lab hackathon">
+            <ImpactLabCard status={impactLabStatus} />
+          </section>
+        )}
 
         <section className="mb-8" aria-label="Profile">
           <ProfileEditor
@@ -328,7 +344,8 @@ type ImpactLabStatus =
   | "profile"
   | "waiting"
   | "revealed"
-  | "unassigned";
+  | "unassigned"
+  | "archived";
 
 const IMPACT_LAB_COPY: Record<
   ImpactLabStatus,
@@ -360,10 +377,40 @@ const IMPACT_LAB_COPY: Record<
     title: "Teams are finalized",
     description: "You weren't placed on a team — contact the organizers.",
   },
+  archived: {
+    title: "Your Impact Lab record",
+    description: "Your team and what you built. Kept as a record of the event.",
+  },
 };
 
 function ImpactLabCard({ status }: { status: ImpactLabStatus }) {
   const copy = IMPACT_LAB_COPY[status];
+
+  // Archived is a record, not a task. Amber reads as "you still need to do
+  // something", which is exactly the wrong signal once the event is over.
+  if (status === "archived") {
+    return (
+      <Link
+        href="/dashboard/impact-lab"
+        className="group flex flex-wrap items-start gap-4 rounded-lg border border-border-default bg-bg-secondary p-6 transition-all hover:border-text-dim"
+      >
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-border-default bg-bg-card">
+          <FlaskConical className="h-6 w-6 text-text-dim" />
+        </div>
+        <div className="flex-1">
+          <p className="mb-1 font-mono text-[11px] uppercase tracking-wider text-text-dim">
+            Impact Lab · archived
+          </p>
+          <h2 className="font-mono text-base font-bold text-text-primary transition-colors group-hover:text-text-secondary">
+            {copy.title}
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">{copy.description}</p>
+        </div>
+        <span className="font-mono text-sm text-text-dim">View &rarr;</span>
+      </Link>
+    );
+  }
+
   const green = status === "revealed" || status === "waiting";
   const cardClass = green
     ? "group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-6 transition-all hover:border-green-primary/40"
