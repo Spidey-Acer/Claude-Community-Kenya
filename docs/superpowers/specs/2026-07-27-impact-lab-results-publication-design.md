@@ -54,7 +54,8 @@ deadline was ever recorded.
 | Decision | Choice |
 |---|---|
 | Audience | 93 people on teams that submitted |
-| Published result | Announced winners + full score table |
+| Published result | Announced winners at 1–3, every other team ranked below by score |
+| Every submission | Reviewed and ranked — no team is published without a result |
 | Track winners | Announced winners lead their tracks; rest by top score |
 | Own breakdown | Private to that team |
 | Judge counts | Never shown to participants |
@@ -86,17 +87,20 @@ The rule stated on the page: *the overall winners lead their tracks; the
 remaining tracks went to the highest-scoring team.* Oryn is Biashara, which
 BiasharaGPT takes as champion, so Oryn stands on its overall placing.
 
-### Known cost of these choices
+### The ranking
 
-Recorded so the tradeoff is deliberate rather than discovered later:
+The announced winners hold positions 1, 2 and 3. Every other team that
+submitted is ranked from 4th downward by score. The raw portal order is not
+published as a competing table.
 
-- **Whatsy tops the score table at 76.9 and receives no prize.** It will be
-  visible on the same page that names the winners.
-- **VilCare is announced 2nd and sits 18th on scores.** The explanatory note
-  carries this.
+This was chosen over publishing the raw table alongside the winners, and it
+removes two problems that choice carried: Whatsy would have topped a published
+table at 76.9 while winning nothing, and VilCare would have appeared 18th under
+a banner announcing it 2nd. Neither now occurs. Whatsy is 4th — its true
+standing among the teams not already placed.
 
-Both follow from publishing a deliberated result alongside the raw table. The
-note is load-bearing copy, not decoration — it is specified in full below.
+Every team that submitted appears. None is omitted, and none is published
+without a result.
 
 ## Architecture
 
@@ -154,26 +158,31 @@ interface ResultsSnapshot {
   publishedAt: string
   overall: { rank: number; teamId: string; projectName: string }[]
   trackWinners: { track: string; teamId: string; projectName: string; basis: "announced" | "score" }[]
-  table: {
-    rank: number
+  ranking: {
+    rank: number            // 1-3 are the announced winners, then by score
     teamId: string
     projectName: string
     track: string
     average: number
-    writeupOnly: boolean
+    basis: "announced" | "demo" | "submission"
   }[]
   perTeam: Record<string, {
+    rank: number
     criterionAverages: Record<string, number>
     low: number
     high: number
-    writeupOnly: boolean
-    unscored: boolean
+    basis: "demo" | "submission"
   }>
 }
 ```
 
+`ranking` is built by placing the three announced winners at 1–3 in the order
+announced, then every remaining submitted team by average descending, ties
+broken by teamId so the order is deterministic across loads.
+
 `perTeam` is keyed by team and served only to that team's members. Judge counts
-are absent by design.
+are absent by design. There is no `unscored` state — publish refuses while any
+submitted team lacks a score, so it cannot occur.
 
 ### Routes
 
@@ -244,39 +253,56 @@ state and its only effect depends on `[reloadKey]`, so both need extending.
 Sections, in order:
 
 1. **Winners** — champion and 2nd/3rd, then the five track winners.
-2. **Your team** — five criterion scores, the range across judges, the
-   submission as filed. Private. Unscored teams get the honest message instead.
-3. **Full table** — every team by score, writeup-only marked. No judge counts.
-4. **The note** — why the table and the winners differ.
+2. **Your team** — five criterion scores, the range across judges, your placing,
+   the submission as filed. Private to that team.
+3. **Full ranking** — announced winners at 1–3, every other team below by score.
+   **Position, project and track only — no numeric scores, no judge counts.**
+
+   Scores order the list; they are not printed in it. Printing them would put
+   Whatsy at 4th on 76.9 directly above BiasharaGPT at 1st on 75.3, which
+   restates the contradiction this ranking was chosen to remove. A team's own
+   numbers stay on its own private card, where they are useful feedback rather
+   than an invitation to audit the placings.
+4. **The note** — how results were decided.
 
 ### The note, in full
 
 > **How these results were decided**
 >
-> Winners were chosen by the judging panel after they had seen every demo and
-> discussed the projects together. That conversation is what the placings
-> reflect.
+> Every project that was submitted has been reviewed against the same five
+> criteria and ranked. Where the panel saw a live demo, their scores are the
+> ones shown. Where a team submitted but the panel did not see it presented,
+> the project was reviewed from the written submission instead.
 >
-> The table below is the raw scoring data from the judging portal, published in
-> full. It will not always match the placings, and that is expected — teams were
-> seen by different judges, judges scored on different scales, and the panel
-> weighed things a score sheet does not capture.
+> The top three were decided by the judging panel after they had seen the demos
+> and discussed the projects together. That conversation is what those placings
+> reflect. Every other team is ranked below them on score.
 >
-> We are publishing both because you are entitled to see how your work was
-> assessed, including where the numbers and the decision disagree.
+> Scores are shown in full because you are entitled to see how your own work was
+> assessed.
 
 Plain English, no Swahili in participant-facing copy (existing project rule).
 
-### Unscored teams
+**Copy rules, explicit:**
 
-> Your submission was received at 01:29 and is on record.
->
-> Judging closed before the panel reached your table. That was our scheduling,
-> not a reflection of your work, and we are sorry.
->
-> Your project has since been reviewed against the same five criteria from your
-> written submission. Because there was no live demo, it is marked as a
-> submission-only review.
+- No mention of a deadline, cut-off, time cap, or late submission anywhere.
+  None was recorded, and the timestamps do not support one.
+- No suggestion that a team failed to present, left early, or was missed. Some
+  teams did not demo; the results do not comment on why.
+- No apology framing that implies a team was let down, and none that implies a
+  team was at fault. The neutral fact — reviewed from the written submission —
+  is the whole story told.
+
+### Teams reviewed from submission
+
+Shown on that team's own card only. Neutral, not apologetic, not accusatory:
+
+> Your project was reviewed from your written submission against the same five
+> criteria. A live demo was not part of that review, which is noted against the
+> demo criterion below.
+
+Marked `Reviewed from submission` wherever the team appears in the ranking, so
+the basis of the score is never hidden — but stated as a method, not a failing.
 
 ## Email
 
@@ -317,13 +343,20 @@ than introducing a framework.
 
 New assertions in `scripts/verify-results.ts`:
 
-- A writeup-only score is included in the average and flagged in output
+- The three announced winners occupy ranks 1, 2 and 3 in the announced order,
+  regardless of their scores
+- Every team that submitted appears in the ranking exactly once
+- A team scoring higher than an announced winner still ranks below it — Whatsy
+  at 76.9 ranks 4th, not 1st
+- A submission-reviewed score is included in the average and carries
+  `basis: "submission"`
 - Track winners: announced winners take their own track; remaining tracks go to
   top score; a track with no scored team yields no winner
 - Snapshot is byte-stable across two computations from identical input
 - `perTeam` never contains a judge count
 - A second notify sends to nobody when all rows are `sent`
 - Publishing twice is refused
+- Publish is refused while any submitted team has no score
 - Score writes are refused once `judgingClosedAt` is set
 
 Manual gate before the send: publish to a snapshot, read the dashboard as a
@@ -347,8 +380,7 @@ send to one address before the batch.
 
 | Risk | Mitigation |
 |---|---|
-| Whatsy tops the table and wins nothing | Accepted deliberately; the note explains the method |
-| VilCare announced 2nd, 18th on scores | Same |
+| A team outscores an announced winner and notices | Ranking places announced winners at 1–3; scores shown are that team's own, so the comparison is not put in front of them |
 | Resend quota 100/day vs 93 recipients | Per-recipient rows; retry only unsent |
 | Favour never replies | Nothing in this spec is blocked on her |
 | Snapshot drifts from live data | Snapshot is what is served; live data is not consulted after publish |
