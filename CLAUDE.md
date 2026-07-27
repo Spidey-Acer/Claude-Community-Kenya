@@ -8,25 +8,52 @@ Kenya's independent, volunteer-run Claude developer community. Live at **claudek
 | Framework | Next.js 16, App Router, TypeScript strict |
 | Styling | Tailwind CSS v4 (`@theme` blocks) + CSS variables |
 | Motion | Framer Motion |
-| Database | PostgreSQL via Prisma 7 (17 models) |
+| Database | PostgreSQL via Prisma 7 (24 models) |
 | Auth | NextAuth v5 (credentials) |
 | Storage | Supabase Storage (uploads, avatars) |
 | Rate Limiting | Upstash Redis |
 | Email | Resend |
 | Icons | Lucide React |
-| Fonts | JetBrains Mono (headings/code) + IBM Plex Sans (body) via `next/font` |
+| Fonts | Fraunces (display) + Inter (body) on the public site; Newsreader (serif) and JetBrains Mono / IBM Plex Sans also loaded — all via `next/font` |
 | Deploy | Vercel |
 
-## Design System: Terminal Noir
+## Design systems — two, and they are scoped
 
-Colors defined as CSS custom properties in `src/app/globals.css`, registered as Tailwind theme tokens in the `@theme inline` block.
+The public site and the staff surfaces do not share a look. Getting this
+backwards is the most common way to write code that looks wrong in review.
+
+### Karibu (warm light) — the public site
+
+Every public page. Components live in `src/components/karibu/`. Tokens are CSS
+custom properties in `src/app/globals.css`, registered in the `@theme inline`
+block as Tailwind utilities (`bg-paper`, `text-ink`, `border-sand`, …).
+
+- **Surfaces:** `--paper` (#F4EEE3), `--paper-card` (#FBF7F0), `--paper-alt`
+- **Text:** `--ink` (#23201B), `--ink-soft`, `--ink-muted`, `--ink-faint`
+- **Accent:** `--clay` (#A84E2D), `--clay-dark`, `--clay-light`
+- **Lines:** `--sand` (#E4DAC8), `--sand-2`
+
+**Adaptive dark mode** re-defines the paper/ink/clay/sand tokens (system
+preference, overridable by an explicit `data-theme` on `<html>`). Anything that
+must stay dark in *both* themes uses the non-inverting `--panel-dark` /
+`--on-panel-dark` / `--on-panel-dark-muted` trio instead of `--ink` — the
+footer and the feature cards do. Reaching for `bg-ink` to build a dark panel is
+the bug that made the footer 1.59:1.
+
+### Terminal Noir (dark) — admin and Impact Lab only
+
+`/admin/*`, `/dashboard/*`, `/judge`, `/timer`. Not used on any public
+marketing page.
 
 - **Backgrounds:** `--bg-primary` (#0a0a0a), `--bg-secondary`, `--bg-card`, `--bg-elevated`
 - **Green (primary):** `--green-primary` (#00ff41), `--green-dim`, `--green-muted`
 - **Accents:** `--amber` (#ffb000), `--red` (#ff3333), `--cyan` (#00d4ff)
 - **Text:** `--text-primary`, `--text-secondary`, `--text-dim`
 
-**Persona system** switches between Dev mode (terminal aesthetic) and Pro mode (glassmorphism + Anthropic brand). Toggle lives in the navbar. Context in `src/components/persona/`.
+`<html>` carries `persona-pro` globally (`layout.tsx`), which sets
+`h1/h2/h3` to `--font-display` (Fraunces). That rule outranks the
+`font-newsreader` utility, so Newsreader on a heading is a no-op — a known
+wart, see Known Issues.
 
 ## Architecture
 
@@ -152,3 +179,15 @@ npm run db:seed          # Seed database
 - `TerminalApplication.tsx` is 1,356 lines — needs refactoring into sub-components
 - Team avatars reference `/images/team/*.jpg` — files may not exist
 - CommandPalette FAQ links may point to wrong routes
+- **Dead font utility:** `.persona-pro h1,h2,h3` (specificity 0,1,1) beats the
+  `font-newsreader` utility (0,1,0), so ~66 heading usages of `font-newsreader`
+  render Fraunces. The ~28 non-heading usages *do* apply — do not blanket-delete
+  the class. Either drop `persona-pro` from Karibu routes or re-layer the rule.
+- **Five font families load globally** in `layout.tsx` while the public site
+  paints mainly Fraunces + Inter. Newsreader alone pulls 5 weights plus italics.
+- **Metadata gaps:** 11 public pages export no `metadata` and fall back to the
+  root title; `/code-of-conduct` and `/resources/links` have no
+  `alternates.canonical` so they self-report as the homepage.
+- **Prisma client goes stale after a GitHub Desktop pull** (no postinstall
+  hook), producing dozens of phantom "property does not exist on PrismaClient"
+  type errors. `npx prisma generate` fixes it — do not chase them as real.
