@@ -101,7 +101,11 @@ function submissionAsRecord(s: SubmissionRow): Record<string, string> {
 
 /** GET — submitted teams with no score of any kind yet. */
 export async function GET(request: NextRequest) {
-  const check = await checkApiPermission("impact-lab", "view")
+  // "edit", not "view" — MODERATOR (the role judges sign in with) holds only
+  // "view" on impact-lab. This list shows live Draft/Save controls, so gating
+  // it on "view" would let a judge see the queue and press buttons that then
+  // 403 on POST. Both handlers must move together, same as publish/notify.
+  const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
@@ -165,7 +169,8 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const check = await checkApiPermission("impact-lab", "view")
+  // See GET above — gated on "edit" for the same reason.
+  const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))

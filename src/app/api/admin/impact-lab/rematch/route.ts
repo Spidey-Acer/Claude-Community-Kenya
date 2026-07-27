@@ -73,6 +73,25 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // This is a privacy guard, not bookkeeping. The published snapshot freezes
+  // each team's private scorecard, but it does NOT freeze the person-to-team
+  // mapping: /api/impact-lab/results and the results notify email both
+  // resolve which team a participant belongs to from this run's LIVE
+  // `result` via extractFrozenTeams(), then look up that team's card. If a
+  // rematch moved someone to a different team after publication, they would
+  // be shown — and possibly emailed — another team's private scores. Same
+  // rule as the live-judging route, applied here before any write.
+  if (run.judgingClosedAt) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Judging is closed — results have been published.",
+        code: "JUDGING_CLOSED",
+      },
+      { status: 409 }
+    )
+  }
+
   const frozenTeams = extractFrozenTeams(run.result)
   if (!frozenTeams) {
     return NextResponse.json(

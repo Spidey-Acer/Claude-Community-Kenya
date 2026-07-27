@@ -71,20 +71,34 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
     Promise.all([
       fetch("/api/impact-lab/profile"),
       fetch("/api/impact-lab/team"),
-      fetch("/api/impact-lab/results"),
+      // Caught here, not left to reject Promise.all: the results endpoint is
+      // rate-limited per client IP (100/60s), and hackathon venues put dozens
+      // of participants behind one NAT address. A burst right after the
+      // results email goes out can 429 this single fetch — that must not
+      // black out profile/team, which have nothing to do with results.
+      fetch("/api/impact-lab/results").catch(() => null),
     ])
       .then(async ([profileRes, teamRes, resultsRes]) => {
         const profileJson: ProfileResponse = await profileRes.json();
         const teamJson: TeamResponse = await teamRes.json();
-        const resultsJson: ResultsResponse = await resultsRes.json();
+        // Soft-fail only: a missing/non-ok/malformed results response
+        // degrades to "not published yet" instead of failing the page.
+        // Profile and team below keep their existing all-or-nothing checks.
+        let resultsJson: ResultsResponse = { success: true, published: false };
+        if (resultsRes && resultsRes.ok) {
+          try {
+            const parsed: ResultsResponse = await resultsRes.json();
+            if (parsed.success) resultsJson = parsed;
+          } catch {
+            // Malformed body — treat as not published, same as a 429.
+          }
+        }
         if (!active) return;
         if (
           !profileRes.ok ||
           !profileJson.success ||
           !teamRes.ok ||
-          !teamJson.success ||
-          !resultsRes.ok ||
-          !resultsJson.success
+          !teamJson.success
         ) {
           setPhase("error");
           return;
