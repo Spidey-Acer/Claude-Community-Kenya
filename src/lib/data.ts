@@ -5,6 +5,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
+import { publicUrl, variantKey } from "@/lib/gallery/r2"
 import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
@@ -300,6 +301,37 @@ export interface PhotoView {
   featured: boolean
   takenAt: Date | null
   event: { slug: string; title: string; date: Date; city: string } | null
+  /**
+   * True when this photo is served from R2 with pre-generated derivatives.
+   * Those are already sized and encoded, so the grid passes `unoptimized` and
+   * skips Vercel's image optimizer — no point paying to transform an image
+   * twice, and R2 egress is free where the optimizer's is not.
+   */
+  fromR2: boolean
+}
+
+/**
+ * Resolve a row's URLs at read time.
+ *
+ * Rows carrying a storageKey live in R2 and get their public URLs composed
+ * from R2_PUBLIC_BASE_URL, so moving the CDN domain is an env change. Rows
+ * without one are legacy Supabase uploads and keep their stored absolute URLs
+ * — that null is the discriminator, which lets both storages coexist while the
+ * backfill runs.
+ */
+function resolvePhotoUrls(row: {
+  storageKey: string | null
+  url: string
+  thumbnailUrl: string | null
+}): { url: string; thumbnailUrl: string | null; fromR2: boolean } {
+  if (!row.storageKey) {
+    return { url: row.url, thumbnailUrl: row.thumbnailUrl, fromR2: false }
+  }
+  return {
+    url: publicUrl(variantKey(row.storageKey, "full")),
+    thumbnailUrl: publicUrl(variantKey(row.storageKey, "thumb")),
+    fromR2: true,
+  }
 }
 
 interface GetGalleryOptions {
@@ -332,8 +364,7 @@ export async function getGalleryPhotos(
 
   return rows.map((p) => ({
     id: p.id,
-    url: p.url,
-    thumbnailUrl: p.thumbnailUrl,
+    ...resolvePhotoUrls(p),
     alt: p.alt,
     caption: p.caption,
     photographer: p.photographer,

@@ -12,8 +12,17 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // Cloudflare R2 custom domain — gallery photos and their pre-generated
+      // derivatives. Grid and lightbox pass `unoptimized` for these (the
+      // renditions are already sized), but the hostname still has to be
+      // allowed or next/image refuses the src outright.
+      {
+        protocol: "https",
+        hostname: "media.claudekenya.org",
+        pathname: "/**",
+      },
       // Unsplash — used for placeholder gallery photos during seed; remove
-      // once real meetup photos are uploaded to Supabase Storage.
+      // once real meetup photos are uploaded.
       {
         protocol: "https",
         hostname: "images.unsplash.com",
