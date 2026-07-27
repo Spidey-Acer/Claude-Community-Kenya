@@ -10,9 +10,34 @@ interface EventOption {
   title: string
 }
 
-interface UploadResult {
-  created: unknown[]
-  failures: string[]
+interface PresignedUpload {
+  photoId: string
+  fileName: string
+  uploadUrl: string
+  contentType: string
+  ext: string
+}
+
+/** Concurrent direct-to-R2 uploads. Enough to saturate a link, few enough
+ *  not to starve the browser's connection pool on a phone. */
+const UPLOAD_CONCURRENCY = 4
+
+/** Run `worker` over `items` with a bounded number in flight. */
+async function pool<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let cursor = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++
+      results[i] = await worker(items[i], i)
+    }
+  })
+  await Promise.all(runners)
+  return results
 }
 
 /** Per-file metadata, kept alongside the File so the two cannot fall out of order. */
@@ -41,6 +66,7 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
   const [error, setError] = useState<string | null>(null)
   const [failures, setFailures] = useState<string[]>([])
   const [entries, setEntries] = useState<FileEntry[]>([])
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
 
   function onFilesPicked(fileList: FileList | null) {
     setEntries(
@@ -65,39 +91,84 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
     }
 
     const form = e.currentTarget
-    const data = new FormData()
     const eventId = (form.elements.namedItem("eventId") as HTMLSelectElement).value
     const photographer = (form.elements.namedItem("photographer") as HTMLInputElement).value
     const featured = (form.elements.namedItem("featured") as HTMLInputElement).checked
 
-    if (eventId) data.set("eventId", eventId)
-    if (photographer) data.set("photographer", photographer)
-    data.set("featured", String(featured))
-
-    // Appended in lockstep so the server can index-match files to metadata.
-    for (const entry of entries) {
-      data.append("files", entry.file)
-      data.append("alt", entry.alt)
-      data.append("caption", entry.caption)
-    }
-
     startTransition(async () => {
-      const res = await fetch("/api/admin/photos/upload", {
-        method: "POST",
-        headers: { "x-csrf-token": await csrfToken() },
-        body: data,
-      })
-      const json = (await res.json()) as { success: boolean; error?: string; data?: UploadResult }
+      const token = await csrfToken()
+      const localFailures: string[] = []
 
-      if (!res.ok || !json.success) {
-        setError(json.error ?? "Upload failed.")
+      // 1. Ask the server for one signed PUT URL per file. This also creates
+      //    the rows, so an interrupted batch leaves visible, cleanable records
+      //    rather than orphaned objects in the bucket.
+      const presignRes = await fetch("/api/admin/photos/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": token },
+        body: JSON.stringify({
+          eventId: eventId || null,
+          photographer: photographer || null,
+          featured,
+          files: entries.map((entry) => ({
+            fileName: entry.file.name,
+            contentType: entry.file.type,
+            size: entry.file.size,
+            alt: entry.alt,
+            caption: entry.caption,
+          })),
+        }),
+      })
+      const presignJson = (await presignRes.json()) as {
+        success: boolean
+        error?: string
+        data?: { uploads: PresignedUpload[] }
+      }
+      if (!presignRes.ok || !presignJson.success || !presignJson.data) {
+        setError(presignJson.error ?? "Could not start the upload.")
         return
       }
 
-      const result = json.data!
-      if (result.failures.length > 0) {
-        setFailures(result.failures)
-        if (result.created.length > 0) router.push("/admin/photos")
+      const uploads = presignJson.data.uploads
+      setProgress({ done: 0, total: uploads.length })
+
+      // 2. Upload each original straight to R2. Bytes never touch the app.
+      // 3. Then finalize that one photo, which generates its derivatives.
+      await pool(uploads, UPLOAD_CONCURRENCY, async (upload, i) => {
+        try {
+          const put = await fetch(upload.uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": upload.contentType },
+            body: entries[i].file,
+          })
+          if (!put.ok) throw new Error(`storage rejected the upload (${put.status})`)
+
+          const finalizeRes = await fetch("/api/admin/photos/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-csrf-token": token },
+            body: JSON.stringify({
+              photoId: upload.photoId,
+              ext: upload.ext,
+              contentType: upload.contentType,
+            }),
+          })
+          const finalizeJson = (await finalizeRes.json()) as { success: boolean; error?: string }
+          if (!finalizeRes.ok || !finalizeJson.success) {
+            throw new Error(finalizeJson.error ?? "processing failed")
+          }
+        } catch (err) {
+          localFailures.push(
+            `${upload.fileName}: ${err instanceof Error ? err.message : String(err)}`,
+          )
+        } finally {
+          setProgress((p) => ({ done: p.done + 1, total: p.total }))
+        }
+      })
+
+      if (localFailures.length > 0) {
+        setFailures(localFailures)
+        // Some succeeded — send the user to the list to see them rather than
+        // stranding them on a form they would have to re-fill.
+        if (localFailures.length < uploads.length) router.push("/admin/photos")
         return
       }
 
@@ -110,7 +181,7 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
       {/* File picker */}
       <div>
         <label htmlFor="photo-files" className="mb-1.5 block font-mono text-[11px] text-[#555]">
-          Photos *
+          Photos * <span className="text-[#333]">(up to 200, max 25 MB each)</span>
         </label>
         <input
           id="photo-files"
@@ -236,7 +307,9 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
         {isPending
-          ? `Uploading ${entries.length} file${entries.length !== 1 ? "s" : ""}…`
+          ? progress.total > 0
+            ? `Uploading ${progress.done} / ${progress.total}…`
+            : "Preparing…"
           : "Upload Photos"}
       </button>
     </form>
