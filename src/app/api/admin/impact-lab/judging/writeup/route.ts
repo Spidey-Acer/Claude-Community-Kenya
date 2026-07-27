@@ -34,32 +34,39 @@ export const maxDuration = 60
 const MODEL = "claude-sonnet-5"
 const anthropic = createAnthropic()
 
+// Per-criterion reasoning hints, driven by CRITERION_KEYS rather than
+// hardcoded as separate fields — a renamed or added criterion in
+// @/lib/impact-lab/judging flows through here automatically, the same way
+// the `save` validation loop below already does.
+const REASONING_HINTS: Record<string, string> = {
+  demo: "Must state plainly that no live demo was seen, then say what the writeup itself evidences about working software.",
+  presentation:
+    "Must state plainly that no presentation was seen, then say what the writeup itself evidences about clarity and honesty — not how polished the writing is.",
+}
+const DEFAULT_REASONING_HINT = "One sentence, grounded in what the submission says."
+
+const scoreShape = Object.fromEntries(
+  CRITERION_KEYS.map((key) => [key, z.number().int().min(MIN_SCORE).max(MAX_SCORE)])
+)
+const reasoningShape = Object.fromEntries(
+  CRITERION_KEYS.map((key) => [
+    key,
+    z.string().describe(REASONING_HINTS[key] ?? DEFAULT_REASONING_HINT),
+  ])
+)
+
 const draftSchema = z.object({
-  scores: z.object({
-    impact: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-    demo: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-    claude: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-    clarity: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-    presentation: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-  }),
-  reasoning: z.object({
-    impact: z.string().describe("One sentence, grounded in what the submission says."),
-    demo: z
-      .string()
-      .describe(
-        "Must state plainly that no live demo was seen, then say what the writeup itself evidences about working software."
-      ),
-    claude: z.string().describe("One sentence, grounded in what the submission says."),
-    clarity: z.string().describe("One sentence, grounded in what the submission says."),
-    presentation: z.string().describe("One sentence, grounded in what the submission says."),
-  }),
+  scores: z.object(scoreShape),
+  reasoning: z.object(reasoningShape),
 })
 
-const SYSTEM = `You are drafting scores for a hackathon team that submitted written work but was never reached by a judge — no one saw a live demo.
+const SYSTEM = `You are drafting scores for a hackathon team that submitted written work but was never reached by a judge — no one saw a live demo or a live presentation.
 
-Score only what this submission evidences. If the writeup does not say something, that is evidence of absence, not a gap to fill in the team's favour. Never infer competence, never round up to be kind, and never let confident writing substitute for a working demo.
+Score only what this submission evidences. If the writeup does not say something, that is evidence of absence, not a gap to fill in the team's favour. Never infer competence, never round up to be kind, and never let confident writing substitute for a working demo or a good presentation.
 
 For the "demo" criterion specifically: no live demo was seen. Say that plainly in the reasoning, then score only what the writeup itself demonstrates about working software — what it claims is built and running versus what it says is mocked, planned, or aspirational. A team that writes convincingly about software that may not exist must not receive the same score as a team that showed it work. When in doubt, score low and say why in the reasoning.
+
+For the "presentation" criterion specifically: no presentation was seen either — there were no three minutes to judge. Say that plainly in the reasoning. A well-written submission is not evidence of a clear, honest, well-used three minutes; writing well and presenting well are different skills. Score only what the submission itself shows about clarity and honesty — how clearly it explains the problem and the named beneficiary, and whether it is straight about what works versus what is mocked rather than talking around the gaps. When in doubt, score low and say why in the reasoning.
 
 For every other criterion, ground the score and the one-sentence reasoning in specific lines from the submission. A human organiser reviews every number before it counts — your job is to give them an honest, well-reasoned starting point, not a final answer.`
 
@@ -252,7 +259,7 @@ What it does: ${submission.description}
 What works vs what is mocked: ${submission.worksVsMocked}
 How they used Claude: ${submission.claudeUsage}
 
-No live demo was seen for this team.`
+No live demo and no live presentation were seen for this team.`
 
     try {
       const { object } = await generateObject({
