@@ -22,6 +22,7 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const;
  *  - Esc closes
  *  - ← / → navigate
  *  - Tab cycles inside the dialog (focus trap)
+ *  - focus returns to the tile that opened the dialog on close
  *
  * Touch: swipe horizontally on the image to navigate.
  */
@@ -33,6 +34,11 @@ export function PhotoLightbox({
 }: PhotoLightboxProps) {
   const reduce = useReducedMotion();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // The element that had focus when the dialog opened — almost always the grid
+  // tile that was clicked. Restoring to it on close is what keeps keyboard
+  // users from being dumped back at the top of the document.
+  const previouslyFocused = useRef<HTMLElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const open = currentIndex !== null;
   const photo = open ? photos[currentIndex] : null;
@@ -49,24 +55,61 @@ export function PhotoLightbox({
 
   useEffect(() => {
     if (!open) return;
+
+    previouslyFocused.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
-      } else if (e.key === "ArrowRight") {
+        return;
+      }
+      if (e.key === "ArrowRight") {
         e.preventDefault();
         next();
-      } else if (e.key === "ArrowLeft") {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         prev();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      // Focus trap. Without this, Tab walks straight out of the dialog and
+      // into the page behind it — which is still rendered and still
+      // scrollable-to — leaving a keyboard or screen-reader user navigating a
+      // page they cannot see, with no obvious way back.
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
       }
     }
+
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     closeBtnRef.current?.focus();
+
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      // Guard the node still being in the document: a photo can be removed, or
+      // the grid re-rendered under a filter change, while the dialog is open.
+      const target = previouslyFocused.current;
+      if (target && document.contains(target)) target.focus();
     };
   }, [open, next, prev, onClose]);
 
@@ -88,6 +131,7 @@ export function PhotoLightbox({
       {open && photo && (
         <motion.div
           key="lightbox"
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={photo.caption ?? "Photo viewer"}
