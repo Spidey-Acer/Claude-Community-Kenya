@@ -134,7 +134,7 @@ npm run db:seed          # Seed database
 |---------|-----|
 | Website | https://www.claudekenya.org |
 | Discord | https://discord.gg/CkD9QWjsHm |
-| WhatsApp | https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa |
+| WhatsApp | https://chat.whatsapp.com/HSNkqvKklyZBvI3zcpEMhX |
 | Nairobi Events (Luma) | https://luma.com/sbsa789m |
 | Mombasa Events (Luma) | https://luma.com/vsf5re14 |
 | Global Claude Community | https://luma.com/claudecommunity |

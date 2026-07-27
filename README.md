@@ -152,7 +152,7 @@ See [CONTRIBUTORS.md](./CONTRIBUTORS.md) for the people behind the code.
 | Platform | Link |
 |----------|------|
 | Discord | [discord.gg/CkD9QWjsHm](https://discord.gg/CkD9QWjsHm) |
-| WhatsApp | [Join group](https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa) |
+| WhatsApp | [Join group](https://chat.whatsapp.com/HSNkqvKklyZBvI3zcpEMhX) |
 | Events (Nairobi) | [luma.com/sbsa789m](https://luma.com/sbsa789m) |
 | Events (Mombasa) | [luma.com/vsf5re14](https://luma.com/vsf5re14) |
 

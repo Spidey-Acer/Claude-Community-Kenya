@@ -54,7 +54,9 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
 export const SOCIAL_LINKS = {
   twitter: "https://twitter.com/ClaudeCommunityKE",
   discord: "https://discord.gg/CkD9QWjsHm",
-  whatsapp: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
+  // Points at the currently joinable group. The first group (Hpx42q1A…) is full
+  // but still active — members stay, new joiners come here.
+  whatsapp: "https://chat.whatsapp.com/HSNkqvKklyZBvI3zcpEMhX",
   linkedin: "https://linkedin.com/company/claude-community-kenya",
   lumaNairobi: "https://luma.com/sbsa789m",
   lumaMombasa: "https://luma.com/vsf5re14",
