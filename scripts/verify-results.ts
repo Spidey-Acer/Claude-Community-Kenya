@@ -1,0 +1,153 @@
+/**
+ * Impact Lab results — verification harness.
+ *
+ * Follows scripts/verify-judging.ts. The arithmetic here decides what 93 people
+ * are told about their own work, so the ranking rule, the track-winner rule and
+ * the privacy of the payload are asserted rather than trusted.
+ *
+ * Run with: npm run verify:results
+ */
+
+import { buildSnapshot, type ResultsInput } from "../src/lib/impact-lab/results"
+import type { TeamStanding } from "../src/lib/impact-lab/judging"
+
+let failures = 0
+
+function assert(condition: boolean, message: string): void {
+  if (condition) {
+    console.log(`  ✓ ${message}`)
+  } else {
+    console.error(`  ✗ ${message}`)
+    failures += 1
+  }
+}
+
+const standing = (teamId: string, average: number): TeamStanding => ({
+  teamId,
+  average,
+  judgeCount: 2,
+  criterionAverages: { impact: 4, demo: 4, claude: 4, clarity: 4, presentation: 4 },
+})
+
+// Mirrors production: the announced winners do not top the score table.
+const input: ResultsInput = {
+  publishedAt: "2026-07-27T09:00:00.000Z",
+  announcedTeamIds: ["t-biasharagpt", "t-vilcare", "t-oryn"],
+  standings: [
+    standing("t-whatsy", 76.9),
+    standing("t-biasharagpt", 75.3),
+    standing("t-keyosk", 73.8),
+    standing("t-oryn", 73.3),
+    standing("t-vilcare", 55.3),
+    standing("t-kilimoeco", 80.0),
+  ],
+  teams: new Map([
+    ["t-whatsy", { projectName: "Whatsy", track: "Biashara (Small Business)" }],
+    ["t-biasharagpt", { projectName: "BiasharaGPT", track: "Biashara (Small Business)" }],
+    ["t-keyosk", { projectName: "KeyOSk", track: "Biashara (Small Business)" }],
+    ["t-oryn", { projectName: "Oryn", track: "Biashara (Small Business)" }],
+    ["t-vilcare", { projectName: "VilCare", track: "Afya (Health)" }],
+    ["t-kilimoeco", { projectName: "kilimoeco", track: "Kilimo (Agriculture)" }],
+  ]),
+  writeupOnly: new Set(["t-kilimoeco"]),
+  range: new Map([
+    ["t-vilcare", { low: 18.8, high: 88.8 }],
+    ["t-whatsy", { low: 76.3, high: 77.5 }],
+  ]),
+}
+
+const snap = buildSnapshot(input)
+
+console.log("\nRanking")
+assert(snap.ranking[0].teamId === "t-biasharagpt", "the announced champion ranks 1st")
+assert(snap.ranking[1].teamId === "t-vilcare", "the announced 2nd ranks 2nd despite the lowest score")
+assert(snap.ranking[2].teamId === "t-oryn", "the announced 3rd ranks 3rd")
+assert(
+  snap.ranking[0].basis === "announced" && snap.ranking[2].basis === "announced",
+  "announced winners carry basis 'announced'"
+)
+
+const whatsy = snap.ranking.find((r) => r.teamId === "t-whatsy")
+assert(
+  whatsy?.rank === 5,
+  "a team outscoring the champion still ranks below it — kilimoeco 80.0 is 4th, Whatsy 76.9 is 5th"
+)
+assert(
+  snap.ranking.length === 6 && new Set(snap.ranking.map((r) => r.teamId)).size === 6,
+  "every submitted team appears exactly once"
+)
+assert(
+  snap.ranking.every((r, i) => r.rank === i + 1),
+  "ranks are dense and start at 1"
+)
+assert(
+  snap.ranking.find((r) => r.teamId === "t-kilimoeco")?.basis === "submission",
+  "a submission-reviewed team carries basis 'submission'"
+)
+
+console.log("\nTrack winners")
+const byTrack = new Map(snap.trackWinners.map((w) => [w.track, w]))
+assert(
+  byTrack.get("Biashara (Small Business)")?.teamId === "t-biasharagpt",
+  "an announced winner leads its own track, ahead of a higher-scoring team"
+)
+assert(
+  byTrack.get("Biashara (Small Business)")?.basis === "announced",
+  "that track winner is marked as decided by announcement"
+)
+assert(
+  byTrack.get("Afya (Health)")?.teamId === "t-vilcare",
+  "the announced 2nd leads its track"
+)
+assert(
+  byTrack.get("Kilimo (Agriculture)")?.teamId === "t-kilimoeco" &&
+    byTrack.get("Kilimo (Agriculture)")?.basis === "score",
+  "a track with no announced winner goes to the top score, marked as such"
+)
+assert(
+  snap.trackWinners.length === 3,
+  "only tracks with at least one ranked team produce a winner"
+)
+
+console.log("\nPrivacy of the payload")
+const serialized = JSON.stringify(snap)
+assert(!serialized.includes("judgeCount"), "the snapshot never carries a judge count")
+assert(
+  !/"judge(Name|Email)"/.test(serialized),
+  "the snapshot never carries a judge identity"
+)
+assert(
+  Object.keys(snap.perTeam).length === 6,
+  "every ranked team gets a private card"
+)
+assert(
+  snap.perTeam["t-vilcare"].low === 18.8 && snap.perTeam["t-vilcare"].high === 88.8,
+  "a team's own card carries the range across judges"
+)
+assert(
+  snap.perTeam["t-vilcare"].rank === 2,
+  "a team's own card carries its published rank, not its score rank"
+)
+
+console.log("\nDeterminism")
+assert(
+  JSON.stringify(buildSnapshot(input)) === serialized,
+  "two builds from identical input are byte-identical"
+)
+const tied = buildSnapshot({
+  ...input,
+  announcedTeamIds: [],
+  standings: [standing("t-b", 70), standing("t-a", 70)],
+  teams: new Map([
+    ["t-a", { projectName: "A", track: "Afya (Health)" }],
+    ["t-b", { projectName: "B", track: "Afya (Health)" }],
+  ]),
+  writeupOnly: new Set(),
+  range: new Map(),
+})
+assert(tied.ranking[0].teamId === "t-a", "ties break deterministically by team id")
+
+console.log(
+  failures === 0 ? "\nALL CHECKS PASSED\n" : `\n${failures} CHECK(S) FAILED\n`
+)
+process.exit(failures === 0 ? 0 : 1)
