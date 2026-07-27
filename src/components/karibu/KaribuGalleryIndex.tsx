@@ -44,7 +44,8 @@ export function KaribuGalleryIndex({ albums }: { albums: GalleryAlbum[] }) {
           </h1>
           <p className="mb-6 max-w-[620px] font-inter text-[17px] leading-[1.6] text-ink-soft">
             Photos from our meetups and build days across Nairobi, Mombasa and
-            beyond. Browse an event, or download the whole album.
+            beyond — taken by community members at the events themselves.
+            Browse an album, or download the lot.
           </p>
           {totalPhotos > 0 && (
             <p className="font-inter text-[13px] text-ink-muted">

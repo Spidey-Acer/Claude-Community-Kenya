@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowLeft, Download } from "lucide-react";
 import type { PhotoView } from "@/lib/data";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
+import { TakedownRequest } from "@/components/gallery/TakedownRequest";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -120,14 +121,7 @@ export function KaribuAlbum({
       {/* Consent + takedown. Small, but it belongs on the page with the photos
           rather than buried in a policy nobody opens. */}
       <section className={`${WRAP} pb-16`} aria-label="Photo consent">
-        <p className="max-w-[720px] font-inter text-[12.5px] leading-relaxed text-ink-muted">
-          Photographed with consent at the event. If you&apos;d like a photo of
-          you removed, email{" "}
-          <a href={`mailto:${takedownEmail}?subject=Photo%20removal%20request`} className="text-clay underline underline-offset-2 hover:text-clay-dark">
-            {takedownEmail}
-          </a>{" "}
-          and we&apos;ll take it down — no explanation needed.
-        </p>
+        <TakedownRequest albumSlug={event.slug} contactEmail={takedownEmail} />
       </section>
 
       <PhotoLightbox

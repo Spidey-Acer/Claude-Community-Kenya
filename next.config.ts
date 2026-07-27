@@ -24,13 +24,6 @@ const nextConfig: NextConfig = {
         hostname: "media.claudekenya.org",
         pathname: "/**",
       },
-      // Unsplash — used for placeholder gallery photos during seed; remove
-      // once real meetup photos are uploaded.
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
     ],
     formats: ["image/avif", "image/webp"],
   },
