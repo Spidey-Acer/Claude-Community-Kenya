@@ -5,6 +5,7 @@ import { useSkin } from "@/contexts/SkinContext";
 import { HeroTerminal, type FeedItem, type CommunityStats } from "./HeroTerminal";
 import { HeroPro } from "./HeroPro";
 import type { Audience } from "@/lib/karibu/types";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 const COPY: Record<
   Audience,
@@ -26,7 +27,7 @@ const COPY: Record<
     headline: "Start your AI journey with us",
     sub: "Free meetups, study groups, mentorship — built for Kenyan students",
     ctaLabel: "Join WhatsApp",
-    ctaHref: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
+    ctaHref: SOCIAL_LINKS.whatsapp,
   },
   founder: {
     headline: "Build your AI company in Nairobi",

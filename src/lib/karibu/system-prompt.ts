@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 interface KaribuContextData {
   upcomingEvents: Array<{ title: string; date: Date; city: string; audiences: string[] }>;
@@ -97,7 +98,7 @@ TOP RESOURCES:
 ${resourcesBlock || "- (none yet)"}
 
 DISCORD: https://discord.gg/CkD9QWjsHm
-WHATSAPP: https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
+WHATSAPP: ${SOCIAL_LINKS.whatsapp}
 
 # Output style
 Conversational. Warm but efficient. No emoji except the opening 👋. No markdown headers. Plain text and short bullet lists only.

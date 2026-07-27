@@ -1,4 +1,5 @@
 import { buildCommunityContext } from "./community-context";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 export type ChatPersona = "dev" | "pro";
 
@@ -30,7 +31,7 @@ Available action types and their real URLs:
 - resources → /resources
 - faq → /faq
 - discord → https://discord.gg/CkD9QWjsHm
-- whatsapp → https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
+- whatsapp → ${SOCIAL_LINKS.whatsapp}
 - nairobi-events → https://luma.com/sbsa789m
 - mombasa-events → https://luma.com/vsf5re14
 

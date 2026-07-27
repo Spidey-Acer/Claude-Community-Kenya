@@ -8,6 +8,7 @@ import {
   getResourceCategories,
   getResourcesByCategory,
 } from "@/data/resources";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Curated Links | Claude Community Kenya",
@@ -165,7 +166,7 @@ export default function LinksPage() {
             </a>
             {", "}
             <a
-              href="https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa"
+              href={SOCIAL_LINKS.whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="text-cyan hover:underline"

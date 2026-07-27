@@ -7,6 +7,7 @@ import {
   getFeaturedProjects,
   getTeamMembers,
 } from "@/lib/data";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 export async function buildCommunityContext(): Promise<string> {
   // Single source of truth: the DB. Empty arrays on failure are intentional —
@@ -69,7 +70,7 @@ export async function buildCommunityContext(): Promise<string> {
 - Cities: Nairobi + Mombasa (expanding)
 - Website: https://www.claudekenya.org
 - Discord: https://discord.gg/CkD9QWjsHm
-- WhatsApp: https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
+- WhatsApp: ${SOCIAL_LINKS.whatsapp}
 - Nairobi Events (Luma): https://luma.com/sbsa789m
 - Mombasa Events (Luma): https://luma.com/vsf5re14
 - Global Claude Community: https://luma.com/claudecommunity
