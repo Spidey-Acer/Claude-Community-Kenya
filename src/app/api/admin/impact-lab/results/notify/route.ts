@@ -21,9 +21,18 @@ import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailI
  *
  * Only rows with status <> 'sent' are selected, so no recipient is ever mailed
  * twice however many times this is called. A row that failed to send (bad
- * Resend response, missing team data) keeps status 'failed', which still
- * matches <> 'sent' — so the very next call retries it automatically, with no
- * extra step for the organiser.
+ * Resend response, missing team data) is left/returned to status 'failed',
+ * which still matches <> 'sent' — so the very next call retries it
+ * automatically, with no extra step for the organiser.
+ *
+ * The batch path marks its selected rows 'sent' *before* calling Resend
+ * (inside a `SELECT ... FOR UPDATE` transaction — the same locking pattern
+ * `publish/route.ts` uses), then downgrades only the rows Resend actually
+ * rejected back to 'failed' afterwards. This is a deliberate bias, not an
+ * oversight: against a 100/day quota shared by 93 recipients, a correlated
+ * failure (a dropped DB connection mid-write, two concurrent POSTs) must
+ * cost recipients a send rather than grant them two — a short run is
+ * recoverable without spending quota, a duplicate run is not.
  */
 export const maxDuration = 300
 
@@ -32,14 +41,55 @@ const BATCH_SIZE = 25
 const bodySchema = z.object({
   cohort: z.string().max(60).optional(),
   /**
-   * When set, sends exactly one preview email built from real (already
-   * published) snapshot data — a real team's real scores, a generic
-   * salutation — to this address only. Does not touch any
+   * When set, sends exactly one preview email to this address only: real
+   * announced winners and track winners (the public part, worth confirming),
+   * a fabricated "your team" scorecard (see SAMPLE_CARD — never a real
+   * team's private numbers), and a generic salutation. Does not touch any
    * ImpactLabResultsEmail row, so it can be pressed as many times as needed
-   * without affecting `remaining` or risking the daily quota meant for the 93.
+   * without affecting `remaining` — though it still spends from the same
+   * Resend daily quota as the real batch.
    */
   testEmail: z.string().email().max(200).optional(),
 })
+
+/**
+ * The "your team" half of a test send is fabricated on purpose. Building it
+ * from a real team's `perTeam` card — as an earlier version of this route
+ * did — meant a mistyped test address would receive that team's actual
+ * criterion averages and score range, private data `perTeam` is documented
+ * as never reaching anyone outside that team. `overall` and `trackWinners`
+ * stay real below, because those are the genuinely public part and the
+ * organiser needs to confirm the winners rendered correctly. The project
+ * name is deliberately unmissable as a placeholder so nobody mistakes this
+ * for a real team's result.
+ */
+const SAMPLE_CARD = {
+  projectName: "Sample Project (test preview — not a real team)",
+  rank: 4,
+  criterionAverages: { impact: 4.1, demo: 3.6, claude: 4.4, clarity: 3.9, presentation: 4.0 },
+  low: 68.5,
+  high: 84.0,
+  basis: "demo" as const,
+}
+
+/**
+ * Cheap duck-typed shape check on the stored JSON before it is cast to
+ * `ResultsSnapshot`. Not a full schema validation — just enough that a
+ * malformed or legacy-shaped snapshot fails with a clean 409 here rather than
+ * throwing an unhandled exception mid-batch (e.g. on `snapshot.perTeam[id]`
+ * for a `perTeam` that isn't actually an object).
+ */
+function isResultsSnapshot(value: unknown): value is ResultsSnapshot {
+  if (typeof value !== "object" || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    Array.isArray(v.overall) &&
+    Array.isArray(v.trackWinners) &&
+    Array.isArray(v.ranking) &&
+    typeof v.perTeam === "object" &&
+    v.perTeam !== null
+  )
+}
 
 async function loadPublishedRun(cohort: string) {
   const run = await prisma.impactLabMatchRun.findFirst({
@@ -51,10 +101,13 @@ async function loadPublishedRun(cohort: string) {
   if (!run.resultsPublishedAt || !run.resultsSnapshot) {
     return { ok: false as const, status: 409, error: "Results have not been published yet." }
   }
+  if (!isResultsSnapshot(run.resultsSnapshot)) {
+    return { ok: false as const, status: 409, error: "Stored results snapshot is malformed." }
+  }
   return {
     ok: true as const,
     runId: run.id,
-    snapshot: run.resultsSnapshot as unknown as ResultsSnapshot,
+    snapshot: run.resultsSnapshot,
     teams: extractFrozenTeams(run.result) ?? [],
   }
 }
@@ -133,25 +186,11 @@ export async function POST(request: NextRequest) {
 
   const dashboardUrl = `${APP_URL}/dashboard/impact-lab`
 
-  // ── Test send: one real-data preview, no DB rows touched ─────────────────
+  // ── Test send: real winners, fabricated "your team" card, no DB rows touched
   if (parsed.data.testEmail) {
-    const sample = run.snapshot.ranking[0]
-    const card = sample ? run.snapshot.perTeam[sample.teamId] : undefined
-    if (!sample || !card) {
-      return NextResponse.json(
-        { success: false, error: "No results to preview yet." },
-        { status: 409 }
-      )
-    }
-
     const built = impactLabResultsEmail({
       fullName: "there",
-      projectName: sample.projectName,
-      rank: card.rank,
-      criterionAverages: card.criterionAverages,
-      low: card.low,
-      high: card.high,
-      basis: card.basis,
+      ...SAMPLE_CARD,
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
       dashboardUrl,
@@ -183,27 +222,45 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Batch send: up to BATCH_SIZE recipients still not marked 'sent' ──────
-  const rows = await prisma.impactLabResultsEmail.findMany({
-    where: { runId: run.runId, status: { not: "sent" } },
-    orderBy: { createdAt: "asc" },
-    take: BATCH_SIZE,
+  //
+  // Selects and marks 'sent' inside one locking transaction, before any
+  // email goes out — see the header comment for why. `FOR UPDATE` also closes
+  // the same race a second concurrent POST would otherwise hit: without it,
+  // two overlapping calls could both SELECT the same unsent rows before
+  // either commits, and both would mail them.
+  type LockedRow = { id: string; participantId: string; email: string }
+  const lockedRows = await prisma.$transaction(async (tx) => {
+    const selected = await tx.$queryRaw<LockedRow[]>`
+      SELECT id, "participantId", email
+      FROM impact_lab_results_emails
+      WHERE "runId" = ${run.runId} AND status <> 'sent'
+      ORDER BY "createdAt" ASC
+      LIMIT ${BATCH_SIZE}
+      FOR UPDATE
+    `
+    if (selected.length > 0) {
+      await tx.impactLabResultsEmail.updateMany({
+        where: { id: { in: selected.map((r) => r.id) } },
+        data: { status: "sent", sentAt: new Date(), error: null },
+      })
+    }
+    return selected
   })
 
-  if (rows.length === 0) {
+  if (lockedRows.length === 0) {
     return NextResponse.json({ success: true, data: { sent: 0, failed: 0, remaining: 0 } })
   }
 
   const participants = await prisma.impactLabParticipant.findMany({
-    where: { id: { in: rows.map((r) => r.participantId) } },
+    where: { id: { in: lockedRows.map((r) => r.participantId) } },
     select: { id: true, fullName: true },
   })
   const nameById = new Map(participants.map((p) => [p.id, p.fullName]))
 
-  type Row = (typeof rows)[number]
-  const sendable: { row: Row; item: BatchEmailItem }[] = []
-  const unmatched: { row: Row; error: string }[] = []
+  const sendable: { row: LockedRow; item: BatchEmailItem }[] = []
+  const unmatched: { row: LockedRow; error: string }[] = []
 
-  for (const row of rows) {
+  for (const row of lockedRows) {
     const team = run.teams.find((t) => t.memberIds.includes(row.participantId))
     const card = team ? run.snapshot.perTeam[team.id] : undefined
     const rankingRow = team ? run.snapshot.ranking.find((r) => r.teamId === team.id) : undefined
@@ -230,23 +287,23 @@ export async function POST(request: NextRequest) {
 
   const sendResults = await sendEmailBatchTracked(sendable.map((s) => s.item))
 
-  // Independent writes, not one $transaction: the emails are already out by
-  // this point, so a single all-or-nothing commit would (if it failed) throw
-  // away every recorded 'sent' status for a batch that really was delivered —
-  // turning one DB hiccup into 25 duplicate sends on the next call. A failed
-  // write here only costs its own row; it stays eligible for exactly the same
-  // resumable retry as a real send failure would.
+  // Downgrade only confirmed rejections. Every locked row is already 'sent'
+  // from the transaction above, so a write failure here just leaves that one
+  // row optimistically marked 'sent' rather than reverting it to a
+  // re-sendable state — the safe direction per the header comment. Unmatched
+  // rows (no team found) never reached `sendEmailBatchTracked` at all, but
+  // were still marked 'sent' by the transaction, so they must be downgraded
+  // the same way.
   for (const [i, s] of sendable.entries()) {
     const result = sendResults[i]
+    if (result.ok) continue
     try {
       await prisma.impactLabResultsEmail.update({
         where: { id: s.row.id },
-        data: result.ok
-          ? { status: "sent", sentAt: new Date(), error: null }
-          : { status: "failed", error: (result.error ?? "Send failed").slice(0, 500) },
+        data: { status: "failed", error: (result.error ?? "Send failed").slice(0, 500) },
       })
     } catch (err) {
-      console.error("[NOTIFY] Could not record send state for", s.row.email, err)
+      console.error("[NOTIFY] Could not downgrade failed send for", s.row.email, err)
     }
   }
   for (const u of unmatched) {
@@ -256,12 +313,13 @@ export async function POST(request: NextRequest) {
         data: { status: "failed", error: u.error },
       })
     } catch (err) {
-      console.error("[NOTIFY] Could not record send state for", u.row.email, err)
+      console.error("[NOTIFY] Could not downgrade failed send for", u.row.email, err)
     }
   }
 
-  const sent = sendResults.filter((r) => r.ok).length
-  const failed = sendResults.filter((r) => !r.ok).length + unmatched.length
+  const rejected = sendResults.filter((r) => !r.ok).length
+  const failed = rejected + unmatched.length
+  const sent = lockedRows.length - failed
   const remaining = await prisma.impactLabResultsEmail.count({
     where: { runId: run.runId, status: { not: "sent" } },
   })
@@ -273,7 +331,7 @@ export async function POST(request: NextRequest) {
     action: "UPDATE",
     entity: "ImpactLabResultsEmail",
     entityId: run.runId,
-    changes: { cohort, batchSize: rows.length, sent, failed, remaining },
+    changes: { cohort, batchSize: lockedRows.length, sent, failed, remaining },
     ...getRequestMetadata(request),
   })
 

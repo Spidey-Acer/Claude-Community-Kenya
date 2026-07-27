@@ -827,7 +827,7 @@ function NotifyPanel({ cohort }: { cohort: string }) {
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
           Resend allows 100 emails per day. There are 93 recipients — one clean run fits, a
-          repeated run does not.
+          repeated run does not. Test sends below count against that same 100.
         </span>
       </div>
 

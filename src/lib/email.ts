@@ -539,9 +539,12 @@ function resultsOrdinal(rank: number): string {
  *
  * Table-based layout with inline styles throughout — email clients ignore
  * `<style>` blocks and Tailwind entirely, and this is read on phones and in
- * Outlook as often as in a browser. No web fonts, no external images, and
- * colors are set explicitly on every element (not inherited) so dark-mode
- * remapping in mail clients can't strand light text on a light background.
+ * Outlook as often as in a browser. No web fonts, no external images. Every
+ * text element sets its own `color`, and every box that a client's dark-mode
+ * remapping could independently repaint (the two wrapper tables and the
+ * content cell they wrap) sets its own `background-color` rather than
+ * relying on inheritance — some clients decide light/dark per node from its
+ * own inline style, not from the resolved/inherited value.
  *
  * No judge counts and no deadline language anywhere in this template — those
  * are the two things Impact Lab copy must never say.
@@ -599,7 +602,7 @@ export function impactLabResultsEmail(data: {
 
   const note =
     data.overall.length > 0
-      ? "The top three placings were decided by the judging panel after they had seen every demo and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
+      ? "The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
       : "Every project was ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
 
   const criterionRows = JUDGING_CRITERIA.map((criterion) => {
@@ -628,7 +631,7 @@ export function impactLabResultsEmail(data: {
     <td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#0d0d0d;border:1px solid #00ff41;border-radius:8px;">
         <tr>
-          <td style="padding:32px 28px;">
+          <td style="padding:32px 28px;background-color:#0d0d0d;">
             <p style="margin:0 0 4px;font-family:monospace,monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#00ff41;">Impact Lab: AI Mashinani</p>
             <h1 style="margin:0 0 20px;font-family:monospace,monospace;font-size:22px;color:#e0e0e0;">Your results are in</h1>
 
@@ -663,7 +666,7 @@ export function impactLabResultsEmail(data: {
                 </td>
               </tr>
             </table>
-            <p style="margin:0 0 24px;font-family:monospace,monospace;font-size:11px;color:#555;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.dashboardUrl)}</p>
+            <p style="margin:0 0 24px;font-family:monospace,monospace;font-size:11px;color:#888;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.dashboardUrl)}</p>
 
             <p style="margin:0;font-family:monospace,monospace;font-size:11px;color:#555;">Claude Community Kenya · ${APP_URL}</p>
           </td>
