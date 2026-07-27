@@ -48,6 +48,31 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   hackathon: "Hackathon",
 };
 
+/**
+ * Today in Nairobi as YYYY-MM-DD — the same shape Event.date already uses, so
+ * the comparison is a plain string compare with no parsing or local-timezone
+ * drift. Pinning the zone on both server and client also keeps SSR and
+ * hydration in agreement for a visitor sitting in another timezone.
+ */
+function todayInNairobi(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Nairobi" });
+}
+
+/**
+ * Call-to-action for an event card, derived from when the event is rather than
+ * what kind it is. Type was the wrong signal: it labelled every hackathon
+ * "Register" for as long as the card existed, including months after the
+ * hackathon had been run and judged.
+ */
+function eventCta(ev: Event): string {
+  if (ev.date && ev.date < todayInNairobi()) {
+    return ev.type === "hackathon" ? "See the recap" : "View";
+  }
+  return ev.type === "hackathon" || ev.status === "registration-open"
+    ? "Register"
+    : "RSVP";
+}
+
 export function KaribuHome({
   communityStats,
   upcomingEvents,
@@ -500,10 +525,7 @@ function EventsSection({ events }: { events: Event[] }) {
       <Reveal className={`grid gap-4 ${events.length >= 3 ? "md:grid-cols-3" : events.length === 2 ? "md:grid-cols-2" : ""}`}>
         {events.map((ev, i) => {
           const single = events.length === 1;
-          const cta =
-            ev.type === "hackathon" || ev.status === "registration-open"
-              ? "Register"
-              : "RSVP";
+          const cta = eventCta(ev);
           return (
             <Link
               key={ev.slug}
