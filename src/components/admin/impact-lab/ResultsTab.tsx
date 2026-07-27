@@ -1,9 +1,17 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { Loader2, Save, Sparkles } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { AlertTriangle, CheckCircle2, Loader2, Save, Send, Sparkles, Trophy } from "lucide-react"
 import { apiGet, apiSend } from "./api"
-import { CRITERION_KEYS, JUDGING_CRITERIA, MAX_SCORE, MIN_SCORE } from "@/lib/impact-lab/judging"
+import {
+  CRITERION_KEYS,
+  JUDGING_CRITERIA,
+  MAX_SCORE,
+  MIN_SCORE,
+  trackOf,
+  type TeamStanding,
+} from "@/lib/impact-lab/judging"
+import { buildRanking, buildTrackWinners, toPublicRanking, type ResultsInput } from "@/lib/impact-lab/results"
 
 interface AwaitingTeam {
   teamId: string
@@ -308,17 +316,395 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
   )
 }
 
+// ─── Publish ──────────────────────────────────────────────────────────────
+
+interface PublishTeam {
+  teamId: string
+  teamName: string
+  memberCount: number
+  submission: { projectName: string } | null
+}
+
+interface JudgingData {
+  finalRunId: string | null
+  teams: PublishTeam[]
+  standings: TeamStanding[]
+}
+
+interface PublishStatus {
+  published: boolean
+  publishedAt: string | null
+  recipients: number
+}
+
+interface PublishResponse {
+  publishedAt: string
+  recipients: number
+}
+
+const EMPTY_RESULTS_INPUT_EXTRAS = {
+  publishedAt: new Date(0).toISOString(),
+  writeupOnly: new Set<string>(),
+  range: new Map<string, { low: number; high: number }>(),
+}
+
+/**
+ * Section: publish results. A one-way door — see the route's own header
+ * comment for why the snapshot it writes is never recomputed afterwards.
+ *
+ * The ranking preview reuses `buildRanking`/`buildTrackWinners` from
+ * `@/lib/impact-lab/results` directly (that module is pure and dependency-free
+ * for exactly this reason) so what an organiser previews here is produced by
+ * the same code that computes the stored snapshot, not a second
+ * reimplementation that could quietly drift from it.
+ */
+function PublishPanel({ cohort }: { cohort: string }) {
+  const [judging, setJudging] = useState<JudgingData | null>(null)
+  const [publishStatus, setPublishStatus] = useState<PublishStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const [firstPlace, setFirstPlace] = useState("")
+  const [secondPlace, setSecondPlace] = useState("")
+  const [thirdPlace, setThirdPlace] = useState("")
+  const [confirmText, setConfirmText] = useState("")
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [judgingData, status] = await Promise.all([
+        apiGet<JudgingData>(`/api/admin/impact-lab/judging?cohort=${cohort}`),
+        apiGet<PublishStatus>(`/api/admin/impact-lab/results/publish?cohort=${cohort}`),
+      ])
+      setJudging(judgingData)
+      setPublishStatus(status)
+      setLoadError(null)
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load results")
+    } finally {
+      setLoading(false)
+    }
+  }, [cohort])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const submittedTeams = useMemo(
+    () => judging?.teams.filter((t) => t.submission !== null) ?? [],
+    [judging]
+  )
+  const scoredTeamIds = useMemo(
+    () => new Set(judging?.standings.map((s) => s.teamId) ?? []),
+    [judging]
+  )
+  const unscoredSubmitted = useMemo(
+    () => submittedTeams.filter((t) => !scoredTeamIds.has(t.teamId)),
+    [submittedTeams, scoredTeamIds]
+  )
+  // Only a team the panel actually scored can sensibly be announced as a winner.
+  const eligibleWinners = useMemo(
+    () => submittedTeams.filter((t) => scoredTeamIds.has(t.teamId)),
+    [submittedTeams, scoredTeamIds]
+  )
+  const recipientCount = useMemo(
+    () => submittedTeams.reduce((sum, t) => sum + t.memberCount, 0),
+    [submittedTeams]
+  )
+  const announcedTeamIds = useMemo(
+    () => [firstPlace, secondPlace, thirdPlace].filter((id) => id !== ""),
+    [firstPlace, secondPlace, thirdPlace]
+  )
+
+  const preview = useMemo(() => {
+    if (!judging) return null
+    const teamsMeta = new Map<string, { projectName: string; track: string }>()
+    for (const t of submittedTeams) {
+      if (!t.submission) continue
+      teamsMeta.set(t.teamId, { projectName: t.submission.projectName, track: trackOf(t.teamName) })
+    }
+    const input: ResultsInput = {
+      ...EMPTY_RESULTS_INPUT_EXTRAS,
+      announcedTeamIds,
+      standings: judging.standings,
+      teams: teamsMeta,
+    }
+    const ranking = buildRanking(input)
+    return {
+      overall: toPublicRanking(ranking.slice(0, announcedTeamIds.length)),
+      trackWinners: buildTrackWinners(ranking),
+      ranking: toPublicRanking(ranking),
+    }
+  }, [judging, submittedTeams, announcedTeamIds])
+
+  function teamOptionLabel(t: PublishTeam): string {
+    return t.submission ? `${t.teamName} — ${t.submission.projectName}` : t.teamName
+  }
+
+  async function publish() {
+    setPublishing(true)
+    setPublishError(null)
+    try {
+      const result = await apiSend<PublishResponse>(
+        "/api/admin/impact-lab/results/publish",
+        "POST",
+        { cohort, announcedTeamIds, confirm: confirmText }
+      )
+      setPublishStatus({ published: true, publishedAt: result.publishedAt, recipients: result.recipients })
+    } catch (e) {
+      setPublishError(e instanceof Error ? e.message : "Could not publish results.")
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
+      </div>
+    )
+  }
+
+  if (loadError || !judging) {
+    return (
+      <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+        {loadError ?? "No data"}
+      </div>
+    )
+  }
+
+  if (!judging.finalRunId) {
+    return (
+      <p className="p-8 text-center text-sm font-mono text-[#555]">
+        No final run to publish yet — mark a run final to start judging.
+      </p>
+    )
+  }
+
+  if (publishStatus?.published) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Publish results</h2>
+        <div className="flex items-start gap-3 rounded-lg border border-[#00ff41]/30 bg-[#00ff41]/10 p-4">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#00ff41]" />
+          <div>
+            <p className="text-[12px] font-mono font-semibold text-[#00ff41]">
+              Results published
+              {publishStatus.publishedAt &&
+                ` on ${new Date(publishStatus.publishedAt).toLocaleString()}`}
+            </p>
+            <p className="mt-1 text-[11px] font-mono text-[#888]">
+              {publishStatus.recipients} recipient{publishStatus.recipients === 1 ? "" : "s"}{" "}
+              queued for the results email.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const disabledReason =
+    unscoredSubmitted.length > 0
+      ? `Every submitted team needs a score first: ${unscoredSubmitted
+          .map((t) => t.submission?.projectName ?? t.teamName)
+          .join(", ")}`
+      : confirmText !== "PUBLISH"
+        ? 'Type PUBLISH to confirm.'
+        : null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Publish results</h2>
+          <p className="mt-1 text-[11px] font-mono text-[#888]">
+            A one-way door. This closes submissions and judging, freezes the result, and
+            queues one email per recipient. It cannot be undone or run twice.
+          </p>
+        </div>
+        {/* Scoring a team happens in the section above, whose own fetch this
+            panel does not share — refresh after scoring the last team rather
+            than reloading the page. */}
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="shrink-0 rounded border border-[#1e1e1e] bg-[#1a1a1a] px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[#888] hover:bg-[#222]"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {unscoredSubmitted.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-3 text-[11px] font-mono text-[#ff3333]"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{disabledReason}</span>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "1st place (announced)", value: firstPlace, set: setFirstPlace },
+          { label: "2nd place (announced)", value: secondPlace, set: setSecondPlace },
+          { label: "3rd place (announced)", value: thirdPlace, set: setThirdPlace },
+        ].map((slot) => (
+          <label key={slot.label} className="block">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+              {slot.label}
+            </span>
+            <select
+              value={slot.value}
+              onChange={(e) => slot.set(e.target.value)}
+              className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+            >
+              <option value="">— not announced —</option>
+              {eligibleWinners.map((t) => (
+                <option
+                  key={t.teamId}
+                  value={t.teamId}
+                  disabled={
+                    announcedTeamIds.includes(t.teamId) &&
+                    t.teamId !== slot.value
+                  }
+                >
+                  {teamOptionLabel(t)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+
+      {announcedTeamIds.length !== 3 && (
+        <p className="text-[11px] font-mono text-[#ffb000]">
+          {announcedTeamIds.length} of the usual 3 announced winners selected. Publishing with
+          fewer (or none) ranks everyone by score alone — confirm this is intended before
+          continuing.
+        </p>
+      )}
+
+      {preview && (
+        <div className="space-y-4 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+            Preview — exactly what participants will see, by position only
+          </p>
+
+          {preview.overall.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Trophy className="h-3.5 w-3.5 shrink-0 text-[#ffb000]" />
+              {preview.overall.map((row) => (
+                <span
+                  key={row.teamId}
+                  className="rounded border border-[#ffb000]/30 bg-[#ffb000]/10 px-2 py-1 text-[11px] font-mono text-[#ffb000]"
+                >
+                  #{row.rank} {row.projectName}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {preview.trackWinners.map((w) => (
+              <div key={w.track} className="rounded border border-[#1e1e1e] bg-[#111] p-2">
+                <p className="truncate text-[9px] font-mono uppercase tracking-wider text-[#555]">
+                  {w.track}
+                </p>
+                <p className="truncate text-[11px] font-mono text-[#e0e0e0]">{w.projectName}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-x-auto rounded border border-[#1e1e1e]">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#1e1e1e]">
+                  {["Position", "Project", "Track"].map((h) => (
+                    <th
+                      key={h}
+                      className="whitespace-nowrap px-3 py-2 text-left text-[10px] font-mono font-semibold uppercase tracking-wider text-[#555]"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#141414]">
+                {preview.ranking.map((row) => (
+                  <tr key={row.teamId}>
+                    <td className="px-3 py-2 text-[11px] font-mono text-[#555]">{row.rank}</td>
+                    <td className="px-3 py-2 text-[11px] font-mono text-[#e0e0e0]">
+                      {row.projectName}
+                    </td>
+                    <td className="px-3 py-2 text-[11px] font-mono text-[#888]">{row.track}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-[11px] font-mono text-[#888]">
+            <span className="font-semibold text-[#00ff41]">{recipientCount}</span> recipient
+            {recipientCount === 1 ? "" : "s"} will be queued for the results email (estimate —
+            the exact count is confirmed by the server at publish time).
+          </p>
+        </div>
+      )}
+
+      <label className="block max-w-xs">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+          Type PUBLISH to confirm
+        </span>
+        <input
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="PUBLISH"
+          className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono uppercase text-[#e0e0e0] focus:border-[#ff3333] focus:outline-none"
+        />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void publish()}
+          disabled={disabledReason !== null || publishing}
+          className="flex items-center gap-2 rounded border border-[#ff3333]/40 bg-[#ff3333]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#ff3333] transition-colors hover:bg-[#ff3333]/20 disabled:opacity-40"
+        >
+          <Send className="h-3.5 w-3.5" />
+          {publishing ? "Publishing…" : "Publish results"}
+        </button>
+        {disabledReason && (
+          <span className="text-[11px] font-mono text-[#888]">{disabledReason}</span>
+        )}
+        {publishError && (
+          <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+            {publishError}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Results tab — organiser-facing surfaces for closing out judging.
  *
  * Starts with the one section this program needs first: the teams the panel
- * never reached. Task 7 appends further sections below this one, so each
- * section is its own component rendered in a simple stack.
+ * never reached. Task 7 appends the publish panel below it, so each section
+ * is its own component rendered in a simple stack.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
   return (
     <div className="space-y-6">
       <AwaitingScoreSection cohort={cohort} />
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <PublishPanel cohort={cohort} />
+      </div>
     </div>
   )
 }
