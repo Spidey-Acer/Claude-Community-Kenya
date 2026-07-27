@@ -1061,7 +1061,7 @@ Create `src/app/api/impact-lab/results/route.ts`. Guard order: rate limit → `c
 
 It must:
 - Return `{success: true, published: false}` when `resultsPublishedAt` is null. Never leak an unpublished snapshot.
-- Read `resultsSnapshot` and serve `overall`, `trackWinners` and `ranking` as stored.
+- Read `resultsSnapshot`. Serve `overall` and `trackWinners` as stored, but pass `ranking` through `toPublicRanking()` from `@/lib/impact-lab/results` first — the stored ranking carries `average` on every row, and shipping it would let anyone with devtools open read every team's score off a page that deliberately shows none. Not rendering it is not the same as not sending it.
 - Find the caller's participant row by lowercased email, find which team's `memberIds` contains that id, and attach **only that team's** entry from `perTeam`.
 - **Never send the whole `perTeam` map.** Strip it explicitly rather than relying on the shape.
 
@@ -1090,12 +1090,16 @@ const memberPayload = {
     publishedAt: snap.publishedAt,
     overall: snap.overall,
     trackWinners: snap.trackWinners,
-    ranking: snap.ranking,
+    ranking: toPublicRanking(snap.ranking),
   },
   yourTeam: { teamId: "t-vilcare", card: snap.perTeam["t-vilcare"] },
 }
 const memberJson = JSON.stringify(memberPayload)
 assert(!memberJson.includes("perTeam"), "the member payload never carries the perTeam map")
+assert(
+  !memberJson.includes("average"),
+  "the member payload never carries another team's score — not rendering it is not the same as not sending it"
+)
 assert(
   !memberJson.includes("t-whatsy\":{"),
   "the member payload never carries another team's card"
