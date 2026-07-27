@@ -184,6 +184,29 @@ const tied = buildSnapshot({
 })
 assert(tied.ranking[0].teamId === "t-a", "ties break deterministically by team id")
 
+console.log("\nMember payload")
+// Mirrors what the member route attaches: one card, never the map.
+const memberPayload = {
+  results: {
+    publishedAt: snap.publishedAt,
+    overall: snap.overall,
+    trackWinners: snap.trackWinners,
+    ranking: toPublicRanking(snap.ranking),
+  },
+  yourTeam: { teamId: "t-vilcare", card: snap.perTeam["t-vilcare"] },
+}
+const memberJson = JSON.stringify(memberPayload)
+assert(!memberJson.includes("perTeam"), "the member payload never carries the perTeam map")
+assert(
+  !memberJson.includes("average"),
+  "the member payload never carries another team's score — not rendering it is not the same as not sending it"
+)
+assert(
+  !memberJson.includes("t-whatsy\":{"),
+  "the member payload never carries another team's card"
+)
+assert(!memberJson.includes("judgeCount"), "the member payload never carries a judge count")
+
 console.log(
   failures === 0 ? "\nALL CHECKS PASSED\n" : `\n${failures} CHECK(S) FAILED\n`
 )

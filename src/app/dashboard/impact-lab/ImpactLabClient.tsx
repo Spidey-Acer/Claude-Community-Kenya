@@ -19,6 +19,7 @@ import type {
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { MatchProfileForm } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
+import { ResultsView, type ResultsViewProps } from "./ResultsView";
 
 interface ProfileResponse {
   success?: boolean;
@@ -34,13 +35,22 @@ interface TeamResponse {
   error?: string;
 }
 
+interface ResultsResponse {
+  success?: boolean;
+  published?: boolean;
+  results?: ResultsViewProps["results"];
+  yourTeam?: ResultsViewProps["yourTeam"];
+  error?: string;
+}
+
 type Phase =
   | "loading"
   | "error"
   | "not-registered"
   | "profile"
   | "unassigned"
-  | "revealed";
+  | "revealed"
+  | "results";
 
 /**
  * Client state machine for /dashboard/impact-lab. The server page has already
@@ -52,18 +62,39 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
+  const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetch("/api/impact-lab/profile"), fetch("/api/impact-lab/team")])
-      .then(async ([profileRes, teamRes]) => {
+    Promise.all([
+      fetch("/api/impact-lab/profile"),
+      fetch("/api/impact-lab/team"),
+      fetch("/api/impact-lab/results"),
+    ])
+      .then(async ([profileRes, teamRes, resultsRes]) => {
         const profileJson: ProfileResponse = await profileRes.json();
         const teamJson: TeamResponse = await teamRes.json();
+        const resultsJson: ResultsResponse = await resultsRes.json();
         if (!active) return;
-        if (!profileRes.ok || !profileJson.success || !teamRes.ok || !teamJson.success) {
+        if (
+          !profileRes.ok ||
+          !profileJson.success ||
+          !teamRes.ok ||
+          !teamJson.success ||
+          !resultsRes.ok ||
+          !resultsJson.success
+        ) {
           setPhase("error");
+          return;
+        }
+
+        // Results published takes precedence over the team reveal — once
+        // results are out, the hackathon is over and this is what matters.
+        if (resultsJson.published && resultsJson.results) {
+          setResults({ results: resultsJson.results, yourTeam: resultsJson.yourTeam });
+          setPhase("results");
           return;
         }
 
@@ -117,6 +148,10 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
         </button>
       </div>
     );
+  }
+
+  if (phase === "results" && results) {
+    return <ResultsView results={results.results} yourTeam={results.yourTeam} />;
   }
 
   if (phase === "revealed" && team) {
