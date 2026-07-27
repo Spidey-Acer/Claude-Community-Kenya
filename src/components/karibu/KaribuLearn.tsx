@@ -124,7 +124,7 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
       {/* Suggested path */}
       <section className={`${WRAP} py-10`} aria-label="A suggested path">
         <Reveal>
-          <div className="rounded-[18px] bg-ink p-8 text-paper sm:p-12">
+          <div className="rounded-[18px] bg-panel-dark p-8 text-on-panel-dark sm:p-12">
             <div className="mb-5 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay-light">
               A suggested path
             </div>
@@ -132,7 +132,7 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
               {PATH.map((s, i) => (
                 <Reveal key={s.n} index={i} className="border-t border-[#3B352D] pt-[18px]">
                   <div className="mb-2 font-newsreader text-[30px] text-clay-light">{s.n}</div>
-                  <div className="mb-1.5 font-inter text-base font-semibold text-paper">{s.title}</div>
+                  <div className="mb-1.5 font-inter text-base font-semibold text-on-panel-dark">{s.title}</div>
                   <div className="font-inter text-sm leading-[1.55] text-[#A79E90]">{s.body}</div>
                 </Reveal>
               ))}

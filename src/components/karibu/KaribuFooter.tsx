@@ -26,7 +26,7 @@ const COMMUNITY = [
 
 export function KaribuFooter() {
   return (
-    <footer className="bg-ink text-[#E9E0D2]">
+    <footer className="bg-panel-dark text-on-panel-dark">
       <div className="mx-auto grid max-w-[1180px] grid-cols-2 gap-8 px-6 pt-14 md:px-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
         {/* Brand */}
         <div className="col-span-2 lg:col-span-1">
@@ -38,7 +38,7 @@ export function KaribuFooter() {
               height={36}
               className="h-9 w-9 rounded-full"
             />
-            <span className="font-newsreader text-[19px] font-semibold text-paper">
+            <span className="font-newsreader text-[19px] font-semibold text-on-panel-dark">
               Claude Community Kenya
             </span>
           </div>
@@ -58,7 +58,7 @@ export function KaribuFooter() {
 
         <FooterColumn title="Explore">
           {EXPLORE.map((l) => (
-            <Link key={l.href} href={l.href} className="transition-colors hover:text-paper">
+            <Link key={l.href} href={l.href} className="transition-colors hover:text-on-panel-dark">
               {l.label}
             </Link>
           ))}
@@ -71,7 +71,7 @@ export function KaribuFooter() {
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="transition-colors hover:text-paper"
+              className="transition-colors hover:text-on-panel-dark"
             >
               {l.label}
             </a>
@@ -85,17 +85,17 @@ export function KaribuFooter() {
       </div>
 
       <div className="mx-auto max-w-[1180px] px-6 pb-9 pt-10 md:px-10">
-        <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-ink-faint">
+        <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-on-panel-dark-muted">
           Independently operated. Anthropic-supported via the Claude Community
           Ambassadors program (event funding + API credits). Views expressed
           here are community-held, not official Anthropic positions. &ldquo;Claude&rdquo;
           is a trademark of Anthropic PBC.
         </p>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#3B352D] pt-6">
-          <div className="font-inter text-[13px] text-ink-faint">
+          <div className="font-inter text-[13px] text-on-panel-dark-muted">
             © 2026 Claude Community Kenya · A community, not a product.
           </div>
-          <div className="font-inter text-[13px] text-ink-faint">
+          <div className="font-inter text-[13px] text-on-panel-dark-muted">
             Built by the community, for the community.
           </div>
         </div>
@@ -113,7 +113,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <div className="mb-3.5 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+      <div className="mb-3.5 font-inter text-xs font-bold uppercase tracking-[0.14em] text-on-panel-dark-muted">
         {title}
       </div>
       <div className="flex flex-col gap-2 font-inter text-[14.5px] leading-[2.1] text-[#C7BEB0]">

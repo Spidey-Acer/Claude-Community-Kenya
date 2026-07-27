@@ -629,7 +629,7 @@ const JOIN_STEPS = [
 function HowToJoin() {
   return (
     <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
-      <Reveal className="relative overflow-hidden rounded-2xl bg-ink p-9 text-paper sm:p-[54px]">
+      <Reveal className="relative overflow-hidden rounded-2xl bg-panel-dark p-9 text-on-panel-dark sm:p-[54px]">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -664,7 +664,7 @@ function HowToJoin() {
                 href={SOCIAL_LINKS.discord}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-paper transition-colors hover:border-paper"
+                className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-on-panel-dark transition-colors hover:border-on-panel-dark"
               >
                 Join Discord
               </a>
