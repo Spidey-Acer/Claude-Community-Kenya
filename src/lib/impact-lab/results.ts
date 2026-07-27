@@ -183,6 +183,66 @@ export function toPublicRanking(ranking: RankedTeam[]): PublicRankedTeam[] {
   }))
 }
 
+/** The published result as one participant may receive it. Flat member shape — no `data` wrapper. */
+export interface MemberResultsPayload {
+  success: true
+  published: boolean
+  results?: {
+    publishedAt: string
+    overall: AnnouncedWinner[]
+    trackWinners: ResultsTrackWinner[]
+    ranking: PublicRankedTeam[]
+  }
+  yourTeam?: { teamId: string; projectName: string; card: TeamCard }
+}
+
+/**
+ * The published result as one participant may receive it.
+ *
+ * Lives here rather than inline in the route so the privacy properties can be
+ * asserted: the snapshot holds every team's private card and a score on every
+ * ranking row, and neither may cross the wire. Building the payload by naming
+ * each field — never by spreading the snapshot — means a field added to the
+ * snapshot later does not leak by default.
+ *
+ * `viewerTeamId` is the caller's own team, or `null` when it could not be
+ * resolved (not registered, not on a team in the frozen run, or a stale id).
+ * `yourTeam` is omitted from the returned object entirely in that case, and
+ * also when the resolved team has no card or no ranking row — never set to
+ * `null` or an empty object, so `"yourTeam" in payload` is the true test of
+ * whether a card was attached.
+ */
+export function buildMemberPayload(
+  snapshot: ResultsSnapshot,
+  viewerTeamId: string | null
+): MemberResultsPayload {
+  const payload: MemberResultsPayload = {
+    success: true,
+    published: true,
+    results: {
+      publishedAt: snapshot.publishedAt,
+      overall: snapshot.overall,
+      trackWinners: snapshot.trackWinners,
+      ranking: toPublicRanking(snapshot.ranking),
+    },
+  }
+
+  const card = viewerTeamId ? snapshot.perTeam[viewerTeamId] : undefined
+  const rankingRow = viewerTeamId
+    ? snapshot.ranking.find((r) => r.teamId === viewerTeamId)
+    : undefined
+
+  if (viewerTeamId && card && rankingRow) {
+    payload.yourTeam = {
+      teamId: viewerTeamId,
+      projectName: rankingRow.projectName,
+      card,
+    }
+  }
+
+  return payload
+}
+
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
   const ranking = buildRanking(input)
   const standingById = new Map(input.standings.map((s) => [s.teamId, s]))

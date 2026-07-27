@@ -3,30 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
-import {
-  toPublicRanking,
-  type AnnouncedWinner,
-  type ResultsSnapshot,
-  type ResultsTrackWinner,
-  type TeamCard,
-} from "@/lib/impact-lab/results"
-
-/** GET /api/impact-lab/results response shape. Flat member shape — no `data` wrapper. */
-interface ResultsResponse {
-  success: true
-  published: boolean
-  results?: {
-    publishedAt: string
-    overall: AnnouncedWinner[]
-    trackWinners: ResultsTrackWinner[]
-    ranking: ReturnType<typeof toPublicRanking>
-  }
-  yourTeam?: {
-    teamId: string
-    projectName: string
-    card: TeamCard
-  }
-}
+import { buildMemberPayload, type ResultsSnapshot } from "@/lib/impact-lab/results"
 
 /**
  * The published result, for one participant.
@@ -34,7 +11,10 @@ interface ResultsResponse {
  * `perTeam` holds every team's private card, so the whole map must never reach
  * the client — only the caller's own entry is attached. Judge counts and judge
  * identities are absent from the snapshot by construction, so there is nothing
- * to strip there.
+ * to strip there. The response shape itself is built by `buildMemberPayload`
+ * (`@/lib/impact-lab/results`), not assembled here, so the privacy properties
+ * can be asserted directly against that function rather than trusted of this
+ * route's wiring.
  */
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(request, RateLimits.READ)
@@ -61,36 +41,17 @@ export async function GET(request: NextRequest) {
 
   const snapshot = run.resultsSnapshot as unknown as ResultsSnapshot
 
-  const body: ResultsResponse = {
-    success: true,
-    published: true,
-    results: {
-      publishedAt: snapshot.publishedAt,
-      overall: snapshot.overall,
-      trackWinners: snapshot.trackWinners,
-      ranking: toPublicRanking(snapshot.ranking),
-    },
-  }
-
   const participant = await prisma.impactLabParticipant.findUnique({
     where: { cohort_email: { cohort: DEFAULT_COHORT, email: check.email } },
     select: { id: true },
   })
 
+  let viewerTeamId: string | null = null
   if (participant) {
     const teams = extractFrozenTeams(run.result)
     const team = teams?.find((t) => t.memberIds.includes(participant.id))
-    const card = team ? snapshot.perTeam[team.id] : undefined
-    const rankingRow = team ? snapshot.ranking.find((r) => r.teamId === team.id) : undefined
-
-    if (team && card && rankingRow) {
-      body.yourTeam = {
-        teamId: team.id,
-        projectName: rankingRow.projectName,
-        card,
-      }
-    }
+    viewerTeamId = team?.id ?? null
   }
 
-  return NextResponse.json(body)
+  return NextResponse.json(buildMemberPayload(snapshot, viewerTeamId))
 }

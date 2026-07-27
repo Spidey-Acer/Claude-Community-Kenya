@@ -8,7 +8,12 @@
  * Run with: npm run verify:results
  */
 
-import { buildSnapshot, toPublicRanking, type ResultsInput } from "../src/lib/impact-lab/results"
+import {
+  buildMemberPayload,
+  buildSnapshot,
+  toPublicRanking,
+  type ResultsInput,
+} from "../src/lib/impact-lab/results"
 import type { TeamStanding } from "../src/lib/impact-lab/judging"
 
 let failures = 0
@@ -185,16 +190,10 @@ const tied = buildSnapshot({
 assert(tied.ranking[0].teamId === "t-a", "ties break deterministically by team id")
 
 console.log("\nMember payload")
-// Mirrors what the member route attaches: one card, never the map.
-const memberPayload = {
-  results: {
-    publishedAt: snap.publishedAt,
-    overall: snap.overall,
-    trackWinners: snap.trackWinners,
-    ranking: toPublicRanking(snap.ranking),
-  },
-  yourTeam: { teamId: "t-vilcare", card: snap.perTeam["t-vilcare"] },
-}
+// Calls the actual function the route calls — not a hand-built stand-in — so
+// a future route edit that spreads the snapshot or drops toPublicRanking()
+// would make these assertions fail, not just the ones tsc already enforces.
+const memberPayload = buildMemberPayload(snap, "t-vilcare")
 const memberJson = JSON.stringify(memberPayload)
 assert(!memberJson.includes("perTeam"), "the member payload never carries the perTeam map")
 assert(
@@ -206,6 +205,35 @@ assert(
   "the member payload never carries another team's card"
 )
 assert(!memberJson.includes("judgeCount"), "the member payload never carries a judge count")
+assert(
+  memberPayload.results !== undefined &&
+    memberPayload.results.ranking.length === snap.ranking.length &&
+    memberPayload.results.ranking.every((row, i) => row.teamId === snap.ranking[i].teamId) &&
+    !JSON.stringify(memberPayload.results.ranking).includes("average"),
+  "the payload's ranking matches the snapshot's length and order, and carries no score"
+)
+assert(
+  !("yourTeam" in buildMemberPayload(snap, null)),
+  "a viewer with no resolvable team gets no yourTeam key at all"
+)
+const unknownTeamPayload = buildMemberPayload(snap, "t-does-not-exist")
+assert(
+  !("yourTeam" in unknownTeamPayload),
+  "a viewer whose team id does not exist in the snapshot gets no yourTeam key, and building the payload does not throw"
+)
+// The full ranking legitimately names every team (position/project/track is
+// public), so "no other team id anywhere in the JSON" would false-positive on
+// that field alone. Strip the ranking array's own serialized substring out of
+// the real payload JSON first, then check what's left — yourTeam, the
+// announced overall list, the track-winner list — for the other team's id.
+// That remainder is exactly where a leaked perTeam map (or an accidentally
+// attached other team's card) would surface.
+const rankingJson = JSON.stringify(memberPayload.results?.ranking ?? [])
+const payloadOutsideRanking = memberJson.replace(rankingJson, "")
+assert(
+  !payloadOutsideRanking.includes("t-whatsy"),
+  "no other team's id appears anywhere outside the public ranking list — the assertion that would catch a leaked perTeam map"
+)
 
 console.log(
   failures === 0 ? "\nALL CHECKS PASSED\n" : `\n${failures} CHECK(S) FAILED\n`
