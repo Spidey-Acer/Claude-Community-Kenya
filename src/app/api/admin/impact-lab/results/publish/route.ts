@@ -40,7 +40,11 @@ type PublishOutcome =
  * after a page reload rather than only right after the POST that did it.
  */
 export async function GET(request: NextRequest) {
-  const check = await checkApiPermission("impact-lab", "view")
+  // "edit", not "view" — MODERATOR (the judge-signin role) holds only "view"
+  // on impact-lab, and this endpoint's POST closes judging irreversibly.
+  // "view" would let a judge account read publish status for a route it must
+  // not be able to call at all; gate both handlers the same way.
+  const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
@@ -73,7 +77,10 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const check = await checkApiPermission("impact-lab", "view")
+  // "edit": publish closes judging and freezes/emails the result — strictly
+  // more consequential than notify/route.ts (which requires "create"), and
+  // MODERATOR (judge signin) must not be able to reach it at all.
+  const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
   // A one-way door does not need a generous quota, but refusals (already
@@ -198,6 +205,17 @@ export async function POST(request: NextRequest) {
           status: 400,
           error: `"${id}" is not a team in this run.`,
           code: "UNKNOWN_ANNOUNCED",
+        }
+      }
+      // A team with no submission has no entry in teamsMeta below, so
+      // metaOf()'s fallback would put the raw teamId in place of a project
+      // name — permanently, in a snapshot that is emailed to 93 people.
+      if (!submittedTeamIds.has(id)) {
+        return {
+          ok: false,
+          status: 400,
+          error: `"${displayName(id)}" has no submission and cannot be announced as a winner.`,
+          code: "ANNOUNCED_NO_SUBMISSION",
         }
       }
     }
