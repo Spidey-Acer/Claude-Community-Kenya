@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Network, Save, FileText, UserCheck, Trophy } from "lucide-react"
+import { Users, Network, Save, FileText, UserCheck, Trophy, Gavel } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ParticipantsTab } from "./ParticipantsTab"
 import { MatchingTab } from "./MatchingTab"
@@ -9,8 +9,16 @@ import { RunsTab } from "./RunsTab"
 import { SubmissionsTab } from "./SubmissionsTab"
 import { CheckInTab } from "./CheckInTab"
 import { LeaderboardTab } from "./LeaderboardTab"
+import { JudgesTab } from "./JudgesTab"
 
-type Tab = "participants" | "matching" | "runs" | "submissions" | "checkin" | "leaderboard"
+type Tab =
+  | "participants"
+  | "matching"
+  | "runs"
+  | "submissions"
+  | "checkin"
+  | "leaderboard"
+  | "judges"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "participants", label: "Participants", icon: Users },
@@ -19,6 +27,7 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "submissions", label: "Submissions", icon: FileText },
   { key: "checkin", label: "Check-in", icon: UserCheck },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy },
+  { key: "judges", label: "Judges", icon: Gavel },
 ]
 
 export function ImpactLabDashboard({ cohort }: { cohort: string }) {
@@ -59,6 +68,7 @@ export function ImpactLabDashboard({ cohort }: { cohort: string }) {
       {tab === "submissions" && <SubmissionsTab cohort={cohort} />}
       {tab === "checkin" && <CheckInTab cohort={cohort} />}
       {tab === "leaderboard" && <LeaderboardTab cohort={cohort} />}
+      {tab === "judges" && <JudgesTab cohort={cohort} />}
     </div>
   )
 }
