@@ -691,12 +691,235 @@ function PublishPanel({ cohort }: { cohort: string }) {
   )
 }
 
+// ─── Notify ───────────────────────────────────────────────────────────────
+
+interface NotifyCounts {
+  queued: number
+  sent: number
+  failed: number
+}
+
+interface NotifyResult {
+  sent: number
+  failed: number
+  remaining: number
+}
+
+/**
+ * Section: send the results email. Only meaningful once results are
+ * published, which it checks independently (the same endpoint PublishPanel
+ * checks) rather than sharing PublishPanel's internal state — that keeps this
+ * section appendable without touching the two above it.
+ *
+ * Resumable by construction: "Send next 25" always asks the server for
+ * whichever rows are still unsent, never a specific set — see the route's own
+ * doc comment for why that means a repeat press (after a partial failure, a
+ * timeout, or just clearing the whole cohort in batches) can only ever move
+ * `remaining` toward zero, never mail the same person twice.
+ */
+function NotifyPanel({ cohort }: { cohort: string }) {
+  const [published, setPublished] = useState<boolean | null>(null)
+  const [counts, setCounts] = useState<NotifyCounts | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [lastResult, setLastResult] = useState<NotifyResult | null>(null)
+
+  const [testEmail, setTestEmail] = useState("")
+  const [testSending, setTestSending] = useState(false)
+  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testError, setTestError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const [status, notifyCounts] = await Promise.all([
+        apiGet<{ published: boolean }>(`/api/admin/impact-lab/results/publish?cohort=${cohort}`),
+        apiGet<NotifyCounts>(`/api/admin/impact-lab/results/notify?cohort=${cohort}`),
+      ])
+      setPublished(status.published)
+      setCounts(notifyCounts)
+      setLoadError(null)
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load send status.")
+    }
+  }, [cohort])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function sendNext() {
+    setSending(true)
+    setSendError(null)
+    try {
+      const result = await apiSend<NotifyResult>("/api/admin/impact-lab/results/notify", "POST", {
+        cohort,
+      })
+      setLastResult(result)
+      await load()
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : "Could not send.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function sendTest() {
+    setTestSending(true)
+    setTestError(null)
+    setTestResult(null)
+    try {
+      const result = await apiSend<NotifyResult>("/api/admin/impact-lab/results/notify", "POST", {
+        cohort,
+        testEmail,
+      })
+      setTestResult(
+        result.sent > 0 ? `Sent to ${testEmail}.` : "Could not send — check the address and try again."
+      )
+    } catch (e) {
+      setTestError(e instanceof Error ? e.message : "Could not send test email.")
+    } finally {
+      setTestSending(false)
+    }
+  }
+
+  if (published === null && !loadError) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+        {loadError}
+      </div>
+    )
+  }
+
+  if (!published) {
+    return (
+      <p className="p-8 text-center text-sm font-mono text-[#555]">
+        Publish results above to unlock the send panel.
+      </p>
+    )
+  }
+
+  const remaining = counts ? counts.queued + counts.failed : 0
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Send results email</h2>
+        <p className="mt-1 text-[11px] font-mono text-[#888]">
+          Sends the standalone results email — winners and each team&apos;s own scorecard — to
+          every published recipient. Resumable: a repeat press only reaches whoever is still
+          unsent.
+        </p>
+      </div>
+
+      <div
+        role="alert"
+        className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
+      >
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>
+          Resend allows 100 emails per day. There are 93 recipients — one clean run fits, a
+          repeated run does not.
+        </span>
+      </div>
+
+      {counts && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Queued", value: counts.queued, color: "#888" },
+            { label: "Sent", value: counts.sent, color: "#00ff41" },
+            { label: "Failed", value: counts.failed, color: "#ff3333" },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded border border-[#1e1e1e] bg-[#0d0d0d] p-3 text-center"
+            >
+              <p className="text-lg font-mono font-bold" style={{ color: stat.color }}>
+                {stat.value}
+              </p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void sendNext()}
+          disabled={sending || remaining === 0}
+          className="flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+        >
+          <Send className="h-3.5 w-3.5" />
+          {sending ? "Sending…" : "Send next 25"}
+        </button>
+        {remaining === 0 && counts && (
+          <span className="text-[11px] font-mono text-[#00ff41]">Everyone has been sent.</span>
+        )}
+        {lastResult && (
+          <span className="text-[11px] font-mono text-[#888]">
+            Last batch: {lastResult.sent} sent, {lastResult.failed} failed, {lastResult.remaining}{" "}
+            remaining.
+          </span>
+        )}
+        {sendError && (
+          <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+            {sendError}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+        <label className="block max-w-sm">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+            Send to one address first
+          </span>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void sendTest()}
+              disabled={testSending || testEmail.trim() === ""}
+              className="shrink-0 rounded border border-[#00d4ff]/40 bg-[#00d4ff]/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-[#00d4ff] transition-colors hover:bg-[#00d4ff]/20 disabled:opacity-40"
+            >
+              {testSending ? "Sending…" : "Send test"}
+            </button>
+          </div>
+        </label>
+        {testResult && <p className="text-[11px] font-mono text-[#00ff41]">{testResult}</p>}
+        {testError && (
+          <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
+            {testError}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Results tab — organiser-facing surfaces for closing out judging.
  *
  * Starts with the one section this program needs first: the teams the panel
- * never reached. Task 7 appends the publish panel below it, so each section
- * is its own component rendered in a simple stack.
+ * never reached. The publish panel follows, then the send panel — each
+ * section is its own component rendered in a simple stack, fetching its own
+ * data independently.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
   return (
@@ -704,6 +927,9 @@ export function ResultsTab({ cohort }: { cohort: string }) {
       <AwaitingScoreSection cohort={cohort} />
       <div className="border-t border-[#1e1e1e] pt-6">
         <PublishPanel cohort={cohort} />
+      </div>
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <NotifyPanel cohort={cohort} />
       </div>
     </div>
   )
