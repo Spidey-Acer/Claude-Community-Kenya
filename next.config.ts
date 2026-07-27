@@ -1,7 +1,10 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["bcryptjs"],
+  // sharp and archiver are native/stream-heavy and must not be bundled by the
+  // server compiler — sharp in particular resolves a platform binary at
+  // runtime, which webpack cannot follow.
+  serverExternalPackages: ["bcryptjs", "sharp", "archiver"],
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },

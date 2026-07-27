@@ -1,6 +1,7 @@
 {
   "framework": "nextjs",
   "crons": [
-    { "path": "/api/cron/purge-conversations", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/purge-conversations", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/gallery-bundles", "schedule": "30 3 * * *" }
   ]
 }
