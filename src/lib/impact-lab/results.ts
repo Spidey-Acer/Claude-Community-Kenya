@@ -50,8 +50,10 @@ export interface ResultsTrackWinner {
 export interface TeamCard {
   rank: number
   criterionAverages: Record<string, number>
-  low: number
-  high: number
+  /** `null` when no range was recorded — distinct from an earned zero. */
+  low: number | null
+  /** `null` when no range was recorded — distinct from an earned zero. */
+  high: number | null
   basis: "demo" | "submission"
 }
 
@@ -152,6 +154,35 @@ export function buildTrackWinners(ranking: RankedTeam[]): ResultsTrackWinner[] {
   return [...best.values()].sort((a, b) => a.track.localeCompare(b.track))
 }
 
+/** A ranking row as participants may receive it. */
+export type PublicRankedTeam = Omit<RankedTeam, "average">
+
+/**
+ * The ranking with scores removed, for anything that crosses the wire to a
+ * participant.
+ *
+ * `average` orders the ranking and must stay in the stored snapshot — the
+ * ordering has to be reproducible from what was published. But sending it to a
+ * browser would let anyone with devtools read every team's score off a page
+ * that shows none, which is the contradiction the announced-winner override
+ * exists to remove. Strip it here, once, rather than trusting each route to
+ * remember.
+ *
+ * Built field-by-field rather than destructure-and-omit: this project's
+ * eslint config runs `@typescript-eslint/no-unused-vars` with no
+ * `varsIgnorePattern`, so a discarded `average` binding — even underscore-
+ * prefixed — would still surface as a lint warning.
+ */
+export function toPublicRanking(ranking: RankedTeam[]): PublicRankedTeam[] {
+  return ranking.map((row) => ({
+    rank: row.rank,
+    teamId: row.teamId,
+    projectName: row.projectName,
+    track: row.track,
+    basis: row.basis,
+  }))
+}
+
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
   const ranking = buildRanking(input)
   const standingById = new Map(input.standings.map((s) => [s.teamId, s]))
@@ -163,8 +194,8 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
     perTeam[row.teamId] = {
       rank: row.rank,
       criterionAverages: standing?.criterionAverages ?? {},
-      low: range?.low ?? 0,
-      high: range?.high ?? 0,
+      low: range?.low ?? null,
+      high: range?.high ?? null,
       basis: input.writeupOnly.has(row.teamId) ? "submission" : "demo",
     }
   }

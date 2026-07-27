@@ -8,7 +8,7 @@
  * Run with: npm run verify:results
  */
 
-import { buildSnapshot, type ResultsInput } from "../src/lib/impact-lab/results"
+import { buildSnapshot, toPublicRanking, type ResultsInput } from "../src/lib/impact-lab/results"
 import type { TeamStanding } from "../src/lib/impact-lab/judging"
 
 let failures = 0
@@ -40,6 +40,7 @@ const input: ResultsInput = {
     standing("t-oryn", 73.3),
     standing("t-vilcare", 55.3),
     standing("t-kilimoeco", 80.0),
+    standing("t-refernet", 69.7),
   ],
   teams: new Map([
     ["t-whatsy", { projectName: "Whatsy", track: "Biashara (Small Business)" }],
@@ -48,6 +49,9 @@ const input: ResultsInput = {
     ["t-oryn", { projectName: "Oryn", track: "Biashara (Small Business)" }],
     ["t-vilcare", { projectName: "VilCare", track: "Afya (Health)" }],
     ["t-kilimoeco", { projectName: "kilimoeco", track: "Kilimo (Agriculture)" }],
+    // Gives Afya a second team, so "the announced 2nd leads its track" has a
+    // real competitor to beat rather than passing on an empty field.
+    ["t-refernet", { projectName: "ReferNet", track: "Afya (Health)" }],
   ]),
   writeupOnly: new Set(["t-kilimoeco"]),
   range: new Map([
@@ -57,6 +61,15 @@ const input: ResultsInput = {
 }
 
 const snap = buildSnapshot(input)
+
+console.log("\nOverall")
+assert(snap.overall.length === 3, "overall carries exactly the announced winners")
+assert(
+  snap.overall[0].rank === 1 &&
+    snap.overall[0].teamId === "t-biasharagpt" &&
+    snap.overall[0].projectName === "BiasharaGPT",
+  "the first announced entry is the champion, ranked and named correctly"
+)
 
 console.log("\nRanking")
 assert(snap.ranking[0].teamId === "t-biasharagpt", "the announced champion ranks 1st")
@@ -73,7 +86,7 @@ assert(
   "a team outscoring the champion still ranks below it — kilimoeco 80.0 is 4th, Whatsy 76.9 is 5th"
 )
 assert(
-  snap.ranking.length === 6 && new Set(snap.ranking.map((r) => r.teamId)).size === 6,
+  snap.ranking.length === 7 && new Set(snap.ranking.map((r) => r.teamId)).size === 7,
   "every submitted team appears exactly once"
 )
 assert(
@@ -117,7 +130,7 @@ assert(
   "the snapshot never carries a judge identity"
 )
 assert(
-  Object.keys(snap.perTeam).length === 6,
+  Object.keys(snap.perTeam).length === 7,
   "every ranked team gets a private card"
 )
 assert(
@@ -127,6 +140,30 @@ assert(
 assert(
   snap.perTeam["t-vilcare"].rank === 2,
   "a team's own card carries its published rank, not its score rank"
+)
+assert(
+  snap.perTeam["t-kilimoeco"].basis === "submission",
+  "a submission-reviewed team's own card carries basis 'submission'"
+)
+assert(
+  snap.perTeam["t-whatsy"].basis === "demo",
+  "a demo-judged team's own card carries basis 'demo'"
+)
+assert(
+  snap.perTeam["t-refernet"].low === null && snap.perTeam["t-refernet"].high === null,
+  "a team absent from the range map gets a null range, not a range that reads as an earned zero"
+)
+
+console.log("\nPublic ranking")
+const publicRanking = toPublicRanking(snap.ranking)
+assert(
+  publicRanking.length === snap.ranking.length &&
+    publicRanking.every((r, i) => r.teamId === snap.ranking[i].teamId),
+  "the public ranking has the same teams in the same order as the stored one"
+)
+assert(
+  !JSON.stringify(publicRanking).includes("average"),
+  "the public ranking never carries a score"
 )
 
 console.log("\nDeterminism")
