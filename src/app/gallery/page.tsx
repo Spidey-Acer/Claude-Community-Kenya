@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getGalleryPhotos, getEventsWithPhotos } from "@/lib/data";
-import { KaribuGallery } from "@/components/karibu/KaribuGallery";
+import { getGalleryAlbums } from "@/lib/data";
+import { KaribuGalleryIndex } from "@/components/karibu/KaribuGalleryIndex";
 
 export const revalidate = 1800;
 
@@ -28,23 +29,19 @@ interface GalleryPageProps {
 
 export default async function GalleryPage({ searchParams }: GalleryPageProps) {
   const params = await searchParams;
-  const eventFilter = typeof params.event === "string" ? params.event : null;
 
-  const [photos, eventChips] = await Promise.all([
-    getGalleryPhotos().catch(() => []),
-    getEventsWithPhotos().catch(() => []),
-  ]);
+  // The flat gallery used ?event= to filter one grid. Those links are in
+  // WhatsApp threads and Luma posts that nobody is going back to edit, so they
+  // redirect to the album rather than 404.
+  const legacyFilter = typeof params.event === "string" ? params.event : null;
+  if (legacyFilter) redirect(`/gallery/${legacyFilter}`);
+
+  const albums = await getGalleryAlbums().catch(() => []);
 
   return (
     <>
-      <BreadcrumbSchema
-        items={[{ name: "Home", url: "/" }, { name: "Gallery" }]}
-      />
-      <KaribuGallery
-        photos={photos}
-        eventChips={eventChips}
-        initialFilter={eventFilter}
-      />
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Gallery" }]} />
+      <KaribuGalleryIndex albums={albums} />
     </>
   );
 }

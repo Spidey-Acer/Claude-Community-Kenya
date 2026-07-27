@@ -392,6 +392,92 @@ export async function getEventPhotos(slug: string): Promise<PhotoView[]> {
  * Returns the list of events that currently have photos, so the gallery
  * page can render filter chips without an extra round-trip.
  */
+export interface GalleryAlbum {
+  slug: string
+  title: string
+  date: Date
+  city: string
+  count: number
+  /** Cover shot: the album's featured photo if one is marked, else its first. */
+  coverUrl: string | null
+  coverFromR2: boolean
+  bundleBytes: number | null
+}
+
+/**
+ * Albums for the /gallery index — one card per event that has photos.
+ *
+ * Does the cover lookup in two queries rather than one per album, so adding
+ * events does not add round-trips.
+ */
+export async function getGalleryAlbums(): Promise<GalleryAlbum[]> {
+  const events = await prisma.event.findMany({
+    where: { photos: { some: {} } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      date: true,
+      city: true,
+      bundleBytes: true,
+      _count: { select: { photos: true } },
+    },
+    orderBy: { date: "desc" },
+  })
+  if (events.length === 0) return []
+
+  const covers = await prisma.meetupPhoto.findMany({
+    where: { eventId: { in: events.map((e) => e.id) } },
+    select: { eventId: true, storageKey: true, url: true, thumbnailUrl: true, featured: true },
+    orderBy: [{ featured: "desc" }, { order: "asc" }, { createdAt: "asc" }],
+  })
+
+  const coverByEvent = new Map<string, (typeof covers)[number]>()
+  for (const c of covers) {
+    if (c.eventId && !coverByEvent.has(c.eventId)) coverByEvent.set(c.eventId, c)
+  }
+
+  return events.map((e) => {
+    const cover = coverByEvent.get(e.id)
+    const resolved = cover ? resolvePhotoUrls(cover) : null
+    return {
+      slug: e.slug,
+      title: e.title,
+      date: e.date,
+      city: e.city,
+      count: e._count.photos,
+      coverUrl: resolved ? resolved.thumbnailUrl ?? resolved.url : null,
+      coverFromR2: resolved?.fromR2 ?? false,
+      bundleBytes: e.bundleBytes,
+    }
+  })
+}
+
+/** One album's event header, or null when the slug has no photos. */
+export async function getAlbumEvent(slug: string): Promise<{
+  slug: string
+  title: string
+  date: Date
+  city: string
+  venue: string
+  bundleKey: string | null
+  bundleBytes: number | null
+} | null> {
+  const event = await prisma.event.findUnique({
+    where: { slug },
+    select: {
+      slug: true,
+      title: true,
+      date: true,
+      city: true,
+      venue: true,
+      bundleKey: true,
+      bundleBytes: true,
+    },
+  })
+  return event
+}
+
 export async function getEventsWithPhotos(): Promise<
   Array<{ slug: string; title: string; date: Date; city: string; count: number }>
 > {
