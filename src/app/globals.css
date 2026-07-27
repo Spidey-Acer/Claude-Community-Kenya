@@ -651,6 +651,49 @@ body::before {
   }
 }
 
+/* ─── Above-the-fold entrance (LCP-safe) ──────────────────────────────────
+ * [data-reveal] above is correct for below-fold content but wrong for the
+ * hero: it holds the element at opacity 0 until a JS observer marks it
+ * in-view, so the largest text on the page could not paint until Framer
+ * Motion had hydrated — an 8.5s LCP on throttled mobile, 95% of it render
+ * delay.
+ *
+ * This runs the same entrance as a pure CSS animation instead. It starts at
+ * first paint rather than at hydration, so the heading is on screen in about
+ * a second regardless of how long the bundle takes. Use it ONLY above the
+ * fold; below-fold content should keep [data-reveal] so it animates on scroll
+ * rather than all at once during load.
+ *
+ * Degrade path matches [data-reveal]: visible by default, animation only
+ * under `.js`, nothing at all under reduced-motion. */
+[data-hero-rise] {
+  opacity: 1;
+}
+.js [data-hero-rise] {
+  animation: hero-rise 0.8s var(--ease-entrance) both;
+  animation-delay: calc(min(var(--i, 0), 4) * 110ms);
+  will-change: opacity, transform;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-hero-rise] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Scroll-drawn progress line (degrade-safe): the parent is the static track;
  * this fill scales from the left on first intersect (same shared observer as
  * [data-reveal]). No JS → full width. Reduced-motion → instant full. */

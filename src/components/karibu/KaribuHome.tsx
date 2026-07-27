@@ -15,7 +15,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -125,38 +124,43 @@ function SupportedBy() {
 
 /* ─────────────────────────── Hero ─────────────────────────── */
 
+/**
+ * The hero is the LCP element, so nothing in it may wait for hydration.
+ * Entrance runs via the CSS-only [data-hero-rise] animation in globals.css
+ * (starts at first paint) instead of Framer Motion (starts after ~363KB of JS
+ * has parsed and hydrated). Below-fold sections keep their motion wrappers.
+ */
 function Hero({ nextEvent }: { nextEvent?: Event }) {
-  const reduce = useReducedMotion();
-  const rise = (delay: number) => ({
-    initial: reduce ? false : { opacity: 0, y: 26 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: [0.2, 0.7, 0.2, 1] as const, delay },
-  });
-
   return (
     <section className={`${WRAP} pb-14 pt-[74px]`} aria-label="Hero">
       <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <motion.div {...rise(0.1)} className={`${KICKER} mb-6`}>
+          <div data-hero-rise style={{ "--i": 0 } as React.CSSProperties} className={`${KICKER} mb-6`}>
             Karibu · Kenya&apos;s Claude Community
-          </motion.div>
-          <motion.h1
-            {...rise(0.22)}
+          </div>
+          <h1
+            data-hero-rise
+            style={{ "--i": 1 } as React.CSSProperties}
             className="mb-6 font-newsreader text-[44px] font-normal leading-[1.04] tracking-[-0.02em] text-ink sm:text-[54px] lg:text-[62px]"
           >
             A free community for Kenyans{" "}
             <span className="italic text-clay">learning &amp; building</span> with
             Claude.
-          </motion.h1>
-          <motion.p
-            {...rise(0.34)}
+          </h1>
+          <p
+            data-hero-rise
+            style={{ "--i": 2 } as React.CSSProperties}
             className="mb-9 max-w-[480px] font-inter text-[18px] leading-[1.6] text-ink-soft"
           >
             Founder-led, mobile-first, and open to everyone — from first-time
             students to seasoned developers. Meet-ups, hands-on workshops, and a
             warm community growing across Kenya.
-          </motion.p>
-          <motion.div {...rise(0.46)} className="flex flex-wrap items-center gap-3.5">
+          </p>
+          <div
+            data-hero-rise
+            style={{ "--i": 3 } as React.CSSProperties}
+            className="flex flex-wrap items-center gap-3.5"
+          >
             <a
               href={SOCIAL_LINKS.whatsapp}
               target="_blank"
@@ -171,14 +175,14 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             >
               See upcoming events →
             </Link>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Hero visual — real CCK meetup photo. */}
-        <motion.div
-          initial={reduce ? false : { opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
+        {/* Hero visual — real CCK meetup photo. Also above the fold and a
+            competing LCP candidate, so it uses the same CSS entrance. */}
+        <div
+          data-hero-rise
+          style={{ "--i": 1 } as React.CSSProperties}
           className="relative h-[300px] overflow-hidden rounded-2xl border border-sand-2 lg:h-[460px]"
         >
           <Image
@@ -198,7 +202,7 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
               )}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
