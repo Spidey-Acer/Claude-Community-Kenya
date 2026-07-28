@@ -343,6 +343,11 @@ model MeetupPhoto {
   /// change. Legacy Supabase rows keep `url`/`thumbnailUrl` and leave this
   /// null, which is how the reader decides which storage a photo lives in.
   storageKey    String?
+  /// Extension of the uploaded original (jpg, png, heic, …), R2 rows only.
+  /// The `full`/`thumb` derivatives are always webp, so this is only needed
+  /// to address the original object — e.g. to delete it — without listing
+  /// the bucket by prefix to find it.
+  originalExt   String?
   url           String
   thumbnailUrl  String?
   alt           String?  @db.Text
