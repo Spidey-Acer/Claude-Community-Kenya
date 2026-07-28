@@ -741,6 +741,7 @@ model ImpactLabMatchRun {
   resultsEmails        ImpactLabResultsEmail[]
   submissions          ImpactLabSubmission[]
   scores               ImpactLabScore[]
+  teamReviews          ImpactLabTeamReview[]
   createdById          String?
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
@@ -827,6 +828,49 @@ model ImpactLabScore {
   @@unique([runId, teamId, judgeEmail])
   @@index([cohort, teamId])
   @@map("impact_lab_scores")
+}
+
+/// One written review per team, from the community — not from any judge.
+///
+/// Three of the four judges left scores and no written feedback, so a team
+/// that built through the night would otherwise receive five numbers and
+/// silence. This row is the community's substantive review of that team's
+/// submission, signed "Claude Community Kenya" wherever it is shown. It is
+/// keyed per team (not per judge) precisely so it can never be mistaken for,
+/// or merged into, a judge's scorecard — judge words live only in
+/// ImpactLabScore.feedback, written by the judge named on that row.
+///
+/// Nothing publishes unapproved: every surface that shows `text` to a
+/// participant (dashboard, results email, exports) requires approvedAt to be
+/// non-null. Drafts are generated; the organiser edits, then approves.
+model ImpactLabTeamReview {
+  id      String @id @default(cuid())
+  cohort  String
+  runId   String
+  /// Team id from the run's result JSON — teams have no table, so no FK.
+  teamId  String
+  /// The review as it will publish. Starts as a generated draft; the
+  /// organiser may rewrite any of it before approving.
+  text    String @db.Text
+  /// Provenance of the current draft: the model id for generated text, or
+  /// the organiser's email once they have hand-written/edited it.
+  generatedBy String
+  /// Set when an organiser saves an edit. A non-null value protects the text:
+  /// regeneration refuses to overwrite it unless explicitly forced.
+  editedAt DateTime?
+  editedBy String?
+  /// The publish gate. Only reviews with approvedAt set reach participants.
+  approvedAt DateTime?
+  approvedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  /// One review per team per run: regeneration edits the row, never doubles it.
+  @@unique([runId, teamId])
+  @@index([cohort])
+  @@map("impact_lab_team_reviews")
 }
 
 /// One row per intended recipient of the results email. This is what makes the

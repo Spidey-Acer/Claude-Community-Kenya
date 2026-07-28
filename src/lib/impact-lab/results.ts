@@ -18,6 +18,7 @@
  */
 
 import { trackOf, type TeamStanding } from "./judging"
+import { REVIEW_SIGNATURE, type TeamJudgeNote } from "./reviews"
 
 /** How a team's placing was arrived at. */
 export type ResultBasis = "announced" | "demo" | "submission"
@@ -183,6 +184,25 @@ export function toPublicRanking(ranking: RankedTeam[]): PublicRankedTeam[] {
   }))
 }
 
+/**
+ * The two streams of written feedback a team may receive, kept apart by
+ * construction (see @/lib/impact-lab/reviews): a judge's own quoted words
+ * under that judge's name, and the community's review under the community's.
+ */
+export interface TeamFeedback {
+  /** Notes a judge actually wrote, quoted (spelling/casing corrected only). */
+  judgeNotes: TeamJudgeNote[]
+  /** The approved community review, or null when none is approved yet. */
+  review: string | null
+}
+
+/** The community review as one participant receives it — text plus signer. */
+export interface TeamReviewPayload {
+  text: string
+  /** Always REVIEW_SIGNATURE — carried in-band so the label crosses the wire with the words. */
+  signedBy: string
+}
+
 /** The published result as one participant may receive it. Flat member shape — no `data` wrapper. */
 export interface MemberResultsPayload {
   success: true
@@ -193,7 +213,15 @@ export interface MemberResultsPayload {
     trackWinners: ResultsTrackWinner[]
     ranking: PublicRankedTeam[]
   }
-  yourTeam?: { teamId: string; projectName: string; card: TeamCard }
+  yourTeam?: {
+    teamId: string
+    projectName: string
+    card: TeamCard
+    /** Present only when a judge left a note on this team. */
+    judgeNotes?: TeamJudgeNote[]
+    /** Present only when the organiser has approved this team's review. */
+    review?: TeamReviewPayload
+  }
 }
 
 /**
@@ -214,7 +242,13 @@ export interface MemberResultsPayload {
  */
 export function buildMemberPayload(
   snapshot: ResultsSnapshot,
-  viewerTeamId: string | null
+  viewerTeamId: string | null,
+  /**
+   * Written feedback for the viewer's own team ONLY — the caller must never
+   * pass another team's. It rides inside `yourTeam`, so a viewer with no
+   * resolvable team can receive none of it by construction.
+   */
+  feedback?: TeamFeedback
 ): MemberResultsPayload {
   const payload: MemberResultsPayload = {
     success: true,
@@ -237,6 +271,12 @@ export function buildMemberPayload(
       teamId: viewerTeamId,
       projectName: rankingRow.projectName,
       card,
+    }
+    if (feedback && feedback.judgeNotes.length > 0) {
+      payload.yourTeam.judgeNotes = feedback.judgeNotes
+    }
+    if (feedback && feedback.review !== null) {
+      payload.yourTeam.review = { text: feedback.review, signedBy: REVIEW_SIGNATURE }
     }
   }
 
