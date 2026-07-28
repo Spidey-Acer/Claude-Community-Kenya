@@ -21,6 +21,7 @@ import {
   type ExportTeam,
   type ResultsExport,
 } from "./export-data"
+import { REVIEW_PROVENANCE, REVIEW_SIGNATURE } from "./reviews"
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
@@ -460,6 +461,31 @@ function renderFeedback(doc: Doc, team: ExportTeam): void {
 }
 
 /**
+ * The approved community review, printed under the community's own name.
+ * Distinct label and an explicit provenance line, so these words can never
+ * be read as judge commentary — judge words render only in renderFeedback,
+ * under the judge who wrote them.
+ */
+function renderCommunityReview(doc: Doc, team: ExportTeam): void {
+  if (team.communityReview === null) return
+  const body = team.communityReview
+  doc.font(SANS).fontSize(9)
+  ensureSpace(doc, 34 + doc.heightOfString(body, { width: CONTENT_WIDTH, lineGap: 2 }))
+  sectionLabel(doc, `Impact Lab review — ${REVIEW_SIGNATURE}`)
+  doc
+    .font(SANS)
+    .fontSize(9)
+    .fillColor(INK)
+    .text(body, MARGIN, doc.y, { width: CONTENT_WIDTH, lineGap: 2, paragraphGap: 5 })
+  doc
+    .font(SANS_ITALIC)
+    .fontSize(7.5)
+    .fillColor(FAINT)
+    .text(REVIEW_PROVENANCE, MARGIN, doc.y + 4, { width: CONTENT_WIDTH, lineGap: 2 })
+  doc.moveDown(0.8)
+}
+
+/**
  * One section per team, each starting on a fresh page: identity, members,
  * the full submission, then scores and feedback.
  */
@@ -558,6 +584,7 @@ function renderTeamPage(doc: Doc, team: ExportTeam): void {
     renderJudgeTable(doc, team)
     renderFeedback(doc, team)
   }
+  renderCommunityReview(doc, team)
 }
 
 // ─── Footer pass ─────────────────────────────────────────────────────────────

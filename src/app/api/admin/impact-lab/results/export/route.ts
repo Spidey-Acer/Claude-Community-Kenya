@@ -11,6 +11,7 @@ import {
 } from "@/lib/impact-lab/export-data"
 import { buildResultsWorkbook } from "@/lib/impact-lab/export-excel"
 import { buildResultsPdf } from "@/lib/impact-lab/export-pdf"
+import { publishableReview } from "@/lib/impact-lab/reviews"
 
 /**
  * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const teams = extractFrozenTeams(run.result) ?? []
 
-  const [participants, submissions, scores] = await Promise.all([
+  const [participants, submissions, scores, reviewRows] = await Promise.all([
     prisma.impactLabParticipant.findMany({
       where: { cohort },
       select: {
@@ -91,6 +92,10 @@ export async function GET(request: NextRequest) {
         writeupOnly: true,
       },
     }),
+    prisma.impactLabTeamReview.findMany({
+      where: { runId: run.id },
+      select: { teamId: true, text: true, approvedAt: true },
+    }),
   ])
 
   const source: ExportSource = {
@@ -120,6 +125,12 @@ export async function GET(request: NextRequest) {
       feedback: s.feedback,
       writeupOnly: s.writeupOnly,
     })),
+    // Approved reviews only — publishableReview is the gate every
+    // participant-facing surface shares; drafts never leave the admin panel.
+    reviews: reviewRows.flatMap((r) => {
+      const text = publishableReview(r)
+      return text === null ? [] : [{ teamId: r.teamId, text }]
+    }),
   }
 
   const data = buildResultsExport(source)
