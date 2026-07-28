@@ -32,7 +32,11 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB — originals off a real camera
 const URL_TTL_SECONDS = 900 // 15 min: enough for a slow connection, short enough to matter
 
 const bodySchema = z.object({
-  eventId: z.string().min(1).nullable().optional(),
+  // Required, not nullable: /gallery is purely an index of event albums, so a
+  // photo uploaded with no event would land under the reserved "community/"
+  // prefix with no page that ever renders it — an upload that is silently
+  // swallowed. Every new R2 upload must belong to an event.
+  eventId: z.string().min(1),
   photographer: z.string().max(120).nullable().optional(),
   featured: z.boolean().optional(),
   files: z
@@ -65,21 +69,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status: 400 })
   }
 
-  const { eventId = null, photographer = null, featured = false, files } = parsed
+  const { eventId, photographer = null, featured = false, files } = parsed
 
-  // Resolve the album folder once. An unknown eventId is a client bug, not a
-  // reason to quietly file the batch under community/.
-  let eventSlug: string | null = null
-  if (eventId) {
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { slug: true },
-    })
-    if (!event) {
-      return NextResponse.json({ success: false, error: "Unknown eventId" }, { status: 400 })
-    }
-    eventSlug = event.slug
+  // Resolve the album folder once. An unknown eventId is a client bug.
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { slug: true },
+  })
+  if (!event) {
+    return NextResponse.json({ success: false, error: "Unknown eventId" }, { status: 400 })
   }
+  const eventSlug = event.slug
 
   const client = r2Client()
   const Bucket = r2Bucket()

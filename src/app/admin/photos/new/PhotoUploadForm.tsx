@@ -95,6 +95,11 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
     const photographer = (form.elements.namedItem("photographer") as HTMLInputElement).value
     const featured = (form.elements.namedItem("featured") as HTMLInputElement).checked
 
+    if (!eventId) {
+      setError("Choose an event — /gallery is an index of event albums, and a photo with no event has no page to appear on.")
+      return
+    }
+
     startTransition(async () => {
       const token = await csrfToken()
       const localFailures: string[] = []
@@ -106,7 +111,7 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-csrf-token": token },
         body: JSON.stringify({
-          eventId: eventId || null,
+          eventId,
           photographer: photographer || null,
           featured,
           files: entries.map((entry) => ({
@@ -203,18 +208,25 @@ export function PhotoUploadForm({ events }: { events: EventOption[] }) {
       {/* Event dropdown */}
       <div>
         <label htmlFor="photo-event" className="mb-1.5 block font-mono text-[11px] text-[#555]">
-          Event <span className="text-[#333]">(optional)</span>
+          Event *
         </label>
         <select
           id="photo-event"
           name="eventId"
+          required
+          defaultValue=""
           className="w-full rounded border border-[#1e1e1e] bg-[#111] px-3 py-2 font-mono text-sm text-[#ccc] transition-colors focus:border-[#00ff41]/50 focus:outline-none"
         >
-          <option value="">— general / no event —</option>
+          <option value="" disabled>
+            Select an event…
+          </option>
           {events.map((ev) => (
             <option key={ev.id} value={ev.id}>{ev.title}</option>
           ))}
         </select>
+        <p className="mt-1 font-mono text-[11px] text-[#444]">
+          /gallery is an index of event albums — a photo with no event has no page to appear on.
+        </p>
       </div>
 
       {/* Batch-wide metadata — only the fields that genuinely are batch-wide. */}
