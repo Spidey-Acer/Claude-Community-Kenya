@@ -22,7 +22,13 @@ const TEAMMATE_POLL_INTERVAL_MS = 30_000;
  * This is the hero moment of the hackathon dashboard, so it carries a
  * one-time entrance animation (skipped entirely under prefers-reduced-motion).
  */
-export function TeamReveal({ team }: { team: TeamRevealView }) {
+export function TeamReveal({
+  team,
+  cohortActive = true,
+}: {
+  team: TeamRevealView;
+  cohortActive?: boolean;
+}) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
 
@@ -49,6 +55,10 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
   );
 
   useEffect(() => {
+    // Nobody is arriving at a finished event, so polling for teammate
+    // check-ins would be a background request every 30s, forever, for a
+    // value that can no longer change.
+    if (!cohortActive) return;
     const interval = setInterval(() => {
       fetch("/api/impact-lab/team")
         .then((res) => (res.ok ? (res.json() as Promise<TeamResponse>) : null))
@@ -68,7 +78,7 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
         .catch(() => {});
     }, TEAMMATE_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [cohortActive]);
 
   async function handleCheckIn() {
     setCheckingIn(true);
@@ -136,11 +146,21 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
               {team.teamName}
             </h2>
             <p className="mt-1 text-sm text-text-secondary">
-              {team.members.length} members &middot; see you at the hackathon.
+              {team.members.length} members
+              {cohortActive
+                ? " · see you at the hackathon."
+                : " · this is your record from the event."}
             </p>
           </div>
           <div className="shrink-0">
-            {checkedIn ? (
+            {!cohortActive ? (
+              checkedIn ? (
+                <span className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-3 py-1.5 font-mono text-xs font-semibold text-text-dim">
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Attended
+                </span>
+              ) : null
+            ) : checkedIn ? (
               <span className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-1.5 font-mono text-xs font-semibold text-green-primary">
                 <UserCheck className="h-3.5 w-3.5" />
                 You&apos;re checked in
@@ -301,17 +321,24 @@ export function TeamReveal({ team }: { team: TeamRevealView }) {
         </ol>
       </motion.section>
 
-      <TeamRoster
-        members={team.members}
-        onChanged={() => {
-          // The roster lives in the server-rendered payload, so a change is
-          // only visible after a refetch — reload rather than patch local
-          // state, so everyone sees the same roster the server now holds.
-          router.refresh();
-        }}
-      />
+      {/* Roster edits and project submission are event-time actions. After the
+          cohort closes the team is a record, not a thing you can still change,
+          so both affordances go rather than sitting there failing on submit. */}
+      {cohortActive && (
+        <>
+          <TeamRoster
+            members={team.members}
+            onChanged={() => {
+              // The roster lives in the server-rendered payload, so a change is
+              // only visible after a refetch — reload rather than patch local
+              // state, so everyone sees the same roster the server now holds.
+              router.refresh();
+            }}
+          />
 
-      <SubmitProject />
+          <SubmitProject />
+        </>
+      )}
     </motion.div>
   );
 }

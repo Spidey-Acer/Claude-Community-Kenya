@@ -18,7 +18,8 @@
     "verify:judging": "tsx scripts/verify-judging.ts",
     "verify:results": "tsx scripts/verify-results.ts",
     "verify:reviews": "tsx scripts/verify-reviews.ts",
-    "import:manual-teams": "tsx scripts/import-manual-teams.ts"
+    "import:manual-teams": "tsx scripts/import-manual-teams.ts",
+    "purge:closed-cohorts": "tsx scripts/purge-closed-cohorts.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

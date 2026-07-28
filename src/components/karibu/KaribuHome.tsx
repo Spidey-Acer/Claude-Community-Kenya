@@ -15,7 +15,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -49,6 +48,31 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   "career-talk": "Career talk",
   hackathon: "Hackathon",
 };
+
+/**
+ * Today in Nairobi as YYYY-MM-DD — the same shape Event.date already uses, so
+ * the comparison is a plain string compare with no parsing or local-timezone
+ * drift. Pinning the zone on both server and client also keeps SSR and
+ * hydration in agreement for a visitor sitting in another timezone.
+ */
+function todayInNairobi(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Nairobi" });
+}
+
+/**
+ * Call-to-action for an event card, derived from when the event is rather than
+ * what kind it is. Type was the wrong signal: it labelled every hackathon
+ * "Register" for as long as the card existed, including months after the
+ * hackathon had been run and judged.
+ */
+function eventCta(ev: Event): string {
+  if (ev.date && ev.date < todayInNairobi()) {
+    return ev.type === "hackathon" ? "See the recap" : "View";
+  }
+  return ev.type === "hackathon" || ev.status === "registration-open"
+    ? "Register"
+    : "RSVP";
+}
 
 export function KaribuHome({
   communityStats,
@@ -126,39 +150,45 @@ function SupportedBy() {
 
 /* ─────────────────────────── Hero ─────────────────────────── */
 
+/**
+ * The hero is the LCP element, so nothing in it may wait for hydration.
+ * Entrance runs via the CSS-only [data-hero-rise] animation in globals.css
+ * (starts at first paint) instead of Framer Motion (starts after ~363KB of JS
+ * has parsed and hydrated). Below-fold sections keep their motion wrappers.
+ */
 function Hero({ nextEvent }: { nextEvent?: Event }) {
   const { whatsapp } = useSocialLinks();
-  const reduce = useReducedMotion();
-  const rise = (delay: number) => ({
-    initial: reduce ? false : { opacity: 0, y: 26 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: [0.2, 0.7, 0.2, 1] as const, delay },
-  });
 
   return (
     <section className={`${WRAP} pb-14 pt-[74px]`} aria-label="Hero">
       <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <motion.div {...rise(0.1)} className={`${KICKER} mb-6`}>
+          <div data-hero-rise style={{ "--i": 0 } as React.CSSProperties} className={`${KICKER} mb-6`}>
             Karibu · Kenya&apos;s Claude Community
-          </motion.div>
-          <motion.h1
-            {...rise(0.22)}
+          </div>
+          <h1
+            data-hero-rise
+            style={{ "--i": 1 } as React.CSSProperties}
             className="mb-6 font-newsreader text-[44px] font-normal leading-[1.04] tracking-[-0.02em] text-ink sm:text-[54px] lg:text-[62px]"
           >
             A free community for Kenyans{" "}
             <span className="italic text-clay">learning &amp; building</span> with
             Claude.
-          </motion.h1>
-          <motion.p
-            {...rise(0.34)}
+          </h1>
+          <p
+            data-hero-rise
+            style={{ "--i": 2 } as React.CSSProperties}
             className="mb-9 max-w-[480px] font-inter text-[18px] leading-[1.6] text-ink-soft"
           >
             Founder-led, mobile-first, and open to everyone — from first-time
             students to seasoned developers. Meet-ups, hands-on workshops, and a
             warm community growing across Kenya.
-          </motion.p>
-          <motion.div {...rise(0.46)} className="flex flex-wrap items-center gap-3.5">
+          </p>
+          <div
+            data-hero-rise
+            style={{ "--i": 3 } as React.CSSProperties}
+            className="flex flex-wrap items-center gap-3.5"
+          >
             {whatsapp && (
               <a
                 href={whatsapp}
@@ -175,14 +205,14 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             >
               See upcoming events →
             </Link>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Hero visual — real CCK meetup photo. */}
-        <motion.div
-          initial={reduce ? false : { opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
+        {/* Hero visual — real CCK meetup photo. Also above the fold and a
+            competing LCP candidate, so it uses the same CSS entrance. */}
+        <div
+          data-hero-rise
+          style={{ "--i": 1 } as React.CSSProperties}
           className="relative h-[300px] overflow-hidden rounded-2xl border border-sand-2 lg:h-[460px]"
         >
           <Image
@@ -226,7 +256,7 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
               </div>
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -525,10 +555,7 @@ function EventsSection({ events }: { events: Event[] }) {
         {events.map((ev) => {
           const single = events.length === 1;
           const cover = eventCover(ev.posterUrl);
-          const cta =
-            ev.type === "hackathon" || ev.status === "registration-open"
-              ? "Register"
-              : "RSVP";
+          const cta = eventCta(ev);
           return (
             <Link
               key={ev.slug}
@@ -637,7 +664,7 @@ function HowToJoin() {
   const { whatsapp, discord } = useSocialLinks();
   return (
     <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
-      <Reveal className="relative overflow-hidden rounded-2xl bg-ink p-9 text-paper sm:p-[54px]">
+      <Reveal className="relative overflow-hidden rounded-2xl bg-panel-dark p-9 text-on-panel-dark sm:p-[54px]">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -675,7 +702,7 @@ function HowToJoin() {
                   href={discord}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-paper transition-colors hover:border-paper"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-on-panel-dark transition-colors hover:border-on-panel-dark"
                 >
                   Join Discord
                 </a>

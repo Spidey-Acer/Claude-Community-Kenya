@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
+import { DEFAULT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
@@ -26,6 +27,8 @@ export default async function ImpactLabPage() {
   });
   if (!user) redirect("/login");
 
+  const cohortActive = isCohortActive(DEFAULT_COHORT);
+
   return (
     <main className="min-h-screen bg-bg-primary pt-24 pb-24">
       <div className="mx-auto max-w-3xl px-4">
@@ -44,7 +47,9 @@ export default async function ImpactLabPage() {
             Impact Lab Hackathon
           </h1>
           <p className="mt-2 font-mono text-sm text-text-dim">
-            Complete your matching profile, then check back here for your team.
+            {cohortActive
+              ? "Complete your matching profile, then check back here for your team."
+              : "The event has wrapped — this is your record of it."}
           </p>
         </header>
 
@@ -53,7 +58,11 @@ export default async function ImpactLabPage() {
             out every account created before the flag flipped, with no way to
             comply — the participant is told to check an inbox nothing was sent
             to. */}
-        {REQUIRE_EMAIL_VERIFICATION && !user.emailVerified ? (
+        {/* The verification gate only exists to protect a live matching
+            profile. With the cohort closed there is nothing left to gate, and
+            asking someone to verify an email to view a finished event's record
+            is a dead end. */}
+        {cohortActive && REQUIRE_EMAIL_VERIFICATION && !user.emailVerified ? (
           <>
             <VerifyEmailBanner />
             <p className="font-mono text-sm text-text-secondary">
@@ -62,7 +71,10 @@ export default async function ImpactLabPage() {
             </p>
           </>
         ) : (
-          <ImpactLabClient sessionEmail={session.user.email} />
+          <ImpactLabClient
+            sessionEmail={session.user.email}
+            cohortActive={cohortActive}
+          />
         )}
       </div>
     </main>
