@@ -243,6 +243,26 @@ export function buildMemberPayload(
   return payload
 }
 
+/**
+ * Cheap duck-typed shape check on a stored `resultsSnapshot` JSON value before
+ * it is cast to `ResultsSnapshot`. Not full schema validation — just enough
+ * that a malformed or legacy-shaped snapshot fails cleanly wherever it is
+ * read (the notify route, the email preview route) rather than throwing an
+ * unhandled exception mid-request (e.g. on `snapshot.perTeam[id]` for a
+ * `perTeam` that isn't actually an object).
+ */
+export function isResultsSnapshot(value: unknown): value is ResultsSnapshot {
+  if (typeof value !== "object" || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    Array.isArray(v.overall) &&
+    Array.isArray(v.trackWinners) &&
+    Array.isArray(v.ranking) &&
+    typeof v.perTeam === "object" &&
+    v.perTeam !== null
+  )
+}
+
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
   const ranking = buildRanking(input)
   const standingById = new Map(input.standings.map((s) => [s.teamId, s]))

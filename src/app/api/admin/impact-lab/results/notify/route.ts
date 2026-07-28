@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import type { ResultsSnapshot } from "@/lib/impact-lab/results"
+import { isResultsSnapshot } from "@/lib/impact-lab/results"
 import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailItem } from "@/lib/email"
 
 /**
@@ -70,25 +70,6 @@ const SAMPLE_CARD = {
   low: 68.5,
   high: 84.0,
   basis: "demo" as const,
-}
-
-/**
- * Cheap duck-typed shape check on the stored JSON before it is cast to
- * `ResultsSnapshot`. Not a full schema validation — just enough that a
- * malformed or legacy-shaped snapshot fails with a clean 409 here rather than
- * throwing an unhandled exception mid-batch (e.g. on `snapshot.perTeam[id]`
- * for a `perTeam` that isn't actually an object).
- */
-function isResultsSnapshot(value: unknown): value is ResultsSnapshot {
-  if (typeof value !== "object" || value === null) return false
-  const v = value as Record<string, unknown>
-  return (
-    Array.isArray(v.overall) &&
-    Array.isArray(v.trackWinners) &&
-    Array.isArray(v.ranking) &&
-    typeof v.perTeam === "object" &&
-    v.perTeam !== null
-  )
 }
 
 async function loadPublishedRun(cohort: string) {
