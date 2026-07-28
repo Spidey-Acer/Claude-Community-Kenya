@@ -150,7 +150,10 @@ async function main() {
         ext,
         MIME[ext] ?? "image/jpeg",
       )
-      await prisma.meetupPhoto.update({ where: { id: photo.id }, data: { storageKey } })
+      await prisma.meetupPhoto.update({
+        where: { id: photo.id },
+        data: { storageKey, originalExt: ext },
+      })
       console.log(
         `     → thumb ${Math.round(result.thumbBytes / 1024)} KB, full ${Math.round(result.fullBytes / 1024)} KB`,
       )

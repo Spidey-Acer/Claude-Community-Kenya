@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 /**
  * Cloudflare R2 client and key layout for gallery media.
@@ -119,25 +119,24 @@ export async function deleteObject(key: string): Promise<void> {
 /**
  * Delete every object that belongs to one photo: original, full and thumb.
  *
- * The row does not persist the original's extension (only `full`/`thumb` have
- * a fixed one — always webp), so the original is located by listing its
- * prefix rather than guessing. The trailing "." on the prefix keeps this from
- * matching a different photo whose id happens to start with this one's id.
+ * `originalExt` addresses the original directly rather than discovering it,
+ * because finding it any other way means listing the bucket by prefix — an
+ * `s3:ListBucket`-shaped operation the R2 token may not be scoped for (it is
+ * granted object-level read/write, not bucket-level list) — and an extra
+ * round trip regardless. `full`/`thumb` need no such lookup: derivatives are
+ * always webp.
+ *
+ * A null `originalExt` means finalize never completed for this row (it is
+ * the one field set alongside storageKey), so there is no original to target
+ * — full/thumb are still deleted.
  */
-export async function deletePhotoObjects(storageKey: string): Promise<void> {
+export async function deletePhotoObjects(storageKey: string, originalExt: string | null): Promise<void> {
   const client = r2Client()
   const Bucket = r2Bucket()
-  const slash = storageKey.lastIndexOf("/")
-  const prefix = storageKey.slice(0, slash)
-  const id = storageKey.slice(slash + 1)
-
-  const listed = await client.send(
-    new ListObjectsV2Command({ Bucket, Prefix: `${prefix}/original/${id}.` }),
-  )
-  const originalKeys = (listed.Contents ?? [])
-    .map(o => o.Key)
-    .filter((k): k is string => Boolean(k))
-
-  const keys = [...originalKeys, variantKey(storageKey, "full"), variantKey(storageKey, "thumb")]
+  const keys = [
+    ...(originalExt ? [variantKey(storageKey, "original", originalExt)] : []),
+    variantKey(storageKey, "full"),
+    variantKey(storageKey, "thumb"),
+  ]
   await Promise.all(keys.map(Key => client.send(new DeleteObjectCommand({ Bucket, Key }))))
 }

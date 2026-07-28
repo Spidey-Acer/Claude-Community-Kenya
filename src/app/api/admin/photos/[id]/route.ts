@@ -97,13 +97,13 @@ export async function DELETE(
   const { id } = await params
   const photo = await prisma.meetupPhoto.findUnique({
     where: { id },
-    select: { url: true, storageKey: true, eventId: true },
+    select: { url: true, storageKey: true, originalExt: true, eventId: true },
   })
   if (!photo) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
 
   try {
     if (photo.storageKey) {
-      await deletePhotoObjects(photo.storageKey)
+      await deletePhotoObjects(photo.storageKey, photo.originalExt)
     } else {
       await deleteImage(photo.url)
     }

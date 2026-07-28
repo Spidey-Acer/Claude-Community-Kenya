@@ -72,7 +72,10 @@ export async function POST(request: NextRequest) {
 
     await prisma.meetupPhoto.update({
       where: { id: photo.id },
-      data: { storageKey },
+      // originalExt is kept alongside storageKey so a later delete can
+      // address the original object exactly, without listing the bucket to
+      // find an extension nothing else persists.
+      data: { storageKey, originalExt: parsed.ext },
     })
 
     return NextResponse.json({ success: true, data: { photoId: photo.id } })
