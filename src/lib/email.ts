@@ -5,6 +5,8 @@
 
 import { Resend } from "resend"
 import { VOLUNTEER_ROLE_LABELS as SHARED_VOLUNTEER_ROLE_LABELS } from "@/lib/volunteer-roles"
+import { JUDGING_CRITERIA } from "@/lib/impact-lab/judging"
+import type { AnnouncedWinner, ResultsTrackWinner } from "@/lib/impact-lab/results"
 
 // Lazy initialization — avoids build-time error when env var is not set
 let _resend: Resend | null = null
@@ -18,7 +20,7 @@ const EMAIL_FROM_NAME =
   process.env.EMAIL_FROM_NAME || "Claude Community Kenya"
 const EMAIL_TO_ADMIN =
   process.env.EMAIL_TO_ADMIN || "claudecommunitykenya@gmail.com"
-const APP_URL = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
+export const APP_URL = process.env.NEXTAUTH_URL || "https://www.claudekenya.org"
 
 function esc(str: string): string {
   return str
@@ -130,6 +132,61 @@ export async function sendEmailBatch(
     }
   }
   return { sent, failed }
+}
+
+/**
+ * Batch send that reports per recipient rather than per chunk.
+ *
+ * `sendEmailBatch` returns only totals, which is not enough to record who was
+ * actually reached — and without that, a retry re-sends to everyone. Resend's
+ * quota is 100/day against 93 recipients, so a blind retry blows the quota and
+ * double-mails the people it already reached.
+ *
+ * Chunks of 25 rather than the API ceiling of 100: if a chunk is rejected we
+ * can only mark that chunk failed, so a smaller chunk loses less certainty.
+ */
+export async function sendEmailBatchTracked(
+  items: BatchEmailItem[]
+): Promise<{ to: string; ok: boolean; error?: string }[]> {
+  if (items.length === 0) return []
+
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[EMAIL] RESEND_API_KEY not configured, batch not sent")
+    return items.map((item) => ({
+      to: item.to,
+      ok: false,
+      error: "RESEND_API_KEY not configured",
+    }))
+  }
+
+  const from = `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`
+  const results: { to: string; ok: boolean; error?: string }[] = []
+
+  for (let i = 0; i < items.length; i += 25) {
+    const chunk = items.slice(i, i + 25)
+    try {
+      const { error } = await getResend().batch.send(
+        chunk.map((item) => ({
+          from,
+          to: [item.to],
+          subject: item.subject,
+          html: item.html,
+          text: stripHtml(item.html),
+        }))
+      )
+      const message = error ? error.message : undefined
+      for (const item of chunk) {
+        results.push({ to: item.to, ok: !error, error: message })
+      }
+      if (error) console.error("[EMAIL] Batch chunk rejected:", error)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown send failure"
+      console.error("[EMAIL] Batch chunk failed:", err)
+      for (const item of chunk) results.push({ to: item.to, ok: false, error: message })
+    }
+  }
+
+  return results
 }
 
 // ─── CCK-specific email templates ───────────────────────────────────────────
@@ -463,6 +520,163 @@ export function impactLabAccountEmail(data: {
     </div>
   `
   return { to: data.to, subject: "Impact Lab: meet your team", html }
+}
+
+/** Matches the ordinal shown on the dashboard's results page (ResultsView.tsx) exactly. */
+const RESULTS_ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" }
+function resultsOrdinal(rank: number): string {
+  return RESULTS_ORDINALS[rank] ?? `${rank}th`
+}
+
+/**
+ * Impact Lab: the results email. Nine of the 93 recipients never created a
+ * dashboard account, so this has to stand alone — the winners and the
+ * recipient's own scorecard are written out in full in the body, not just
+ * linked. Everything passed in here must come from the stored results
+ * snapshot (see `resultsSnapshot` on ImpactLabMatchRun), never recomputed
+ * from live scores or submissions, because live data moves after publication
+ * and what 93 people are told must not move with it.
+ *
+ * Table-based layout with inline styles throughout — email clients ignore
+ * `<style>` blocks and Tailwind entirely, and this is read on phones and in
+ * Outlook as often as in a browser. No web fonts, no external images. Every
+ * text element sets its own `color`, and every box that a client's dark-mode
+ * remapping could independently repaint (the two wrapper tables and the
+ * content cell they wrap) sets its own `background-color` rather than
+ * relying on inheritance — some clients decide light/dark per node from its
+ * own inline style, not from the resolved/inherited value.
+ *
+ * No judge counts and no deadline language anywhere in this template — those
+ * are the two things Impact Lab copy must never say.
+ */
+export function impactLabResultsEmail(data: {
+  fullName: string
+  projectName: string
+  rank: number
+  criterionAverages: Record<string, number>
+  low: number | null
+  high: number | null
+  basis: "demo" | "submission"
+  overall: AnnouncedWinner[]
+  trackWinners: ResultsTrackWinner[]
+  dashboardUrl: string
+}): { subject: string; html: string } {
+  // Publishing with zero announced winners is a legal (if unusual) state —
+  // the publish panel warns rather than blocks it. Guard each block the same
+  // way ResultsView.tsx does, so an empty list renders nothing rather than an
+  // empty heading, and so the note below never claims a panel decision that
+  // didn't happen.
+  const winnersSection =
+    data.overall.length > 0
+      ? `
+            <p style="margin:0 0 8px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;">Winners</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
+              ${data.overall
+                .map(
+                  (w) => `
+              <tr>
+                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#ffb000;white-space:nowrap;width:56px;">${esc(resultsOrdinal(w.rank))}</td>
+                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#e0e0e0;">${esc(w.projectName)}</td>
+              </tr>`
+                )
+                .join("")}
+            </table>`
+      : ""
+
+  const trackSection =
+    data.trackWinners.length > 0
+      ? `
+            <p style="margin:0 0 8px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;">Track winners</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+              ${data.trackWinners
+                .map(
+                  (w) => `
+              <tr>
+                <td style="padding:6px 0;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#00d4ff;white-space:nowrap;width:150px;">${esc(w.track)}</td>
+                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#e0e0e0;">${esc(w.projectName)}</td>
+              </tr>`
+                )
+                .join("")}
+            </table>`
+      : ""
+
+  const note =
+    data.overall.length > 0
+      ? "The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
+      : "Every project was ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
+
+  const criterionRows = JUDGING_CRITERIA.map((criterion) => {
+    const value = data.criterionAverages[criterion.key]
+    const shown = typeof value === "number" ? `${value.toFixed(1)} / 5` : "—"
+    return `
+        <tr>
+          <td style="padding:5px 0;font-family:monospace,monospace;font-size:12px;color:#888;">${esc(criterion.label)}</td>
+          <td style="padding:5px 0;font-family:monospace,monospace;font-size:12px;color:#e0e0e0;text-align:right;white-space:nowrap;">${shown}</td>
+        </tr>`
+  }).join("")
+
+  const rangeRow =
+    data.low !== null && data.high !== null
+      ? `<p style="margin:10px 0 0;font-family:monospace,monospace;font-size:11px;color:#888;">Score range across judges: ${data.low.toFixed(1)}–${data.high.toFixed(1)}</p>`
+      : ""
+
+  const submissionNote =
+    data.basis === "submission"
+      ? `<p style="margin:0 0 14px;font-family:monospace,monospace;font-size:12px;line-height:1.6;color:#888;border:1px solid #1e1e1e;border-radius:4px;padding:10px 12px;">Your project was reviewed from your written submission against the same five criteria. A live demo was not part of that review, which is reflected in the demo criterion below.</p>`
+      : ""
+
+  const html = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a0a;padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#0d0d0d;border:1px solid #00ff41;border-radius:8px;">
+        <tr>
+          <td style="padding:32px 28px;background-color:#0d0d0d;">
+            <p style="margin:0 0 4px;font-family:monospace,monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#00ff41;">Impact Lab: AI Mashinani</p>
+            <h1 style="margin:0 0 20px;font-family:monospace,monospace;font-size:22px;color:#e0e0e0;">Your results are in</h1>
+
+            <p style="margin:0 0 20px;font-family:monospace,monospace;font-size:14px;line-height:1.6;color:#e0e0e0;">Hi ${esc(data.fullName)},</p>
+            ${winnersSection}
+            ${trackSection}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border:1px solid #1e1e1e;border-radius:6px;">
+              <tr>
+                <td style="padding:18px;">
+                  <p style="margin:0 0 2px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#00ff41;">Your team</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
+                    <tr>
+                      <td style="font-family:monospace,monospace;font-size:17px;font-weight:bold;color:#e0e0e0;">${esc(data.projectName)}</td>
+                      <td style="font-family:monospace,monospace;font-size:12px;color:#888;text-align:right;white-space:nowrap;">${esc(resultsOrdinal(data.rank))} overall</td>
+                    </tr>
+                  </table>
+                  ${submissionNote}
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    ${criterionRows}
+                  </table>
+                  ${rangeRow}
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 20px;font-family:monospace,monospace;font-size:12px;line-height:1.7;color:#888;">${note}</p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
+              <tr>
+                <td style="border-radius:4px;background-color:#00ff41;">
+                  <a href="${esc(data.dashboardUrl)}" style="display:inline-block;padding:12px 24px;font-family:monospace,monospace;font-size:13px;font-weight:bold;color:#0a0a0a;text-decoration:none;">Open my dashboard →</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 24px;font-family:monospace,monospace;font-size:11px;color:#888;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.dashboardUrl)}</p>
+
+            <p style="margin:0;font-family:monospace,monospace;font-size:11px;color:#555;">Claude Community Kenya · ${APP_URL}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`
+
+  return { subject: "Impact Lab: your results are in", html }
 }
 
 export async function sendApplicationReviewEmail(data: {

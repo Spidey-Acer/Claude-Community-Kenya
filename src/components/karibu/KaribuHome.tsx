@@ -28,6 +28,7 @@ import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
 import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
+import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 
 interface KaribuHomeProps {
   communityStats?: CommunityStats;
@@ -189,13 +190,29 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             sizes="(max-width: 1024px) 100vw, 560px"
             className="object-cover"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim/45 via-transparent to-transparent" />
           {nextEvent && (
-            <div className="absolute bottom-[18px] left-[18px] right-[18px] rounded-xl border border-white/15 bg-ink/70 px-4 py-3 font-inter text-[13px] text-paper-card backdrop-blur-md">
-              <span className="font-semibold text-white">{nextEvent.title}</span>
-              {typeof nextEvent.attendeeCount === "number" && (
-                <> · {nextEvent.attendeeCount} registered</>
-              )}
+            <div className="absolute inset-x-[18px] bottom-[18px] overflow-hidden rounded-xl border border-white/15 backdrop-blur-md">
+              {/* Gradient scrim, not a flat block — darkens the photo under
+               * the text without a hard-edged bar. Built from the fixed
+               * --scrim tokens (not --ink/--paper-card) so it stays a dark
+               * scrim with light text in every theme; those tokens flip in
+               * dark mode and would otherwise turn this into a near-white
+               * bar with illegible white-on-white text. */}
+              <div className="absolute inset-0 bg-gradient-to-t from-scrim via-scrim/85 to-scrim/60" />
+              <div className="relative px-4 py-3">
+                <div className="font-inter text-[10.5px] font-semibold uppercase tracking-[0.14em] text-clay-light">
+                  Coming up
+                </div>
+                <div className="mt-0.5 font-inter text-[14px] font-semibold leading-tight text-scrim-text">
+                  {nextEvent.title}
+                </div>
+                {typeof nextEvent.attendeeCount === "number" && (
+                  <div className="mt-0.5 font-inter text-[12px] text-scrim-text-soft">
+                    {nextEvent.attendeeCount} registered
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </motion.div>
@@ -494,8 +511,9 @@ function EventsSection({ events }: { events: Event[] }) {
       </Reveal>
 
       <Reveal className={`grid gap-4 ${events.length >= 3 ? "md:grid-cols-3" : events.length === 2 ? "md:grid-cols-2" : ""}`}>
-        {events.map((ev, i) => {
+        {events.map((ev) => {
           const single = events.length === 1;
+          const cover = eventCover(ev.posterUrl);
           const cta =
             ev.type === "hackathon" || ev.status === "registration-open"
               ? "Register"
@@ -515,13 +533,17 @@ function EventsSection({ events }: { events: Event[] }) {
                     : "h-[150px] border-b"
                 }`}
               >
-                <Image
-                  src={eventCover(ev.posterUrl, i)}
-                  alt={ev.title}
-                  fill
-                  sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {cover ? (
+                  <Image
+                    src={cover}
+                    alt={ev.title}
+                    fill
+                    sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <EventCoverPlaceholder />
+                )}
               </div>
               <div className="p-[22px]">
                 <div className="mb-3 flex flex-wrap gap-2">
