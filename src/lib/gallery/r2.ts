@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
 
 /**
  * Cloudflare R2 client and key layout for gallery media.
@@ -104,4 +104,40 @@ export function bundleKeyFor(eventSlug: string): string {
 /** Absolute public URL for an object key, resolved at read time from env. */
 export function publicUrl(key: string): string {
   return `${r2PublicBase()}/${key}`
+}
+
+// ─── Deletion ────────────────────────────────────────────────────────────────
+
+/**
+ * Delete a single object by key. Deleting a key that does not exist is not an
+ * error under S3/R2 semantics, so callers never need to check existence first.
+ */
+export async function deleteObject(key: string): Promise<void> {
+  await r2Client().send(new DeleteObjectCommand({ Bucket: r2Bucket(), Key: key }))
+}
+
+/**
+ * Delete every object that belongs to one photo: original, full and thumb.
+ *
+ * The row does not persist the original's extension (only `full`/`thumb` have
+ * a fixed one — always webp), so the original is located by listing its
+ * prefix rather than guessing. The trailing "." on the prefix keeps this from
+ * matching a different photo whose id happens to start with this one's id.
+ */
+export async function deletePhotoObjects(storageKey: string): Promise<void> {
+  const client = r2Client()
+  const Bucket = r2Bucket()
+  const slash = storageKey.lastIndexOf("/")
+  const prefix = storageKey.slice(0, slash)
+  const id = storageKey.slice(slash + 1)
+
+  const listed = await client.send(
+    new ListObjectsV2Command({ Bucket, Prefix: `${prefix}/original/${id}.` }),
+  )
+  const originalKeys = (listed.Contents ?? [])
+    .map(o => o.Key)
+    .filter((k): k is string => Boolean(k))
+
+  const keys = [...originalKeys, variantKey(storageKey, "full"), variantKey(storageKey, "thumb")]
+  await Promise.all(keys.map(Key => client.send(new DeleteObjectCommand({ Bucket, Key }))))
 }
