@@ -9,7 +9,7 @@
  */
 
 import Link from "next/link";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -21,13 +21,16 @@ const STEPS = [
   { n: "3", title: "Come to an event", body: "Meet the community in person in your city." },
 ];
 
-const CITIES = [
-  { name: "Nairobi", note: "Meetups & hackathons", href: SOCIAL_LINKS.lumaNairobi, cta: "Luma →" },
-  { name: "Mombasa", note: "Coast chapter", href: SOCIAL_LINKS.lumaMombasa, cta: "Luma →" },
-  { name: "Kisumu", note: "Growing — say hi", href: SOCIAL_LINKS.whatsapp, cta: "WhatsApp →" },
-];
-
 export function KaribuJoin() {
+  const { whatsapp, discord, lumaNairobi, lumaMombasa } = useSocialLinks();
+  // Only cities whose link actually resolved (DB or constant fallback) show
+  // a card — a city with neither is omitted rather than a dead link.
+  const cities = [
+    { name: "Nairobi", note: "Meetups & hackathons", href: lumaNairobi, cta: "Luma →" },
+    { name: "Mombasa", note: "Coast chapter", href: lumaMombasa, cta: "Luma →" },
+    { name: "Kisumu", note: "Growing — say hi", href: whatsapp, cta: "WhatsApp →" },
+  ].filter((c): c is { name: string; note: string; href: string; cta: string } => Boolean(c.href));
+
   return (
     <>
       {/* Header */}
@@ -42,22 +45,26 @@ export function KaribuJoin() {
             community growing across Kenya.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-clay px-[30px] py-4 font-inter text-base font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Join on WhatsApp
-            </a>
-            <a
-              href={SOCIAL_LINKS.discord}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-sand-2 px-7 py-4 font-inter text-base font-semibold text-ink transition-colors hover:border-ink"
-            >
-              Join Discord
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full bg-clay px-[30px] py-4 font-inter text-base font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                Join on WhatsApp
+              </a>
+            )}
+            {discord && (
+              <a
+                href={discord}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-sand-2 px-7 py-4 font-inter text-base font-semibold text-ink transition-colors hover:border-ink"
+              >
+                Join Discord
+              </a>
+            )}
           </div>
         </Reveal>
       </section>
@@ -81,7 +88,7 @@ export function KaribuJoin() {
           <div className={`${KICKER} mb-4`}>Find your city</div>
         </Reveal>
         <Reveal className="grid gap-4 sm:grid-cols-3">
-          {CITIES.map((c) => (
+          {cities.map((c) => (
             <a
               key={c.name}
               href={c.href}

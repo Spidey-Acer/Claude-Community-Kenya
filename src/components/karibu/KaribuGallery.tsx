@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhotoView } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
@@ -36,6 +36,7 @@ interface KaribuGalleryProps {
 }
 
 export function KaribuGallery({ photos, eventChips = [], initialFilter = null }: KaribuGalleryProps) {
+  const { whatsapp } = useSocialLinks();
   const [activeFilter, setActiveFilter] = useState<string | null>(initialFilter);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -95,14 +96,16 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                 We&apos;re curating photos from the first few meetups. Join the
                 next one in person — and you might end up here.
               </p>
+              {whatsapp && (
               <a
-                href={SOCIAL_LINKS.whatsapp}
+                href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
               >
                 Join us on WhatsApp →
               </a>
+              )}
             </div>
           </Reveal>
         ) : (

@@ -7,6 +7,7 @@ import { isKaribuEnabled, isKaribuCanaryHit } from "@/lib/karibu/feature-flag";
 import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import { type AudienceState } from "@/contexts/AudienceContext";
 import { prisma } from "@/lib/prisma";
+import { getSocialLinks } from "@/lib/social-links";
 import "./globals.css";
 import { serializeJsonLd } from "@/lib/json-ld"
 
@@ -166,6 +167,7 @@ export default async function RootLayout({
   const audienceCookie = await getAudienceCookie();
   const karibuEnabled = isKaribuEnabled();
   const canaryHit = karibuEnabled && isKaribuCanaryHit(visitorId);
+  const socialLinks = await getSocialLinks();
 
   // Source of truth = DB session, not just the cookie.
   // The cck-audience cookie can fail to propagate when set from inside the
@@ -242,7 +244,7 @@ export default async function RootLayout({
       <body className="antialiased">
         <GoogleAnalytics />
         <WebVitals />
-        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu}>
+        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu} socialLinks={socialLinks}>
           {children}
         </ConditionalLayout>
       </body>

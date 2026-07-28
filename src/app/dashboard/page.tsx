@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { getUpcomingEvents } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { getSocialLinks } from "@/lib/social-links";
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants";
 import { extractFrozenTeams } from "@/lib/impact-lab/member";
 import { Calendar, MessageSquare, BookOpen, Sparkles, Code2, FlaskConical } from "lucide-react";
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const role = (session.user as { role?: string }).role;
   const isAdmin = role ? ADMIN_ROLES.has(role) : false;
 
-  const [user, upcomingEvents] = await Promise.all([
+  const [user, upcomingEvents, socialLinks] = await Promise.all([
     prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
@@ -50,6 +50,7 @@ export default async function DashboardPage() {
       },
     }),
     getUpcomingEvents().catch(() => []),
+    getSocialLinks(),
   ]);
 
   if (!user) redirect("/login");
@@ -201,14 +202,16 @@ export default async function DashboardPage() {
             {"// ./quick-links"}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <DashboardCard
-              href={SOCIAL_LINKS.discord}
-              external
-              icon={MessageSquare}
-              title="Discord"
-              description="Real-time chat with the community"
-              accent="green-primary"
-            />
+            {socialLinks.discord && (
+              <DashboardCard
+                href={socialLinks.discord}
+                external
+                icon={MessageSquare}
+                title="Discord"
+                description="Real-time chat with the community"
+                accent="green-primary"
+              />
+            )}
             <DashboardCard
               href="/events"
               icon={Calendar}

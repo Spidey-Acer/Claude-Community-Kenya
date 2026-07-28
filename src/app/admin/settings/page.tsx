@@ -3,8 +3,10 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { SiteStatsEditor } from "@/components/admin/SiteStatsEditor"
+import { SocialLinksEditor } from "@/components/admin/SocialLinksEditor"
 import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm"
 import { AdminUserManager } from "@/components/admin/AdminUserManager"
+import { SOCIAL_PLATFORM_DB_FIELD, SOCIAL_PLATFORM_KEYS, type SocialPlatformKey } from "@/lib/social-links-schema"
 import { Settings, ShieldAlert } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -35,6 +37,13 @@ export default async function SettingsPage() {
       },
     })
   }
+
+  const initialLinks = Object.fromEntries(
+    SOCIAL_PLATFORM_KEYS.map((key) => [
+      key,
+      (siteStats[SOCIAL_PLATFORM_DB_FIELD[key] as keyof typeof siteStats] as string | null) ?? "",
+    ])
+  ) as Record<SocialPlatformKey, string>
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
@@ -69,6 +78,9 @@ export default async function SettingsPage() {
             websiteStatus: siteStats.websiteStatus,
           }}
         />
+
+        {/* Social Links Editor */}
+        <SocialLinksEditor initialLinks={initialLinks} />
 
         {/* Change Password */}
         <ChangePasswordForm />

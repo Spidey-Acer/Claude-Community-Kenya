@@ -9,7 +9,7 @@ import { PersonaText } from "@/components/persona/PersonaText";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { TeamMemberCard } from "@/components/sections/TeamMemberCard";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { useSkin } from "@/contexts/SkinContext";
 import { usePersonaContent } from "@/hooks/usePersonaContent";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
@@ -45,6 +45,7 @@ function useHeadingText(page: string, section: string): string | undefined {
 
 export function AboutClient({ stats, team, timelineEntries }: AboutClientProps) {
   const { skin } = useSkin();
+  const { discord } = useSocialLinks();
   const isPro = skin === "pro";
 
   const heroHeading = useHeadingText("about", "hero");
@@ -343,9 +344,9 @@ export function AboutClient({ stats, team, timelineEntries }: AboutClientProps) 
               Want to join the team? We&apos;re always looking for passionate
               organizers, speakers, and community builders.
             </p>
-            {isPro ? (
+            {discord && (isPro ? (
               <a
-                href={SOCIAL_LINKS.discord}
+                href={discord}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary-shadow inline-flex items-center gap-2 rounded-full bg-[#d97757] px-6 py-3 text-[14px] font-semibold text-[#faf9f5] hover:bg-[#c06848]"
@@ -353,10 +354,10 @@ export function AboutClient({ stats, team, timelineEntries }: AboutClientProps) 
                 Join us on Discord <span aria-hidden="true">→</span>
               </a>
             ) : (
-              <a href={SOCIAL_LINKS.discord} target="_blank" rel="noopener noreferrer">
+              <a href={discord} target="_blank" rel="noopener noreferrer">
                 <Button variant="primary">JOIN_US_ON_DISCORD</Button>
               </a>
-            )}
+            ))}
           </div>
         </ScrollReveal>
       </section>

@@ -453,6 +453,19 @@ model SiteSettings {
   websiteStatus    String   @default("live")
   updatedAt        DateTime @updatedAt
 
+  /// Social links, admin-configurable. Nullable = "not configured": the
+  /// accessor (src/lib/social-links.ts) falls back to the hardcoded constant
+  /// in src/lib/constants.ts, then to absent. Never render a `#` placeholder.
+  whatsappUrl      String?
+  discordUrl       String?
+  twitterUrl       String?
+  linkedinUrl      String?
+  instagramUrl     String?
+  youtubeUrl       String?
+  githubUrl        String?
+  lumaNairobiUrl   String?
+  lumaMombasaUrl   String?
+
   @@map("site_settings")
 }
 

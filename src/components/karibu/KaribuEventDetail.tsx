@@ -15,7 +15,7 @@ import Image from "next/image";
 import { Twitter, Linkedin, Link as LinkIcon } from "lucide-react";
 import type { Event } from "@/lib/types";
 import type { DemoRequestView, PhotoView } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
 import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm";
 import { eventCover } from "@/components/karibu/photos";
@@ -64,6 +64,7 @@ export function KaribuEventDetail({
   twitterShareUrl,
   linkedInShareUrl,
 }: KaribuEventDetailProps) {
+  const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
   const registerUrl = event.registrationUrl || event.lumaUrl;
   const soldOut = event.status === "sold-out";
@@ -266,14 +267,16 @@ export function KaribuEventDetail({
                 This event has ended
               </div>
             ) : soldOut ? (
-              <a
-                href={SOCIAL_LINKS.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-              >
-                Sold out — get notified
-              </a>
+              whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
+                >
+                  Sold out — get notified
+                </a>
+              )
             ) : (
               registerUrl && (
                 <a
@@ -286,9 +289,9 @@ export function KaribuEventDetail({
                 </a>
               )
             )}
-            {!isPast && (
+            {!isPast && whatsapp && (
               <a
-                href={SOCIAL_LINKS.whatsapp}
+                href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-full border border-sand-2 px-5 py-3 text-center font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"

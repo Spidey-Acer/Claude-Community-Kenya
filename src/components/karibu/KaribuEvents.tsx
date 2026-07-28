@@ -14,7 +14,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
@@ -49,6 +49,7 @@ type Filter = { key: string; label: string };
 export function KaribuEvents({ events }: { events: Event[] }) {
   const [active, setActive] = useState("all");
   const reduce = useReducedMotion();
+  const { whatsapp } = useSocialLinks();
 
   // Filtering re-orders events in place (FLIP) rather than hard-cutting, so the
   // relationship between the old and new list stays legible. Under reduced
@@ -173,14 +174,16 @@ export function KaribuEvents({ events }: { events: Event[] }) {
             <p className="mb-4 font-newsreader text-[24px] text-ink">
               No events in this filter yet.
             </p>
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Get notified on WhatsApp
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                Get notified on WhatsApp
+              </a>
+            )}
           </div>
         </section>
       )}

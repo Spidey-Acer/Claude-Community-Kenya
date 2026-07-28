@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT, SOCIAL_LINKS } from "@/lib/constants";
+import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT } from "@/lib/constants";
 import { useSkin } from "@/contexts/SkinContext";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { PersonalizeFooterLink } from "@/components/karibu/PersonalizeFooterLink";
 
 export function Footer() {
   const { skin, setSkin } = useSkin();
+  const links = useSocialLinks();
   const isPro = skin === "pro";
   const [exitHovered, setExitHovered] = useState(false);
   const [email, setEmail] = useState("");
@@ -16,6 +18,25 @@ export function Footer() {
   const [isPending, startTransition] = useTransition();
   const [csrfToken, setCsrfToken] = useState("");
   const currentYear = new Date().getFullYear();
+
+  // FOOTER_SECTIONS is a static constants.ts array, so the three social
+  // entries in "Community" are re-pointed at the live accessor here — and
+  // dropped if that platform has no configured or fallback URL.
+  const socialOverrides: Record<string, string | null> = {
+    Discord: links.discord,
+    WhatsApp: links.whatsapp,
+    Twitter: links.twitter,
+  };
+  const footerSections = FOOTER_SECTIONS.map((section) => ({
+    ...section,
+    links: section.links
+      .filter((link) => !(link.label in socialOverrides) || Boolean(socialOverrides[link.label]))
+      .map((link) =>
+        link.label in socialOverrides
+          ? { ...link, href: socialOverrides[link.label] as string }
+          : link
+      ),
+  }));
 
   useEffect(() => {
     fetch("/api/csrf-token")
@@ -126,7 +147,7 @@ export function Footer() {
           </div>
 
           {/* Link sections */}
-          {FOOTER_SECTIONS.map((section) => (
+          {footerSections.map((section) => (
             <div key={section.title}>
               <h3 className={isPro ? "text-sm font-semibold text-text-primary" : "font-mono text-sm font-bold text-text-primary"}>
                 {isPro ? section.title : `├── ${section.title}`}
@@ -169,35 +190,30 @@ export function Footer() {
               : `└── © ${currentYear} ${SITE_CONFIG.name}. Built with ❤️ and Claude Code`}
           </p>
 
-          {/* Social links */}
+          {/* Social links — omitted entirely when not configured, no dead hrefs */}
           <div className="flex items-center gap-4">
-            <a
-              href={SOCIAL_LINKS.twitter}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={isPro ? "text-xs text-text-dim transition-colors hover:text-text-primary" : "font-mono text-xs text-text-dim transition-colors hover:text-cyan"}
-              aria-label="Twitter"
-            >
-              Twitter
-            </a>
-            <a
-              href={SOCIAL_LINKS.discord}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={isPro ? "text-xs text-text-dim transition-colors hover:text-text-primary" : "font-mono text-xs text-text-dim transition-colors hover:text-cyan"}
-              aria-label="Discord"
-            >
-              Discord
-            </a>
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={isPro ? "text-xs text-text-dim transition-colors hover:text-text-primary" : "font-mono text-xs text-text-dim transition-colors hover:text-cyan"}
-              aria-label="WhatsApp"
-            >
-              WhatsApp
-            </a>
+            {[
+              { label: "Twitter", href: links.twitter },
+              { label: "Discord", href: links.discord },
+              { label: "WhatsApp", href: links.whatsapp },
+              { label: "LinkedIn", href: links.linkedin },
+              { label: "Instagram", href: links.instagram },
+              { label: "YouTube", href: links.youtube },
+              { label: "GitHub", href: links.github },
+            ]
+              .filter((l): l is { label: string; href: string } => Boolean(l.href))
+              .map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={isPro ? "text-xs text-text-dim transition-colors hover:text-text-primary" : "font-mono text-xs text-text-dim transition-colors hover:text-cyan"}
+                  aria-label={l.label}
+                >
+                  {l.label}
+                </a>
+              ))}
           </div>
 
           {/* Karibu re-onboarding */}

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { HeroEmailCapture } from "@/components/sections/HeroEmailCapture";
 import type { CommunityStats, FeedItem } from "@/components/sections/HeroTerminal";
 
@@ -58,6 +58,7 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 
 export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLabelOverride, ctaHrefOverride }: HeroProProps) {
   const resolvedStats = stats ?? DEFAULT_STATS;
+  const { discord } = useSocialLinks();
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
 
   useEffect(() => {
@@ -186,14 +187,16 @@ export function HeroPro({ stats, feed = [], headlineOverride, subOverride, ctaLa
             Browse events
           </Link>
           <span className="text-[#3a3a37]" aria-hidden="true">·</span>
-          <a
-            href={ctaHrefOverride ?? SOCIAL_LINKS.discord}
-            target={ctaHrefOverride ? undefined : "_blank"}
-            rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
-            className="link-refined font-medium text-[#b0aea5] transition-colors hover:text-[#e8e6dc]"
-          >
-            {ctaLabelOverride && !ctaLabelOverride.toLowerCase().includes("invite") ? ctaLabelOverride : "Join Discord"}
-          </a>
+          {(ctaHrefOverride ?? discord) && (
+            <a
+              href={ctaHrefOverride ?? discord ?? undefined}
+              target={ctaHrefOverride ? undefined : "_blank"}
+              rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
+              className="link-refined font-medium text-[#b0aea5] transition-colors hover:text-[#e8e6dc]"
+            >
+              {ctaLabelOverride && !ctaLabelOverride.toLowerCase().includes("invite") ? ctaLabelOverride : "Join Discord"}
+            </a>
+          )}
           <span className="text-[#3a3a37]" aria-hidden="true">·</span>
           <Link
             href="/resources"

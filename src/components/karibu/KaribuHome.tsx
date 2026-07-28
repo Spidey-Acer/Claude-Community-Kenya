@@ -21,7 +21,7 @@ import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
 import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Marquee } from "@/components/karibu/Marquee";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CountUp } from "@/components/ui/CountUp";
@@ -127,6 +127,7 @@ function SupportedBy() {
 /* ─────────────────────────── Hero ─────────────────────────── */
 
 function Hero({ nextEvent }: { nextEvent?: Event }) {
+  const { whatsapp } = useSocialLinks();
   const reduce = useReducedMotion();
   const rise = (delay: number) => ({
     initial: reduce ? false : { opacity: 0, y: 26 },
@@ -158,14 +159,16 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             warm community growing across Kenya.
           </motion.p>
           <motion.div {...rise(0.46)} className="flex flex-wrap items-center gap-3.5">
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Join the community
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                Join the community
+              </a>
+            )}
             <Link
               href="/events"
               className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-[15px] font-inter text-[15.5px] font-semibold text-ink transition-colors hover:border-ink"
@@ -631,6 +634,7 @@ const JOIN_STEPS = [
 ];
 
 function HowToJoin() {
+  const { whatsapp, discord } = useSocialLinks();
   return (
     <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
       <Reveal className="relative overflow-hidden rounded-2xl bg-ink p-9 text-paper sm:p-[54px]">
@@ -656,22 +660,26 @@ function HowToJoin() {
               building.
             </p>
             <div className="flex flex-wrap gap-3">
-              <a
-                href={SOCIAL_LINKS.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                Join on WhatsApp
-              </a>
-              <a
-                href={SOCIAL_LINKS.discord}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-paper transition-colors hover:border-paper"
-              >
-                Join Discord
-              </a>
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                >
+                  Join on WhatsApp
+                </a>
+              )}
+              {discord && (
+                <a
+                  href={discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-paper transition-colors hover:border-paper"
+                >
+                  Join Discord
+                </a>
+              )}
             </div>
           </div>
           <div className="flex flex-col gap-3.5">

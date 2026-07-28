@@ -2,8 +2,10 @@
  * KaribuFooter — dark footer for the warm-light "Karibu" identity.
  *
  * Rendered on converted routes only. Links resolve to real app routes and
- * the canonical social URLs in constants.ts. Cities reflect genuinely active
- * locations (Nairobi + Mombasa) — no inflated claims.
+ * social URLs from `useSocialLinks()` (admin-configured, falling back to
+ * the constants in constants.ts). A platform with no configured or
+ * fallback URL is omitted entirely — never a dead link. Cities reflect
+ * genuinely active locations (Nairobi + Mombasa) — no inflated claims.
  *
  * Always dark, in every theme and persona. This uses the fixed `--footer-*`
  * tokens from globals.css, not `--ink`/`--paper`/`--clay` — those flip in
@@ -13,9 +15,11 @@
  * its palette is pinned regardless of theme.
  */
 
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 
 const EXPLORE = [
   { label: "Home", href: "/" },
@@ -25,13 +29,21 @@ const EXPLORE = [
   { label: "About", href: "/about" },
 ];
 
-const COMMUNITY = [
-  { label: "WhatsApp", href: SOCIAL_LINKS.whatsapp },
-  { label: "Discord", href: SOCIAL_LINKS.discord },
-  { label: "Twitter / X", href: SOCIAL_LINKS.twitter },
-];
-
 export function KaribuFooter() {
+  const links = useSocialLinks();
+  // Only platforms with a resolved URL (DB or constant fallback) render —
+  // an unconfigured platform (e.g. YouTube, GitHub, until set in admin)
+  // is absent from the list entirely, never a dead link.
+  const community = [
+    { label: "WhatsApp", href: links.whatsapp },
+    { label: "Discord", href: links.discord },
+    { label: "Twitter / X", href: links.twitter },
+    { label: "LinkedIn", href: links.linkedin },
+    { label: "Instagram", href: links.instagram },
+    { label: "YouTube", href: links.youtube },
+    { label: "GitHub", href: links.github },
+  ].filter((l): l is { label: string; href: string } => Boolean(l.href));
+
   return (
     <footer className="bg-footer-bg text-footer-text">
       <div className="mx-auto grid max-w-[1180px] grid-cols-2 gap-8 px-6 pt-14 md:px-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
@@ -53,14 +65,16 @@ export function KaribuFooter() {
             The free, founder-led community for people in Kenya learning and
             building with Claude. Karibu.
           </p>
-          <a
-            href={SOCIAL_LINKS.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-footer-accent-bg px-[22px] py-3 font-inter text-sm font-semibold text-footer-cta-text transition-colors hover:bg-footer-accent-bg-hover"
-          >
-            Join the community
-          </a>
+          {links.whatsapp && (
+            <a
+              href={links.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-footer-accent-bg px-[22px] py-3 font-inter text-sm font-semibold text-footer-cta-text transition-colors hover:bg-footer-accent-bg-hover"
+            >
+              Join the community
+            </a>
+          )}
         </div>
 
         <FooterColumn title="Explore">
@@ -72,9 +86,9 @@ export function KaribuFooter() {
         </FooterColumn>
 
         <FooterColumn title="Community">
-          {COMMUNITY.map((l) => (
+          {community.map((l) => (
             <a
-              key={l.href}
+              key={l.label}
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
