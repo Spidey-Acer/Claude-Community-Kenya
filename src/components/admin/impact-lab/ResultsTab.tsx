@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
+  MessageSquareText,
   Save,
   Send,
   Sparkles,
@@ -702,6 +703,419 @@ function PublishPanel({ cohort }: { cohort: string }) {
   )
 }
 
+// ─── Team reviews ───────────────────────────────────────────────────────────
+
+interface ReviewJudgeNote {
+  judgeName: string
+  text: string
+}
+
+interface ReviewRecord {
+  text: string
+  generatedBy: string
+  editedAt: string | null
+  approvedAt: string | null
+  updatedAt: string
+}
+
+interface ReviewTeam {
+  teamId: string
+  teamName: string
+  projectName: string
+  track: string
+  judgeNotes: ReviewJudgeNote[]
+  review: ReviewRecord | null
+}
+
+interface ReviewTeamState {
+  /** Local edit of the review text; null = not touched, show the server's. */
+  draftText: string | null
+  busy: "generate" | "save" | "approve" | null
+  /** Set after a 409 REVIEW_PROTECTED — the next generate press sends force. */
+  confirmRegenerate: boolean
+  error: string | null
+}
+
+function emptyReviewState(): ReviewTeamState {
+  return { draftText: null, busy: null, confirmRegenerate: false, error: null }
+}
+
+interface GenerateBatchResult {
+  generated: number
+  remaining: number
+  failed?: string[]
+}
+
+/**
+ * Section: the written review every team receives.
+ *
+ * Three of the four judges left scores and not one written word, so a team
+ * that built through the night would get five numbers and silence. This
+ * section drafts a substantive review per team (signed "Claude Community
+ * Kenya" — never attributed to a judge), and gives the organiser the pen:
+ * read each one, edit any of it, approve. Nothing reaches a participant
+ * until it is approved, and a draft the organiser has edited is never
+ * regenerated over without an explicit second confirmation.
+ *
+ * The judge's own notes (the ten Favour wrote) are shown read-only beside
+ * each review — they publish as quotes under her name, and the review is
+ * written to sit alongside them, so the organiser should see both together.
+ */
+function ReviewsSection({ cohort }: { cohort: string }) {
+  const [teams, setTeams] = useState<ReviewTeam[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [states, setStates] = useState<Record<string, ReviewTeamState>>({})
+  const [generatingAll, setGeneratingAll] = useState(false)
+  const [generateAllStatus, setGenerateAllStatus] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const data = await apiGet<{ teams: ReviewTeam[] }>(
+        `/api/admin/impact-lab/reviews?cohort=${cohort}`
+      )
+      setTeams(data.teams)
+      setLoadError(null)
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load reviews")
+    } finally {
+      setLoading(false)
+    }
+  }, [cohort])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const stateFor = useCallback(
+    (teamId: string): ReviewTeamState => states[teamId] ?? emptyReviewState(),
+    [states]
+  )
+
+  const patch = useCallback((teamId: string, next: Partial<ReviewTeamState>) => {
+    setStates((prev) => ({
+      ...prev,
+      [teamId]: { ...(prev[teamId] ?? emptyReviewState()), ...next },
+    }))
+  }, [])
+
+  const counts = useMemo(() => {
+    const total = teams?.length ?? 0
+    const drafted = teams?.filter((t) => t.review !== null).length ?? 0
+    const approved = teams?.filter((t) => t.review?.approvedAt).length ?? 0
+    return { total, drafted, approved }
+  }, [teams])
+
+  /**
+   * Fill every gap: the server drafts a few teams per call and reports how
+   * many are left, so this loops until nothing remains — and stops when a
+   * call makes no progress, so one persistently failing team cannot spin
+   * this forever. Existing drafts (edited or not) are never overwritten.
+   */
+  async function generateAll() {
+    setGeneratingAll(true)
+    setGenerateAllStatus(null)
+    try {
+      let total = 0
+      for (;;) {
+        const result = await apiSend<GenerateBatchResult>(
+          `/api/admin/impact-lab/reviews?cohort=${cohort}`,
+          "POST",
+          { action: "generate" }
+        )
+        total += result.generated
+        setGenerateAllStatus(
+          `Generated ${total} so far — ${result.remaining} remaining…`
+        )
+        await load()
+        if (result.remaining === 0 || result.generated === 0) {
+          setGenerateAllStatus(
+            result.remaining === 0
+              ? `Done — ${total} draft${total === 1 ? "" : "s"} generated. Read and edit each one below, then approve.`
+              : `Generated ${total}; ${result.remaining} could not be drafted right now (${(result.failed ?? []).join(", ") || "try again"}). You can retry or write them by hand.`
+          )
+          break
+        }
+      }
+    } catch (e) {
+      setGenerateAllStatus(null)
+      setLoadError(e instanceof Error ? e.message : "Generation failed.")
+    } finally {
+      setGeneratingAll(false)
+    }
+  }
+
+  async function generateOne(teamId: string, force: boolean) {
+    patch(teamId, { busy: "generate", error: null })
+    try {
+      await apiSend(`/api/admin/impact-lab/reviews?cohort=${cohort}`, "POST", {
+        action: "generate",
+        teamId,
+        ...(force ? { force: true } : {}),
+      })
+      patch(teamId, { busy: null, draftText: null, confirmRegenerate: false })
+      await load()
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not generate."
+      // The protected-review refusal: arm the confirm step instead of erroring.
+      const isProtected = message.includes("edited or approved")
+      patch(teamId, {
+        busy: null,
+        confirmRegenerate: isProtected,
+        error: isProtected ? null : message,
+      })
+    }
+  }
+
+  async function save(teamId: string) {
+    const state = stateFor(teamId)
+    if (state.draftText === null) return
+    patch(teamId, { busy: "save", error: null })
+    try {
+      await apiSend(`/api/admin/impact-lab/reviews?cohort=${cohort}`, "POST", {
+        action: "save",
+        teamId,
+        text: state.draftText,
+      })
+      patch(teamId, { busy: null, draftText: null })
+      await load()
+    } catch (e) {
+      patch(teamId, {
+        busy: null,
+        error: e instanceof Error ? e.message : "That did not save.",
+      })
+    }
+  }
+
+  async function setApproval(teamId: string, approve: boolean) {
+    patch(teamId, { busy: "approve", error: null })
+    try {
+      await apiSend(`/api/admin/impact-lab/reviews?cohort=${cohort}`, "POST", {
+        action: approve ? "approve" : "unapprove",
+        teamId,
+      })
+      patch(teamId, { busy: null })
+      await load()
+    } catch (e) {
+      patch(teamId, {
+        busy: null,
+        error: e instanceof Error ? e.message : "Could not update approval.",
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
+      </div>
+    )
+  }
+
+  if (loadError && !teams) {
+    return (
+      <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+        {loadError}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Team reviews</h2>
+        <p className="mt-1 text-[11px] font-mono text-[#888]">
+          A written review for every team, signed Claude Community Kenya — because three of
+          the four judges left no written feedback at all. Claude drafts from each team&apos;s
+          own submission; you read, edit, and approve. Only approved reviews reach the
+          dashboard, the results email, and the exports.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void generateAll()}
+          disabled={generatingAll || (teams?.length ?? 0) === 0}
+          className="flex items-center gap-2 rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00d4ff] transition-colors hover:bg-[#00d4ff]/20 disabled:opacity-40"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {generatingAll ? "Generating…" : "Generate missing drafts"}
+        </button>
+        <span className="text-[11px] font-mono text-[#888]">
+          {counts.drafted}/{counts.total} drafted ·{" "}
+          <span className={counts.approved === counts.total && counts.total > 0 ? "text-[#00ff41]" : ""}>
+            {counts.approved}/{counts.total} approved
+          </span>
+        </span>
+      </div>
+
+      {generateAllStatus && (
+        <div
+          role="status"
+          className="rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 p-3 text-[11px] font-mono text-[#00d4ff]"
+        >
+          {generateAllStatus}
+        </div>
+      )}
+
+      {loadError && (
+        <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+          {loadError}
+        </div>
+      )}
+
+      {(teams ?? []).length === 0 ? (
+        <p className="p-8 text-center text-sm font-mono text-[#555]">
+          No submitted teams yet — reviews are written about submissions.
+        </p>
+      ) : (
+        (teams ?? []).map((team) => {
+          const state = stateFor(team.teamId)
+          const serverText = team.review?.text ?? ""
+          const text = state.draftText ?? serverText
+          const dirty = state.draftText !== null && state.draftText !== serverText
+          const approved = Boolean(team.review?.approvedAt)
+          const edited = Boolean(team.review?.editedAt)
+
+          return (
+            <div
+              key={team.teamId}
+              className="space-y-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-[12px] font-mono font-semibold text-[#e0e0e0]">
+                    {team.projectName}
+                  </p>
+                  <p className="text-[11px] font-mono text-[#888]">{team.teamName}</p>
+                </div>
+                <span
+                  className={
+                    approved
+                      ? "rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#00ff41]"
+                      : team.review
+                        ? "rounded border border-[#ffb000]/40 bg-[#ffb000]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#ffb000]"
+                        : "rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#555]"
+                  }
+                >
+                  {approved ? "Approved" : team.review ? (edited ? "Edited draft" : "Draft") : "No review"}
+                </span>
+              </div>
+
+              {team.judgeNotes.map((note) => (
+                <div
+                  key={`${note.judgeName}-${note.text.slice(0, 24)}`}
+                  className="rounded border border-[#ffb000]/30 bg-[#ffb000]/5 p-3"
+                >
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
+                    Judge&apos;s note — {note.judgeName} (publishes as a quote under her name)
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-[11px] font-mono italic text-[#ccc]">
+                    &ldquo;{note.text}&rdquo;
+                  </p>
+                </div>
+              ))}
+
+              {team.review && (
+                <p className="text-[10px] font-mono text-[#555]">
+                  Drafted by {team.review.generatedBy}
+                  {edited ? " · edited by organiser" : ""}
+                  {" · "}last updated {new Date(team.review.updatedAt).toLocaleString()}
+                </p>
+              )}
+
+              <textarea
+                value={text}
+                onChange={(e) => patch(team.teamId, { draftText: e.target.value })}
+                rows={9}
+                placeholder="No draft yet — generate one, or write the review here yourself."
+                aria-label={`Impact Lab review for ${team.projectName}`}
+                className="w-full rounded border border-[#1e1e1e] bg-[#111] px-3 py-2 text-[12px] font-mono leading-relaxed text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+              />
+
+              {state.confirmRegenerate && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
+                >
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    This review has been edited or approved — your words, not a draft.
+                    Regenerating replaces them and clears approval. Press
+                    &ldquo;Regenerate anyway&rdquo; only if that is what you want.
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void generateOne(team.teamId, state.confirmRegenerate)}
+                  disabled={state.busy !== null || generatingAll}
+                  className="flex items-center gap-2 rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00d4ff] transition-colors hover:bg-[#00d4ff]/20 disabled:opacity-40"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {state.busy === "generate"
+                    ? "Generating…"
+                    : state.confirmRegenerate
+                      ? "Regenerate anyway"
+                      : team.review
+                        ? "Regenerate"
+                        : "Generate draft"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void save(team.teamId)}
+                  disabled={!dirty || text.trim() === "" || state.busy !== null}
+                  className="flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {state.busy === "save" ? "Saving…" : "Save"}
+                </button>
+                {team.review && (
+                  <button
+                    type="button"
+                    onClick={() => void setApproval(team.teamId, !approved)}
+                    disabled={state.busy !== null || dirty}
+                    title={dirty ? "Save your edit first, then approve what you saved." : undefined}
+                    className={
+                      approved
+                        ? "flex items-center gap-2 rounded border border-[#1e1e1e] bg-[#1a1a1a] px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#888] transition-colors hover:bg-[#222] disabled:opacity-40"
+                        : "flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+                    }
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {state.busy === "approve"
+                      ? "Working…"
+                      : approved
+                        ? "Unapprove"
+                        : "Approve"}
+                  </button>
+                )}
+                {state.error && (
+                  <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+                    {state.error}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })
+      )}
+
+      <p className="flex items-start gap-2 text-[11px] font-mono text-[#888]">
+        <MessageSquareText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00d4ff]" aria-hidden />
+        <span>
+          Reviews publish signed &ldquo;Claude Community Kenya&rdquo; with a line saying the
+          community wrote them — never as a judge&apos;s words. Favour&apos;s notes publish
+          separately, quoted under her name, exactly as she wrote them (spelling fixed).
+        </span>
+      </p>
+    </div>
+  )
+}
+
 // ─── Preview a team's email ─────────────────────────────────────────────────
 
 interface PreviewEmailOption {
@@ -1198,11 +1612,12 @@ function ExportPanel({ cohort }: { cohort: string }) {
  * Results tab — organiser-facing surfaces for closing out judging.
  *
  * Starts with the one section this program needs first: the teams the panel
- * never reached. The publish panel follows, then the email preview panel,
- * then the send panel — the preview sits above send deliberately, since it
- * exists to be checked before pressing send, and screen order should teach
- * that order of use. Each section is its own component rendered in a simple
- * stack, fetching its own data independently.
+ * never reached. The publish panel follows, then team reviews, then the email
+ * preview panel, then the send panel — reviews sit above the preview because
+ * the preview renders them, and the preview sits above send deliberately,
+ * since it exists to be checked before pressing send; screen order should
+ * teach that order of use. Each section is its own component rendered in a
+ * simple stack, fetching its own data independently.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
   return (
@@ -1210,6 +1625,9 @@ export function ResultsTab({ cohort }: { cohort: string }) {
       <AwaitingScoreSection cohort={cohort} />
       <div className="border-t border-[#1e1e1e] pt-6">
         <PublishPanel cohort={cohort} />
+      </div>
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <ReviewsSection cohort={cohort} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <PreviewEmailPanel cohort={cohort} />
