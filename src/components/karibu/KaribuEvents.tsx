@@ -14,8 +14,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { eventCover } from "@/components/karibu/photos";
+import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -48,6 +49,7 @@ type Filter = { key: string; label: string };
 export function KaribuEvents({ events }: { events: Event[] }) {
   const [active, setActive] = useState("all");
   const reduce = useReducedMotion();
+  const { whatsapp } = useSocialLinks();
 
   // Filtering re-orders events in place (FLIP) rather than hard-cutting, so the
   // relationship between the old and new list stays legible. Under reduced
@@ -172,14 +174,16 @@ export function KaribuEvents({ events }: { events: Event[] }) {
             <p className="mb-4 font-newsreader text-[24px] text-ink">
               No events in this filter yet.
             </p>
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Get notified on WhatsApp
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                Get notified on WhatsApp
+              </a>
+            )}
           </div>
         </section>
       )}
@@ -193,9 +197,9 @@ export function KaribuEvents({ events }: { events: Event[] }) {
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence mode="popLayout" initial={false}>
-                {past.map((ev, i) => (
+                {past.map((ev) => (
                   <motion.div key={ev.slug} {...flip}>
-                    <PastCard event={ev} index={i} />
+                    <PastCard event={ev} />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -215,6 +219,7 @@ function FeaturedCard({ event }: { event: Event }) {
     ? `${fmt(dt, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${event.time ? ` · ${event.time}` : ""} · ${event.venue}, ${event.city}`
     : `${event.date}${event.time ? ` · ${event.time}` : ""} · ${event.venue}`;
   const free = event.type === "hackathon" || event.status === "registration-open";
+  const cover = eventCover(event.posterUrl);
 
   return (
     <Link
@@ -222,14 +227,18 @@ function FeaturedCard({ event }: { event: Event }) {
       className="group grid overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay md:grid-cols-2"
     >
       <div className="relative min-h-[220px] overflow-hidden md:min-h-[280px]">
-        <Image
-          src={eventCover(event.posterUrl, 0)}
-          alt={event.title}
-          fill
-          priority
-          sizes="(max-width: 768px) 100vw, 590px"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={event.title}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 590px"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <EventCoverPlaceholder />
+        )}
         <span className="absolute left-4 top-4 rounded-full bg-clay px-3 py-1.5 font-inter text-xs font-semibold uppercase tracking-[0.08em] text-paper-card">
           Next up
         </span>
@@ -304,19 +313,24 @@ function ListRow({ event }: { event: Event }) {
 
 /* ─────────────────────────── Past card ─────────────────────────── */
 
-function PastCard({ event, index }: { event: Event; index: number }) {
+function PastCard({ event }: { event: Event }) {
   const dt = parseDate(event.date);
   const label = dt ? fmt(dt, { month: "short", year: "numeric" }) : event.date;
+  const cover = eventCover(event.posterUrl);
   return (
     <Link href={`/events/${event.slug}`} className="group block">
       <div className="relative mb-2.5 h-[150px] overflow-hidden rounded-xl border border-sand">
-        <Image
-          src={eventCover(event.posterUrl, index)}
-          alt={event.title}
-          fill
-          sizes="(max-width: 640px) 100vw, 380px"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={event.title}
+            fill
+            sizes="(max-width: 640px) 100vw, 380px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <EventCoverPlaceholder />
+        )}
       </div>
       <div className="font-inter text-xs text-ink-muted">
         {label}

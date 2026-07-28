@@ -8,7 +8,8 @@ import { TerminalWindow } from "@/components/terminal/TerminalWindow";
 import { CountUp } from "@/components/ui/CountUp";
 import { Card } from "@/components/ui/Card";
 import Link from "next/link";
-import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { CONTACT } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 
 const ProJoinContent = dynamic(
   () => import("./ProJoinContent").then((m) => m.ProJoinContent),
@@ -17,6 +18,7 @@ const ProJoinContent = dynamic(
 
 export function JoinSwitcher() {
   const { skin, isLoaded } = useSkin();
+  const { discord, linkedin, twitter } = useSocialLinks();
 
   // SSR + first render: show Pro by default (matches our default skin) until
   // the client hydrates and resolves the actual stored skin.
@@ -77,30 +79,36 @@ export function JoinSwitcher() {
         <ScrollReveal>
           <section className="mb-12">
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <a
-                href={SOCIAL_LINKS.discord}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border border-green-primary px-5 py-2.5 font-mono text-sm text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
-              >
-                Discord
-              </a>
-              <a
-                href={SOCIAL_LINKS.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
-              >
-                LinkedIn
-              </a>
-              <a
-                href={SOCIAL_LINKS.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
-              >
-                Twitter / X
-              </a>
+              {discord && (
+                <a
+                  href={discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-green-primary px-5 py-2.5 font-mono text-sm text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
+                >
+                  Discord
+                </a>
+              )}
+              {linkedin && (
+                <a
+                  href={linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
+                >
+                  LinkedIn
+                </a>
+              )}
+              {twitter && (
+                <a
+                  href={twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
+                >
+                  Twitter / X
+                </a>
+              )}
               <Link
                 href="/events"
                 className="border border-border-default px-5 py-2.5 font-mono text-sm text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
@@ -169,15 +177,19 @@ export function JoinSwitcher() {
                 >
                   {CONTACT.phone}
                 </a>
-                {" "}| Find us on{" "}
-                <a
-                  href={SOCIAL_LINKS.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-primary underline underline-offset-4 transition-colors hover:text-green-dim"
-                >
-                  Discord
-                </a>
+                {discord && (
+                  <>
+                    {" "}| Find us on{" "}
+                    <a
+                      href={discord}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-primary underline underline-offset-4 transition-colors hover:text-green-dim"
+                    >
+                      Discord
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </section>

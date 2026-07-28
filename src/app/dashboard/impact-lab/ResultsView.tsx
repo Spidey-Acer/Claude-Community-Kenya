@@ -1,0 +1,347 @@
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
+import { Award, Medal, Trophy } from "lucide-react";
+import { JUDGING_CRITERIA, MAX_SCORE, MIN_SCORE } from "@/lib/impact-lab/judging";
+import type {
+  AnnouncedWinner,
+  PublicRankedTeam,
+  ResultsTrackWinner,
+  TeamCard,
+  TeamReviewPayload,
+} from "@/lib/impact-lab/results";
+import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
+import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
+
+export interface ResultsViewProps {
+  results: {
+    publishedAt: string;
+    overall: AnnouncedWinner[];
+    trackWinners: ResultsTrackWinner[];
+    ranking: PublicRankedTeam[];
+  };
+  yourTeam?: {
+    teamId: string;
+    projectName: string;
+    card: TeamCard;
+    judgeNotes?: TeamJudgeNote[];
+    review?: TeamReviewPayload;
+  };
+}
+
+const ORDINALS: Record<number, string> = {
+  1: "1st",
+  2: "2nd",
+  3: "3rd",
+};
+
+function ordinal(rank: number): string {
+  return ORDINALS[rank] ?? `${rank}th`;
+}
+
+/**
+ * Results view — the payoff page. Four sections, in a fixed order: winners
+ * (announced champion + runners-up, then track winners), the caller's own
+ * scorecard, the full ranking (position/project/track only), and the note
+ * explaining how the two published things — the panel's announcement and the
+ * scored ranking — relate to each other.
+ *
+ * The API has already stripped every other team's card and every `average`
+ * from the ranking before this component ever sees it (see the route's own
+ * doc comment) — nothing here re-derives or re-fetches a score.
+ */
+export function ResultsView({ results, yourTeam }: ResultsViewProps) {
+  const prefersReducedMotion = useReducedMotion();
+
+  const container = {
+    hidden: {},
+    show: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.08 } },
+  };
+  const item = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, y: 12 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+      };
+
+  const [champion, ...runnersUp] = results.overall;
+  const yourTrack = yourTeam
+    ? results.ranking.find((r) => r.teamId === yourTeam.teamId)?.track
+    : undefined;
+
+  return (
+    <motion.div className="space-y-8" variants={container} initial="hidden" animate="show">
+      {/* ── 1. Winners ─────────────────────────────────────────────────── */}
+      {(champion || results.trackWinners.length > 0) && (
+        <motion.section variants={item} aria-label="Winners">
+          <h2 className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-dim">
+            <Trophy className="h-3.5 w-3.5 text-amber" />
+            {"// ./winners"}
+          </h2>
+
+          {champion && (
+            <div className="relative overflow-hidden rounded-lg border border-amber/30 bg-amber/10 p-6">
+              <div className="relative flex flex-wrap items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded border border-amber/40 bg-amber/15">
+                  <Trophy className="h-7 w-7 text-amber" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-amber">
+                    Champion
+                  </p>
+                  <p className="mt-1 truncate font-mono text-xl font-bold text-text-primary sm:text-2xl">
+                    {champion.projectName}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {runnersUp.length > 0 && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {runnersUp.map((winner) => (
+                <div
+                  key={winner.teamId}
+                  className="flex items-center gap-3 rounded-lg border border-border-default bg-bg-secondary p-4"
+                >
+                  <Medal className="h-5 w-5 shrink-0 text-text-dim" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                      {ordinal(winner.rank)} place
+                    </p>
+                    <p className="truncate font-mono text-sm font-semibold text-text-primary">
+                      {winner.projectName}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {results.trackWinners.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                Track winners
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {results.trackWinners.map((winner) => (
+                  <div
+                    key={winner.track}
+                    className="flex items-start gap-2 rounded border border-border-default bg-bg-secondary p-3"
+                  >
+                    <Award className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                        {winner.track}
+                      </p>
+                      <p className="truncate font-mono text-xs font-semibold text-text-primary">
+                        {winner.projectName}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.section>
+      )}
+
+      {/* ── 2. Your team ───────────────────────────────────────────────── */}
+      {yourTeam && (
+        <motion.section
+          variants={item}
+          aria-label="Your team's results"
+          className="rounded-lg border border-green-primary/30 bg-bg-secondary p-6"
+        >
+          <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
+            {"// ./your-results"}
+          </p>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-mono text-xl font-bold text-text-primary sm:text-2xl">
+              {yourTeam.projectName}
+            </h2>
+            <span className="font-mono text-xs text-text-dim">
+              {ordinal(yourTeam.card.rank)} overall
+              {yourTrack ? ` · ${yourTrack}` : ""}
+            </span>
+          </div>
+
+          {yourTeam.card.basis === "submission" && (
+            <p className="mt-3 rounded border border-border-default bg-bg-card p-3 text-xs leading-relaxed text-text-secondary">
+              Your project was reviewed from your written submission against the
+              same five criteria. A live demo was not part of that review, which
+              is noted against the demo criterion below.
+            </p>
+          )}
+
+          <div className="mt-5 space-y-3">
+            {JUDGING_CRITERIA.map((criterion) => {
+              const value = yourTeam.card.criterionAverages[criterion.key] ?? 0;
+              const pct = Math.max(
+                0,
+                Math.min(100, ((value - MIN_SCORE) / (MAX_SCORE - MIN_SCORE)) * 100)
+              );
+              return (
+                <div key={criterion.key}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-mono text-xs text-text-secondary">
+                      {criterion.label}
+                    </span>
+                    <span className="font-mono text-xs text-text-dim">{value.toFixed(1)} / 5</span>
+                  </div>
+                  <div
+                    role="progressbar"
+                    aria-label={criterion.label}
+                    aria-valuemin={MIN_SCORE}
+                    aria-valuemax={MAX_SCORE}
+                    aria-valuenow={value}
+                    className="mt-1 h-2 w-full overflow-hidden rounded-full bg-bg-card"
+                  >
+                    <div
+                      className="h-full rounded-full bg-green-primary"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {yourTeam.card.low !== null && yourTeam.card.high !== null && (
+            <p className="mt-4 font-mono text-[11px] text-text-dim">
+              Score range across judges: {yourTeam.card.low.toFixed(1)}–
+              {yourTeam.card.high.toFixed(1)}
+            </p>
+          )}
+
+          {/* Written feedback. Two streams with two provenances, kept visibly
+              apart: a judge's own note is quoted under that judge's name; the
+              community review is signed by the community and says so. Nothing
+              here ever presents generated words as a judge's. */}
+          {yourTeam.judgeNotes && yourTeam.judgeNotes.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {yourTeam.judgeNotes.map((note) => (
+                <figure
+                  key={`${note.judgeName}-${note.text.slice(0, 24)}`}
+                  className="rounded border border-amber/30 bg-amber/5 p-4"
+                >
+                  <figcaption className="font-mono text-[11px] uppercase tracking-wider text-amber">
+                    Judge&apos;s note — {note.judgeName}
+                  </figcaption>
+                  <blockquote className="mt-2 whitespace-pre-line text-sm italic leading-relaxed text-text-primary">
+                    &ldquo;{note.text}&rdquo;
+                  </blockquote>
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {yourTeam.review && (
+            <div className="mt-6 rounded border border-border-default bg-bg-card p-5">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-cyan">
+                Impact Lab review
+              </p>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-text-secondary">
+                {yourTeam.review.text.split(/\n\n+/).map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
+              <p className="mt-4 font-mono text-xs text-text-primary">
+                — {yourTeam.review.signedBy}
+              </p>
+              <p className="mt-1 font-mono text-[11px] leading-relaxed text-text-dim">
+                {REVIEW_PROVENANCE}
+              </p>
+            </div>
+          )}
+        </motion.section>
+      )}
+
+      {/* ── 3. Full ranking ────────────────────────────────────────────── */}
+      <motion.section variants={item} aria-label="Full ranking">
+        <h2 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
+          {"// ./full-ranking"}
+        </h2>
+        <div className="overflow-x-auto rounded-lg border border-border-default">
+          <table className="w-full min-w-[420px] border-collapse">
+            <thead>
+              <tr className="border-b border-border-default bg-bg-secondary">
+                {["Position", "Project", "Track"].map((h) => (
+                  <th
+                    key={h}
+                    scope="col"
+                    className="whitespace-nowrap px-4 py-2.5 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-text-dim"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-default">
+              {results.ranking.map((row) => {
+                const isSelf = row.teamId === yourTeam?.teamId;
+                return (
+                  <tr
+                    key={row.teamId}
+                    className={isSelf ? "bg-green-primary/10" : undefined}
+                  >
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-dim">
+                      {row.rank}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-text-primary">
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        {row.projectName}
+                        {isSelf && (
+                          <span className="rounded border border-green-primary/40 bg-green-primary/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-green-primary">
+                            you
+                          </span>
+                        )}
+                        {row.basis === "submission" && (
+                          <span className="rounded border border-border-default bg-bg-card px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-dim">
+                            Reviewed from submission
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary">
+                      {row.track}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </motion.section>
+
+      {/* ── 4. The note ────────────────────────────────────────────────── */}
+      <motion.section variants={item} aria-label="How these results were decided">
+        <h2 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
+          {"// ./how-these-results-were-decided"}
+        </h2>
+        <div className="space-y-3 rounded-lg border border-border-default bg-bg-secondary p-5 text-sm leading-relaxed text-text-secondary">
+          <p className="font-mono text-sm font-semibold text-text-primary">
+            How these results were decided
+          </p>
+          <p>
+            Every project that was submitted has been reviewed against the same
+            five criteria and ranked. Where the panel saw a live demo, their
+            scores are the ones shown. Where a team submitted but the panel did
+            not see it presented, the project was reviewed from the written
+            submission instead.
+          </p>
+          <p>
+            The top three were decided by the judging panel after they had seen
+            the demos and discussed the projects together. That conversation is
+            what those placings reflect. Every other team is ranked below them
+            on score.
+          </p>
+          <p>
+            Scores are shown in full because you are entitled to see how your
+            own work was assessed.
+          </p>
+        </div>
+      </motion.section>
+    </motion.div>
+  );
+}

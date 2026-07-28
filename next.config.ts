@@ -1,7 +1,9 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["bcryptjs"],
+  // pdfkit reads its built-in font metrics from node_modules at runtime and
+  // exceljs is a large CJS tree — both must stay external to the bundle.
+  serverExternalPackages: ["bcryptjs", "pdfkit", "exceljs"],
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },
@@ -11,13 +13,6 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
-      },
-      // Unsplash — used for placeholder gallery photos during seed; remove
-      // once real meetup photos are uploaded to Supabase Storage.
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
       },
     ],
     formats: ["image/avif", "image/webp"],

@@ -1,3 +1,5 @@
+import { SOCIAL_LINKS } from "@/lib/constants";
+
 export interface Resource {
   id: string;
   title: string;
@@ -187,7 +189,7 @@ export const resources: Resource[] = [
   {
     id: "cck-whatsapp",
     title: "CCK WhatsApp Group",
-    url: "https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa",
+    url: SOCIAL_LINKS.whatsapp,
     category: "Community & Social",
     description: "Join the community WhatsApp group for quick updates and discussion.",
   },

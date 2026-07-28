@@ -11,7 +11,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown, MessageSquare, Search, X } from "lucide-react";
-import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { CONTACT } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import type { FAQ } from "@/data/faq";
 
@@ -66,7 +67,7 @@ function FaqItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
   );
 }
 
-function FloatingDiscordCta() {
+function FloatingDiscordCta({ discordUrl }: { discordUrl: string | null }) {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -78,12 +79,12 @@ function FloatingDiscordCta() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (dismissed || !visible) return null;
+  if (dismissed || !visible || !discordUrl) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2">
       <a
-        href={SOCIAL_LINKS.discord}
+        href={discordUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-2 rounded-full border border-sand-2 bg-paper-card px-4 py-2.5 font-inter text-xs font-semibold text-clay shadow-lg shadow-black/5 backdrop-blur-sm transition-colors hover:border-clay"
@@ -106,6 +107,7 @@ function FloatingDiscordCta() {
 export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCategory[] }) {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const { discord } = useSocialLinks();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return null;
@@ -219,7 +221,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
         )}
       </section>
 
-      <FloatingDiscordCta />
+      <FloatingDiscordCta discordUrl={discord} />
 
       {/* Still have questions? */}
       <section className={`${WRAP} py-14`} aria-label="Still have questions">
@@ -230,14 +232,16 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
               Can&apos;t find what you&apos;re looking for? Reach out to us directly.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <a
-                href={SOCIAL_LINKS.discord}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3.5 font-inter text-[15px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                Ask on Discord <span aria-hidden="true">→</span>
-              </a>
+              {discord && (
+                <a
+                  href={discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3.5 font-inter text-[15px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                >
+                  Ask on Discord <span aria-hidden="true">→</span>
+                </a>
+              )}
               <a
                 href={`mailto:${CONTACT.email}`}
                 className="inline-flex items-center gap-2 rounded-full border border-[#3B352D] px-6 py-3.5 font-inter text-[15px] font-semibold text-on-panel-dark transition-colors hover:border-clay-light hover:text-clay-light"

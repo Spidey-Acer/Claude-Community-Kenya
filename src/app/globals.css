@@ -57,14 +57,42 @@
   --sand: #E4DAC8;
   --sand-2: #DDD3C2;
 
-  /* Intentional dark panels (footer, feature cards). Deliberately NOT part of
-   * the light/dark token flip below: these surfaces are meant to read as a
-   * dark slab against the page in both themes. Using --ink for them meant
-   * they inverted to near-white in dark mode while the text sitting on them
-   * stayed light — the footer measured 1.59:1. */
+  /* Intentional dark panels (feature cards outside the footer — KaribuAbout,
+   * KaribuFaq, KaribuHome's "How to join", KaribuLearn). Deliberately NOT
+   * part of the light/dark token flip below: these surfaces are meant to
+   * read as a dark slab against the page in both themes. Using --ink for
+   * them meant they inverted to near-white in dark mode while the text
+   * sitting on them stayed light. */
   --panel-dark: #23201B;
   --on-panel-dark: #E9E0D2;
   --on-panel-dark-muted: #B4A997;
+
+  /* Fixed, non-theme-reactive tokens — deliberately NOT redefined by the
+   * dark-mode overrides below. --ink/--paper flip with the page theme
+   * (that's correct for page foreground/background), but two things must
+   * never flip with the page theme:
+   *   1. A gradient scrim darkening a PHOTOGRAPH for caption legibility —
+   *      the photo's own brightness doesn't change with site theme, so a
+   *      scrim built from --ink/--paper can invert into a light wash with
+   *      light text on it (illegible) once dark mode flips --ink light.
+   *   2. The footer, which the organiser wants dark in every theme/persona
+   *      combination — a background built from --ink inherits the same flip.
+   * Values below intentionally match the LIGHT-mode --ink/--paper-card/etc.
+   * so both look like today's (correct) light-mode rendering, permanently. */
+  --scrim: #23201B;
+  --scrim-text: #FBF7F0;
+  --scrim-text-soft: #E9E0D2;
+  --footer-bg: #23201B;
+  --footer-text: #E9E0D2;
+  --footer-text-soft: #C7BEB0;
+  --footer-text-muted: #A79E90;
+  --footer-text-faint: #8A7F6E;
+  --footer-border: #3B352D;
+  --footer-accent: #E6906F;
+  --footer-accent-bg: #A84E2D;
+  --footer-accent-bg-hover: #8F4023;
+  --footer-cta-text: #FBF7F0;
+
   --font-newsreader-stack: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-inter-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
@@ -125,6 +153,22 @@
   --color-panel-dark: var(--panel-dark);
   --color-on-panel-dark: var(--on-panel-dark);
   --color-on-panel-dark-muted: var(--on-panel-dark-muted);
+
+  /* Fixed scrim + footer tokens — see the :root comment above. */
+  --color-scrim: var(--scrim);
+  --color-scrim-text: var(--scrim-text);
+  --color-scrim-text-soft: var(--scrim-text-soft);
+  --color-footer-bg: var(--footer-bg);
+  --color-footer-text: var(--footer-text);
+  --color-footer-text-soft: var(--footer-text-soft);
+  --color-footer-text-muted: var(--footer-text-muted);
+  --color-footer-text-faint: var(--footer-text-faint);
+  --color-footer-border: var(--footer-border);
+  --color-footer-accent: var(--footer-accent);
+  --color-footer-accent-bg: var(--footer-accent-bg);
+  --color-footer-accent-bg-hover: var(--footer-accent-bg-hover);
+  --color-footer-cta-text: var(--footer-cta-text);
+
   --font-newsreader: var(--font-newsreader-stack);
   --font-inter: var(--font-inter-stack);
 }

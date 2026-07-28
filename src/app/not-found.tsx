@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { getSocialLinks } from "@/lib/social-links";
 
 export const metadata: Metadata = {
   title: "404 — Page Not Found | Claude Community Kenya",
@@ -13,7 +13,8 @@ const navLinks = [
   { label: "Learn", href: "/resources" },
 ];
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { discord } = await getSocialLinks();
   return (
     <div className="flex min-h-[70vh] items-center justify-center bg-paper px-6 py-24">
       <div className="w-full max-w-xl">
@@ -40,18 +41,20 @@ export default function NotFound() {
           ))}
         </nav>
 
-        <p className="mt-10 border-t border-sand pt-6 font-inter text-sm text-ink-muted">
-          Think this is a broken link?{" "}
-          <a
-            href={SOCIAL_LINKS.discord}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-clay underline underline-offset-2 hover:text-clay-dark"
-          >
-            Tell us on Discord
-          </a>
-          .
-        </p>
+        {discord && (
+          <p className="mt-10 border-t border-sand pt-6 font-inter text-sm text-ink-muted">
+            Think this is a broken link?{" "}
+            <a
+              href={discord}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-clay underline underline-offset-2 hover:text-clay-dark"
+            >
+              Tell us on Discord
+            </a>
+            .
+          </p>
+        )}
       </div>
     </div>
   );

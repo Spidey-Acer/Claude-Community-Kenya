@@ -20,13 +20,14 @@ import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { AudienceState } from "@/contexts/AudienceContext";
 import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Marquee } from "@/components/karibu/Marquee";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
-import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
+import { HERO_PHOTO, HERO_PHOTO_CREDIT, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
+import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 
 interface KaribuHomeProps {
   communityStats?: CommunityStats;
@@ -156,6 +157,8 @@ function SupportedBy() {
  * has parsed and hydrated). Below-fold sections keep their motion wrappers.
  */
 function Hero({ nextEvent }: { nextEvent?: Event }) {
+  const { whatsapp } = useSocialLinks();
+
   return (
     <section className={`${WRAP} pb-14 pt-[74px]`} aria-label="Hero">
       <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
@@ -186,14 +189,16 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             style={{ "--i": 3 } as React.CSSProperties}
             className="flex flex-wrap items-center gap-3.5"
           >
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Join the community
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                Join the community
+              </a>
+            )}
             <Link
               href="/events"
               className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-[15px] font-inter text-[15.5px] font-semibold text-ink transition-colors hover:border-ink"
@@ -212,19 +217,43 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
         >
           <Image
             src={HERO_PHOTO}
-            alt="Claude Community Kenya members at a Nairobi meetup"
+            alt={`Claude Community Kenya members at the ${HERO_PHOTO_CREDIT}`}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 560px"
             className="object-cover"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim/45 via-transparent to-transparent" />
+          {/* Photo credit. The "Coming up" chip below is an announcement
+           * overlay, not a caption — naming what the photograph actually
+           * shows is what keeps that distinction honest. */}
+          <div className="pointer-events-none absolute left-[18px] top-[18px] rounded-full border border-white/15 bg-scrim/70 px-3 py-1 backdrop-blur-md">
+            <span className="font-inter text-[10px] font-semibold uppercase tracking-[0.14em] text-scrim-text-soft">
+              {HERO_PHOTO_CREDIT}
+            </span>
+          </div>
           {nextEvent && (
-            <div className="absolute bottom-[18px] left-[18px] right-[18px] rounded-xl border border-white/15 bg-ink/70 px-4 py-3 font-inter text-[13px] text-paper-card backdrop-blur-md">
-              <span className="font-semibold text-white">{nextEvent.title}</span>
-              {typeof nextEvent.attendeeCount === "number" && (
-                <> · {nextEvent.attendeeCount} registered</>
-              )}
+            <div className="absolute inset-x-[18px] bottom-[18px] overflow-hidden rounded-xl border border-white/15 backdrop-blur-md">
+              {/* Gradient scrim, not a flat block — darkens the photo under
+               * the text without a hard-edged bar. Built from the fixed
+               * --scrim tokens (not --ink/--paper-card) so it stays a dark
+               * scrim with light text in every theme; those tokens flip in
+               * dark mode and would otherwise turn this into a near-white
+               * bar with illegible white-on-white text. */}
+              <div className="absolute inset-0 bg-gradient-to-t from-scrim via-scrim/85 to-scrim/60" />
+              <div className="relative px-4 py-3">
+                <div className="font-inter text-[10.5px] font-semibold uppercase tracking-[0.14em] text-clay-light">
+                  Coming up
+                </div>
+                <div className="mt-0.5 font-inter text-[14px] font-semibold leading-tight text-scrim-text">
+                  {nextEvent.title}
+                </div>
+                {typeof nextEvent.attendeeCount === "number" && (
+                  <div className="mt-0.5 font-inter text-[12px] text-scrim-text-soft">
+                    {nextEvent.attendeeCount} registered
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -523,8 +552,9 @@ function EventsSection({ events }: { events: Event[] }) {
       </Reveal>
 
       <Reveal className={`grid gap-4 ${events.length >= 3 ? "md:grid-cols-3" : events.length === 2 ? "md:grid-cols-2" : ""}`}>
-        {events.map((ev, i) => {
+        {events.map((ev) => {
           const single = events.length === 1;
+          const cover = eventCover(ev.posterUrl);
           const cta = eventCta(ev);
           return (
             <Link
@@ -541,13 +571,17 @@ function EventsSection({ events }: { events: Event[] }) {
                     : "h-[150px] border-b"
                 }`}
               >
-                <Image
-                  src={eventCover(ev.posterUrl, i)}
-                  alt={ev.title}
-                  fill
-                  sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {cover ? (
+                  <Image
+                    src={cover}
+                    alt={ev.title}
+                    fill
+                    sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <EventCoverPlaceholder />
+                )}
               </div>
               <div className="p-[22px]">
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -627,6 +661,7 @@ const JOIN_STEPS = [
 ];
 
 function HowToJoin() {
+  const { whatsapp, discord } = useSocialLinks();
   return (
     <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
       <Reveal className="relative overflow-hidden rounded-2xl bg-panel-dark p-9 text-on-panel-dark sm:p-[54px]">
@@ -652,22 +687,26 @@ function HowToJoin() {
               building.
             </p>
             <div className="flex flex-wrap gap-3">
-              <a
-                href={SOCIAL_LINKS.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                Join on WhatsApp
-              </a>
-              <a
-                href={SOCIAL_LINKS.discord}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-on-panel-dark transition-colors hover:border-on-panel-dark"
-              >
-                Join Discord
-              </a>
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                >
+                  Join on WhatsApp
+                </a>
+              )}
+              {discord && (
+                <a
+                  href={discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-on-panel-dark transition-colors hover:border-on-panel-dark"
+                >
+                  Join Discord
+                </a>
+              )}
             </div>
           </div>
           <div className="flex flex-col gap-3.5">
