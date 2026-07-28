@@ -44,13 +44,16 @@ export default async function PhotosAdminPage({
             <p className="text-xs font-mono text-[#555]">{filtered.length} photo{filtered.length !== 1 ? "s" : ""}</p>
             {/* Event filter */}
             <form method="GET" className="flex items-center gap-2">
+              {/*
+                No onChange here. This is a Server Component, and React refuses
+                to serialise an event handler onto a DOM element from one — it
+                throws at render and takes the whole page down, which is what it
+                was doing. The handler was a no-op anyway; the Filter button
+                below submits the form.
+              */}
               <select
                 name="event"
                 defaultValue={eventFilter ?? ""}
-                onChange={(e) => {
-                  // Handled via form submit — this is a server component
-                  void e
-                }}
                 className="bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-[11px] font-mono text-[#ccc] focus:outline-none focus:border-[#00ff41]/50"
               >
                 <option value="">All events</option>
