@@ -35,12 +35,16 @@ import { APP_URL, impactLabResultsEmail } from "@/lib/email"
  *  - Before publish, there is no snapshot yet, so this computes the same
  *    `ResultsInput` `publish/route.ts` would (via the shared
  *    `buildResultsInputFromRun` helper) and runs it through the same
- *    `buildSnapshot`. There is no announced-winners selection to read at
- *    this point — that choice lives only in the publish form's own state
- *    until the POST that publishes — so a pre-publish preview always shows
- *    the score-only ranking, with nobody yet marked as an announced winner.
- *    Everything else — rank, criterion averages, score range — is the
- *    team's real, current numbers, and publishing freezes exactly this.
+ *    `buildSnapshot`, INCLUDING the announced winners the organiser has
+ *    selected, passed in `?announced=`.
+ *
+ *    Those ids are not decoration: they decide the overall placing and which
+ *    team leads each track. Without them this endpoint rendered the score-only
+ *    ranking — so the preview named a different champion and two different
+ *    track winners than the email it claimed to be previewing, under a banner
+ *    promising publishing would freeze exactly what was on screen. A preview
+ *    that can disagree with the send is worse than no preview, because it is
+ *    trusted.
  * `data.published` tells the caller which path rendered the response, so the
  * UI can say so on screen.
  */
@@ -56,6 +60,19 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   }
+
+  // Comma-separated team ids, in announced order. Capped and de-duplicated:
+  // this only ever feeds a render, but an unbounded list from a query string
+  // has no business reaching the snapshot builder.
+  const announcedParam = (request.nextUrl.searchParams.get("announced") ?? "").trim()
+  const requestedAnnounced = announcedParam === ""
+    ? []
+    : [...new Set(
+        announcedParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id !== "" && id.length <= 64)
+      )].slice(0, 3)
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
@@ -123,8 +140,10 @@ export async function GET(request: NextRequest) {
     const input: ResultsInput = {
       ...inputBase,
       publishedAt: new Date().toISOString(),
-      // See the header comment: no winners are chosen yet at preview time.
-      announcedTeamIds: [],
+      // Filter to scored teams — the same eligibility publish enforces, so a
+      // stale selection left in the form cannot make this preview show a
+      // winner that publishing would then refuse.
+      announcedTeamIds: requestedAnnounced.filter((id) => scoredTeamIds.has(id)),
     }
     snapshot = buildSnapshot(input)
     teamName = team.name

@@ -32,6 +32,11 @@ import type { RankedTeam, ResultsSnapshot } from "./results"
 export const EVENT_TITLE = "Impact Lab: AI Mashinani"
 export const EVENT_DATES = "25–26 July 2026"
 export const EVENT_HOST = "Claude Community Kenya"
+export const EVENT_LOCATION = "Nairobi, Kenya"
+/** An overnight hackathon: the judging window is part of the record. */
+export const EVENT_FORMAT_NOTE =
+  "An overnight build: teams formed in the evening, built through the night, " +
+  "and judging ran from the small hours into the morning."
 
 // ─── Source rows (what the loader hands in) ──────────────────────────────────
 
@@ -141,6 +146,10 @@ export interface ExportTeam {
   judgeScores: ExportJudgeScore[]
   /** Mean of judges' weighted totals /100. Null when never scored. */
   average: number | null
+  /** Lowest judge's weighted total /100. Null when never scored. */
+  scoreLow: number | null
+  /** Highest judge's weighted total /100. Null when never scored. */
+  scoreHigh: number | null
   judgeCount: number
   /** Per-criterion mean of the raw 1–5 scores. Empty when never scored. */
   criterionAverages: Record<string, number>
@@ -180,6 +189,39 @@ export interface ExportTrackWinner {
   basis: "announced" | "score"
 }
 
+/** One judge's footprint across the night — coverage, not judgement. */
+export interface ExportJudgeSummary {
+  judgeName: string
+  judgeEmail: string
+  /** Total scorecards this judge recorded. */
+  sheets: number
+  liveSheets: number
+  writeupSheets: number
+  /** Scorecards on which this judge left a written note. */
+  feedbackCount: number
+  /** Mean of this judge's weighted totals /100 — how they used the scale. */
+  meanWeightedTotal: number
+}
+
+/** One track's shape: participation, outcome, and who led it. */
+export interface ExportTrackSummary {
+  track: string
+  teamsFormed: number
+  teamsSubmitted: number
+  teamsScored: number
+  /** Mean of scored teams' averages /100. Null when nothing was scored. */
+  meanAverage: number | null
+  winnerTeamName: string | null
+  winnerProjectName: string | null
+  winnerBasis: "announced" | "score" | null
+}
+
+/** How many scored teams were seen by exactly `judgeCount` judges. */
+export interface ExportCoverageBucket {
+  judgeCount: number
+  teams: number
+}
+
 export interface ExportSummary {
   participantsRegistered: number
   participantsCheckedIn: number
@@ -207,6 +249,12 @@ export interface ResultsExport {
   teams: ExportTeam[]
   /** Cohort participants who ended up on no frozen team. */
   unassignedParticipants: ExportMember[]
+  /** One row per judge, ordered by sheet count descending then name. */
+  judgeSummaries: ExportJudgeSummary[]
+  /** One row per track, ordered by track name. */
+  trackSummaries: ExportTrackSummary[]
+  /** Coverage distribution over scored teams, ordered by judge count. */
+  coverage: ExportCoverageBucket[]
   summary: ExportSummary
 }
 
@@ -375,6 +423,14 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
         : null,
       judgeScores,
       average: standing?.average ?? null,
+      // Range across judges — presentation of totals `weightedTotal` already
+      // produced, not new score arithmetic.
+      scoreLow: judgeScores.length
+        ? Math.min(...judgeScores.map((s) => s.weightedTotal))
+        : null,
+      scoreHigh: judgeScores.length
+        ? Math.max(...judgeScores.map((s) => s.weightedTotal))
+        : null,
       judgeCount: standing?.judgeCount ?? 0,
       criterionAverages: standing?.criterionAverages ?? {},
       finalRank: snapshotRow?.rank ?? null,
@@ -400,6 +456,69 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
     .map((p) => toMember(p, null))
     .sort((a, b) => a.fullName.localeCompare(b.fullName))
 
+  // ── Judge summaries: each judge's footprint across the night ─────────────
+  const byJudge = new Map<string, SourceScore[]>()
+  for (const score of source.scores) {
+    const list = byJudge.get(score.judgeEmail)
+    if (list) list.push(score)
+    else byJudge.set(score.judgeEmail, [score])
+  }
+  const judgeSummaries: ExportJudgeSummary[] = [...byJudge.values()]
+    .map((sheets) => {
+      const totals = sheets.map((s) => weightedTotal(s.sheet))
+      return {
+        judgeName: sheets[0].judgeName,
+        judgeEmail: sheets[0].judgeEmail,
+        sheets: sheets.length,
+        liveSheets: sheets.filter((s) => !s.writeupOnly).length,
+        writeupSheets: sheets.filter((s) => s.writeupOnly).length,
+        feedbackCount: sheets.filter((s) => s.feedback?.trim()).length,
+        meanWeightedTotal: totals.length
+          ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
+          : 0,
+      }
+    })
+    .sort((a, b) => b.sheets - a.sheets || a.judgeName.localeCompare(b.judgeName))
+
+  // ── Track summaries: participation and outcome per track ─────────────────
+  const winnerByTrack = new Map(exportTrackWinners.map((w) => [w.track, w]))
+  const byTrack = new Map<string, ExportTeam[]>()
+  for (const team of teams) {
+    const list = byTrack.get(team.track)
+    if (list) list.push(team)
+    else byTrack.set(team.track, [team])
+  }
+  const trackSummaries: ExportTrackSummary[] = [...byTrack.entries()]
+    .map(([track, trackTeams]) => {
+      const scored = trackTeams.filter((t) => t.average !== null)
+      const winner = winnerByTrack.get(track)
+      return {
+        track,
+        teamsFormed: trackTeams.length,
+        teamsSubmitted: trackTeams.filter((t) => t.submission !== null).length,
+        teamsScored: scored.length,
+        meanAverage: scored.length
+          ? Math.round(
+              (scored.reduce((sum, t) => sum + (t.average ?? 0), 0) / scored.length) * 10
+            ) / 10
+          : null,
+        winnerTeamName: winner?.teamName ?? null,
+        winnerProjectName: winner?.projectName ?? null,
+        winnerBasis: winner?.basis ?? null,
+      }
+    })
+    .sort((a, b) => a.track.localeCompare(b.track))
+
+  // ── Coverage: how many judges actually reached each scored team ──────────
+  const coverageCounts = new Map<number, number>()
+  for (const team of teams) {
+    if (team.judgeCount === 0) continue
+    coverageCounts.set(team.judgeCount, (coverageCounts.get(team.judgeCount) ?? 0) + 1)
+  }
+  const coverage: ExportCoverageBucket[] = [...coverageCounts.entries()]
+    .map(([judgeCount, count]) => ({ judgeCount, teams: count }))
+    .sort((a, b) => a.judgeCount - b.judgeCount)
+
   const scoredTeams = teams.filter((t) => t.average !== null)
   const meanTeamAverage = scoredTeams.length
     ? Math.round(
@@ -416,6 +535,9 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
     trackWinners: exportTrackWinners,
     teams,
     unassignedParticipants,
+    judgeSummaries,
+    trackSummaries,
+    coverage,
     summary: {
       participantsRegistered: source.participants.length,
       participantsCheckedIn: source.participants.filter((p) => p.checkedIn).length,

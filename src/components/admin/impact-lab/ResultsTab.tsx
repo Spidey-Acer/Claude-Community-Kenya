@@ -370,15 +370,28 @@ const EMPTY_RESULTS_INPUT_EXTRAS = {
  * the same code that computes the stored snapshot, not a second
  * reimplementation that could quietly drift from it.
  */
-function PublishPanel({ cohort }: { cohort: string }) {
+function PublishPanel({
+  cohort,
+  firstPlace,
+  secondPlace,
+  thirdPlace,
+  setFirstPlace,
+  setSecondPlace,
+  setThirdPlace,
+}: {
+  cohort: string
+  firstPlace: string
+  secondPlace: string
+  thirdPlace: string
+  setFirstPlace: (id: string) => void
+  setSecondPlace: (id: string) => void
+  setThirdPlace: (id: string) => void
+}) {
   const [judging, setJudging] = useState<JudgingData | null>(null)
   const [publishStatus, setPublishStatus] = useState<PublishStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [firstPlace, setFirstPlace] = useState("")
-  const [secondPlace, setSecondPlace] = useState("")
-  const [thirdPlace, setThirdPlace] = useState("")
   const [confirmText, setConfirmText] = useState("")
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
@@ -1147,7 +1160,13 @@ interface PreviewEmailData {
  * renderer — so what is shown here cannot drift from what actually goes
  * out. It only ever reads; nothing is sent and nothing is written.
  */
-function PreviewEmailPanel({ cohort }: { cohort: string }) {
+function PreviewEmailPanel({
+  cohort,
+  announcedTeamIds,
+}: {
+  cohort: string
+  announcedTeamIds: string[]
+}) {
   const [teams, setTeams] = useState<PreviewEmailOption[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedTeamId, setSelectedTeamId] = useState("")
@@ -1180,6 +1199,13 @@ function PreviewEmailPanel({ cohort }: { cohort: string }) {
     }
   }, [cohort])
 
+  // Re-render whenever the announced winners change: a preview showing a
+  // placing the organiser has since altered is worse than no preview.
+  useEffect(() => {
+    if (selectedTeamId !== "") void loadPreview(selectedTeamId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [announcedTeamIds.join(",")])
+
   async function loadPreview(teamId: string) {
     setSelectedTeamId(teamId)
     setPreview(null)
@@ -1188,7 +1214,14 @@ function PreviewEmailPanel({ cohort }: { cohort: string }) {
     setLoadingPreview(true)
     try {
       const data = await apiGet<PreviewEmailData>(
-        `/api/admin/impact-lab/results/preview-email?cohort=${cohort}&teamId=${encodeURIComponent(teamId)}`
+        // The announced winners are part of what the email says — they decide
+        // the overall placing AND which team leads each track. Sending them
+        // means a pre-publish preview renders what publishing would actually
+        // produce, rather than the score-only ranking the panel overrode.
+        `/api/admin/impact-lab/results/preview-email?cohort=${cohort}&teamId=${encodeURIComponent(teamId)}` +
+          (announcedTeamIds.length > 0
+            ? `&announced=${encodeURIComponent(announcedTeamIds.join(","))}`
+            : "")
       )
       setPreview(data)
     } catch (e) {
@@ -1255,7 +1288,10 @@ function PreviewEmailPanel({ cohort }: { cohort: string }) {
               className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
             >
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>Computed from current data; publishing will freeze exactly this.</span>
+              <span>
+                Computed from current data, including the winners selected above;
+                publishing will freeze exactly this.
+              </span>
             </div>
           )}
 
@@ -1620,17 +1656,39 @@ function ExportPanel({ cohort }: { cohort: string }) {
  * simple stack, fetching its own data independently.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
+  // The announced winners live here, not inside PublishPanel, because two
+  // panels depend on them: the one that publishes and the one that previews
+  // what publishing would send. While this state was private to PublishPanel,
+  // the preview had no way to read it and rendered the score-only ranking —
+  // so it showed a different champion and different track winners than the
+  // email it was supposed to be previewing.
+  const [firstPlace, setFirstPlace] = useState("")
+  const [secondPlace, setSecondPlace] = useState("")
+  const [thirdPlace, setThirdPlace] = useState("")
+  const announcedTeamIds = useMemo(
+    () => [firstPlace, secondPlace, thirdPlace].filter((id) => id !== ""),
+    [firstPlace, secondPlace, thirdPlace]
+  )
+
   return (
     <div className="space-y-6">
       <AwaitingScoreSection cohort={cohort} />
       <div className="border-t border-[#1e1e1e] pt-6">
-        <PublishPanel cohort={cohort} />
+        <PublishPanel
+          cohort={cohort}
+          firstPlace={firstPlace}
+          secondPlace={secondPlace}
+          thirdPlace={thirdPlace}
+          setFirstPlace={setFirstPlace}
+          setSecondPlace={setSecondPlace}
+          setThirdPlace={setThirdPlace}
+        />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <ReviewsSection cohort={cohort} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
-        <PreviewEmailPanel cohort={cohort} />
+        <PreviewEmailPanel cohort={cohort} announcedTeamIds={announcedTeamIds} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <NotifyPanel cohort={cohort} />

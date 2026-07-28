@@ -1,8 +1,9 @@
 /**
  * Impact Lab results export — the Excel workbook.
  *
- * Renders a `ResultsExport` (see ./export-data) into five sheets: Results,
- * Submissions, Judging detail, Participants, Summary. Server-only (exceljs).
+ * Renders a `ResultsExport` (see ./export-data) into up to eight sheets:
+ * Results, Submissions, Judging detail, Judges, Tracks, Project analyses
+ * (when generated), Participants, Summary. Server-only (exceljs).
  *
  * Craft rules applied throughout: frozen header rows, autofilter on the wide
  * sheets, wrapped prose with estimated row heights so text is readable
@@ -12,14 +13,16 @@
  */
 
 import ExcelJS from "exceljs"
-import { JUDGING_CRITERIA } from "./judging"
+import { JUDGING_CRITERIA, SCORE_LABELS } from "./judging"
 import {
   EVENT_DATES,
   EVENT_HOST,
+  EVENT_LOCATION,
   EVENT_TITLE,
   type ExportTeam,
   type ResultsExport,
 } from "./export-data"
+import { ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 
 // ─── Palette (print-safe echoes of the Terminal Noir tokens) ─────────────────
 
@@ -31,6 +34,56 @@ const AMBER_TEXT = "FF8A5B00" // basis notes
 const DIM_TEXT = "FF666666"
 
 const SCORE_FMT = "0.0"
+const CLAY = "FFD97757" // Anthropic terracotta — the single data-bar hue
+
+/**
+ * exceljs's `DataBarRuleType` omits `color` from its typings, but the writer
+ * serialises it (see lib/.../cf/databar-xform.js). This extension keeps the
+ * branded bars type-safe without `any`.
+ */
+interface BrandedDataBarRule extends ExcelJS.DataBarRuleType {
+  color?: Partial<ExcelJS.Color>
+}
+
+/** "A"-style column letter for a 1-based column number. */
+function columnLetter(column: number): string {
+  let letter = ""
+  for (let n = column; n > 0; n = Math.floor((n - 1) / 26)) {
+    letter = String.fromCharCode(65 + ((n - 1) % 26)) + letter
+  }
+  return letter
+}
+
+/**
+ * In-cell data bars on a numeric column — the honest kind: anchored 0→max so
+ * bar length is proportional to the value, never rescaled to the visible
+ * range (Excel's default min–max anchoring exaggerates small differences).
+ */
+function addDataBars(
+  sheet: ExcelJS.Worksheet,
+  column: number,
+  rowCount: number,
+  max: number
+): void {
+  if (rowCount === 0) return
+  const letter = columnLetter(column)
+  const rule: BrandedDataBarRule = {
+    type: "dataBar",
+    priority: 1,
+    gradient: false,
+    showValue: true,
+    border: false,
+    cfvo: [
+      { type: "num", value: 0 },
+      { type: "num", value: max },
+    ],
+    color: { argb: CLAY },
+  }
+  sheet.addConditionalFormatting({
+    ref: `${letter}2:${letter}${rowCount + 1}`,
+    rules: [rule],
+  })
+}
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
@@ -123,7 +176,10 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     { header: "Track", key: "track", width: 22 },
     { header: "Project", key: "project", width: 26 },
     { header: "Score rank", key: "scoreRank", width: 11, numFmt: "0" },
-    { header: "Weighted average (/100)", key: "average", width: 14, numFmt: SCORE_FMT },
+    { header: "Weighted average (/100)", key: "average", width: 16, numFmt: SCORE_FMT },
+    { header: "Judge low (/100)", key: "scoreLow", width: 11, numFmt: SCORE_FMT },
+    { header: "Judge high (/100)", key: "scoreHigh", width: 11, numFmt: SCORE_FMT },
+    { header: "Judge spread", key: "spread", width: 11, numFmt: SCORE_FMT },
     { header: "Judges", key: "judges", width: 8, numFmt: "0" },
     ...JUDGING_CRITERIA.map((c) => ({
       header: `${c.label} (avg /5)`,
@@ -155,6 +211,12 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
       project: team.submission?.projectName ?? "—",
       scoreRank: team.scoreRank ?? "—",
       average: team.average ?? "—",
+      scoreLow: team.scoreLow ?? "—",
+      scoreHigh: team.scoreHigh ?? "—",
+      spread:
+        team.scoreLow !== null && team.scoreHigh !== null && team.judgeCount > 1
+          ? Math.round((team.scoreHigh - team.scoreLow) * 10) / 10
+          : "—",
       judges: team.judgeCount,
       ...Object.fromEntries(
         JUDGING_CRITERIA.map((c) => [`avg_${c.key}`, team.criterionAverages[c.key] ?? "—"])
@@ -174,6 +236,10 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
       row.getCell("note").font = { size: 9, color: { argb: AMBER_TEXT } }
     }
   }
+
+  // Honest in-cell bars: 0→100 anchoring, on the average column.
+  const averageColumn = columns.findIndex((c) => c.key === "average") + 1
+  addDataBars(sheet, averageColumn, data.teams.length, 100)
 }
 
 function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
@@ -279,6 +345,113 @@ function addJudgingSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
   }
 }
 
+/** One row per judge: coverage and how they used the scale. */
+function addJudgesSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const columns: ColumnSpec[] = [
+    { header: "Judge", key: "judge", width: 22 },
+    { header: "Judge email", key: "email", width: 28 },
+    { header: "Scorecards", key: "sheets", width: 11, numFmt: "0" },
+    { header: "Live demos", key: "live", width: 11, numFmt: "0" },
+    { header: "From writeups", key: "writeup", width: 12, numFmt: "0" },
+    { header: "Written notes left", key: "notes", width: 14, numFmt: "0" },
+    { header: "Mean weighted total (/100)", key: "mean", width: 16, numFmt: SCORE_FMT },
+  ]
+  const sheet = addSheet(workbook, "Judges", columns)
+  for (const judge of data.judgeSummaries) {
+    sheet.addRow({
+      judge: judge.judgeName,
+      email: judge.judgeEmail,
+      sheets: judge.sheets,
+      live: judge.liveSheets,
+      writeup: judge.writeupSheets,
+      notes: judge.feedbackCount,
+      mean: judge.meanWeightedTotal,
+    })
+  }
+  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.judgeSummaries.length, 100)
+  const note = sheet.addRow({})
+  note.getCell("judge").value =
+    "Judges saw different, overlapping sets of teams; mean totals show how each judge used the scale, not a ranking of judges."
+  note.getCell("judge").font = { size: 9, italic: true, color: { argb: DIM_TEXT } }
+}
+
+/** One row per track: participation, outcome, winner with its basis. */
+function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const columns: ColumnSpec[] = [
+    { header: "Track", key: "track", width: 26 },
+    { header: "Teams formed", key: "formed", width: 12, numFmt: "0" },
+    { header: "Teams submitted", key: "submitted", width: 13, numFmt: "0" },
+    { header: "Teams scored", key: "scored", width: 12, numFmt: "0" },
+    { header: "Mean average (/100)", key: "mean", width: 16, numFmt: SCORE_FMT },
+    { header: "Track winner (project)", key: "winnerProject", width: 24 },
+    { header: "Track winner (team)", key: "winnerTeam", width: 28 },
+    { header: "Winner basis", key: "basis", width: 22 },
+  ]
+  const sheet = addSheet(workbook, "Tracks", columns)
+  for (const track of data.trackSummaries) {
+    sheet.addRow({
+      track: track.track,
+      formed: track.teamsFormed,
+      submitted: track.teamsSubmitted,
+      scored: track.teamsScored,
+      mean: track.meanAverage ?? "—",
+      winnerProject: track.winnerProjectName ?? "—",
+      winnerTeam: track.winnerTeamName ?? "—",
+      basis:
+        track.winnerBasis === "announced"
+          ? "Announced by judging panel"
+          : track.winnerBasis === "score"
+            ? "Top of track by score"
+            : "—",
+    })
+  }
+  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, 100)
+}
+
+/**
+ * The generated project analyses, one row per analysed team, each row
+ * carrying its provenance so the sheet stays honest even copied out alone.
+ */
+function addAnalysesSheet(
+  workbook: ExcelJS.Workbook,
+  data: ResultsExport,
+  analyses: ReadonlyMap<string, TeamAnalysis>
+): void {
+  if (analyses.size === 0) return
+  const columns: ColumnSpec[] = [
+    { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
+    { header: "Team", key: "team", width: 26 },
+    { header: "Project", key: "project", width: 24 },
+    { header: "What they built", key: "built", width: 52, wrap: true },
+    { header: "Who it serves", key: "serves", width: 44, wrap: true },
+    { header: "Working vs mocked", key: "working", width: 52, wrap: true },
+    { header: "How Claude was used", key: "claude", width: 48, wrap: true },
+    { header: "Provenance", key: "provenance", width: 40, wrap: true },
+  ]
+  const sheet = addSheet(workbook, "Project analyses", columns, { autoFilter: true })
+  for (const team of data.teams) {
+    const analysis = analyses.get(team.teamId)
+    if (!analysis || !team.submission) continue
+    const row = sheet.addRow({
+      finalRank: team.finalRank ?? "—",
+      team: team.teamName,
+      project: team.submission.projectName,
+      built: analysis.whatTheyBuilt,
+      serves: analysis.whoItServes,
+      working: analysis.workingVsMocked,
+      claude: analysis.claudeUse,
+      provenance: ANALYSIS_PROVENANCE,
+    })
+    row.height = estimateRowHeight([
+      { text: analysis.whatTheyBuilt, width: 52 },
+      { text: analysis.whoItServes, width: 44 },
+      { text: analysis.workingVsMocked, width: 52 },
+      { text: analysis.claudeUse, width: 48 },
+    ])
+    row.getCell("provenance").font = { size: 9, italic: true, color: { argb: DIM_TEXT } }
+  }
+}
+
 function addParticipantsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
   const columns: ColumnSpec[] = [
     { header: "Name", key: "name", width: 26 },
@@ -361,6 +534,7 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
   fact("Event", EVENT_TITLE)
   fact("Hosted by", EVENT_HOST)
   fact("Dates", EVENT_DATES)
+  fact("Location", EVENT_LOCATION)
   fact("Cohort", data.cohort)
   fact("Generated", data.generatedAt.toISOString())
   fact(
@@ -399,6 +573,42 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
   }
   gap()
 
+  section("Scoring criteria and weights")
+  for (const criterion of JUDGING_CRITERIA) {
+    fact(`${criterion.label} — ${criterion.weight} pts`, criterion.guidance, true)
+  }
+  fact(
+    "Scale",
+    Object.entries(SCORE_LABELS)
+      .map(([n, label]) => `${n} = ${label}`)
+      .join(" · ") +
+      ". A criterion contributes (score - 1) / 4 of its weight; a team's number is the mean of " +
+      "its judges' weighted totals.",
+    true
+  )
+  gap()
+
+  section("Provenance")
+  const judgesWithNotes = data.judgeSummaries.filter((j) => j.feedbackCount > 0)
+  const notesTotal = judgesWithNotes.reduce((sum, j) => sum + j.feedbackCount, 0)
+  fact(
+    "Judge notes",
+    judgesWithNotes.length === 0
+      ? "No judge left written notes during scoring."
+      : `Written notes were left by ${judgesWithNotes.length === 1 ? `one judge (${judgesWithNotes[0].judgeName})` : `${judgesWithNotes.length} judges`} ` +
+          `on ${notesTotal} scorecard${notesTotal === 1 ? "" : "s"}. They appear verbatim in “Judging detail”; ` +
+          "no judge's words have been extended or invented anywhere in this workbook.",
+    true
+  )
+  fact("Project analyses", `The “Project analyses” sheet is generated: ${ANALYSIS_PROVENANCE}`, true)
+  fact(
+    "Contact details",
+    "This workbook carries participant emails and is the organisers' operational record — " +
+      "treat it accordingly. The PDF built for sharing omits all contact details.",
+    true
+  )
+  gap()
+
   section("How to read this workbook")
   fact(
     "Final placing vs score rank",
@@ -419,8 +629,16 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
-/** Build the five-sheet workbook and return it as a Node buffer to stream. */
-export async function buildResultsWorkbook(data: ResultsExport): Promise<Buffer> {
+/**
+ * Build the workbook — Results, Submissions, Judging detail, Judges, Tracks,
+ * Project analyses (when generated), Participants, Summary — and return it as
+ * a Node buffer to stream. A missing analyses map simply omits that sheet
+ * (the fail-soft rule from export-analysis).
+ */
+export async function buildResultsWorkbook(
+  data: ResultsExport,
+  analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook()
   workbook.creator = EVENT_HOST
   workbook.created = data.generatedAt
@@ -428,6 +646,9 @@ export async function buildResultsWorkbook(data: ResultsExport): Promise<Buffer>
   addResultsSheet(workbook, data)
   addSubmissionsSheet(workbook, data)
   addJudgingSheet(workbook, data)
+  addJudgesSheet(workbook, data)
+  addTracksSheet(workbook, data)
+  addAnalysesSheet(workbook, data, analyses)
   addParticipantsSheet(workbook, data)
   addSummarySheet(workbook, data)
 
