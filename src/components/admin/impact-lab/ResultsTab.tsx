@@ -1,7 +1,18 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AlertTriangle, CheckCircle2, Eye, Loader2, Save, Send, Sparkles, Trophy } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  Save,
+  Send,
+  Sparkles,
+  Trophy,
+} from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import {
   CRITERION_KEYS,
@@ -1080,6 +1091,109 @@ function NotifyPanel({ cohort }: { cohort: string }) {
   )
 }
 
+// ─── Export ───────────────────────────────────────────────────────────────
+
+/**
+ * Section: export the complete record — an Excel workbook and a PDF, built
+ * on request and streamed to the browser (never written to disk or a
+ * bucket; both files carry every participant's name and email).
+ *
+ * Checks the publish endpoint only to phrase the copy honestly: after
+ * publication the exports carry the announced placings alongside the raw
+ * score order; before it, there is only score order and the files say so.
+ */
+function ExportPanel({ cohort }: { cohort: string }) {
+  const [published, setPublished] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    apiGet<{ published: boolean }>(`/api/admin/impact-lab/results/publish?cohort=${cohort}`)
+      .then((status) => {
+        if (!cancelled) setPublished(status.published)
+      })
+      // The downloads work either way — an unknown status only softens the copy.
+      .catch(() => {
+        if (!cancelled) setPublished(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [cohort])
+
+  const exports = [
+    {
+      format: "xlsx",
+      label: "Excel workbook",
+      description:
+        "Five sheets — Results, Submissions, Judging detail, Participants, Summary. The working record: sortable, filterable, complete.",
+      Icon: FileSpreadsheet,
+      accentClass: "text-[#00ff41]",
+    },
+    {
+      format: "pdf",
+      label: "PDF record",
+      description:
+        "Cover, winners, full ranking, then a page per team with its submission and every judge's feedback. A4, made for print.",
+      Icon: FileText,
+      accentClass: "text-[#00d4ff]",
+    },
+  ] as const
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Export the record</h2>
+        <p className="mt-1 text-[11px] font-mono text-[#888]">
+          The complete results of the event in one file — what every team built, how it was
+          judged, and who won. Generated fresh on each download; nothing is stored.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {exports.map(({ format, label, description, Icon, accentClass }) => (
+          <a
+            key={format}
+            href={`/api/admin/impact-lab/results/export?cohort=${cohort}&format=${format}`}
+            className="group flex items-start gap-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4 transition-colors hover:border-[#333] hover:bg-[#111]"
+          >
+            <Icon
+              className={`mt-0.5 h-5 w-5 shrink-0 transition-transform group-hover:-translate-y-0.5 ${accentClass}`}
+              aria-hidden
+            />
+            <span>
+              <span className="block text-[12px] font-mono font-semibold text-[#e0e0e0]">
+                {label}
+              </span>
+              <span className="mt-1 block text-[11px] font-mono leading-relaxed text-[#888]">
+                {description}
+              </span>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <div className="space-y-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]">
+        <p>
+          {published
+            ? "Ranks in both files show the announced placing (the panel's deliberated podium) and the raw score order side by side, each labelled — the two disagree by design."
+            : "Results are not published yet, so both files rank by raw score order only, and say so."}
+        </p>
+        <p>
+          Teams no judge reached are marked &quot;scored from written submission&quot; wherever
+          their scores appear — they submitted on time and did not miss anything.
+        </p>
+      </div>
+
+      <p className="flex items-start gap-2 text-[11px] font-mono text-[#888]">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ff3333]" aria-hidden />
+        <span>
+          Both files contain every participant&apos;s name and email. Share them deliberately.
+        </span>
+      </p>
+    </div>
+  )
+}
+
 /**
  * Results tab — organiser-facing surfaces for closing out judging.
  *
@@ -1102,6 +1216,9 @@ export function ResultsTab({ cohort }: { cohort: string }) {
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <NotifyPanel cohort={cohort} />
+      </div>
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <ExportPanel cohort={cohort} />
       </div>
     </div>
   )

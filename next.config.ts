@@ -1,7 +1,9 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["bcryptjs"],
+  // pdfkit reads its built-in font metrics from node_modules at runtime and
+  // exceljs is a large CJS tree — both must stay external to the bundle.
+  serverExternalPackages: ["bcryptjs", "pdfkit", "exceljs"],
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },
