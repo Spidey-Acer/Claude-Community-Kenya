@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { MessageSquare, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { SOCIAL_LINKS } from "@/lib/constants"
+import { useSocialLinks } from "@/contexts/SocialLinksContext"
 
 export function FloatingDiscordCTA() {
   const [visible, setVisible] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const { discord } = useSocialLinks()
 
   useEffect(() => {
     function handleScroll() {
@@ -17,12 +18,12 @@ export function FloatingDiscordCTA() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  if (dismissed || !visible) return null
+  if (dismissed || !visible || !discord) return null
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2">
       <a
-        href={SOCIAL_LINKS.discord}
+        href={discord}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(

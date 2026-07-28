@@ -2,20 +2,23 @@
 
 import { useAudience } from "@/contexts/AudienceContext";
 import { useSkin } from "@/contexts/SkinContext";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { HeroTerminal, type FeedItem, type CommunityStats } from "./HeroTerminal";
 import { HeroPro } from "./HeroPro";
 import type { Audience } from "@/lib/karibu/types";
-import { SOCIAL_LINKS } from "@/lib/constants";
 
+// ctaHref is a platform key (resolved via useSocialLinks) or a real path/URL.
+// Audiences whose CTA points at a social platform fall back to the "/join"
+// page if that platform ends up unconfigured with no constant fallback.
 const COPY: Record<
   Audience,
-  { headline: string; sub: string; ctaLabel: string; ctaHref: string }
+  { headline: string; sub: string; ctaLabel: string; ctaHref: string | { social: "discord" | "whatsapp" } }
 > = {
   dev: {
     headline: "Kenya's Claude developer community",
     sub: "Build, ship, and learn with Kenya's strongest AI engineers",
     ctaLabel: "Join Discord",
-    ctaHref: "https://discord.gg/CkD9QWjsHm",
+    ctaHref: { social: "discord" },
   },
   non_tech_pro: {
     headline: "AI for the work you actually do",
@@ -27,7 +30,7 @@ const COPY: Record<
     headline: "Start your AI journey with us",
     sub: "Free meetups, study groups, mentorship — built for Kenyan students",
     ctaLabel: "Join WhatsApp",
-    ctaHref: SOCIAL_LINKS.whatsapp,
+    ctaHref: { social: "whatsapp" },
   },
   founder: {
     headline: "Build your AI company in Nairobi",
@@ -59,16 +62,26 @@ interface PersonalizedHeroProps {
 export function PersonalizedHero({ feedItems = [], stats }: PersonalizedHeroProps) {
   const { audience } = useAudience();
   const { skin } = useSkin();
+  const socialLinks = useSocialLinks();
   const copy = audience ? COPY[audience] : null;
 
-  const overrideProps = copy
-    ? {
-        headlineOverride: copy.headline,
-        subOverride: copy.sub,
-        ctaLabelOverride: copy.ctaLabel,
-        ctaHrefOverride: copy.ctaHref,
-      }
-    : {};
+  // Resolve a social-platform CTA to its live URL; skip personalization
+  // entirely (fall through to the component's own default) if that
+  // platform has neither a DB value nor a constants fallback configured.
+  function resolveCtaHref(ctaHref: string | { social: "discord" | "whatsapp" }): string | null {
+    return typeof ctaHref === "string" ? ctaHref : socialLinks[ctaHref.social];
+  }
+  const resolvedCtaHref = copy ? resolveCtaHref(copy.ctaHref) : null;
+
+  const overrideProps =
+    copy && resolvedCtaHref
+      ? {
+          headlineOverride: copy.headline,
+          subOverride: copy.sub,
+          ctaLabelOverride: copy.ctaLabel,
+          ctaHrefOverride: resolvedCtaHref,
+        }
+      : {};
 
   if (skin === "pro") {
     return <HeroPro feed={feedItems} stats={stats} {...overrideProps} />;

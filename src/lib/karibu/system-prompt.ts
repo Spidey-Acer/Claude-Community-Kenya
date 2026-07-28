@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { getSocialLinks } from "@/lib/social-links";
 
 interface KaribuContextData {
   upcomingEvents: Array<{ title: string; date: Date; city: string; audiences: string[] }>;
@@ -54,7 +54,7 @@ async function fetchKaribuContext(): Promise<KaribuContextData> {
  * @returns The full system prompt string for Claude Haiku 4.5
  */
 export async function buildKaribuPrompt(): Promise<string> {
-  const ctx = await fetchKaribuContext();
+  const [ctx, socialLinks] = await Promise.all([fetchKaribuContext(), getSocialLinks()]);
 
   const eventsBlock = ctx.upcomingEvents
     .map(
@@ -97,8 +97,7 @@ ${eventsBlock || "- (none scheduled)"}
 TOP RESOURCES:
 ${resourcesBlock || "- (none yet)"}
 
-DISCORD: https://discord.gg/CkD9QWjsHm
-WHATSAPP: ${SOCIAL_LINKS.whatsapp}
+${socialLinks.discord ? `DISCORD: ${socialLinks.discord}\n` : ""}${socialLinks.whatsapp ? `WHATSAPP: ${socialLinks.whatsapp}` : ""}
 
 # Output style
 Conversational. Warm but efficient. No emoji except the opening 👋. No markdown headers. Plain text and short bullet lists only.

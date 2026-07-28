@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TerminalWindow } from "@/components/terminal";
 import { TypingAnimation } from "@/components/terminal";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 
 export interface CommunityStats {
   discordMembers: number;
@@ -84,6 +84,8 @@ export function HeroTerminal({ stats, feed = [], headlineOverride, subOverride, 
   const [feedVisible, setFeedVisible] = useState(true);
   const heroLines = buildHeroLines(headlineOverride, subOverride);
   const resolvedStats = stats ?? DEFAULT_STATS;
+  const { discord } = useSocialLinks();
+  const primaryCtaHref = ctaHrefOverride ?? discord;
 
   const rotateFeed = useCallback(() => {
     if (feed.length <= 1) return;
@@ -182,10 +184,10 @@ export function HeroTerminal({ stats, feed = [], headlineOverride, subOverride, 
       )}
 
       {/* Primary CTA */}
-      {typingComplete && (
+      {typingComplete && primaryCtaHref && (
         <div className="mt-2 min-h-[1.5em]">
           <a
-            href={ctaHrefOverride ?? SOCIAL_LINKS.discord}
+            href={primaryCtaHref}
             target={ctaHrefOverride ? undefined : "_blank"}
             rel={ctaHrefOverride ? undefined : "noopener noreferrer"}
             className="font-mono text-sm text-green-primary hover:text-amber transition-colors duration-200"

@@ -1,10 +1,13 @@
 import { buildCommunityContext } from "./community-context";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { getSocialLinks } from "@/lib/social-links";
 
 export type ChatPersona = "dev" | "pro";
 
 export async function buildSystemPrompt(persona: ChatPersona): Promise<string> {
-  const communityContext = await buildCommunityContext();
+  const [communityContext, socialLinks] = await Promise.all([
+    buildCommunityContext(),
+    getSocialLinks(),
+  ]);
 
   const identity =
     persona === "dev"
@@ -17,8 +20,8 @@ When suggesting actions the user can take, use this exact format inline in your 
 
 Examples:
 [action:join](Join the Community|/join)
-[action:discord](Join Discord|https://discord.gg/CkD9QWjsHm)
-[action:event](Register for Next Event|https://luma.com/sbsa789m)
+[action:discord](Join Discord|${socialLinks.discord ?? "https://discord.gg/CkD9QWjsHm"})
+[action:event](Register for Next Event|${socialLinks.lumaNairobi ?? "https://luma.com/sbsa789m"})
 [action:resources](Browse Resources|/resources)
 
 Available action types and their real URLs:
@@ -29,11 +32,7 @@ Available action types and their real URLs:
 - submit-project → /submit-project
 - events → /events
 - resources → /resources
-- faq → /faq
-- discord → https://discord.gg/CkD9QWjsHm
-- whatsapp → ${SOCIAL_LINKS.whatsapp}
-- nairobi-events → https://luma.com/sbsa789m
-- mombasa-events → https://luma.com/vsf5re14
+- faq → /faq${socialLinks.discord ? `\n- discord → ${socialLinks.discord}` : ""}${socialLinks.whatsapp ? `\n- whatsapp → ${socialLinks.whatsapp}` : ""}${socialLinks.lumaNairobi ? `\n- nairobi-events → ${socialLinks.lumaNairobi}` : ""}${socialLinks.lumaMombasa ? `\n- mombasa-events → ${socialLinks.lumaMombasa}` : ""}
 
 Use action buttons when they're helpful — e.g. after answering "how do I join?" include the join action.
 Place actions naturally at the end of relevant paragraphs or at the end of your response.`;

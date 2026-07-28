@@ -13,6 +13,8 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { SkinProvider } from "@/contexts/SkinContext";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { AudienceProvider, type AudienceState } from "@/contexts/AudienceContext";
+import { SocialLinksProvider } from "@/contexts/SocialLinksContext";
+import type { SocialLinks } from "@/lib/social-links-schema";
 import { KaribuBanner } from "@/components/karibu/KaribuBanner";
 import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 
@@ -25,10 +27,12 @@ export function ConditionalLayout({
   children,
   audienceState,
   showKaribu,
+  socialLinks,
 }: {
   children: React.ReactNode;
   audienceState: AudienceState;
   showKaribu: boolean;
+  socialLinks: SocialLinks;
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
@@ -64,22 +68,24 @@ export function ConditionalLayout({
     <SessionProvider>
       <SkinProvider>
         <AudienceProvider value={audienceState}>
-          <div className={isKaribu ? "karibu" : undefined}>
-            <a href="#main-content" className="skip-nav">
-              Skip to main content
-            </a>
-            {isKaribu ? <KaribuNav /> : <Navbar />}
-            <LoadingBar />
-            <main id="main-content">
-              <PageTransition>{children}</PageTransition>
-            </main>
-            {isKaribu ? <KaribuFooter /> : !isDashboard && <Footer />}
-          </div>
-          <EasterEggs />
-          <ChatWidget />
-          <KaribuBanner />
-          {!isDashboard && !isKaribu && <StickyMobileCTA />}
-          {showKaribu && <KaribuModal />}
+          <SocialLinksProvider value={socialLinks}>
+            <div className={isKaribu ? "karibu" : undefined}>
+              <a href="#main-content" className="skip-nav">
+                Skip to main content
+              </a>
+              {isKaribu ? <KaribuNav /> : <Navbar />}
+              <LoadingBar />
+              <main id="main-content">
+                <PageTransition>{children}</PageTransition>
+              </main>
+              {isKaribu ? <KaribuFooter /> : !isDashboard && <Footer />}
+            </div>
+            <EasterEggs />
+            <ChatWidget />
+            <KaribuBanner />
+            {!isDashboard && !isKaribu && <StickyMobileCTA />}
+            {showKaribu && <KaribuModal />}
+          </SocialLinksProvider>
         </AudienceProvider>
       </SkinProvider>
     </SessionProvider>

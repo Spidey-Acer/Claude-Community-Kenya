@@ -7,18 +7,33 @@ import {
   getFeaturedProjects,
   getTeamMembers,
 } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { getSocialLinks } from "@/lib/social-links";
+
+// Maps the handful of `resources` entries that duplicate a social link to
+// the accessor key that should override their static `url` — otherwise an
+// admin-updated link (e.g. a rotated WhatsApp invite) would be correct in
+// KEY FACTS but stale in the resources block below it, quoted from the
+// static src/data/resources.ts array.
+const RESOURCE_SOCIAL_OVERRIDES: Record<string, "discord" | "whatsapp" | "lumaNairobi" | "lumaMombasa" | "twitter" | "linkedin"> = {
+  "cck-discord": "discord",
+  "cck-whatsapp": "whatsapp",
+  "cck-luma-nairobi": "lumaNairobi",
+  "cck-luma-mombasa": "lumaMombasa",
+  "cck-twitter": "twitter",
+  "cck-linkedin": "linkedin",
+};
 
 export async function buildCommunityContext(): Promise<string> {
   // Single source of truth: the DB. Empty arrays on failure are intentional —
   // chat omits sections rather than crashes. Editorial content (FAQ, resources)
   // is still file-based since it's reviewed in PRs, not admin-managed.
-  const [events, upcoming, blogPosts, featuredProjects, team] = await Promise.all([
+  const [events, upcoming, blogPosts, featuredProjects, team, socialLinks] = await Promise.all([
     getEvents().catch(() => []),
     getUpcomingEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     getFeaturedProjects().catch(() => []),
     getTeamMembers().catch(() => []),
+    getSocialLinks(),
   ]);
 
   const faqBlock = faqs
@@ -41,7 +56,12 @@ export async function buildCommunityContext(): Promise<string> {
 
   const resourceBlock = resources
     .slice(0, 15)
-    .map((r) => `- ${r.title}: ${r.url} — ${r.description ?? ""}`)
+    .map((r) => {
+      const overrideKey = RESOURCE_SOCIAL_OVERRIDES[r.id];
+      const url = overrideKey ? socialLinks[overrideKey] : r.url;
+      return url ? `- ${r.title}: ${url} — ${r.description ?? ""}` : null;
+    })
+    .filter((line): line is string => line !== null)
     .join("\n");
 
   const projectBlock = featuredProjects
@@ -61,6 +81,15 @@ export async function buildCommunityContext(): Promise<string> {
 
   const completedCount = events.filter((e) => e.status === "completed").length;
 
+  const keyLinksBlock = [
+    socialLinks.discord && `- Discord: ${socialLinks.discord}`,
+    socialLinks.whatsapp && `- WhatsApp: ${socialLinks.whatsapp}`,
+    socialLinks.lumaNairobi && `- Nairobi Events (Luma): ${socialLinks.lumaNairobi}`,
+    socialLinks.lumaMombasa && `- Mombasa Events (Luma): ${socialLinks.lumaMombasa}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return `
 === KEY FACTS ===
 - Community name: Claude Community Kenya (CCK)
@@ -69,10 +98,7 @@ export async function buildCommunityContext(): Promise<string> {
 - Events hosted (completed): ${completedCount}
 - Cities: Nairobi + Mombasa (expanding)
 - Website: https://www.claudekenya.org
-- Discord: https://discord.gg/CkD9QWjsHm
-- WhatsApp: ${SOCIAL_LINKS.whatsapp}
-- Nairobi Events (Luma): https://luma.com/sbsa789m
-- Mombasa Events (Luma): https://luma.com/vsf5re14
+${keyLinksBlock}
 - Global Claude Community: https://luma.com/claudecommunity
 
 === FAQ ===
