@@ -40,6 +40,23 @@ const cohortFlagIndex = process.argv.indexOf("--cohort")
 const cohortFilter =
   cohortFlagIndex !== -1 ? process.argv[cohortFlagIndex + 1] ?? null : null
 
+// Fail closed, not open. Without ACTIVE_COHORT, `cohort !== ACTIVE_COHORT`
+// degrades to `cohort !== null`, which every real cohort satisfies — the
+// live cohort would be purged right along with the closed ones, logging
+// only a quiet "No active cohort set". An explicit --cohort is a different
+// case: the operator has already named exactly what to purge, so there is
+// nothing left to protect against.
+if (apply && !ACTIVE_COHORT && !cohortFilter) {
+  console.error(
+    "Refusing --apply: IMPACT_LAB_ACTIVE_COHORT is not set, so this script " +
+      "cannot tell which cohort is still live and must be protected from the " +
+      "purge. Set IMPACT_LAB_ACTIVE_COHORT to the live cohort slug before " +
+      "running --apply, or pass --cohort <slug> to purge one specific cohort " +
+      "explicitly.",
+  )
+  process.exit(1)
+}
+
 /** Mask an email for the report — enough to identify a row, not enough to be a leak. */
 function maskEmail(email: string): string {
   const [user, domain] = email.split("@")

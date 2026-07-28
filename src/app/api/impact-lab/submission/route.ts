@@ -110,9 +110,6 @@ export async function PUT(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const closed = guardClosedCohort(DEFAULT_COHORT)
-  if (closed) return closed
-
   // FORM (10/min) rather than a daily cap: a submission is edited repeatedly
   // through the night by different teammates, not filed once.
   const rl = await rateLimit(request, RateLimits.FORM)
@@ -122,6 +119,9 @@ export async function PUT(request: NextRequest) {
       { status: 429, headers: rl.headers }
     )
   }
+
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
 
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response

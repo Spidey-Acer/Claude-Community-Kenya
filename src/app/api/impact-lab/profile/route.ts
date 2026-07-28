@@ -38,9 +38,6 @@ export async function PUT(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const closed = guardClosedCohort(DEFAULT_COHORT)
-  if (closed) return closed
-
   const rl = await rateLimit(request, RateLimits.FORM)
   if (!rl.success) {
     return NextResponse.json(
@@ -48,6 +45,9 @@ export async function PUT(request: NextRequest) {
       { status: 429, headers: rl.headers }
     )
   }
+
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
 
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
