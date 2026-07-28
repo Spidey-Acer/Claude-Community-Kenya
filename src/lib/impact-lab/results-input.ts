@@ -14,7 +14,8 @@
 import type { Prisma } from "@/generated/prisma/client"
 import { extractFrozenTeams } from "./member"
 import { standings, trackOf, weightedTotal, type JudgeScore, type ScoreSheet } from "./judging"
-import type { ResultsInput } from "./results"
+import type { ResultsInput, TeamFeedback } from "./results"
+import { presentableJudgeNote, publishableReview } from "./reviews"
 import type { Team } from "@/lib/matching"
 
 /** Accepts either the top-level Prisma client or a `$transaction` callback's `tx`. */
@@ -101,4 +102,46 @@ export async function buildResultsInputFromRun(db: Db, runId: string, runResult:
     scoredTeamIds,
     displayName,
   }
+}
+
+/**
+ * Written feedback per team for one run, as it may be shown to that team:
+ * judge notes quoted through `presentableJudgeNote` (spelling/casing
+ * corrections only — the stored record is never altered) and the community
+ * review gated through `publishableReview` (approved rows only).
+ *
+ * One loader for every sender/previewer of the results email, for the same
+ * reason `buildResultsInputFromRun` exists: two implementations of "what
+ * feedback does this team get" is how a preview and a real send drift apart.
+ */
+export async function loadTeamFeedback(
+  db: Db,
+  runId: string,
+  teamIds: string[]
+): Promise<Map<string, TeamFeedback>> {
+  const [scoreRows, reviewRows] = await Promise.all([
+    db.impactLabScore.findMany({
+      where: { runId, teamId: { in: teamIds }, feedback: { not: null } },
+      select: { teamId: true, judgeName: true, feedback: true },
+    }),
+    db.impactLabTeamReview.findMany({
+      where: { runId, teamId: { in: teamIds } },
+      select: { teamId: true, text: true, approvedAt: true },
+    }),
+  ])
+
+  const reviewByTeam = new Map(reviewRows.map((r) => [r.teamId, r]))
+  const feedback = new Map<string, TeamFeedback>()
+  for (const teamId of teamIds) {
+    feedback.set(teamId, {
+      judgeNotes: [],
+      review: publishableReview(reviewByTeam.get(teamId)),
+    })
+  }
+  for (const row of scoreRows) {
+    const text = presentableJudgeNote(row.feedback)
+    if (text === null) continue
+    feedback.get(row.teamId)?.judgeNotes.push({ judgeName: row.judgeName, text })
+  }
+  return feedback
 }

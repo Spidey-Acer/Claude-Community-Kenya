@@ -7,6 +7,11 @@ import { Resend } from "resend"
 import { VOLUNTEER_ROLE_LABELS as SHARED_VOLUNTEER_ROLE_LABELS } from "@/lib/volunteer-roles"
 import { JUDGING_CRITERIA } from "@/lib/impact-lab/judging"
 import type { AnnouncedWinner, ResultsTrackWinner } from "@/lib/impact-lab/results"
+import {
+  REVIEW_PROVENANCE,
+  REVIEW_SIGNATURE,
+  type TeamJudgeNote,
+} from "@/lib/impact-lab/reviews"
 
 // Lazy initialization — avoids build-time error when env var is not set
 let _resend: Resend | null = null
@@ -560,6 +565,19 @@ export function impactLabResultsEmail(data: {
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
   dashboardUrl: string
+  /**
+   * Notes a judge actually wrote on this team's scoresheet, quoted under that
+   * judge's name (already corrected via presentableJudgeNote — never pass raw
+   * DB text here). Optional: most teams received none.
+   */
+  judgeNotes?: TeamJudgeNote[]
+  /**
+   * The approved community review for this team (already gated through
+   * publishableReview — an unapproved draft must never reach this function).
+   * Rendered under the community's own signature, with the provenance line,
+   * so generated words can never read as a judge's.
+   */
+  communityReview?: string | null
 }): { subject: string; html: string } {
   // Publishing with zero announced winners is a legal (if unusual) state —
   // the publish panel warns rather than blocks it. Guard each block the same
@@ -620,6 +638,40 @@ export function impactLabResultsEmail(data: {
       ? `<p style="margin:10px 0 0;font-family:monospace,monospace;font-size:11px;color:#888;">Score range across judges: ${data.low.toFixed(1)}–${data.high.toFixed(1)}</p>`
       : ""
 
+  const judgeNotesSection = (data.judgeNotes ?? [])
+    .map(
+      (note) => `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px;border:1px solid #3a2d00;border-radius:6px;">
+              <tr>
+                <td style="padding:14px 16px;">
+                  <p style="margin:0 0 6px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#ffb000;">Judge&#x27;s note — ${esc(note.judgeName)}</p>
+                  <p style="margin:0;font-family:monospace,monospace;font-size:13px;font-style:italic;line-height:1.6;color:#e0e0e0;">&ldquo;${esc(note.text).replace(/\n/g, "<br>")}&rdquo;</p>
+                </td>
+              </tr>
+            </table>`
+    )
+    .join("")
+
+  const reviewSection = data.communityReview
+    ? `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border:1px solid #1e1e1e;border-radius:6px;">
+              <tr>
+                <td style="padding:16px 18px;">
+                  <p style="margin:0 0 10px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#00d4ff;">Impact Lab review</p>
+                  ${data.communityReview
+                    .split(/\n\n+/)
+                    .map(
+                      (paragraph) =>
+                        `<p style="margin:0 0 10px;font-family:monospace,monospace;font-size:13px;line-height:1.7;color:#e0e0e0;">${esc(paragraph).replace(/\n/g, "<br>")}</p>`
+                    )
+                    .join("")}
+                  <p style="margin:8px 0 0;font-family:monospace,monospace;font-size:12px;color:#e0e0e0;">— ${esc(REVIEW_SIGNATURE)}</p>
+                  <p style="margin:4px 0 0;font-family:monospace,monospace;font-size:11px;line-height:1.6;color:#888;">${esc(REVIEW_PROVENANCE)}</p>
+                </td>
+              </tr>
+            </table>`
+    : ""
+
   const submissionNote =
     data.basis === "submission"
       ? `<p style="margin:0 0 14px;font-family:monospace,monospace;font-size:12px;line-height:1.6;color:#888;border:1px solid #1e1e1e;border-radius:4px;padding:10px 12px;">Your project was reviewed from your written submission against the same five criteria. A live demo was not part of that review, which is reflected in the demo criterion below.</p>`
@@ -656,7 +708,8 @@ export function impactLabResultsEmail(data: {
                 </td>
               </tr>
             </table>
-
+            ${judgeNotesSection}
+            ${reviewSection}
             <p style="margin:0 0 20px;font-family:monospace,monospace;font-size:12px;line-height:1.7;color:#888;">${note}</p>
 
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">

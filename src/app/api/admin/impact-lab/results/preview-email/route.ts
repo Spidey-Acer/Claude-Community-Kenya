@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
+import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
 import { APP_URL, impactLabResultsEmail } from "@/lib/email"
 
@@ -140,6 +140,12 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Same feedback loader and gates as the batch send: judge notes quoted
+  // under the judge's name, community review only once approved. The preview
+  // therefore shows exactly what would go out — an unapproved draft is
+  // absent here precisely because it would be absent from the real send.
+  const feedback = (await loadTeamFeedback(prisma, run.id, [teamId])).get(teamId)
+
   const dashboardUrl = `${APP_URL}/dashboard/impact-lab`
   const built = impactLabResultsEmail({
     // The batch send personalises this per recipient; a team's email is
@@ -157,6 +163,8 @@ export async function GET(request: NextRequest) {
     overall: snapshot.overall,
     trackWinners: snapshot.trackWinners,
     dashboardUrl,
+    judgeNotes: feedback?.judgeNotes ?? [],
+    communityReview: feedback?.review ?? null,
   })
 
   return NextResponse.json({
