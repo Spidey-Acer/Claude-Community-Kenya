@@ -6,6 +6,15 @@
 
 export const HERO_PHOTO = "/images/community/hero-crowd.webp";
 
+/**
+ * What HERO_PHOTO actually depicts. Rendered as a visible credit on the hero,
+ * because an announcement chip sits on this photo and without a credit the
+ * chip reads as a caption — which is how a Mombasa crowd spent a week on the
+ * homepage implying it was a Nairobi hackathon. If you swap the photo above,
+ * update this line in the same commit.
+ */
+export const HERO_PHOTO_CREDIT = "Mombasa AI & Career Talk";
+
 /** Portrait/gallery photos for the community-in-action collage. */
 export const GALLERY_PHOTOS = {
   tall: "/images/community/mural-laptops.webp",
