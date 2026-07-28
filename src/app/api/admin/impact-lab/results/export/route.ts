@@ -11,19 +11,27 @@ import {
 } from "@/lib/impact-lab/export-data"
 import { buildResultsWorkbook } from "@/lib/impact-lab/export-excel"
 import { buildResultsPdf } from "@/lib/impact-lab/export-pdf"
+import { generateTeamAnalyses, type TeamAnalysis } from "@/lib/impact-lab/export-analysis"
 
 /**
- * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf
+ * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf[&analyses=off]
  *
  * The complete results record — Excel workbook or PDF — generated on request
  * and streamed straight to the browser. Deliberately never persisted to disk
- * or a bucket: the file carries every participant's name and email, and
- * participant data has leaked from an artefact-on-disk before.
+ * or a bucket: the workbook carries every participant's name and email, and
+ * participant data has leaked from an artefact-on-disk before. (The PDF, the
+ * artefact built for sharing, omits contact details entirely.)
+ *
+ * Per-team project analyses are generated at export time from the teams' own
+ * submissions (see export-analysis for the honesty rules) — pass
+ * `analyses=off` for a fast pull without them. Generation failures degrade
+ * to an export without the affected sections, never to an error artefact.
  *
  * Gated on `edit` (not `view`): the file is built to leave the building —
  * sponsors, community — so producing it is treated as an organiser action,
  * one notch above reading the leaderboard.
  */
+export const maxDuration = 300
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
@@ -125,8 +133,14 @@ export async function GET(request: NextRequest) {
   const data = buildResultsExport(source)
   const stamp = data.generatedAt.toISOString().slice(0, 10)
 
+  // One generation pass per export run — both builders read the same map.
+  const wantAnalyses = request.nextUrl.searchParams.get("analyses") !== "off"
+  const analyses: ReadonlyMap<string, TeamAnalysis> = wantAnalyses
+    ? await generateTeamAnalyses(data.teams)
+    : new Map()
+
   if (format === "xlsx") {
-    const buffer = await buildResultsWorkbook(data)
+    const buffer = await buildResultsWorkbook(data, analyses)
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -136,7 +150,7 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const buffer = await buildResultsPdf(data)
+  const buffer = await buildResultsPdf(data, analyses)
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
