@@ -226,8 +226,8 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
       {/* Still have questions? */}
       <section className={`${WRAP} py-14`} aria-label="Still have questions">
         <Reveal>
-          <div className="rounded-[18px] bg-ink p-8 text-center text-paper sm:p-12">
-            <h2 className="mb-3 font-newsreader text-[30px] text-paper">Still have questions?</h2>
+          <div className="rounded-[18px] bg-panel-dark p-8 text-center text-on-panel-dark sm:p-12">
+            <h2 className="mb-3 font-newsreader text-[30px] text-on-panel-dark">Still have questions?</h2>
             <p className="mx-auto mb-8 max-w-lg font-inter text-[15px] leading-[1.6] text-[#A79E90]">
               Can&apos;t find what you&apos;re looking for? Reach out to us directly.
             </p>
@@ -244,7 +244,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
               )}
               <a
                 href={`mailto:${CONTACT.email}`}
-                className="inline-flex items-center gap-2 rounded-full border border-[#3B352D] px-6 py-3.5 font-inter text-[15px] font-semibold text-paper transition-colors hover:border-clay-light hover:text-clay-light"
+                className="inline-flex items-center gap-2 rounded-full border border-[#3B352D] px-6 py-3.5 font-inter text-[15px] font-semibold text-on-panel-dark transition-colors hover:border-clay-light hover:text-clay-light"
               >
                 Email us <span aria-hidden="true">→</span>
               </a>

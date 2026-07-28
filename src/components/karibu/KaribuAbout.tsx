@@ -113,7 +113,7 @@ export function KaribuAbout({
       {/* Anthropic tie */}
       <section className={`${WRAP} py-8`} aria-label="Anthropic tie">
         <Reveal>
-          <div className="grid items-center gap-6 rounded-2xl bg-ink p-8 text-paper sm:grid-cols-[90px_1fr] sm:p-10">
+          <div className="grid items-center gap-6 rounded-2xl bg-panel-dark p-8 text-on-panel-dark sm:grid-cols-[90px_1fr] sm:p-10">
             <div className="flex h-[90px] w-[90px] items-center justify-center rounded-[14px] bg-paper-alt">
               <Image src="/images/cck-logo.webp" alt="CCK" width={70} height={70} className="h-[70px] w-[70px] rounded-full" />
             </div>
@@ -121,7 +121,7 @@ export function KaribuAbout({
               <div className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[0.18em] text-clay-light">
                 The Anthropic connection
               </div>
-              <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-paper sm:text-[23px]">
+              <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-on-panel-dark sm:text-[23px]">
                 CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
                 <span className="italic text-clay-light">Claude Community Ambassador</span> and
                 supported through Anthropic&apos;s Claude Community Ambassadors program —

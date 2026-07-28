@@ -58,7 +58,13 @@ type Phase =
  * spec states from GET /api/impact-lab/profile and GET /api/impact-lab/team:
  * not-registered, profile form, waiting (profile saved, teams pending), reveal.
  */
-export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
+export function ImpactLabClient({
+  sessionEmail,
+  cohortActive,
+}: {
+  sessionEmail: string;
+  cohortActive: boolean;
+}) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
@@ -169,7 +175,47 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
   }
 
   if (phase === "revealed" && team) {
-    return <TeamReveal team={team} />;
+    return <TeamReveal team={team} cohortActive={cohortActive} />;
+  }
+
+  // ─── Closed cohort ───────────────────────────────────────────────────────
+  // Past this point every branch invites an action — complete your profile,
+  // wait for teams, contact an organiser before the event. None of that is
+  // true once the cohort closes, so a participant without a team sees the
+  // record and everyone else is told plainly that nothing is running.
+  if (!cohortActive) {
+    return (
+      <section
+        className="rounded-lg border border-border-default bg-bg-secondary p-6"
+        aria-label="Impact Lab archive"
+      >
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border-default bg-bg-card">
+            <Clock className="h-5 w-5 text-text-dim" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-mono text-base font-bold text-text-primary">
+              Impact Lab has wrapped
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+              {profile
+                ? "Thanks for taking part. Your matching profile is kept as part of the event record and is no longer editable."
+                : "There's no Impact Lab running right now. When the next one opens, this is where your matching profile and team will appear."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={SOCIAL_LINKS.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20"
+              >
+                Hear about the next one
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   if (phase === "not-registered") {

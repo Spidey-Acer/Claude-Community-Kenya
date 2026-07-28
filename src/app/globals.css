@@ -48,12 +48,24 @@
   --ink: #23201B;
   --ink-soft: #5C5349;
   --ink-muted: #6A6155;
-  --ink-faint: #8A7F6E;
+  /* #8A7F6E measured 3.40:1 on --paper — it failed AA in light mode too, not
+   * only in dark. Darkened to 4.58:1. */
+  --ink-faint: #756a5c;
   --clay: #A84E2D;
   --clay-dark: #8F4023;
   --clay-light: #E6906F;
   --sand: #E4DAC8;
   --sand-2: #DDD3C2;
+
+  /* Intentional dark panels (feature cards outside the footer — KaribuAbout,
+   * KaribuFaq, KaribuHome's "How to join", KaribuLearn). Deliberately NOT
+   * part of the light/dark token flip below: these surfaces are meant to
+   * read as a dark slab against the page in both themes. Using --ink for
+   * them meant they inverted to near-white in dark mode while the text
+   * sitting on them stayed light. */
+  --panel-dark: #23201B;
+  --on-panel-dark: #E9E0D2;
+  --on-panel-dark-muted: #B4A997;
 
   /* Fixed, non-theme-reactive tokens — deliberately NOT redefined by the
    * dark-mode overrides below. --ink/--paper flip with the page theme
@@ -138,6 +150,9 @@
   --color-clay-light: var(--clay-light);
   --color-sand: var(--sand);
   --color-sand-2: var(--sand-2);
+  --color-panel-dark: var(--panel-dark);
+  --color-on-panel-dark: var(--on-panel-dark);
+  --color-on-panel-dark-muted: var(--on-panel-dark-muted);
 
   /* Fixed scrim + footer tokens — see the :root comment above. */
   --color-scrim: var(--scrim);
@@ -694,6 +709,49 @@ body::before {
   }
 }
 
+/* ─── Above-the-fold entrance (LCP-safe) ──────────────────────────────────
+ * [data-reveal] above is correct for below-fold content but wrong for the
+ * hero: it holds the element at opacity 0 until a JS observer marks it
+ * in-view, so the largest text on the page could not paint until Framer
+ * Motion had hydrated — an 8.5s LCP on throttled mobile, 95% of it render
+ * delay.
+ *
+ * This runs the same entrance as a pure CSS animation instead. It starts at
+ * first paint rather than at hydration, so the heading is on screen in about
+ * a second regardless of how long the bundle takes. Use it ONLY above the
+ * fold; below-fold content should keep [data-reveal] so it animates on scroll
+ * rather than all at once during load.
+ *
+ * Degrade path matches [data-reveal]: visible by default, animation only
+ * under `.js`, nothing at all under reduced-motion. */
+[data-hero-rise] {
+  opacity: 1;
+}
+.js [data-hero-rise] {
+  animation: hero-rise 0.8s var(--ease-entrance) both;
+  animation-delay: calc(min(var(--i, 0), 4) * 110ms);
+  will-change: opacity, transform;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-hero-rise] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Scroll-drawn progress line (degrade-safe): the parent is the static track;
  * this fill scales from the left on first intersect (same shared observer as
  * [data-reveal]). No JS → full width. Reduced-motion → instant full. */
@@ -802,6 +860,9 @@ body::before {
     --ink: #F4EEE3;
     --ink-soft: #C7BEB0;
     --ink-muted: #9a9082;
+    /* Was missing from this block entirely, so it kept its light-mode value
+     * while the backgrounds around it flipped. 4.91:1 on --paper. */
+    --ink-faint: #8f8574;
     --clay: #d2704a;
     --clay-dark: #A84E2D;
     --clay-light: #E6906F;

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { checkMemberAccess } from "@/lib/impact-lab/member"
 
 /**
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest) {
       { status: 429, headers: rl.headers }
     )
   }
+
+  const closed = guardClosedCohort(DEFAULT_COHORT)
+  if (closed) return closed
 
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
