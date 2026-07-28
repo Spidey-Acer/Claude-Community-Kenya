@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { resolvePhotoUrls } from "@/lib/data"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { Camera, Plus, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
@@ -104,11 +105,13 @@ export default async function PhotosAdminPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1a1a]">
-                {filtered.map((photo) => (
+                {filtered.map((photo) => {
+                  const resolved = resolvePhotoUrls(photo)
+                  return (
                   <tr key={photo.id} className="hover:bg-[#111] transition-colors">
                     <td className="px-4 py-3">
                       <img
-                        src={photo.thumbnailUrl ?? photo.url}
+                        src={resolved.thumbnailUrl ?? resolved.url}
                         alt={photo.alt ?? ""}
                         className="h-[60px] w-[60px] object-cover rounded bg-[#1a1a1a]"
                       />
@@ -139,7 +142,8 @@ export default async function PhotosAdminPage({
                       </Link>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           )}

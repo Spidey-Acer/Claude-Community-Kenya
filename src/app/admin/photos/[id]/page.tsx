@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { resolvePhotoUrls } from "@/lib/data"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { PhotoEditForm } from "./PhotoEditForm"
 
@@ -19,6 +20,14 @@ export default async function EditPhotoPage({
   ])
   if (!photo) notFound()
 
+  // Photo rows read straight off Prisma leave R2-backed url/thumbnailUrl
+  // empty — presign creates the row before upload and finalize only sets
+  // storageKey — so this resolves them the same way the public gallery does,
+  // otherwise an admin can never see, verify, or confirm a photo before
+  // editing or deleting it.
+  const resolved = resolvePhotoUrls(photo)
+  const displayPhoto = { ...photo, url: resolved.url, thumbnailUrl: resolved.thumbnailUrl }
+
   return (
     <div>
       <AdminHeader title="Edit Photo" />
@@ -31,7 +40,7 @@ export default async function EditPhotoPage({
             ← Back to Photos
           </Link>
         </div>
-        <PhotoEditForm photo={photo} events={events} />
+        <PhotoEditForm photo={displayPhoto} events={events} />
       </div>
     </div>
   )

@@ -319,7 +319,16 @@ export interface PhotoView {
  * — that null is the discriminator, which lets both storages coexist while the
  * backfill runs.
  */
-function resolvePhotoUrls(row: {
+/**
+ * Resolve a photo row's servable URLs.
+ *
+ * R2-backed rows (storageKey set) compose the `full`/`thumb` URLs from the
+ * key at read time; legacy Supabase rows keep their stored absolute URLs.
+ * Exported so every reader — public gallery pages and the admin panel alike
+ * — resolves the same way. Reading `photo.url`/`photo.thumbnailUrl` straight
+ * off the Prisma row bypasses this and is empty for every R2 upload.
+ */
+export function resolvePhotoUrls(row: {
   storageKey: string | null
   url: string
   thumbnailUrl: string | null
