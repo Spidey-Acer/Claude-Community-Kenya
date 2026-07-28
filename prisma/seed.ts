@@ -181,83 +181,10 @@ async function main() {
   console.log(`✅ Events: ${eventsData.length} seeded`)
 
   // ─── Meetup Photos ────────────────────────────────────────────────────────
-  // Placeholder photos using Unsplash community / tech imagery. Replace with
-  // real meetup photos by writing rows directly to the meetup_photos table or
-  // through the admin UI once the photos manager ships.
-  const firstMeetup = await prisma.event.findUnique({
-    where: { slug: "kenyas-first-claude-code-meetup" },
-    select: { id: true },
-  })
-  const secondMeetup = await prisma.event.findUnique({
-    where: { slug: "claude-for-everyone-nairobi" },
-    select: { id: true },
-  })
-
-  const photosData: Array<{
-    eventId: string | null
-    url: string
-    thumbnailUrl: string | null
-    alt: string
-    caption: string
-    photographer: string | null
-    featured: boolean
-    order: number
-  }> = []
-
-  if (firstMeetup) {
-    const meetupOnePhotos = [
-      { url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80", caption: "Packed room at iHiT Events Space.", featured: true },
-      { url: "https://images.unsplash.com/photo-1591115765373-5207764f72e7?auto=format&fit=crop&w=1600&q=80", caption: "Demo time — Claude Code on the big screen.", featured: false },
-      { url: "https://images.unsplash.com/photo-1559223607-a43c990c692c?auto=format&fit=crop&w=1600&q=80", caption: "Pair-programming with Claude in the corner.", featured: false },
-      { url: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80", caption: "First-meetup networking over chai.", featured: false },
-      { url: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1600&q=80", caption: "Q&A on agentic patterns.", featured: false },
-      { url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1600&q=80", caption: "Group photo after the closing demo.", featured: true },
-    ]
-    meetupOnePhotos.forEach((p, i) => {
-      photosData.push({
-        eventId: firstMeetup.id,
-        url: p.url,
-        thumbnailUrl: p.url.replace("w=1600", "w=600"),
-        alt: p.caption,
-        caption: p.caption,
-        photographer: "Peter Kibet",
-        featured: p.featured,
-        order: i,
-      })
-    })
-  }
-
-  if (secondMeetup) {
-    const meetupTwoPhotos = [
-      { url: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1600&q=80", caption: "316 Kenyans registered. Rain couldn't stop us.", featured: true },
-      { url: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?auto=format&fit=crop&w=1600&q=80", caption: "Live demo: Claude Code shipping a real feature.", featured: false },
-      { url: "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=1600&q=80", caption: "Lightning talks from community builders.", featured: false },
-      { url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1600&q=80", caption: "Audience Q&A — sharp questions all night.", featured: false },
-    ]
-    meetupTwoPhotos.forEach((p, i) => {
-      photosData.push({
-        eventId: secondMeetup.id,
-        url: p.url,
-        thumbnailUrl: p.url.replace("w=1600", "w=600"),
-        alt: p.caption,
-        caption: p.caption,
-        photographer: "Community contributor",
-        featured: p.featured,
-        order: i,
-      })
-    })
-  }
-
-  // Wipe + re-seed photos so the sample set stays clean across re-runs. Safe
-  // until the admin photo manager ships and real photos start landing — at
-  // that point this block should switch to upserts keyed on url.
-  if (photosData.length > 0) {
-    await prisma.meetupPhoto.deleteMany({})
-    await prisma.meetupPhoto.createMany({ data: photosData })
-    console.log(`✅ Meetup photos: ${photosData.length} seeded`)
-  } else {
-    console.log(`⚠ No events found to attach sample photos to — skipped.`)
-  }
+  // No stock/placeholder photos are seeded. Real meetup photos are uploaded
+  // and captioned through the admin photo manager (/admin/photos) — seeding
+  // fabricated captions on stock imagery misrepresents events that actually
+  // happened, so this block intentionally seeds nothing.
 
   // ─── Blog Posts ───────────────────────────────────────────────────────────
   const blogData = [
