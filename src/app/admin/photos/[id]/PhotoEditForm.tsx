@@ -40,7 +40,7 @@ export function PhotoEditForm({ photo, events }: { photo: Photo; events: EventOp
       caption: (form.get("caption") as string) || null,
       alt: (form.get("alt") as string) || null,
       photographer: (form.get("photographer") as string) || null,
-      eventId: (form.get("eventId") as string) || null,
+      eventId: form.get("eventId") as string,
       featured: form.get("featured") === "on",
       order: Number(form.get("order") ?? 0),
       takenAt: takenAtRaw ? new Date(takenAtRaw).toISOString() : null,
@@ -103,14 +103,22 @@ export function PhotoEditForm({ photo, events }: { photo: Photo; events: EventOp
           <label className="block text-[11px] font-mono text-[#555] mb-1.5">Event</label>
           <select
             name="eventId"
+            required
             defaultValue={photo.eventId ?? ""}
             className="w-full bg-[#111] border border-[#1e1e1e] rounded px-3 py-2 text-sm font-mono text-[#ccc] focus:outline-none focus:border-[#00ff41]/50 transition-colors"
           >
-            <option value="">— general / no event —</option>
+            {!photo.eventId && (
+              <option value="" disabled>
+                Select an event…
+              </option>
+            )}
             {events.map(ev => (
               <option key={ev.id} value={ev.id}>{ev.title}</option>
             ))}
           </select>
+          <p className="mt-1 text-[11px] font-mono text-[#444]">
+            /gallery is an index of event albums — a photo with no event has no page to appear on.
+          </p>
         </div>
 
         <TextareaField label="Caption" name="caption" defaultValue={photo.caption ?? ""} rows={2} />

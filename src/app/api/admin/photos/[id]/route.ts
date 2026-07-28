@@ -13,7 +13,11 @@ const updateSchema = z.object({
   alt: z.string().max(500).optional().nullable().transform(v => v ? zodSanitizeMultilineText(500)(v) : null),
   caption: z.string().max(1000).optional().nullable().transform(v => v ? zodSanitizeMultilineText(1000)(v) : null),
   photographer: z.string().max(100).optional().nullable().transform(v => v ? zodSanitizeString(v) : null),
-  eventId: z.string().optional().nullable(),
+  // Not nullable: /gallery is purely an index of event albums, so clearing a
+  // photo's event via edit would make it invisible on every page — the same
+  // silently-swallowed photo the upload form closed off. Optional so
+  // metadata-only PATCHes that don't touch the event still work.
+  eventId: z.string().min(1).optional(),
   featured: z.boolean().optional(),
   order: z.number().int().min(0).optional(),
   takenAt: z.string().datetime().optional().nullable().transform(v => v ? new Date(v) : null),
