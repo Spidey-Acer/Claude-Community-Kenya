@@ -168,13 +168,13 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                         />
                         <div
                           aria-hidden="true"
-                          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/80 via-ink/30 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-scrim/80 via-scrim/30 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                         />
                       </div>
                       {(photo.caption || photo.event) && (
                         <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 px-4 py-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                           {photo.caption && (
-                            <p className="line-clamp-2 font-inter text-[13px] leading-snug text-paper-card">
+                            <p className="line-clamp-2 font-inter text-[13px] leading-snug text-scrim-text">
                               {photo.caption}
                             </p>
                           )}
