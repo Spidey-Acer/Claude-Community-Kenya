@@ -712,6 +712,20 @@ model ImpactLabMatchRun {
   /// deadline. Editable by an organiser so a slipped demo slot needs a field
   /// change, not a database edit.
   submissionsCloseAt   DateTime?
+  /// Set by mark-final. Once non-null, no further scores may be written —
+  /// the judging route rejects writes rather than silently accepting a score
+  /// that can never reach the published result.
+  judgingClosedAt      DateTime?
+  /// When results were published to participants. Non-null means the result
+  /// is immutable: everything participants see is served from resultsSnapshot.
+  resultsPublishedAt   DateTime?
+  /// The winners as announced in the room, stored verbatim. Never recomputed —
+  /// the panel deliberated, and arithmetic does not reproduce their decision.
+  announcedWinners     Json?
+  /// The exact ResultsSnapshot that was published. Served as-is so a later
+  /// score correction or submission edit cannot rewrite what people read.
+  resultsSnapshot      Json?
+  resultsEmails        ImpactLabResultsEmail[]
   submissions          ImpactLabSubmission[]
   scores               ImpactLabScore[]
   createdById          String?
@@ -785,6 +799,11 @@ model ImpactLabScore {
   judgeName  String
   scores     Json
   feedback   String?  @db.Text
+  /// True when this score came from reading the written submission rather than
+  /// watching a live demo. The demo criterion is 25% of the weight and asks
+  /// whether the thing ran in front of you, so the basis must travel with the
+  /// score wherever it is shown.
+  writeupOnly Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -795,4 +814,25 @@ model ImpactLabScore {
   @@unique([runId, teamId, judgeEmail])
   @@index([cohort, teamId])
   @@map("impact_lab_scores")
+}
+
+/// One row per intended recipient of the results email. This is what makes the
+/// send idempotent: Resend's quota is 100/day and there are 93 recipients, so a
+/// careless retry exceeds it. A resend selects status <> 'sent' only.
+model ImpactLabResultsEmail {
+  id            String    @id @default(cuid())
+  runId         String
+  participantId String
+  email         String
+  /// queued | sent | failed
+  status        String    @default("queued")
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, participantId])
+  @@index([runId, status])
+  @@map("impact_lab_results_emails")
 }

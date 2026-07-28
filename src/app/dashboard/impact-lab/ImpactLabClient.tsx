@@ -19,6 +19,7 @@ import type {
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { MatchProfileForm } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
+import { ResultsView, type ResultsViewProps } from "./ResultsView";
 
 interface ProfileResponse {
   success?: boolean;
@@ -34,13 +35,22 @@ interface TeamResponse {
   error?: string;
 }
 
+interface ResultsResponse {
+  success?: boolean;
+  published?: boolean;
+  results?: ResultsViewProps["results"];
+  yourTeam?: ResultsViewProps["yourTeam"];
+  error?: string;
+}
+
 type Phase =
   | "loading"
   | "error"
   | "not-registered"
   | "profile"
   | "unassigned"
-  | "revealed";
+  | "revealed"
+  | "results";
 
 /**
  * Client state machine for /dashboard/impact-lab. The server page has already
@@ -52,18 +62,53 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
+  const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetch("/api/impact-lab/profile"), fetch("/api/impact-lab/team")])
-      .then(async ([profileRes, teamRes]) => {
+    Promise.all([
+      fetch("/api/impact-lab/profile"),
+      fetch("/api/impact-lab/team"),
+      // Caught here, not left to reject Promise.all: the results endpoint is
+      // rate-limited per client IP (100/60s), and hackathon venues put dozens
+      // of participants behind one NAT address. A burst right after the
+      // results email goes out can 429 this single fetch — that must not
+      // black out profile/team, which have nothing to do with results.
+      fetch("/api/impact-lab/results").catch(() => null),
+    ])
+      .then(async ([profileRes, teamRes, resultsRes]) => {
         const profileJson: ProfileResponse = await profileRes.json();
         const teamJson: TeamResponse = await teamRes.json();
+        // Soft-fail only: a missing/non-ok/malformed results response
+        // degrades to "not published yet" instead of failing the page.
+        // Profile and team below keep their existing all-or-nothing checks.
+        let resultsJson: ResultsResponse = { success: true, published: false };
+        if (resultsRes && resultsRes.ok) {
+          try {
+            const parsed: ResultsResponse = await resultsRes.json();
+            if (parsed.success) resultsJson = parsed;
+          } catch {
+            // Malformed body — treat as not published, same as a 429.
+          }
+        }
         if (!active) return;
-        if (!profileRes.ok || !profileJson.success || !teamRes.ok || !teamJson.success) {
+        if (
+          !profileRes.ok ||
+          !profileJson.success ||
+          !teamRes.ok ||
+          !teamJson.success
+        ) {
           setPhase("error");
+          return;
+        }
+
+        // Results published takes precedence over the team reveal — once
+        // results are out, the hackathon is over and this is what matters.
+        if (resultsJson.published && resultsJson.results) {
+          setResults({ results: resultsJson.results, yourTeam: resultsJson.yourTeam });
+          setPhase("results");
           return;
         }
 
@@ -117,6 +162,10 @@ export function ImpactLabClient({ sessionEmail }: { sessionEmail: string }) {
         </button>
       </div>
     );
+  }
+
+  if (phase === "results" && results) {
+    return <ResultsView results={results.results} yourTeam={results.yourTeam} />;
   }
 
   if (phase === "revealed" && team) {

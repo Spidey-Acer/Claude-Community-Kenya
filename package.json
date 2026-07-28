@@ -16,6 +16,7 @@
     "verify:submissions": "tsx scripts/verify-submissions.ts",
     "verify:rematch": "tsx scripts/verify-rematch.ts",
     "verify:judging": "tsx scripts/verify-judging.ts",
+    "verify:results": "tsx scripts/verify-results.ts",
     "import:manual-teams": "tsx scripts/import-manual-teams.ts"
   },
   "prisma": {
