@@ -258,6 +258,10 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
     { header: "Video URL", key: "videoUrl", width: 30 },
     { header: "Slides URL", key: "slidesUrl", width: 30 },
     { header: "Scoring basis", key: "scoringBasis", width: 30, wrap: true },
+    // The approved community review — signed feedback from the host
+    // community, never judge commentary; the header says whose words these
+    // are so the label travels with any copy of the sheet.
+    { header: "Impact Lab review (Claude Community Kenya)", key: "communityReview", width: 70, wrap: true },
   ]
   const sheet = addSheet(workbook, "Submissions", columns, { autoFilter: true })
 
@@ -279,6 +283,7 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
       videoUrl: s.videoUrl ?? "",
       slidesUrl: s.slidesUrl ?? "",
       scoringBasis: team.scoredFromWriteup ? WRITEUP_NOTE : "Scored at the table (live demo).",
+      communityReview: team.communityReview ?? "",
     })
     row.height = estimateRowHeight([
       { text: s.pitch, width: 46 },
@@ -286,6 +291,7 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
       { text: s.description, width: 56 },
       { text: s.worksVsMocked, width: 46 },
       { text: s.claudeUsage, width: 46 },
+      { text: team.communityReview ?? "", width: 70 },
     ])
     if (team.scoredFromWriteup) {
       row.getCell("scoringBasis").font = { size: 9, color: { argb: AMBER_TEXT } }

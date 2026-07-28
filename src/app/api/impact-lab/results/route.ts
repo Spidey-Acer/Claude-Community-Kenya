@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
-import { buildMemberPayload, type ResultsSnapshot } from "@/lib/impact-lab/results"
+import {
+  buildMemberPayload,
+  type ResultsSnapshot,
+  type TeamFeedback,
+} from "@/lib/impact-lab/results"
+import { presentableJudgeNote, publishableReview } from "@/lib/impact-lab/reviews"
 
 /**
  * The published result, for one participant.
@@ -31,7 +36,7 @@ export async function GET(request: NextRequest) {
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort: DEFAULT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
-    select: { result: true, resultsPublishedAt: true, resultsSnapshot: true },
+    select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
   })
 
   // Never leak an unpublished snapshot — including its mere existence.
@@ -53,5 +58,33 @@ export async function GET(request: NextRequest) {
     viewerTeamId = team?.id ?? null
   }
 
-  return NextResponse.json(buildMemberPayload(snapshot, viewerTeamId))
+  // Written feedback for the viewer's own team only — queried by teamId, so
+  // no other team's words are ever even loaded. Two separate streams with
+  // separate provenance: a judge's quoted note (spelling/casing corrected via
+  // presentableJudgeNote, never reworded) and the community's review, which
+  // reaches a participant only once the organiser has approved it
+  // (publishableReview — the gate every participant surface goes through).
+  // Read live rather than from the frozen snapshot: reviews are written and
+  // approved after publication, and withholding them until a hypothetical
+  // second publish would leave teams with numbers and silence again.
+  let feedback: TeamFeedback | undefined
+  if (viewerTeamId) {
+    const [scoreRows, reviewRow] = await Promise.all([
+      prisma.impactLabScore.findMany({
+        where: { runId: run.id, teamId: viewerTeamId, feedback: { not: null } },
+        select: { judgeName: true, feedback: true },
+      }),
+      prisma.impactLabTeamReview.findUnique({
+        where: { runId_teamId: { runId: run.id, teamId: viewerTeamId } },
+        select: { text: true, approvedAt: true },
+      }),
+    ])
+    const judgeNotes = scoreRows.flatMap((row) => {
+      const text = presentableJudgeNote(row.feedback)
+      return text === null ? [] : [{ judgeName: row.judgeName, text }]
+    })
+    feedback = { judgeNotes, review: publishableReview(reviewRow) }
+  }
+
+  return NextResponse.json(buildMemberPayload(snapshot, viewerTeamId, feedback))
 }

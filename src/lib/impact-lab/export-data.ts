@@ -80,6 +80,21 @@ export interface SourceScore {
   writeupOnly: boolean
 }
 
+/**
+ * An APPROVED community review for one team — the organiser-read text that
+ * also reaches the team's dashboard and results email. The loader must gate
+ * rows through `publishableReview` (@/lib/impact-lab/reviews) before handing
+ * them in; an unapproved draft never enters an artefact that leaves the
+ * building. Where a team has one of these, it is the canonical written text
+ * about that project — any machine-written fallback analysis must be skipped
+ * for that team, and the two must never share a label (this is the
+ * community's signed feedback; an analysis is not).
+ */
+export interface SourceReview {
+  teamId: string
+  text: string
+}
+
 export interface ExportSource {
   cohort: string
   publishedAt: string | null
@@ -88,6 +103,8 @@ export interface ExportSource {
   participants: SourceParticipant[]
   submissions: SourceSubmission[]
   scores: SourceScore[]
+  /** Approved community reviews only — see SourceReview. */
+  reviews: SourceReview[]
 }
 
 // ─── Assembled export ────────────────────────────────────────────────────────
@@ -150,6 +167,12 @@ export interface ExportTeam {
   scoredFromWriteup: boolean
   isTrackWinner: boolean
   isChampion: boolean
+  /**
+   * The approved community review, signed "Claude Community Kenya", or null
+   * when none is approved yet. When present this is the canonical written
+   * text about the project in both artefacts.
+   */
+  communityReview: string | null
 }
 
 export interface ExportWinner {
@@ -304,6 +327,7 @@ function toJudgeScore(score: SourceScore): ExportJudgeScore {
 export function buildResultsExport(source: ExportSource, now: Date = new Date()): ResultsExport {
   const participantById = new Map(source.participants.map((p) => [p.id, p]))
   const submissionByTeam = new Map(source.submissions.map((s) => [s.teamId, s]))
+  const reviewByTeam = new Map(source.reviews.map((r) => [r.teamId, r.text]))
 
   const scoresByTeam = new Map<string, SourceScore[]>()
   for (const score of source.scores) {
@@ -415,6 +439,7 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
       scoredFromWriteup,
       isTrackWinner: trackWinnerTeamIds.has(team.id),
       isChampion: team.id === championTeamId,
+      communityReview: reviewByTeam.get(team.id) ?? null,
     }
   })
 

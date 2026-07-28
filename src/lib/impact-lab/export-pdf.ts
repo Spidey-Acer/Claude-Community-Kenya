@@ -32,6 +32,7 @@ import {
   type ExportTeam,
   type ResultsExport,
 } from "./export-data"
+import { REVIEW_PROVENANCE, REVIEW_SIGNATURE } from "./reviews"
 import { ANALYSIS_LABEL, ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 import {
   drawDotRows,
@@ -1184,8 +1185,35 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
 }
 
 /**
- * One profile per team, each starting on a fresh page: identity, roster,
- * the labelled analysis, the submission verbatim, then judging.
+ * The approved community review, printed under the community's own name.
+ * Distinct label and an explicit provenance line, so these words can never
+ * be read as judge commentary — judge words render only in renderFeedback,
+ * under the judge who wrote them.
+ */
+function renderCommunityReview(doc: Doc, team: ExportTeam): void {
+  if (team.communityReview === null) return
+  const body = team.communityReview
+  doc.font(SANS).fontSize(9)
+  ensureSpace(doc, 34 + doc.heightOfString(body, { width: CONTENT_WIDTH, lineGap: 2 }))
+  // `kicker` is the redesign's section-label primitive; the reviews branch was
+  // written against `sectionLabel`, which that rebuild replaced.
+  kicker(doc, `Impact Lab review — ${REVIEW_SIGNATURE}`)
+  doc
+    .font(SANS)
+    .fontSize(9)
+    .fillColor(INK)
+    .text(body, MARGIN, doc.y, { width: CONTENT_WIDTH, lineGap: 2, paragraphGap: 5 })
+  doc
+    .font(SANS_ITALIC)
+    .fontSize(7.5)
+    .fillColor(FAINT)
+    .text(REVIEW_PROVENANCE, MARGIN, doc.y + 4, { width: CONTENT_WIDTH, lineGap: 2 })
+  doc.moveDown(0.8)
+}
+
+/**
+ * One profile per team, each starting on a fresh page: identity, roster, the
+ * written feedback, the submission verbatim, then judging.
  */
 function renderTeamProfile(
   doc: Doc,
@@ -1257,7 +1285,12 @@ function renderTeamProfile(
   if (team.scoredFromWriteup) callout(doc, WRITEUP_NOTE)
 
   renderMembers(doc, team)
-  if (analysis) renderAnalysis(doc, analysis)
+  // The community's approved review is the canonical written feedback, so it
+  // wins wherever one exists; the generated analysis is the fallback for a
+  // team not yet reviewed. Printing both would hand one team two different
+  // write-ups of the same project, under two different signatures.
+  if (team.communityReview !== null) renderCommunityReview(doc, team)
+  else if (analysis) renderAnalysis(doc, analysis)
   renderSubmission(doc, team)
   renderJudging(doc, team)
 }

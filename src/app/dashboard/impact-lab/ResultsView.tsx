@@ -8,7 +8,10 @@ import type {
   PublicRankedTeam,
   ResultsTrackWinner,
   TeamCard,
+  TeamReviewPayload,
 } from "@/lib/impact-lab/results";
+import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
+import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
 
 export interface ResultsViewProps {
   results: {
@@ -21,6 +24,8 @@ export interface ResultsViewProps {
     teamId: string;
     projectName: string;
     card: TeamCard;
+    judgeNotes?: TeamJudgeNote[];
+    review?: TeamReviewPayload;
   };
 }
 
@@ -207,6 +212,47 @@ export function ResultsView({ results, yourTeam }: ResultsViewProps) {
               Score range across judges: {yourTeam.card.low.toFixed(1)}–
               {yourTeam.card.high.toFixed(1)}
             </p>
+          )}
+
+          {/* Written feedback. Two streams with two provenances, kept visibly
+              apart: a judge's own note is quoted under that judge's name; the
+              community review is signed by the community and says so. Nothing
+              here ever presents generated words as a judge's. */}
+          {yourTeam.judgeNotes && yourTeam.judgeNotes.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {yourTeam.judgeNotes.map((note) => (
+                <figure
+                  key={`${note.judgeName}-${note.text.slice(0, 24)}`}
+                  className="rounded border border-amber/30 bg-amber/5 p-4"
+                >
+                  <figcaption className="font-mono text-[11px] uppercase tracking-wider text-amber">
+                    Judge&apos;s note — {note.judgeName}
+                  </figcaption>
+                  <blockquote className="mt-2 whitespace-pre-line text-sm italic leading-relaxed text-text-primary">
+                    &ldquo;{note.text}&rdquo;
+                  </blockquote>
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {yourTeam.review && (
+            <div className="mt-6 rounded border border-border-default bg-bg-card p-5">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-cyan">
+                Impact Lab review
+              </p>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-text-secondary">
+                {yourTeam.review.text.split(/\n\n+/).map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
+              <p className="mt-4 font-mono text-xs text-text-primary">
+                — {yourTeam.review.signedBy}
+              </p>
+              <p className="mt-1 font-mono text-[11px] leading-relaxed text-text-dim">
+                {REVIEW_PROVENANCE}
+              </p>
+            </div>
           )}
         </motion.section>
       )}

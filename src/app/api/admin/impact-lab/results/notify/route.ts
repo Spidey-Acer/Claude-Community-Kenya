@@ -8,6 +8,7 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { isResultsSnapshot } from "@/lib/impact-lab/results"
+import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailItem } from "@/lib/email"
 
 /**
@@ -238,6 +239,19 @@ export async function POST(request: NextRequest) {
   })
   const nameById = new Map(participants.map((p) => [p.id, p.fullName]))
 
+  // Written feedback (judge notes + approved community review) for every team
+  // in this batch, in one query pair — same gates as the dashboard, so an
+  // email can never carry words its team's dashboard would not show.
+  const batchTeamIds = [
+    ...new Set(
+      lockedRows.flatMap((row) => {
+        const team = run.teams.find((t) => t.memberIds.includes(row.participantId))
+        return team ? [team.id] : []
+      })
+    ),
+  ]
+  const feedbackByTeam = await loadTeamFeedback(prisma, run.runId, batchTeamIds)
+
   const sendable: { row: LockedRow; item: BatchEmailItem }[] = []
   const unmatched: { row: LockedRow; error: string }[] = []
 
@@ -262,6 +276,8 @@ export async function POST(request: NextRequest) {
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
       dashboardUrl,
+      judgeNotes: feedbackByTeam.get(team.id)?.judgeNotes ?? [],
+      communityReview: feedbackByTeam.get(team.id)?.review ?? null,
     })
     sendable.push({ row, item: { to: row.email, subject: built.subject, html: built.html } })
   }
