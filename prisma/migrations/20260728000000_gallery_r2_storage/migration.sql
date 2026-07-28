@@ -15,10 +15,19 @@
 -- data commits to it; bundleGeneratedAt is compared against the album's newest
 -- photo to spot a stale bundle.
 --
+-- meetup_photos.sourceFilename tracks the camera filename a row was
+-- backfilled from, so an interrupted backfill run can tell what already
+-- landed and resume instead of duplicating. It exists only for that resume
+-- check — never rendered, unlike caption, which the original backfill script
+-- was reusing for this and which KaribuAlbum shows as the hover overlay and
+-- button aria-label. Reusing caption meant a raw camera filename shipped as
+-- a public description and screen-reader label for every backfilled photo.
+--
 -- Additive only — every column is nullable with no default, so this is safe to
 -- apply ahead of the code deploy and safe to roll back by ignoring it.
 
 ALTER TABLE "meetup_photos" ADD COLUMN "storageKey" TEXT;
+ALTER TABLE "meetup_photos" ADD COLUMN "sourceFilename" TEXT;
 
 ALTER TABLE "events" ADD COLUMN "bundleKey" TEXT;
 ALTER TABLE "events" ADD COLUMN "bundleBytes" INTEGER;

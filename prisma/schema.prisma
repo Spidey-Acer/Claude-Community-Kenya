@@ -347,6 +347,11 @@ model MeetupPhoto {
   thumbnailUrl  String?
   alt           String?  @db.Text
   caption       String?  @db.Text
+  /// Source filename from the R2 backfill script (e.g. "IMG_2384.JPG"), used
+  /// only so an interrupted run can tell which files already landed and
+  /// resume instead of duplicating. Never rendered — `caption` is the public
+  /// field for that, and a camera filename is not a caption.
+  sourceFilename String? @db.Text
   photographer  String?
   /// Curated "best of" filter — shown first on /gallery and used for
   /// the homepage social proof if we ever want a "wall of community".

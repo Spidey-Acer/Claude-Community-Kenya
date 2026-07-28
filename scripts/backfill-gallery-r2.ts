@@ -24,8 +24,12 @@
  * R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL); the adapter throws
  * naming whichever is missing.
  *
- * Re-runnable: it skips files whose name already appears as a caption-free
- * row for this event, so an interrupted run resumes instead of duplicating.
+ * Re-runnable: it skips files whose name already appears in sourceFilename
+ * for this event, so an interrupted run resumes instead of duplicating.
+ * sourceFilename is a resume marker only, never rendered — reusing caption
+ * for this (an earlier version of this script did) meant every backfilled
+ * photo shipped its raw camera filename as a public caption and the grid
+ * button's aria-label.
  *
  * Alternative for a pure object load with no database rows (not what you want
  * for the gallery, but useful for one-off assets):
@@ -102,12 +106,12 @@ async function main() {
     }
 
     // Resume support: a previous run's rows carry the source filename in
-    // caption, so we can tell what already landed.
+    // sourceFilename, so we can tell what already landed.
     const existing = await prisma.meetupPhoto.findMany({
       where: { eventId: event.id, storageKey: { not: null } },
-      select: { caption: true },
+      select: { sourceFilename: true },
     })
-    const done = new Set(existing.map((p) => p.caption).filter(Boolean) as string[])
+    const done = new Set(existing.map((p) => p.sourceFilename).filter(Boolean) as string[])
 
     const pending = files.filter((f) => !done.has(f))
 
@@ -129,8 +133,11 @@ async function main() {
         data: {
           url: "",
           thumbnailUrl: null,
-          // Source filename, so a re-run knows this one is already in.
-          caption: file,
+          // Source filename, so a re-run knows this one is already in. Not
+          // caption — that is public-facing, and a camera filename is not a
+          // caption or a screen-reader label.
+          sourceFilename: file,
+          caption: null,
           alt: null,
           eventId: event.id,
           featured: false,
