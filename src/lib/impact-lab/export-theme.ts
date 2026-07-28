@@ -26,8 +26,16 @@ export const SLATE_BLUE = "#6a9bcc"
 export const OLIVE = "#788c5d"
 /** Secondary text. */
 export const DIM = "#57554d"
-/** Tertiary text — captions, page furniture. */
-export const FAINT = "#8a887f"
+/**
+ * Tertiary text — captions, page furniture.
+ *
+ * Darkened from #8a887f, which rendered at 3.37:1 on PAPER, 3.10:1 on
+ * CALLOUT_BG and 2.84:1 on TRACK — below WCAG AA at every size it is used
+ * (7pt–8.5pt captions, axis labels and footers, never large text). #68665e
+ * clears 4.5:1 on all three backdrops while staying visibly lighter than
+ * DIM, so the INK > DIM > FAINT hierarchy is unchanged.
+ */
+export const FAINT = "#68665e"
 /** Mid gray — Anthropic's secondary element tone. */
 export const MID_GRAY = "#b0aea5"
 /** Subtle fill — chart tracks, zebra tints. Anthropic light gray. */
