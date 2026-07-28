@@ -29,7 +29,11 @@ import {
  * you. No demo was seen, so the draft says so plainly instead of guessing, and
  * `writeupOnly` travels with the score wherever it is displayed.
  */
-export const maxDuration = 60
+// The platform default is 300s. This route reads a submission, calls a model
+// for ten fields, and may retry — a 60s ceiling turned a slow generation into
+// a killed function, which reaches the browser as an HTML gateway error the
+// route's own error handling never gets to replace.
+export const maxDuration = 300
 
 const MODEL = "claude-sonnet-5"
 const anthropic = createAnthropic()
@@ -165,7 +169,31 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ success: true, data: { teams: awaiting } })
 }
 
+/**
+ * Any unhandled throw here reaches the browser as an HTML gateway page, and
+ * the caller's `res.json()` then fails with "Unexpected token '<'" — which
+ * says nothing about what actually broke. Wrapping the handler means a
+ * failure arrives as readable JSON naming its own cause.
+ */
 export async function POST(request: NextRequest) {
+  try {
+    return await handlePost(request)
+  } catch (error) {
+    console.error("[judging/writeup] unhandled failure", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? `Writeup scoring failed: ${error.message}`
+            : "Writeup scoring failed for an unknown reason.",
+      },
+      { status: 500 }
+    )
+  }
+}
+
+async function handlePost(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 

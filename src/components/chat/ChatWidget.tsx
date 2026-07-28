@@ -9,34 +9,6 @@ import { MessageCircle } from "lucide-react";
 
 const WIDGET_OPEN_KEY = "cck-chat-open";
 
-function DevCloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="group absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center font-mono text-green-dim transition-all hover:text-red"
-      aria-label="Close chat"
-      title="Close"
-    >
-      <span className="text-xs opacity-60 group-hover:opacity-100">[x]</span>
-    </button>
-  );
-}
-
-function ProCloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="group absolute right-2.5 top-2.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-text-dim/20 transition-all hover:bg-red/30"
-      aria-label="Close chat"
-      title="Close"
-    >
-      <svg className="h-2.5 w-2.5 text-text-secondary group-hover:text-red" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M2 2l6 6M8 2l-6 6" />
-      </svg>
-    </button>
-  );
-}
-
 export function ChatWidget() {
   const { skin, isLoaded } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
@@ -81,12 +53,12 @@ export function ChatWidget() {
                 : "rounded-2xl border border-border-default bg-bg-primary/95 backdrop-blur-md"
             )}
           >
-            {isDev ? (
-              <DevCloseButton onClick={() => setIsOpen(false)} />
-            ) : (
-              <ProCloseButton onClick={() => setIsOpen(false)} />
-            )}
-
+            {/*
+              No close button in the panel corner: the floating bubble below
+              already turns into an ✕ while the panel is open, so a second
+              control for the same action sat two inches away from the first
+              and overlapped the panel header.
+            */}
             <ChatPanel />
           </motion.div>
         )}
