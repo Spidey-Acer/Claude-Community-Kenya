@@ -165,7 +165,7 @@ claude "/commit"
 
 - **Website:** https://www.claudekenya.org
 - **Discord:** https://discord.gg/CkD9QWjsHm
-- **WhatsApp:** https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa
+- **WhatsApp:** https://chat.whatsapp.com/HSNkqvKklyZBvI3zcpEMhX
 - **Nairobi Events:** https://luma.com/sbsa789m
 - **Mombasa Events:** https://luma.com/vsf5re14
 - **Anthropic Courses:** https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview

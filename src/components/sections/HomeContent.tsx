@@ -23,7 +23,7 @@ import { TerminalWindow } from "@/components/terminal";
 import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 import { PersonaCTA, PersonaSection } from "@/components/persona/ProWrappers";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import type { CommunityStats, FeedItem } from "@/components/sections/HeroTerminal";
 
 interface HomeContentProps {
@@ -75,19 +75,38 @@ const whatWeDoItems = [
   },
 ];
 
-const joinPathways = [
-  {
-    icon: MessageSquare,
-    title: "Join Discord",
-    description:
-      "Our primary community hub. Get help, share projects, find collaborators, and stay updated on everything Claude in Kenya.",
-    href: SOCIAL_LINKS.discord,
-    isPrimary: true,
-    cta: "JOIN_DISCORD",
-    proCta: "Join Discord",
-    external: true,
-  },
-  {
+interface JoinPathway {
+  icon: typeof MessageSquare;
+  title: string;
+  description: string;
+  href: string;
+  isPrimary: boolean;
+  cta: string;
+  proCta: string;
+  external: boolean;
+}
+
+// Discord/Twitter hrefs come from useSocialLinks() at render time (see
+// buildJoinPathways below) — an unconfigured platform drops its card
+// instead of linking nowhere.
+function buildJoinPathways(discordUrl: string | null, twitterUrl: string | null): JoinPathway[] {
+  const pathways: JoinPathway[] = [];
+
+  if (discordUrl) {
+    pathways.push({
+      icon: MessageSquare,
+      title: "Join Discord",
+      description:
+        "Our primary community hub. Get help, share projects, find collaborators, and stay updated on everything Claude in Kenya.",
+      href: discordUrl,
+      isPrimary: true,
+      cta: "JOIN_DISCORD",
+      proCta: "Join Discord",
+      external: true,
+    });
+  }
+
+  pathways.push({
     icon: Calendar,
     title: "Attend an Event",
     description:
@@ -97,22 +116,29 @@ const joinPathways = [
     cta: "VIEW_EVENTS",
     proCta: "View Events",
     external: false,
-  },
-  {
-    icon: Share2,
-    title: "Follow Us",
-    description:
-      "Stay in the loop on Twitter and LinkedIn for event announcements, community highlights, and tips.",
-    href: SOCIAL_LINKS.twitter,
-    isPrimary: false,
-    cta: "FOLLOW_US",
-    proCta: "Follow Us",
-    external: true,
-  },
-];
+  });
+
+  if (twitterUrl) {
+    pathways.push({
+      icon: Share2,
+      title: "Follow Us",
+      description:
+        "Stay in the loop on Twitter and LinkedIn for event announcements, community highlights, and tips.",
+      href: twitterUrl,
+      isPrimary: false,
+      cta: "FOLLOW_US",
+      proCta: "Follow Us",
+      external: true,
+    });
+  }
+
+  return pathways;
+}
 
 export function HomeContent({ communityStats, feedItems, upcomingEvents, featuredProjects, audienceState, recommendables, projectOfTheWeek }: HomeContentProps) {
   const { skin } = useSkin();
+  const { discord, twitter } = useSocialLinks();
+  const joinPathways = buildJoinPathways(discord, twitter);
   const isPro = skin === "pro";
 
   return (

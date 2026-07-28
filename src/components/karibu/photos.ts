@@ -2,25 +2,18 @@
  * Shared real-photo helpers for the Karibu pages.
  *
  * Optimized event photos live in /public/images/community (see _manifest.json).
- * When a DB event has no posterUrl, we fall back to a stable photo from the
- * pool (indexed, so the same card always shows the same image).
  */
 
 export const HERO_PHOTO = "/images/community/hero-crowd.webp";
 
-/** Landscape-ish community photos used for event covers when none is set. */
-export const COMMUNITY_PHOTOS = [
-  "/images/community/crowd-nairobi.webp",
-  "/images/community/workshop-space.webp",
-  "/images/community/mombasa-1.webp",
-  "/images/community/first-meetup.webp",
-  "/images/community/presenting.webp",
-  "/images/community/group-standing.webp",
-  "/images/community/audience.webp",
-  "/images/community/workshop-room.webp",
-  "/images/community/mombasa-2.webp",
-  "/images/community/networking.webp",
-] as const;
+/**
+ * What HERO_PHOTO actually depicts. Rendered as a visible credit on the hero,
+ * because an announcement chip sits on this photo and without a credit the
+ * chip reads as a caption — which is how a Mombasa crowd spent a week on the
+ * homepage implying it was a Nairobi hackathon. If you swap the photo above,
+ * update this line in the same commit.
+ */
+export const HERO_PHOTO_CREDIT = "Mombasa AI & Career Talk";
 
 /** Portrait/gallery photos for the community-in-action collage. */
 export const GALLERY_PHOTOS = {
@@ -29,7 +22,19 @@ export const GALLERY_PHOTOS = {
   bottomRight: "/images/community/group-standing.webp",
 } as const;
 
-/** Deterministic cover for an event: its own poster, else a pooled photo. */
-export function eventCover(posterUrl: string | undefined, index: number): string {
-  return posterUrl || COMMUNITY_PHOTOS[index % COMMUNITY_PHOTOS.length];
+/**
+ * An event's cover photo — but only its own. There used to be a pooled
+ * fallback here that handed an event with no posterUrl a photo from a
+ * shared community pool, indexed by card position. That meant a real photo
+ * of real people at one meetup could end up captioned with a *different*
+ * event's name — which is exactly what happened on the live site (a
+ * Mombasa crowd shown as the Nairobi hackathon). A stock-photo-style
+ * misattribution, except the photo was real, which made it worse.
+ *
+ * So: no fallback. If an event has no posterUrl, render
+ * `<EventCoverPlaceholder />` instead of a photo. Do not reinstate a pool
+ * here — add the event's real poster instead.
+ */
+export function eventCover(posterUrl: string | undefined | null): string | null {
+  return posterUrl ?? null;
 }

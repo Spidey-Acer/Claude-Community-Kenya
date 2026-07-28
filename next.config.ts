@@ -3,8 +3,10 @@ import type { NextConfig } from "next"
 const nextConfig: NextConfig = {
   // sharp and archiver are native/stream-heavy and must not be bundled by the
   // server compiler — sharp in particular resolves a platform binary at
-  // runtime, which webpack cannot follow.
-  serverExternalPackages: ["bcryptjs", "sharp", "archiver"],
+  // runtime, which webpack cannot follow. pdfkit reads its built-in font
+  // metrics from node_modules at runtime and exceljs is a large CJS tree —
+  // both must stay external to the bundle too.
+  serverExternalPackages: ["bcryptjs", "sharp", "archiver", "pdfkit", "exceljs"],
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },

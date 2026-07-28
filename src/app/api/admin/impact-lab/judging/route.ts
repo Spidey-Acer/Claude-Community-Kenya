@@ -161,11 +161,24 @@ export async function POST(request: NextRequest) {
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
-    select: { id: true, result: true },
+    select: { id: true, result: true, judgingClosedAt: true },
   })
   if (!run) {
     return NextResponse.json(
       { success: false, error: "No final run to judge against." },
+      { status: 409 }
+    )
+  }
+
+  // Once results are published, a new score can never reach them. Accepting the
+  // write anyway would tell a judge their scoring counted when it did not.
+  if (run.judgingClosedAt) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Judging is closed — results have been published.",
+        code: "JUDGING_CLOSED",
+      },
       { status: 409 }
     )
   }

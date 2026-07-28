@@ -478,6 +478,19 @@ model SiteSettings {
   websiteStatus    String   @default("live")
   updatedAt        DateTime @updatedAt
 
+  /// Social links, admin-configurable. Nullable = "not configured": the
+  /// accessor (src/lib/social-links.ts) falls back to the hardcoded constant
+  /// in src/lib/constants.ts, then to absent. Never render a `#` placeholder.
+  whatsappUrl      String?
+  discordUrl       String?
+  twitterUrl       String?
+  linkedinUrl      String?
+  instagramUrl     String?
+  youtubeUrl       String?
+  githubUrl        String?
+  lumaNairobiUrl   String?
+  lumaMombasaUrl   String?
+
   @@map("site_settings")
 }
 
@@ -737,8 +750,23 @@ model ImpactLabMatchRun {
   /// deadline. Editable by an organiser so a slipped demo slot needs a field
   /// change, not a database edit.
   submissionsCloseAt   DateTime?
+  /// Set by mark-final. Once non-null, no further scores may be written —
+  /// the judging route rejects writes rather than silently accepting a score
+  /// that can never reach the published result.
+  judgingClosedAt      DateTime?
+  /// When results were published to participants. Non-null means the result
+  /// is immutable: everything participants see is served from resultsSnapshot.
+  resultsPublishedAt   DateTime?
+  /// The winners as announced in the room, stored verbatim. Never recomputed —
+  /// the panel deliberated, and arithmetic does not reproduce their decision.
+  announcedWinners     Json?
+  /// The exact ResultsSnapshot that was published. Served as-is so a later
+  /// score correction or submission edit cannot rewrite what people read.
+  resultsSnapshot      Json?
+  resultsEmails        ImpactLabResultsEmail[]
   submissions          ImpactLabSubmission[]
   scores               ImpactLabScore[]
+  teamReviews          ImpactLabTeamReview[]
   createdById          String?
   createdBy            User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
@@ -810,6 +838,11 @@ model ImpactLabScore {
   judgeName  String
   scores     Json
   feedback   String?  @db.Text
+  /// True when this score came from reading the written submission rather than
+  /// watching a live demo. The demo criterion is 25% of the weight and asks
+  /// whether the thing ran in front of you, so the basis must travel with the
+  /// score wherever it is shown.
+  writeupOnly Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -820,4 +853,68 @@ model ImpactLabScore {
   @@unique([runId, teamId, judgeEmail])
   @@index([cohort, teamId])
   @@map("impact_lab_scores")
+}
+
+/// One written review per team, from the community — not from any judge.
+///
+/// Three of the four judges left scores and no written feedback, so a team
+/// that built through the night would otherwise receive five numbers and
+/// silence. This row is the community's substantive review of that team's
+/// submission, signed "Claude Community Kenya" wherever it is shown. It is
+/// keyed per team (not per judge) precisely so it can never be mistaken for,
+/// or merged into, a judge's scorecard — judge words live only in
+/// ImpactLabScore.feedback, written by the judge named on that row.
+///
+/// Nothing publishes unapproved: every surface that shows `text` to a
+/// participant (dashboard, results email, exports) requires approvedAt to be
+/// non-null. Drafts are generated; the organiser edits, then approves.
+model ImpactLabTeamReview {
+  id      String @id @default(cuid())
+  cohort  String
+  runId   String
+  /// Team id from the run's result JSON — teams have no table, so no FK.
+  teamId  String
+  /// The review as it will publish. Starts as a generated draft; the
+  /// organiser may rewrite any of it before approving.
+  text    String @db.Text
+  /// Provenance of the current draft: the model id for generated text, or
+  /// the organiser's email once they have hand-written/edited it.
+  generatedBy String
+  /// Set when an organiser saves an edit. A non-null value protects the text:
+  /// regeneration refuses to overwrite it unless explicitly forced.
+  editedAt DateTime?
+  editedBy String?
+  /// The publish gate. Only reviews with approvedAt set reach participants.
+  approvedAt DateTime?
+  approvedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  /// One review per team per run: regeneration edits the row, never doubles it.
+  @@unique([runId, teamId])
+  @@index([cohort])
+  @@map("impact_lab_team_reviews")
+}
+
+/// One row per intended recipient of the results email. This is what makes the
+/// send idempotent: Resend's quota is 100/day and there are 93 recipients, so a
+/// careless retry exceeds it. A resend selects status <> 'sent' only.
+model ImpactLabResultsEmail {
+  id            String    @id @default(cuid())
+  runId         String
+  participantId String
+  email         String
+  /// queued | sent | failed
+  status        String    @default("queued")
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  run ImpactLabMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, participantId])
+  @@index([runId, status])
+  @@map("impact_lab_results_emails")
 }

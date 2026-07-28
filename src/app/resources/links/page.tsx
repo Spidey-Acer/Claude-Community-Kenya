@@ -8,6 +8,7 @@ import {
   getResourceCategories,
   getResourcesByCategory,
 } from "@/data/resources";
+import { getSocialLinks } from "@/lib/social-links";
 
 export const metadata: Metadata = {
   title: "Curated Links | Claude Community Kenya",
@@ -23,8 +24,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LinksPage() {
+export default async function LinksPage() {
   const categories = getResourceCategories();
+  const socialLinks = await getSocialLinks();
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-20">
@@ -155,23 +157,29 @@ export default function LinksPage() {
             Know a great Claude resource that should be listed here? Have a tool
             or tutorial to share? We welcome contributions from the community.
             Reach out on our{" "}
-            <a
-              href="https://discord.gg/CkD9QWjsHm"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan hover:underline"
-            >
-              Discord server
-            </a>
-            {", "}
-            <a
-              href="https://chat.whatsapp.com/Hpx42q1ADsrFNN3hHtZcQa"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan hover:underline"
-            >
-              WhatsApp group
-            </a>
+            {socialLinks.discord && (
+              <>
+                <a
+                  href={socialLinks.discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan hover:underline"
+                >
+                  Discord server
+                </a>
+                {socialLinks.whatsapp ? ", " : ""}
+              </>
+            )}
+            {socialLinks.whatsapp && (
+              <a
+                href={socialLinks.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan hover:underline"
+              >
+                WhatsApp group
+              </a>
+            )}
             {", or open a pull request on "}
             <a
               href="https://github.com/Spidey-Acer/Claude-Community-Kenya"

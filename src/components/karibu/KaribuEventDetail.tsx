@@ -15,10 +15,11 @@ import Image from "next/image";
 import { Twitter, Linkedin, Link as LinkIcon } from "lucide-react";
 import type { Event } from "@/lib/types";
 import type { DemoRequestView, PhotoView } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { PhotoLightbox } from "@/components/gallery/PhotoLightbox";
 import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm";
 import { eventCover } from "@/components/karibu/photos";
+import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -63,10 +64,12 @@ export function KaribuEventDetail({
   twitterShareUrl,
   linkedInShareUrl,
 }: KaribuEventDetailProps) {
+  const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
   const registerUrl = event.registrationUrl || event.lumaUrl;
   const soldOut = event.status === "sold-out";
   const isPast = event.status === "completed";
+  const cover = eventCover(event.posterUrl);
 
   return (
     <>
@@ -92,14 +95,18 @@ export function KaribuEventDetail({
             {event.description}
           </p>
           <div className="relative h-[240px] overflow-hidden rounded-[14px] border border-sand-2 sm:h-[340px]">
-            <Image
-              src={eventCover(event.posterUrl, 0)}
-              alt={event.title}
-              fill
-              priority
-              sizes="(max-width: 1180px) 100vw, 1100px"
-              className="object-cover"
-            />
+            {cover ? (
+              <Image
+                src={cover}
+                alt={event.title}
+                fill
+                priority
+                sizes="(max-width: 1180px) 100vw, 1100px"
+                className="object-cover"
+              />
+            ) : (
+              <EventCoverPlaceholder />
+            )}
           </div>
         </Reveal>
       </section>
@@ -260,14 +267,16 @@ export function KaribuEventDetail({
                 This event has ended
               </div>
             ) : soldOut ? (
-              <a
-                href={SOCIAL_LINKS.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-              >
-                Sold out — get notified
-              </a>
+              whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
+                >
+                  Sold out — get notified
+                </a>
+              )
             ) : (
               registerUrl && (
                 <a
@@ -280,9 +289,9 @@ export function KaribuEventDetail({
                 </a>
               )
             )}
-            {!isPast && (
+            {!isPast && whatsapp && (
               <a
-                href={SOCIAL_LINKS.whatsapp}
+                href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-full border border-sand-2 px-5 py-3 text-center font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
@@ -375,7 +384,7 @@ function PhotoStrip({ photos, eventSlug }: { photos: PhotoView[]; eventSlug: str
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                   />
                   {lastWithMore && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-ink/60 font-inter text-[15px] font-semibold text-paper-card backdrop-blur-sm">
+                    <div className="absolute inset-0 flex items-center justify-center bg-scrim/60 font-inter text-[15px] font-semibold text-scrim-text backdrop-blur-sm">
                       +{photos.length - preview.length} more
                     </div>
                   )}

@@ -14,7 +14,7 @@ import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { TeamMemberView } from "@/lib/data";
-import { SOCIAL_LINKS } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -42,6 +42,7 @@ export function KaribuAbout({
   team: TeamMemberView[];
   timelineEntries: TimelineEntry[];
 }) {
+  const { whatsapp } = useSocialLinks();
   const activeTeam = team.filter((m) => m.active !== false);
 
   return (
@@ -173,14 +174,16 @@ export function KaribuAbout({
             <h2 className="mb-5 font-newsreader text-[32px] font-normal sm:text-[36px]">
               Come build with us.
             </h2>
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-full bg-ink px-8 py-4 font-inter text-[15.5px] font-semibold text-paper transition-colors hover:bg-black"
-            >
-              Join on WhatsApp
-            </a>
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex rounded-full bg-ink px-8 py-4 font-inter text-[15.5px] font-semibold text-paper transition-colors hover:bg-black"
+              >
+                Join on WhatsApp
+              </a>
+            )}
           </div>
         </Reveal>
       </section>

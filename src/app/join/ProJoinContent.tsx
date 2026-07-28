@@ -11,7 +11,8 @@ import {
   Handshake,
   Mail,
 } from "lucide-react";
-import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { CONTACT } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { HeroEmailCapture } from "@/components/sections/HeroEmailCapture";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
@@ -40,34 +41,45 @@ interface JoinPathway {
   primary?: boolean;
 }
 
-const pathways: JoinPathway[] = [
-  {
-    icon: MessageSquare,
-    title: "Discord Community",
-    description:
-      "Daily conversations, code reviews, project collaboration, and job sharing. Our most active hub.",
-    cta: "Join Discord",
-    href: SOCIAL_LINKS.discord,
-    external: true,
-    primary: true,
-  },
-  {
-    icon: Calendar,
-    title: "Attend a meetup",
-    description:
-      "Nothing beats meeting people in person. Nairobi and Mombasa events every month.",
-    cta: "Browse events",
-    href: "/events",
-  },
-  {
-    icon: Users,
-    title: "Create an account",
-    description:
-      "Save your favourite resources, comment on community submissions, and track your event RSVPs.",
-    cta: "Sign up",
-    href: "/signup",
-  },
-];
+// Discord's href is resolved at render time from useSocialLinks() — see
+// buildPathways() below — so admin-updated links take effect immediately.
+function buildPathways(discordUrl: string | null): JoinPathway[] {
+  const pathways: JoinPathway[] = [];
+
+  if (discordUrl) {
+    pathways.push({
+      icon: MessageSquare,
+      title: "Discord Community",
+      description:
+        "Daily conversations, code reviews, project collaboration, and job sharing. Our most active hub.",
+      cta: "Join Discord",
+      href: discordUrl,
+      external: true,
+      primary: true,
+    });
+  }
+
+  pathways.push(
+    {
+      icon: Calendar,
+      title: "Attend a meetup",
+      description:
+        "Nothing beats meeting people in person. Nairobi and Mombasa events every month.",
+      cta: "Browse events",
+      href: "/events",
+    },
+    {
+      icon: Users,
+      title: "Create an account",
+      description:
+        "Save your favourite resources, comment on community submissions, and track your event RSVPs.",
+      cta: "Sign up",
+      href: "/signup",
+    }
+  );
+
+  return pathways;
+}
 
 const contributeCards = [
   {
@@ -101,6 +113,8 @@ const contributeCards = [
 ];
 
 export function ProJoinContent({ pulse = DEFAULT_PULSE }: { pulse?: CommunityPulse }) {
+  const { discord } = useSocialLinks();
+  const pathways = buildPathways(discord);
   return (
     <main className="min-h-screen px-4 py-16 sm:px-6 lg:px-8">
       {/* Ambient gradient */}
