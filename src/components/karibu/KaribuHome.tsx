@@ -27,7 +27,7 @@ import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
-import { HERO_PHOTO, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
+import { HERO_PHOTO, HERO_PHOTO_CREDIT, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 
 interface KaribuHomeProps {
@@ -184,13 +184,21 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
         >
           <Image
             src={HERO_PHOTO}
-            alt="Claude Community Kenya members at a Nairobi meetup"
+            alt={`Claude Community Kenya members at the ${HERO_PHOTO_CREDIT}`}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 560px"
             className="object-cover"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim/45 via-transparent to-transparent" />
+          {/* Photo credit. The "Coming up" chip below is an announcement
+           * overlay, not a caption — naming what the photograph actually
+           * shows is what keeps that distinction honest. */}
+          <div className="pointer-events-none absolute left-[18px] top-[18px] rounded-full border border-white/15 bg-scrim/70 px-3 py-1 backdrop-blur-md">
+            <span className="font-inter text-[10px] font-semibold uppercase tracking-[0.14em] text-scrim-text-soft">
+              {HERO_PHOTO_CREDIT}
+            </span>
+          </div>
           {nextEvent && (
             <div className="absolute inset-x-[18px] bottom-[18px] overflow-hidden rounded-xl border border-white/15 backdrop-blur-md">
               {/* Gradient scrim, not a flat block — darkens the photo under
