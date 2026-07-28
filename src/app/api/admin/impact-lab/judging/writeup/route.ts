@@ -50,7 +50,13 @@ const REASONING_HINTS: Record<string, string> = {
 const DEFAULT_REASONING_HINT = "One sentence, grounded in what the submission says."
 
 const scoreShape = Object.fromEntries(
-  CRITERION_KEYS.map((key) => [key, z.number().int().min(MIN_SCORE).max(MAX_SCORE)])
+  // Deliberately NOT .int(): the model sometimes drafts a half-point (3.5),
+  // and with a strict integer schema that rejects the ENTIRE generation —
+  // AI_NoObjectGeneratedError, observed repeatedly in production for teams
+  // whose writeups sit between two scores. A draft is a starting point for a
+  // human, so accept any number in range and round it server-side below;
+  // the save path still enforces integers strictly.
+  CRITERION_KEYS.map((key) => [key, z.number().min(MIN_SCORE).max(MAX_SCORE)])
 )
 const reasoningShape = Object.fromEntries(
   CRITERION_KEYS.map((key) => [
@@ -303,7 +309,20 @@ No live demo and no live presentation were seen for this team.`
         maxOutputTokens: 2_000,
       })
 
-      return NextResponse.json({ success: true, data: object })
+      // Round to the integers the UI and the save path expect. Math.round on
+      // an in-range value stays in range, but clamp anyway — cheap insurance.
+      const rounded: Record<string, number> = {}
+      for (const key of CRITERION_KEYS) {
+        const raw = object.scores[key]
+        rounded[key] = Math.min(
+          MAX_SCORE,
+          Math.max(MIN_SCORE, Math.round(typeof raw === "number" ? raw : MIN_SCORE))
+        )
+      }
+      return NextResponse.json({
+        success: true,
+        data: { scores: rounded, reasoning: object.reasoning },
+      })
     } catch (error) {
       // A draft is a convenience, not a dependency — an organiser can always
       // read the submission and score it by hand.
@@ -313,7 +332,11 @@ No live demo and no live presentation were seen for this team.`
           success: false,
           error: "Could not draft scores for that team right now. Score it yourself — nothing is blocked.",
         },
-        { status: 502 }
+        // 422, not 502: this domain is proxied through Cloudflare, which
+        // replaces an origin 502/504 with its own HTML error page. Our JSON
+        // body never reached the browser — the admin saw a JSON.parse error
+        // on "<!DOCTYPE" instead of this message. 4xx passes through intact.
+        { status: 422 }
       )
     }
   }
