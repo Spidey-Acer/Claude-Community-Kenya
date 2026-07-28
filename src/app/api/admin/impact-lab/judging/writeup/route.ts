@@ -70,6 +70,41 @@ const draftSchema = z.object({
   reasoning: z.object(reasoningShape),
 })
 
+/**
+ * Recover a draft from a malformed generation instead of discarding it.
+ *
+ * Observed in production (AI_NoObjectGeneratedError, reproduced from the
+ * OnlyFarmers submission): the model occasionally serialises the ENTIRE
+ * result into one string under a single key —
+ *   { "reasoning": "{ \"impact\": \"…\", …, \"scores\": { … } }" }
+ * The content is fine; only the envelope is wrong. Unwrap that one shape
+ * (plus a stray code fence) and re-validate against the real schema. Anything
+ * that still fails validation is genuinely unusable and stays failed.
+ */
+function salvageDraft(text: string): unknown {
+  const stripped = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/, "")
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(stripped)
+  } catch {
+    return null
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const values = Object.values(parsed as Record<string, unknown>)
+    if (values.length === 1 && typeof values[0] === "string") {
+      try {
+        parsed = JSON.parse(values[0])
+      } catch {
+        // keep the outer object; validation below decides
+      }
+    }
+  }
+  return parsed
+}
+
 const SYSTEM = `You are drafting scores for a hackathon team that submitted written work but was never reached by a judge — no one saw a live demo or a live presentation.
 
 Score only what this submission evidences. If the writeup does not say something, that is evidence of absence, not a gap to fill in the team's favour. Never infer competence, never round up to be kind, and never let confident writing substitute for a working demo or a good presentation.
@@ -78,7 +113,9 @@ For the "demo" criterion specifically: no live demo was seen. Say that plainly i
 
 For the "presentation" criterion specifically: no presentation was seen either — there were no three minutes to judge. Say that plainly in the reasoning. A well-written submission is not evidence of a clear, honest, well-used three minutes; writing well and presenting well are different skills. Score only what the submission itself shows about clarity and honesty — how clearly it explains the problem and the named beneficiary, and whether it is straight about what works versus what is mocked rather than talking around the gaps. When in doubt, score low and say why in the reasoning.
 
-For every other criterion, ground the score and the one-sentence reasoning in specific lines from the submission. A human organiser reviews every number before it counts — your job is to give them an honest, well-reasoned starting point, not a final answer.`
+For every other criterion, ground the score and the one-sentence reasoning in specific lines from the submission. A human organiser reviews every number before it counts — your job is to give them an honest, well-reasoned starting point, not a final answer.
+
+Return scores and reasoning as separate structured fields. Never serialise the whole result into a single string, and never wrap it in a code fence.`
 
 const bodySchema = z.object({
   teamId: z.string().min(1).max(64),
@@ -300,20 +337,43 @@ How they used Claude: ${submission.claudeUsage}
 
 No live demo and no live presentation were seen for this team.`
 
-    try {
-      const { object } = await generateObject({
-        model: anthropic(MODEL),
-        schema: draftSchema,
-        system: SYSTEM,
-        prompt,
-        maxOutputTokens: 2_000,
-      })
+    // Two attempts, with salvage between them: the malformed-envelope failure
+    // is stochastic (the same team drafts fine on another roll), so one retry
+    // resolves most of what salvage cannot.
+    let draft: z.infer<typeof draftSchema> | null = null
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < 2 && !draft; attempt += 1) {
+      try {
+        const { object } = await generateObject({
+          model: anthropic(MODEL),
+          schema: draftSchema,
+          system: SYSTEM,
+          prompt,
+          maxOutputTokens: 2_000,
+        })
+        draft = object
+      } catch (error) {
+        lastError = error
+        const text =
+          error instanceof Error && "text" in error
+            ? (error as { text?: unknown }).text
+            : undefined
+        if (typeof text === "string") {
+          const recovered = draftSchema.safeParse(salvageDraft(text))
+          if (recovered.success) {
+            console.warn("[judging/writeup] draft salvaged from malformed envelope")
+            draft = recovered.data
+          }
+        }
+      }
+    }
 
+    if (draft) {
       // Round to the integers the UI and the save path expect. Math.round on
       // an in-range value stays in range, but clamp anyway — cheap insurance.
       const rounded: Record<string, number> = {}
       for (const key of CRITERION_KEYS) {
-        const raw = object.scores[key]
+        const raw = draft.scores[key]
         rounded[key] = Math.min(
           MAX_SCORE,
           Math.max(MIN_SCORE, Math.round(typeof raw === "number" ? raw : MIN_SCORE))
@@ -321,9 +381,12 @@ No live demo and no live presentation were seen for this team.`
       }
       return NextResponse.json({
         success: true,
-        data: { scores: rounded, reasoning: object.reasoning },
+        data: { scores: rounded, reasoning: draft.reasoning },
       })
-    } catch (error) {
+    }
+
+    {
+      const error = lastError
       // A draft is a convenience, not a dependency — an organiser can always
       // read the submission and score it by hand.
       console.error("[judging/writeup] draft generation failed", error)
