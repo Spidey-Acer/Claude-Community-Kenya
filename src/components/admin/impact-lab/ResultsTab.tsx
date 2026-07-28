@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AlertTriangle, CheckCircle2, Loader2, Save, Send, Sparkles, Trophy } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Eye, Loader2, Save, Send, Sparkles, Trophy } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import {
   CRITERION_KEYS,
@@ -691,6 +691,173 @@ function PublishPanel({ cohort }: { cohort: string }) {
   )
 }
 
+// ─── Preview a team's email ─────────────────────────────────────────────────
+
+interface PreviewEmailOption {
+  teamId: string
+  teamName: string
+  projectName: string
+}
+
+interface PreviewEmailData {
+  html: string
+  subject: string
+  teamName: string
+  projectName: string
+  recipientCount: number
+  /** Whether this was read off the frozen post-publish snapshot, or computed live. */
+  published: boolean
+}
+
+/**
+ * Section: preview a team's real results email before any of the 93 go out.
+ *
+ * Sits between publish and send, in that order on screen, because that is
+ * the order it is meant to be used in: check a real email renders correctly,
+ * then publish (or, if already published, spot-check before pressing send
+ * below).
+ *
+ * The server route this calls builds the HTML with the exact
+ * `impactLabResultsEmail()` template the batch send uses — no second
+ * renderer — so what is shown here cannot drift from what actually goes
+ * out. It only ever reads; nothing is sent and nothing is written.
+ */
+function PreviewEmailPanel({ cohort }: { cohort: string }) {
+  const [teams, setTeams] = useState<PreviewEmailOption[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [selectedTeamId, setSelectedTeamId] = useState("")
+  const [preview, setPreview] = useState<PreviewEmailData | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const data = await apiGet<JudgingData>(`/api/admin/impact-lab/judging?cohort=${cohort}`)
+        if (cancelled) return
+        const submitted = data.teams
+          .filter((t) => t.submission !== null)
+          .map((t) => ({
+            teamId: t.teamId,
+            teamName: t.teamName,
+            projectName: t.submission?.projectName ?? t.teamName,
+          }))
+        setTeams(submitted)
+        setLoadError(null)
+      } catch (e) {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load teams")
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [cohort])
+
+  async function loadPreview(teamId: string) {
+    setSelectedTeamId(teamId)
+    setPreview(null)
+    setPreviewError(null)
+    if (teamId === "") return
+    setLoadingPreview(true)
+    try {
+      const data = await apiGet<PreviewEmailData>(
+        `/api/admin/impact-lab/results/preview-email?cohort=${cohort}&teamId=${encodeURIComponent(teamId)}`
+      )
+      setPreview(data)
+    } catch (e) {
+      setPreviewError(e instanceof Error ? e.message : "Could not render a preview for that team.")
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">
+          Preview a team&apos;s email
+        </h2>
+        <p className="mt-1 text-[11px] font-mono text-[#888]">
+          Renders the exact email one team will receive — same template, same numbers — so you
+          can check it before any of the 93 go out. Nothing on this screen sends mail.
+        </p>
+      </div>
+
+      {loadError && (
+        <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+          {loadError}
+        </div>
+      )}
+
+      <label className="block max-w-md">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">Team</span>
+        <select
+          value={selectedTeamId}
+          onChange={(e) => void loadPreview(e.target.value)}
+          className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+        >
+          <option value="">— pick a team —</option>
+          {(teams ?? []).map((t) => (
+            <option key={t.teamId} value={t.teamId}>
+              {t.teamName} — {t.projectName}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {loadingPreview && (
+        <div className="p-8 text-center">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
+        </div>
+      )}
+
+      {previewError && (
+        <div
+          role="alert"
+          className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]"
+        >
+          {previewError}
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+          {!preview.published && (
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
+            >
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>Computed from current data; publishing will freeze exactly this.</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Eye className="h-3.5 w-3.5 shrink-0 text-[#00d4ff]" />
+            <p className="text-[11px] font-mono text-[#888]">
+              Subject: <span className="text-[#e0e0e0]">{preview.subject}</span>
+            </p>
+          </div>
+          <p className="text-[11px] font-mono text-[#888]">
+            <span className="font-semibold text-[#00ff41]">{preview.recipientCount}</span>{" "}
+            recipient{preview.recipientCount === 1 ? "" : "s"} on {preview.teamName} —{" "}
+            {preview.projectName}
+          </p>
+
+          <iframe
+            title={`Email preview — ${preview.projectName}`}
+            srcDoc={preview.html}
+            sandbox=""
+            className="h-[640px] w-full rounded border border-[#1e1e1e] bg-[#0a0a0a]"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Notify ───────────────────────────────────────────────────────────────
 
 interface NotifyCounts {
@@ -917,9 +1084,11 @@ function NotifyPanel({ cohort }: { cohort: string }) {
  * Results tab — organiser-facing surfaces for closing out judging.
  *
  * Starts with the one section this program needs first: the teams the panel
- * never reached. The publish panel follows, then the send panel — each
- * section is its own component rendered in a simple stack, fetching its own
- * data independently.
+ * never reached. The publish panel follows, then the email preview panel,
+ * then the send panel — the preview sits above send deliberately, since it
+ * exists to be checked before pressing send, and screen order should teach
+ * that order of use. Each section is its own component rendered in a simple
+ * stack, fetching its own data independently.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
   return (
@@ -927,6 +1096,9 @@ export function ResultsTab({ cohort }: { cohort: string }) {
       <AwaitingScoreSection cohort={cohort} />
       <div className="border-t border-[#1e1e1e] pt-6">
         <PublishPanel cohort={cohort} />
+      </div>
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <PreviewEmailPanel cohort={cohort} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <NotifyPanel cohort={cohort} />

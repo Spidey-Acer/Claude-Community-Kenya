@@ -6,8 +6,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { safeCohort } from "@/lib/impact-lab/constants"
-import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import { standings, trackOf, weightedTotal, type JudgeScore, type ScoreSheet } from "@/lib/impact-lab/judging"
+import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, type ResultsInput } from "@/lib/impact-lab/results"
 
 /**
@@ -151,27 +150,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const teams = extractFrozenTeams(run.result) ?? []
-    const nameById = new Map(teams.map((t) => [t.id, t.name]))
-    const teamIds = new Set(teams.map((t) => t.id))
-
-    const [submissions, scoreRows] = await Promise.all([
-      tx.impactLabSubmission.findMany({
-        where: { runId },
-        select: { teamId: true, projectName: true },
-      }),
-      tx.impactLabScore.findMany({
-        where: { runId },
-        select: { teamId: true, judgeEmail: true, scores: true, writeupOnly: true },
-      }),
-    ])
-
-    const submittedTeamIds = new Set(submissions.map((s) => s.teamId))
-    const scoredTeamIds = new Set(scoreRows.map((s) => s.teamId))
     // What an organiser actually recognises a team by — the run-JSON team
-    // name is an internal id like "Table 12 — Kilimo (Agriculture)".
-    const projectNameById = new Map(submissions.map((s) => [s.teamId, s.projectName]))
-    const displayName = (id: string): string => projectNameById.get(id) ?? nameById.get(id) ?? id
+    // name is an internal id like "Table 12 — Kilimo (Agriculture)" — and
+    // everything else needed to build a ResultsInput. Shared with the
+    // preview-email route so the two never read the run differently.
+    const { input: inputBase, teams, teamIds, submittedTeamIds, scoredTeamIds, displayName } =
+      await buildResultsInputFromRun(tx, runId, run.result)
 
     // 3. Every submitted team must have at least one score — this is what stops
     // the four unscored teams being published as blanks.
@@ -220,47 +204,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Build the ResultsInput the pure snapshot builder needs.
-    const judgeScores: JudgeScore[] = scoreRows.map((s) => ({
-      judgeEmail: s.judgeEmail,
-      teamId: s.teamId,
-      sheet: (s.scores ?? {}) as ScoreSheet,
-    }))
-    const table = standings(judgeScores)
-
-    const rowsByTeam = new Map<string, typeof scoreRows>()
-    for (const row of scoreRows) {
-      const list = rowsByTeam.get(row.teamId)
-      if (list) list.push(row)
-      else rowsByTeam.set(row.teamId, [row])
-    }
-
-    const writeupOnly = new Set<string>()
-    const range = new Map<string, { low: number; high: number }>()
-    for (const [teamId, rows] of rowsByTeam) {
-      if (rows.every((r) => r.writeupOnly)) writeupOnly.add(teamId)
-
-      const totals = rows.map((r) => weightedTotal((r.scores ?? {}) as ScoreSheet))
-      range.set(teamId, { low: Math.min(...totals), high: Math.max(...totals) })
-    }
-
-    const teamsMeta = new Map<string, { projectName: string; track: string }>()
-    for (const submission of submissions) {
-      const teamName = nameById.get(submission.teamId) ?? ""
-      teamsMeta.set(submission.teamId, {
-        projectName: submission.projectName,
-        track: trackOf(teamName),
-      })
-    }
-
+    // 5. The rest of the ResultsInput the pure snapshot builder needs.
     const publishedAt = new Date()
     const input: ResultsInput = {
+      ...inputBase,
       publishedAt: publishedAt.toISOString(),
       announcedTeamIds: parsed.data.announcedTeamIds,
-      standings: table,
-      teams: teamsMeta,
-      writeupOnly,
-      range,
     }
     const snapshot = buildSnapshot(input)
 
