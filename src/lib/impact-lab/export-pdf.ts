@@ -59,6 +59,7 @@ import {
   SANS_ITALIC,
   SERIF,
   SERIF_ITALIC,
+  ZEBRA,
 } from "./export-theme"
 
 // ─── Geometry ────────────────────────────────────────────────────────────────
@@ -916,6 +917,61 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
 
 // ─── Team profiles ───────────────────────────────────────────────────────────
 
+/**
+ * Roster column geometry. Name is fixed and generous enough for a full Kenyan
+ * name on one line; role takes the most width because it is free text a
+ * participant typed and is routinely the longest field.
+ */
+const ROSTER_NAME_W = 134
+const ROSTER_ROLE_W = 190
+const ROSTER_INST_W = CONTENT_WIDTH - ROSTER_NAME_W - ROSTER_ROLE_W
+const ROSTER_PAD = 7
+/** Free-text cells are clipped after three lines — see renderMembers. */
+const ROSTER_MAX_CELL_LINES = 3
+const ROSTER_LINE = 10.6
+
+function rosterHeader(doc: Doc): void {
+  const y = doc.y
+  const labels: [string, number, number][] = [
+    ["Name", MARGIN, ROSTER_NAME_W],
+    ["Role", MARGIN + ROSTER_NAME_W, ROSTER_ROLE_W],
+    ["Institution", MARGIN + ROSTER_NAME_W + ROSTER_ROLE_W, ROSTER_INST_W],
+  ]
+  for (const [label, x, w] of labels) {
+    doc
+      .font(SANS_BOLD)
+      .fontSize(6.6)
+      .fillColor(FAINT)
+      .text(label.toUpperCase(), x + ROSTER_PAD, y, {
+        width: w - ROSTER_PAD * 2,
+        characterSpacing: 1.1,
+      })
+  }
+  const ruleY = y + 11
+  doc
+    .save()
+    .moveTo(MARGIN, ruleY)
+    .lineTo(MARGIN + CONTENT_WIDTH, ruleY)
+    .lineWidth(0.7)
+    .strokeColor(MID_GRAY)
+    .stroke()
+    .restore()
+  doc.y = ruleY + 4
+}
+
+/**
+ * The roster, as a table.
+ *
+ * It was previously two columns of single lines with `lineBreak: false`, which
+ * assumed `primaryRole` was a job title. It is free text: several participants
+ * typed a sentence or two, so entries overran their column, collided with the
+ * row beneath, and in the worst cases ran past the footer. A table with rows
+ * sized from their own content cannot do that.
+ *
+ * Role and institution are clipped after three lines. The roster exists to say
+ * who was on the team, not to reproduce a paragraph someone pasted into a
+ * one-line field; the full text stays in the Excel workbook.
+ */
 function renderMembers(doc: Doc, team: ExportTeam): void {
   kicker(doc, "The team", DIM)
   if (team.members.length === 0) {
@@ -927,29 +983,82 @@ function renderMembers(doc: Doc, team: ExportTeam): void {
     doc.moveDown(0.8)
     return
   }
-  const lines = team.members.map(
-    (m) =>
-      `${m.fullName}${m.isLeader ? " (lead)" : ""} — ${m.primaryRole}` +
-      (m.institution ? `, ${m.institution}` : "")
-  )
-  // Two columns: rosters are 3–7 people; one per line reads best, half-page wide.
-  const colWidth = (CONTENT_WIDTH - 20) / 2
-  const perColumn = Math.ceil(lines.length / 2)
-  const top = doc.y
-  let maxY = top
-  lines.forEach((line, i) => {
-    const col = Math.floor(i / perColumn)
-    const x = MARGIN + col * (colWidth + 20)
-    const y = top + (i % perColumn) * 12.5
-    doc.font(SANS).fontSize(8.5).fillColor(INK).text(line, x, y, {
-      width: colWidth,
-      lineBreak: false,
-      ellipsis: true,
-    })
-    maxY = Math.max(maxY, y + 12.5)
+
+  ensureSpace(doc, 46)
+  rosterHeader(doc)
+
+  const cellCap = ROSTER_MAX_CELL_LINES * ROSTER_LINE + 2
+  team.members.forEach((m, i) => {
+    const name = `${m.fullName}${m.isLeader ? " (lead)" : ""}`
+    const role = m.primaryRole || "—"
+    const institution = m.institution || "—"
+
+    doc.font(m.isLeader ? SANS_BOLD : SANS).fontSize(8.5)
+    const nameH = doc.heightOfString(name, { width: ROSTER_NAME_W - ROSTER_PAD * 2, lineGap: 1.4 })
+    doc.font(SANS).fontSize(8.5)
+    const roleH = Math.min(
+      doc.heightOfString(role, { width: ROSTER_ROLE_W - ROSTER_PAD * 2, lineGap: 1.4 }),
+      cellCap
+    )
+    const instH = Math.min(
+      doc.heightOfString(institution, { width: ROSTER_INST_W - ROSTER_PAD * 2, lineGap: 1.4 }),
+      cellCap
+    )
+    const rowH = Math.max(nameH, roleH, instH) + 9
+
+    if (doc.y + rowH > CONTENT_BOTTOM) {
+      doc.addPage()
+      rosterHeader(doc)
+    }
+
+    const top = doc.y
+    if (i % 2 === 0) {
+      doc.save().rect(MARGIN, top - 2, CONTENT_WIDTH, rowH).fillColor(ZEBRA).fill().restore()
+    }
+
+    doc
+      .font(m.isLeader ? SANS_BOLD : SANS)
+      .fontSize(8.5)
+      .fillColor(INK)
+      .text(name, MARGIN + ROSTER_PAD, top + 2, {
+        width: ROSTER_NAME_W - ROSTER_PAD * 2,
+        lineGap: 1.4,
+      })
+    doc
+      .font(SANS)
+      .fontSize(8.5)
+      .fillColor(DIM)
+      .text(role, MARGIN + ROSTER_NAME_W + ROSTER_PAD, top + 2, {
+        width: ROSTER_ROLE_W - ROSTER_PAD * 2,
+        height: cellCap,
+        lineGap: 1.4,
+        ellipsis: true,
+      })
+    doc
+      .font(SANS)
+      .fontSize(8.5)
+      .fillColor(DIM)
+      .text(institution, MARGIN + ROSTER_NAME_W + ROSTER_ROLE_W + ROSTER_PAD, top + 2, {
+        width: ROSTER_INST_W - ROSTER_PAD * 2,
+        height: cellCap,
+        lineGap: 1.4,
+        ellipsis: true,
+      })
+
+    doc.x = MARGIN
+    doc.y = top + rowH
   })
+
+  doc
+    .save()
+    .moveTo(MARGIN, doc.y - 2)
+    .lineTo(MARGIN + CONTENT_WIDTH, doc.y - 2)
+    .lineWidth(0.7)
+    .strokeColor(MID_GRAY)
+    .stroke()
+    .restore()
   doc.x = MARGIN
-  doc.y = maxY + 8
+  doc.y += 10
 }
 
 /** The generated analysis, boxed and labelled so it can never be misread. */
