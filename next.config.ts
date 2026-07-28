@@ -1,9 +1,12 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  // pdfkit reads its built-in font metrics from node_modules at runtime and
-  // exceljs is a large CJS tree — both must stay external to the bundle.
-  serverExternalPackages: ["bcryptjs", "pdfkit", "exceljs"],
+  // sharp and archiver are native/stream-heavy and must not be bundled by the
+  // server compiler — sharp in particular resolves a platform binary at
+  // runtime, which webpack cannot follow. pdfkit reads its built-in font
+  // metrics from node_modules at runtime and exceljs is a large CJS tree —
+  // both must stay external to the bundle too.
+  serverExternalPackages: ["bcryptjs", "sharp", "archiver", "pdfkit", "exceljs"],
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },
@@ -13,6 +16,15 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
+      },
+      // Cloudflare R2 custom domain — gallery photos and their pre-generated
+      // derivatives. Grid and lightbox pass `unoptimized` for these (the
+      // renditions are already sized), but the hostname still has to be
+      // allowed or next/image refuses the src outright.
+      {
+        protocol: "https",
+        hostname: "media.claudekenya.org",
+        pathname: "/**",
       },
     ],
     formats: ["image/avif", "image/webp"],

@@ -193,10 +193,11 @@ export function PhotoLightbox({
             <div className="relative flex max-h-[calc(100dvh-180px)] w-full flex-1 items-center justify-center">
               <Image
                 src={photo.url}
-                alt={photo.alt ?? photo.caption ?? "Community photo"}
+                alt={photo.alt ?? ""}
                 width={1600}
                 height={1067}
                 sizes="(max-width: 1024px) 100vw, 1024px"
+                unoptimized={photo.fromR2}
                 className="h-auto max-h-full w-auto max-w-full rounded-xl object-contain shadow-2xl"
                 priority
               />

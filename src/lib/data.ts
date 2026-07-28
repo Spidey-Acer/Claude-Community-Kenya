@@ -5,6 +5,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
+import { publicUrl, variantKey } from "@/lib/gallery/r2"
 import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
@@ -326,6 +327,46 @@ export interface PhotoView {
   featured: boolean
   takenAt: Date | null
   event: { slug: string; title: string; date: Date; city: string } | null
+  /**
+   * True when this photo is served from R2 with pre-generated derivatives.
+   * Those are already sized and encoded, so the grid passes `unoptimized` and
+   * skips Vercel's image optimizer — no point paying to transform an image
+   * twice, and R2 egress is free where the optimizer's is not.
+   */
+  fromR2: boolean
+}
+
+/**
+ * Resolve a row's URLs at read time.
+ *
+ * Rows carrying a storageKey live in R2 and get their public URLs composed
+ * from R2_PUBLIC_BASE_URL, so moving the CDN domain is an env change. Rows
+ * without one are legacy Supabase uploads and keep their stored absolute URLs
+ * — that null is the discriminator, which lets both storages coexist while the
+ * backfill runs.
+ */
+/**
+ * Resolve a photo row's servable URLs.
+ *
+ * R2-backed rows (storageKey set) compose the `full`/`thumb` URLs from the
+ * key at read time; legacy Supabase rows keep their stored absolute URLs.
+ * Exported so every reader — public gallery pages and the admin panel alike
+ * — resolves the same way. Reading `photo.url`/`photo.thumbnailUrl` straight
+ * off the Prisma row bypasses this and is empty for every R2 upload.
+ */
+export function resolvePhotoUrls(row: {
+  storageKey: string | null
+  url: string
+  thumbnailUrl: string | null
+}): { url: string; thumbnailUrl: string | null; fromR2: boolean } {
+  if (!row.storageKey) {
+    return { url: row.url, thumbnailUrl: row.thumbnailUrl, fromR2: false }
+  }
+  return {
+    url: publicUrl(variantKey(row.storageKey, "full")),
+    thumbnailUrl: publicUrl(variantKey(row.storageKey, "thumb")),
+    fromR2: true,
+  }
 }
 
 interface GetGalleryOptions {
@@ -358,8 +399,7 @@ export async function getGalleryPhotos(
 
   return rows.map((p) => ({
     id: p.id,
-    url: p.url,
-    thumbnailUrl: p.thumbnailUrl,
+    ...resolvePhotoUrls(p),
     alt: p.alt,
     caption: p.caption,
     photographer: p.photographer,
@@ -387,6 +427,92 @@ export async function getEventPhotos(slug: string): Promise<PhotoView[]> {
  * Returns the list of events that currently have photos, so the gallery
  * page can render filter chips without an extra round-trip.
  */
+export interface GalleryAlbum {
+  slug: string
+  title: string
+  date: Date
+  city: string
+  count: number
+  /** Cover shot: the album's featured photo if one is marked, else its first. */
+  coverUrl: string | null
+  coverFromR2: boolean
+  bundleBytes: number | null
+}
+
+/**
+ * Albums for the /gallery index — one card per event that has photos.
+ *
+ * Does the cover lookup in two queries rather than one per album, so adding
+ * events does not add round-trips.
+ */
+export async function getGalleryAlbums(): Promise<GalleryAlbum[]> {
+  const events = await prisma.event.findMany({
+    where: { photos: { some: {} } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      date: true,
+      city: true,
+      bundleBytes: true,
+      _count: { select: { photos: true } },
+    },
+    orderBy: { date: "desc" },
+  })
+  if (events.length === 0) return []
+
+  const covers = await prisma.meetupPhoto.findMany({
+    where: { eventId: { in: events.map((e) => e.id) } },
+    select: { eventId: true, storageKey: true, url: true, thumbnailUrl: true, featured: true },
+    orderBy: [{ featured: "desc" }, { order: "asc" }, { createdAt: "asc" }],
+  })
+
+  const coverByEvent = new Map<string, (typeof covers)[number]>()
+  for (const c of covers) {
+    if (c.eventId && !coverByEvent.has(c.eventId)) coverByEvent.set(c.eventId, c)
+  }
+
+  return events.map((e) => {
+    const cover = coverByEvent.get(e.id)
+    const resolved = cover ? resolvePhotoUrls(cover) : null
+    return {
+      slug: e.slug,
+      title: e.title,
+      date: e.date,
+      city: e.city,
+      count: e._count.photos,
+      coverUrl: resolved ? resolved.thumbnailUrl ?? resolved.url : null,
+      coverFromR2: resolved?.fromR2 ?? false,
+      bundleBytes: e.bundleBytes,
+    }
+  })
+}
+
+/** One album's event header, or null when the slug has no photos. */
+export async function getAlbumEvent(slug: string): Promise<{
+  slug: string
+  title: string
+  date: Date
+  city: string
+  venue: string
+  bundleKey: string | null
+  bundleBytes: number | null
+} | null> {
+  const event = await prisma.event.findUnique({
+    where: { slug },
+    select: {
+      slug: true,
+      title: true,
+      date: true,
+      city: true,
+      venue: true,
+      bundleKey: true,
+      bundleBytes: true,
+    },
+  })
+  return event
+}
+
 export async function getEventsWithPhotos(): Promise<
   Array<{ slug: string; title: string; date: Date; city: string; count: number }>
 > {

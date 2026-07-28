@@ -164,9 +164,13 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                       <div className="relative aspect-[4/3] w-full overflow-hidden">
                         <Image
                           src={photo.thumbnailUrl ?? photo.url}
-                          alt={photo.alt ?? photo.caption ?? "Community photo"}
+                          alt={photo.alt ?? ""}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          /* R2 thumbs are already 800px webp — re-optimising
+                             them would pay Vercel to shrink an image that is
+                             already the right size, on top of free R2 egress. */
+                          unoptimized={photo.fromR2}
                           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
                         <div
