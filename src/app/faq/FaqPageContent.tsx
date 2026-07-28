@@ -6,7 +6,8 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { FaqClient } from "./FaqClient";
 import { FloatingDiscordCTA } from "./FloatingDiscordCTA";
 import { useSkin } from "@/contexts/SkinContext";
-import { SOCIAL_LINKS, CONTACT } from "@/lib/constants";
+import { useSocialLinks } from "@/contexts/SocialLinksContext";
+import { CONTACT } from "@/lib/constants";
 import type { FAQ } from "@/data/faq";
 
 interface FaqCategory {
@@ -22,6 +23,7 @@ interface FaqPageContentProps {
 
 export function FaqPageContent({ faqs, categories }: FaqPageContentProps) {
   const { skin } = useSkin();
+  const { discord } = useSocialLinks();
   const isPro = skin === "pro";
 
   return (
@@ -74,14 +76,16 @@ export function FaqPageContent({ faqs, categories }: FaqPageContentProps) {
               <div className="flex flex-wrap items-center justify-center gap-4">
                 {isPro ? (
                   <>
-                    <a
-                      href={SOCIAL_LINKS.discord}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-primary-shadow inline-flex items-center gap-2 rounded-full bg-[#d97757] px-6 py-3 text-[14px] font-semibold text-[#faf9f5] hover:bg-[#c06848]"
-                    >
-                      Ask on Discord <span aria-hidden="true">→</span>
-                    </a>
+                    {discord && (
+                      <a
+                        href={discord}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary-shadow inline-flex items-center gap-2 rounded-full bg-[#d97757] px-6 py-3 text-[14px] font-semibold text-[#faf9f5] hover:bg-[#c06848]"
+                      >
+                        Ask on Discord <span aria-hidden="true">→</span>
+                      </a>
+                    )}
                     <a
                       href={`mailto:${CONTACT.email}`}
                       className="link-refined inline-flex items-center gap-2 rounded-full border border-[#2a2a28] px-6 py-3 text-[14px] font-semibold text-[#e8e6dc] transition-colors hover:border-[#3a3a37] hover:text-[#faf9f5]"
@@ -91,15 +95,17 @@ export function FaqPageContent({ faqs, categories }: FaqPageContentProps) {
                   </>
                 ) : (
                   <>
-                    <a
-                      href={SOCIAL_LINKS.discord}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
-                    >
-                      <span aria-hidden="true">&gt;</span>
-                      ASK_ON_DISCORD
-                    </a>
+                    {discord && (
+                      <a
+                        href={discord}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
+                      >
+                        <span aria-hidden="true">&gt;</span>
+                        ASK_ON_DISCORD
+                      </a>
+                    )}
                     <a
                       href={`mailto:${CONTACT.email}`}
                       className="inline-flex items-center gap-2 border border-border-default px-5 py-2.5 font-mono text-sm font-medium text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
