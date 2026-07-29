@@ -779,7 +779,11 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
     .fillColor(FAINT)
     .text(
       "“Announced” track winners follow from the podium (the champion leads its own track); " +
-        "“by score” winners top their track on weighted average.",
+        "“by score” winners top their track on weighted average. An “organiser decision” means the " +
+        "organisers assigned the award rather than taking score order: teams were matched into a " +
+        "track before building and judged at that track's tables, so a team that built outside its " +
+        "track can top the group with a project that does not belong to it. Every team's score and " +
+        "placing is unaffected — only which track the award is filed under.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2 }
