@@ -754,7 +754,11 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       .fontSize(7.5)
       .fillColor(FAINT)
       .text(
-        w.basis === "announced" ? "announced" : "by score",
+        w.basis === "announced"
+          ? "announced"
+          : w.basis === "organiser"
+            ? "organiser decision"
+            : "by score",
         MARGIN + CONTENT_WIDTH - 62,
         top + 1,
         { width: 62, align: "right", lineBreak: false }

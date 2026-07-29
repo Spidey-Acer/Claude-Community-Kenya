@@ -26,7 +26,7 @@ import {
   weightedTotal,
   type ScoreSheet,
 } from "./judging"
-import type { RankedTeam, ResultsSnapshot } from "./results"
+import type { RankedTeam, ResultsSnapshot, ResultsTrackWinner } from "./results"
 
 /** Event facts both artefacts print. One source so they cannot drift. */
 export const EVENT_TITLE = "Impact Lab: AI Mashinani"
@@ -185,8 +185,8 @@ export interface ExportTrackWinner {
   track: string
   teamName: string
   projectName: string
-  /** "announced" when the panel's podium leads the track, else score order. */
-  basis: "announced" | "score"
+  /** Mirrors `ResultsTrackWinner["basis"]` — see that type for what each means. */
+  basis: ResultsTrackWinner["basis"]
 }
 
 /** One judge's footprint across the night — coverage, not judgement. */
@@ -213,7 +213,7 @@ export interface ExportTrackSummary {
   meanAverage: number | null
   winnerTeamName: string | null
   winnerProjectName: string | null
-  winnerBasis: "announced" | "score" | null
+  winnerBasis: ResultsTrackWinner["basis"] | null
 }
 
 /** How many scored teams were seen by exactly `judgeCount` judges. */
