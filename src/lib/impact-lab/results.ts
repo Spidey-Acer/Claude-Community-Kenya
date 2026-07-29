@@ -43,8 +43,22 @@ export interface ResultsTrackWinner {
   track: string
   teamId: string
   projectName: string
-  /** "announced" when an overall winner leads the track, else "score". */
-  basis: "announced" | "score"
+  /**
+   * How this track award was arrived at.
+   *
+   * - `announced` — an overall winner leads the track; the panel called it.
+   * - `score` — the top score within that track's table group.
+   * - `organiser` — an organiser assigned it, overriding score order. Teams
+   *   were matched into a track before building and judged at that track's
+   *   tables, so a team that builds outside its track can top the group with
+   *   a project that does not belong to it. Correcting that is a judgement
+   *   call, not arithmetic, and the artefacts must not claim otherwise —
+   *   which is the whole reason this value is distinct from `score`.
+   *
+   * `buildTrackWinners` only ever emits the first two. `organiser` is written
+   * into a published snapshot by hand and must be justified in writing.
+   */
+  basis: "announced" | "score" | "organiser"
 }
 
 /** Served only to members of that team. */

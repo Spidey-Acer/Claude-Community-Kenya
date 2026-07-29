@@ -36,6 +36,11 @@ export const TRACK = "#e8e6dc"
 export const RULE = "#d6d4ca"
 /** Warm tint for provenance callouts. */
 export const CALLOUT_BG = "#f4efe6"
+/**
+ * Table row banding. Deliberately lighter than CALLOUT_BG so a zebra-striped
+ * table never reads as loudly as a callout box sitting on the same page.
+ */
+export const ZEBRA = "#f5f3ec"
 
 /** pdfkit built-in faces: serif display, sans text — no font files to ship. */
 export const SERIF = "Times-Roman"

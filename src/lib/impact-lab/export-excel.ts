@@ -402,7 +402,9 @@ function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
           ? "Announced by judging panel"
           : track.winnerBasis === "score"
             ? "Top of track by score"
-            : "—",
+            : track.winnerBasis === "organiser"
+              ? "Assigned by organisers — see note"
+              : "—",
     })
   }
   addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, 100)
@@ -568,7 +570,13 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
   for (const w of data.trackWinners) {
     fact(
       `Track — ${w.track}`,
-      `${w.projectName} — ${w.teamName}${w.basis === "announced" ? " (announced)" : " (by score)"}`
+      `${w.projectName} — ${w.teamName}${
+        w.basis === "announced"
+          ? " (announced)"
+          : w.basis === "organiser"
+            ? " (organiser decision)"
+            : " (by score)"
+      }`
     )
   }
   gap()
