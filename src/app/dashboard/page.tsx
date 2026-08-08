@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { getUpcomingEvents } from "@/lib/data";
 import { getSocialLinks } from "@/lib/social-links";
-import { DEFAULT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
+import { CURRENT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
 import { extractFrozenTeams } from "@/lib/impact-lab/member";
 import { Calendar, MessageSquare, BookOpen, Sparkles, Code2, FlaskConical } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   // null hides the card entirely: with the cohort closed, someone who never
   // took part has no reason to see a hackathon card at all, and every live
   // status ("complete your profile", "teams drop Saturday") would be a lie.
-  const cohortActive = isCohortActive(DEFAULT_COHORT);
+  const cohortActive = isCohortActive(CURRENT_COHORT);
   let impactLabStatus: ImpactLabStatus | null = cohortActive ? "verify" : null;
   // Same flag the API and the Impact Lab page use: with verification off we
   // send no verification mail, so gating on emailVerified alone would strand
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
     // actually have one.
     const participant = await prisma.impactLabParticipant.findUnique({
       where: {
-        cohort_email: { cohort: DEFAULT_COHORT, email: user.email.toLowerCase() },
+        cohort_email: { cohort: CURRENT_COHORT, email: user.email.toLowerCase() },
       },
       select: { id: true },
     });
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
     const participant = await prisma.impactLabParticipant.findUnique({
       where: {
         cohort_email: {
-          cohort: DEFAULT_COHORT,
+          cohort: CURRENT_COHORT,
           email: user.email.toLowerCase(),
         },
       },
@@ -120,7 +120,7 @@ export default async function DashboardPage() {
       impactLabStatus = "not-registered";
     } else {
       const finalRun = await prisma.impactLabMatchRun.findFirst({
-        where: { cohort: DEFAULT_COHORT, isFinal: true },
+        where: { cohort: CURRENT_COHORT, isFinal: true },
         orderBy: { createdAt: "desc" },
         select: { result: true },
       });
@@ -362,7 +362,7 @@ const IMPACT_LAB_COPY: Record<
   "not-registered": {
     title: "Registration not found",
     description:
-      "We couldn't match your account email to a Luma registration. Open for details.",
+      "We couldn't match your account email to a Luma registration. Open to register.",
   },
   profile: {
     title: "Complete your matching profile",

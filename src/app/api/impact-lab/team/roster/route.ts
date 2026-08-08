@@ -3,7 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { Team } from "@/lib/matching"
@@ -32,13 +32,13 @@ interface Resolved {
 
 async function resolveCaller(email: string): Promise<Resolved | null> {
   const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: DEFAULT_COHORT, email } },
+    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
     select: { id: true },
   })
   if (!participant) return null
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: DEFAULT_COHORT, isFinal: true },
+    where: { cohort: CURRENT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(DEFAULT_COHORT)
+  const closed = guardClosedCohort(CURRENT_COHORT)
   if (closed) return closed
 
   const check = await checkMemberAccess()
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   if (!me) return noTeam()
 
   const target = await prisma.impactLabParticipant.findFirst({
-    where: { id: parsed.data.participantId, cohort: DEFAULT_COHORT },
+    where: { id: parsed.data.participantId, cohort: CURRENT_COHORT },
     select: { id: true, fullName: true },
   })
   if (!target) {
@@ -168,7 +168,7 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(DEFAULT_COHORT)
+  const closed = guardClosedCohort(CURRENT_COHORT)
   if (closed) return closed
 
   const check = await checkMemberAccess()

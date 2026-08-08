@@ -21,6 +21,17 @@ export function isCohortActive(cohort: string): boolean {
   return ACTIVE_COHORT !== null && cohort === ACTIVE_COHORT
 }
 
+/**
+ * The cohort every read surface serves: participant lookups, submissions,
+ * results, teammate search, and the admin dashboard.
+ *
+ * Falls back to `DEFAULT_COHORT` (the most recent cohort) when no event is
+ * live, so the site keeps showing a read-only record instead of nothing.
+ * When `IMPACT_LAB_ACTIVE_COHORT` is set for a live event, that cohort takes
+ * over every surface without a code change.
+ */
+export const CURRENT_COHORT: string = ACTIVE_COHORT ?? DEFAULT_COHORT
+
 const COHORT_PATTERN = /^[a-z0-9][a-z0-9-]{0,59}$/i
 
 /**

@@ -36,10 +36,10 @@ export const JUDGING_CRITERIA: readonly JudgingCriterion[] = [
   },
   {
     key: "claude",
-    label: "Use of Claude",
+    label: "Use of AI",
     weight: 20,
     guidance:
-      "How well did the team use Claude to get further than they could have alone?",
+      "How well did the team use AI to get further than they could have alone?",
   },
   {
     key: "clarity",

@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
-import { DEFAULT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
+import { CURRENT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
@@ -27,7 +27,7 @@ export default async function ImpactLabPage() {
   });
   if (!user) redirect("/login");
 
-  const cohortActive = isCohortActive(DEFAULT_COHORT);
+  const cohortActive = isCohortActive(CURRENT_COHORT);
 
   return (
     <main className="min-h-screen bg-bg-primary pt-24 pb-24">

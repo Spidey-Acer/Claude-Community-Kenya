@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
@@ -29,13 +29,13 @@ interface ResolvedContext {
 /** Resolve the caller to a team in the cohort's final run, or null. */
 async function resolveContext(email: string): Promise<ResolvedContext | null> {
   const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: DEFAULT_COHORT, email } },
+    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
     select: { id: true },
   })
   if (!participant) return null
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: DEFAULT_COHORT, isFinal: true },
+    where: { cohort: CURRENT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true, submissionsCloseAt: true },
   })
@@ -59,7 +59,7 @@ async function resolveContext(email: string): Promise<ResolvedContext | null> {
 /** Display name for whoever last edited, falling back to the email's local part. */
 async function lastEditedName(email: string): Promise<string> {
   const row = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: DEFAULT_COHORT, email } },
+    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
     select: { fullName: true },
   })
   return row?.fullName ?? email.split("@")[0]
@@ -120,7 +120,7 @@ export async function PUT(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(DEFAULT_COHORT)
+  const closed = guardClosedCohort(CURRENT_COHORT)
   if (closed) return closed
 
   const check = await checkMemberAccess()
@@ -170,7 +170,7 @@ export async function PUT(request: NextRequest) {
     where: { runId_teamId: { runId: context.runId, teamId: context.teamId } },
     create: {
       ...parsed.data,
-      cohort: DEFAULT_COHORT,
+      cohort: CURRENT_COHORT,
       runId: context.runId,
       teamId: context.teamId,
       teamName: context.teamName,

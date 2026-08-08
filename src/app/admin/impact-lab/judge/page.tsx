@@ -1,6 +1,6 @@
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { JudgeScoringScreen } from "./JudgeScoringScreen"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 
 export const dynamic = "force-dynamic"
 
@@ -9,7 +9,7 @@ export default function ImpactLabJudgePage() {
     <div>
       <AdminHeader title="Judge scoring" />
       <div className="p-4 sm:p-6">
-        <JudgeScoringScreen cohort={DEFAULT_COHORT} />
+        <JudgeScoringScreen cohort={CURRENT_COHORT} />
       </div>
     </div>
   )

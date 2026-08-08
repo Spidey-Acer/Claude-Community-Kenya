@@ -70,6 +70,7 @@ export function ImpactLabClient({
   const [team, setTeam] = useState<TeamRevealView | null>(null);
   const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -219,6 +220,37 @@ export function ImpactLabClient({
   }
 
   if (phase === "not-registered") {
+    if (registering) {
+      return (
+        <MatchProfileForm
+          isNew
+          profile={{
+            fullName: "",
+            email: sessionEmail,
+            phone: null,
+            institution: null,
+            experienceLevel: "BEGINNER",
+            primaryRole: "",
+            secondaryRoles: [],
+            technicalSkills: [],
+            interests: [],
+            availability: [],
+            projectIdeas: null,
+            preferredTeammates: [],
+            blockedTeammates: [],
+            consentToMatch: false,
+            consentToShareContact: false,
+          }}
+          onSaved={() => {
+            setRegistering(false);
+            setPhase("loading");
+            setReloadKey((k) => k + 1);
+          }}
+          onCancel={() => setRegistering(false)}
+        />
+      );
+    }
+
     return (
       <section
         className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
@@ -235,17 +267,22 @@ export function ImpactLabClient({
             <p className="mt-2 text-sm text-text-secondary leading-relaxed">
               We couldn&apos;t find an Impact Lab registration under{" "}
               <span className="font-mono text-text-primary">{sessionEmail}</span>.
-              Make sure this account uses the same email you registered with on
-              Luma. Registered with a different address, or just signed up on
-              site? Message the organizers below and we&apos;ll sort it out
-              before the event.
+              If that&apos;s the same email you registered with on Luma, you
+              can register right here — just use that same address. After
+              you&apos;re in, your team leader adds you to the team.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setRegistering(true)}
+                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+              >
+                Register now
+              </button>
               <a
                 href={SOCIAL_LINKS.discord}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
               >
                 Discord
               </a>
@@ -253,7 +290,7 @@ export function ImpactLabClient({
                 href={SOCIAL_LINKS.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
               >
                 WhatsApp
               </a>

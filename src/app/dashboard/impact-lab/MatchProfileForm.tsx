@@ -12,6 +12,12 @@ interface MatchProfileFormProps {
   onSaved: (profile: MemberProfile) => void;
   /** Present only when re-editing an already-complete profile. */
   onCancel?: () => void;
+  /**
+   * True for a member with no participant row yet: POSTs to create instead
+   * of PUTting an edit. `profile` is still required in this mode — pass a
+   * blank one (see ImpactLabClient) so the form has somewhere to write.
+   */
+  isNew?: boolean;
 }
 
 /** Same multi-value convention as the admin participants form: split on ; or , */
@@ -22,7 +28,7 @@ const inputClass =
   "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
-export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFormProps) {
+export function MatchProfileForm({ profile, onSaved, onCancel, isNew }: MatchProfileFormProps) {
   const [csrfToken, setCsrfToken] = useState("");
   const [fullName, setFullName] = useState(profile.fullName);
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel);
@@ -73,7 +79,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
     startTransition(async () => {
       try {
         const res = await fetch("/api/impact-lab/profile", {
-          method: "PUT",
+          method: isNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
           body: JSON.stringify(body),
         });
@@ -95,15 +101,16 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
       className="rounded-lg border border-green-primary/30 bg-bg-secondary p-5"
     >
       <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
-        $ vim ./matching-profile
+        {isNew ? "$ ./register" : "$ vim ./matching-profile"}
       </p>
       <p className="mb-1 text-xs text-text-secondary">
         Two minutes. Every field here feeds the matcher that builds your team —
         the more accurate, the better the fit.
       </p>
       <p className="mb-5 text-[11px] font-mono text-text-dim">
-        We pre-filled what you told us on Luma. Check it over and fix anything
-        that&apos;s changed.
+        {isNew
+          ? "Registering as " + profile.email + ". Once you're in, your team leader adds you to the team — no separate step."
+          : "We pre-filled what you told us on Luma. Check it over and fix anything that's changed."}
       </p>
 
       <SectionHeading eyebrow="01" title="About you" />
@@ -310,11 +317,13 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
         </label>
       </fieldset>
 
-      <p className="mt-3 text-[11px] font-mono text-text-dim">
-        Registered as {profile.email}
-        {profile.institution ? ` · ${profile.institution}` : ""} — contact the
-        organizers to change this.
-      </p>
+      {!isNew && (
+        <p className="mt-3 text-[11px] font-mono text-text-dim">
+          Registered as {profile.email}
+          {profile.institution ? ` · ${profile.institution}` : ""} — contact
+          the organizers to change this.
+        </p>
+      )}
 
       {error && (
         <div className="mt-3 flex items-center gap-2 rounded border border-red/30 bg-red/10 p-2 text-[11px] font-mono text-red">
@@ -341,7 +350,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel }: MatchProfileFor
           ) : (
             <Save className="h-3 w-3" />
           )}
-          {isPending ? "Saving..." : "Save profile"}
+          {isPending ? (isNew ? "Registering..." : "Saving...") : isNew ? "Register" : "Save profile"}
         </button>
         {onCancel && (
           <button

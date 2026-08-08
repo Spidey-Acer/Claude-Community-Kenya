@@ -62,7 +62,7 @@ const analysisSchema = z.object({
   claudeUse: z
     .string()
     .describe(
-      "One to three sentences: how the team used Claude in the build, per their own account."
+      "One to three sentences: how the team used AI in the build (which tools, and what those tools did), per their own account."
     ),
 })
 
@@ -106,7 +106,7 @@ One-line pitch: ${s.pitch}
 Problem tackled: ${s.problemTackled}
 What it does: ${s.description}
 What works vs what is mocked: ${s.worksVsMocked}
-How they used Claude: ${s.claudeUsage}`
+How they used AI: ${s.claudeUsage}`
 
       try {
         const { object } = await generateObject({

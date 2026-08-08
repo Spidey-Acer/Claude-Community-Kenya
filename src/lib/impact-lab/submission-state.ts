@@ -92,7 +92,7 @@ export const SUBMISSION_CSV_HEADERS: string[] = [
   "Problem",
   "Description",
   "What works vs mocked",
-  "How they used Claude",
+  "How they used AI",
   "Repo",
   "Demo",
   "Video",

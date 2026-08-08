@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 
 /**
@@ -32,14 +32,14 @@ export async function GET(request: NextRequest) {
   }
 
   const people = await prisma.impactLabParticipant.findMany({
-    where: { cohort: DEFAULT_COHORT, fullName: { contains: q, mode: "insensitive" } },
+    where: { cohort: CURRENT_COHORT, fullName: { contains: q, mode: "insensitive" } },
     select: { id: true, fullName: true },
     orderBy: { fullName: "asc" },
     take: 10,
   })
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: DEFAULT_COHORT, isFinal: true },
+    where: { cohort: CURRENT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { result: true },
   })

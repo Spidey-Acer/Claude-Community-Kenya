@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   buildMemberPayload,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: DEFAULT_COHORT, isFinal: true },
+    where: { cohort: CURRENT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
   })
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   const snapshot = run.resultsSnapshot as unknown as ResultsSnapshot
 
   const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: DEFAULT_COHORT, email: check.email } },
+    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
     select: { id: true },
   })
 

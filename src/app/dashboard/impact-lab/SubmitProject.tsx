@@ -268,8 +268,8 @@ export function SubmitProject() {
           )}
           {field(
             "claudeUsage",
-            "How you used Claude *",
-            "Which parts Claude wrote, and how you drove it.",
+            "How you used AI *",
+            "Which AI tools you used — Claude, ChatGPT, Gemini, Copilot, or other — and what they actually did for you. No AI? Say so.",
             true
           )}
           {field("repoUrl", "Repo link *", "github.com/you/project — https:// optional.")}
