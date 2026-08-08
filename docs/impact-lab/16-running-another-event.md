@@ -6,8 +6,8 @@ cohort the site serves. Running a second event is configuration plus a seed —
 not a fork, and not a second deployment.
 
 This document is the runbook. It was written while standing up the **Afretec
-Pre-Incubation Kickoff Hackathon** (C4DLab, University of Nairobi) alongside the
-July Impact Lab, and it describes what actually had to happen.
+Makerthon 2026** (C4DLab, University of Nairobi) alongside the July Impact Lab,
+and it describes what actually had to happen.
 
 ## The one thing to understand first
 
@@ -68,7 +68,7 @@ meaningful match score and the admin dashboard should not imply otherwise.
 ## Runbook
 
 1. **Choose a cohort slug.** Must match `/^[a-z0-9][a-z0-9-]{0,59}$/`; date-suffix
-   it (`afretec-hackathon-2026-08`). It appears in export filenames.
+   it (`afretec-makerthon-2026-08`). It appears in export filenames.
 
 2. **Get the participants in.** Either the admin import for a matching event, or
    a seed script for pre-formed teams. Two rules learned the hard way:
@@ -98,20 +98,28 @@ meaningful match score and the admin dashboard should not imply otherwise.
      Set it to `true` when people register remotely, since without it someone
      can sign up as another registrant and read that person's team.
 
-5. **Check the event-specific copy.** The submission form and the judging rubric
-   carry the assumptions of the event they were built for. For Afretec, the
-   Claude-specific submission question and the "Use of Claude" criterion were
-   relabelled to be tool-agnostic. Note that the *stored keys* stayed
-   (`claudeUsage`, `scores.claude`) — only labels changed, because renaming keys
-   orphans stored scores and breaks the export pipeline.
+5. **Set the judging rubric.** Rubrics are per-event — see
+   `src/lib/impact-lab/judging-rubrics.ts` and doc 17 for the admin builder. Do
+   not assume the Impact Lab rubric transfers: the Afretec panel supplied eight
+   criteria with uneven maxima totalling 50 and points-based arithmetic, where
+   Impact Lab has five criteria scored 1–5 and normalises. `rubricForCohort()`
+   resolves it, and a cohort absent from that map silently gets the Impact Lab
+   rubric — so a new event without a rubric entry will be scored on the wrong
+   criteria rather than erroring.
 
-6. **Smoke-test one real account end to end** before telling anyone to sign up:
+6. **Check the event-specific copy.** The submission form carries the
+   assumptions of the event it was built for. For Afretec, the Claude-specific
+   submission question was relabelled to ask about AI generally. Note that the
+   *stored keys* stayed (`claudeUsage`, `scores.claude`) — only labels changed,
+   because renaming keys orphans stored scores and breaks the export pipeline.
+
+7. **Smoke-test one real account end to end** before telling anyone to sign up:
    log in as a seeded leader, see the team, save a submission, then score that
    submission from `/judge` with the new code and confirm the score lands on
    **this** cohort's leaderboard. That last check is the one that catches a
    cohort-resolution mistake, and it is invisible from the participant side.
 
-7. **Confirm the previous cohort went read-only.** It should: `isCohortActive`
+8. **Confirm the previous cohort went read-only.** It should: `isCohortActive`
    is false for it, and its data is untouched.
 
 ## What participants have to do

@@ -1,5 +1,5 @@
 /**
- * Seed the Afretec Pre-Incubation Kickoff hackathon cohort with teams that
+ * Seed the Afretec Makerthon 2026 cohort with teams that
  * are already formed.
  *
  * Unlike the usual Impact Lab flow, nobody self-registers first and the
@@ -47,17 +47,17 @@ import { DEFAULT_SETTINGS } from "../src/lib/matching"
 import type { MatchParticipant, MatchResult, ScoreBreakdown, Team, TeamExplanation } from "../src/lib/matching"
 
 /** New cohort slug for this event. Must satisfy the pattern in constants.ts. */
-const COHORT = "afretec-hackathon-2026-08"
+const COHORT = "afretec-makerthon-2026-08"
 const COHORT_PATTERN = /^[a-z0-9][a-z0-9-]{0,59}$/
 if (!COHORT_PATTERN.test(COHORT)) {
   throw new Error(`COHORT slug "${COHORT}" does not satisfy ${COHORT_PATTERN}`)
 }
 
 const INPUT_FILE = resolve(
-  "C:/Projects/Claude-Community-Kenya/afretec-hackathon-2026-08/teams-reconciled.json"
+  "C:/Projects/Claude-Community-Kenya/afretec-makerthon-2026-08/teams-reconciled.json"
 )
 const REPORT_FILE = resolve("scripts/output/hackathon-cohort-seed-report.txt")
-const RUN_NAME = "Afretec Pre-Incubation Kickoff Hackathon — registered teams"
+const RUN_NAME = "Afretec Makerthon 2026 — registered teams"
 
 const APPLY = process.argv.includes("--apply")
 

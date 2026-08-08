@@ -192,7 +192,7 @@ assert(
   "the July cohort resolves to the Impact Lab rubric"
 )
 assert(
-  rubricForCohort("afretec-hackathon-2026-08").id === AFRETEC_RUBRIC.id,
+  rubricForCohort("afretec-makerthon-2026-08").id === AFRETEC_RUBRIC.id,
   "the Afretec cohort resolves to the Afretec rubric"
 )
 assert(

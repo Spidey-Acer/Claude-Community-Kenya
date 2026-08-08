@@ -138,7 +138,7 @@ export const IMPACT_LAB_RUBRIC: JudgingRubric = {
   ],
 }
 
-// ─── Afretec Pre-Incubation Kickoff Hackathon (C4DLab, UoN) ──────────────────
+// ─── Afretec Makerthon 2026 (C4DLab, University of Nairobi) ──────────────────
 
 /**
  * Supplied by the Afretec judging panel, transcribed from their Google Form.
@@ -151,8 +151,8 @@ export const IMPACT_LAB_RUBRIC: JudgingRubric = {
  * briefed on these words.
  */
 export const AFRETEC_RUBRIC: JudgingRubric = {
-  id: "afretec-2026-08",
-  label: "Afretec Pre-Incubation Kickoff Hackathon",
+  id: "afretec-makerthon-2026-08",
+  label: "Afretec Makerthon 2026",
   scoring: "points",
   totalOutOf: 50,
   scoreLabels: null,
@@ -240,7 +240,7 @@ export const AFRETEC_RUBRIC: JudgingRubric = {
  * database was produced against.
  */
 const RUBRIC_BY_COHORT: Readonly<Record<string, JudgingRubric>> = {
-  "afretec-hackathon-2026-08": AFRETEC_RUBRIC,
+  "afretec-makerthon-2026-08": AFRETEC_RUBRIC,
 }
 
 /** Every rubric this system knows how to score against. */
