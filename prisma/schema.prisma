@@ -956,6 +956,23 @@ model ImpactLabRubric {
   @@map("impact_lab_rubrics")
 }
 
+/// A shared pitch countdown, one row per cohort. Any judge who taps Start
+/// starts it for the whole room — this is a room clock, not a per-judge
+/// stopwatch — and restarting mid-countdown is expected: it means the next
+/// team is up. `cohort` is the primary key rather than a separate id because
+/// there is at most one running timer per cohort and no reason to keep
+/// history once it is replaced.
+model ImpactLabPitchTimer {
+  cohort    String   @id
+  startedAt DateTime
+  seconds   Int      @default(300)
+  /// Judge display name, shown on the timer as "started by …".
+  startedBy String
+  updatedAt DateTime @updatedAt
+
+  @@map("impact_lab_pitch_timers")
+}
+
 /// One row per intended recipient of the results email. This is what makes the
 /// send idempotent: Resend's quota is 100/day and there are 93 recipients, so a
 /// careless retry exceeds it. A resend selects status <> 'sent' only.
