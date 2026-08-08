@@ -9,10 +9,12 @@ export default function ImpactLabAdminPage() {
     <div>
       <AdminHeader title="Impact Lab" />
       <div className="p-6">
-        <p className="text-xs font-mono text-[#555] mb-4">
-          Team matching for cohort <span className="text-[#00ff41]">{CURRENT_COHORT}</span> — import
-          participants, generate teams, explain with Claude, and freeze a final run.
-        </p>
+        {/*
+         * The explanatory line used to live here as static server-rendered
+         * text naming CURRENT_COHORT — wrong the moment an organiser picks a
+         * different event from the selector below. It now lives inside
+         * ImpactLabDashboard, which tracks the selected cohort as state.
+         */}
         <ImpactLabDashboard cohort={CURRENT_COHORT} />
       </div>
     </div>
