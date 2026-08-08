@@ -8,7 +8,7 @@
  * owns team resolution, so this component never sends a team identifier.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Send, CheckCircle } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import type { SubmissionView } from "@/lib/impact-lab/submission-schema";
@@ -97,6 +97,8 @@ export function SubmitProject() {
    *  null forever otherwise, so it needs its own state to escape the
    *  "Loading…" spinner and offer a retry. */
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** The save-outcome banner, scrolled into view so a result is never missed. */
+  const statusRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -153,6 +155,12 @@ export function SubmitProject() {
       setError("Could not save your submission.");
     } finally {
       setSaving(false);
+      // Bring the outcome into view. On a phone the submitter is at the bottom
+      // of a long form and the banner can render off-screen — a save that
+      // silently succeeded reads exactly like one that silently failed.
+      requestAnimationFrame(() =>
+        statusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      );
     }
   }
 
@@ -288,18 +296,44 @@ export function SubmitProject() {
           {field("videoUrl", "Video link", "A walkthrough, in case the live demo dies.")}
           {field("screenshotUrl", "Screenshot link", "Optional image link.")}
 
-          {error && (
-            <p role="alert" className="font-mono text-xs text-red">
-              {error}
-            </p>
-          )}
+          {/* The outcome has to be impossible to miss. This sat as one line of
+              small text at the foot of a long form, which on a phone is below
+              the fold after filling it in — teams could not tell whether they
+              had submitted or not. */}
+          <div ref={statusRef} tabIndex={-1} className="scroll-mt-24">
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-red/40 bg-red/10 p-4"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red" />
+                <div>
+                  <p className="font-mono text-sm font-semibold text-red">
+                    Not submitted
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-red/90">{error}</p>
+                </div>
+              </div>
+            )}
 
-          {saved && (
-            <p role="status" className="font-mono text-xs text-green-primary">
-              <CheckCircle className="mr-1.5 inline h-3.5 w-3.5" />
-              Saved. Your teammates will see this.
-            </p>
-          )}
+            {saved && (
+              <div
+                role="status"
+                className="flex items-start gap-2.5 rounded-lg border border-green-primary/40 bg-green-primary/10 p-4"
+              >
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-green-primary" />
+                <div>
+                  <p className="font-mono text-sm font-semibold text-green-primary">
+                    Submitted
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-green-primary/90">
+                    Saved — your teammates and the judges can see this. You can
+                    keep editing until submissions close.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {!readOnly && (
             <button

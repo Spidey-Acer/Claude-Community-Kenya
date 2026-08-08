@@ -26,6 +26,29 @@ interface ResolvedContext {
   closeAt: Date | null
 }
 
+/**
+ * Field key → the label the submitter actually sees on the form.
+ *
+ * Validation reports the first failing field by key (`slidesUrl`), which means
+ * nothing to the person filling the form — and "A link is required" is
+ * ambiguous across five link inputs. Prefixing the label turns an unactionable
+ * error into an instruction.
+ */
+const SUBMISSION_FIELD_LABELS: Readonly<Record<string, string>> = {
+  slidesUrl: "Pitch deck link",
+  projectName: "Project name",
+  pitch: "One-line pitch",
+  description: "What it does",
+  worksVsMocked: "What works vs what's mocked",
+  claudeUsage: "How you used AI",
+  track: "Track",
+  problemTackled: "Problem tackled",
+  repoUrl: "Repo link",
+  demoUrl: "Demo link",
+  videoUrl: "Video link",
+  screenshotUrl: "Screenshot link",
+}
+
 /** Resolve the caller to a team in the cohort's final run, or null. */
 async function resolveContext(email: string): Promise<ResolvedContext | null> {
   const participant = await prisma.impactLabParticipant.findUnique({
@@ -158,8 +181,19 @@ export async function PUT(request: NextRequest) {
 
   const parsed = submissionInputSchema.safeParse(body)
   if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const field = typeof issue?.path[0] === "string" ? issue.path[0] : ""
+    // Name the field. "A link is required" over five link inputs tells a team
+    // that something is wrong and nothing about what — at 2 AM that is the
+    // difference between fixing it and giving up.
+    const label = SUBMISSION_FIELD_LABELS[field]
+    const message = issue?.message ?? "Invalid submission"
     return NextResponse.json(
-      { success: false, error: parsed.error.issues[0]?.message ?? "Invalid submission" },
+      {
+        success: false,
+        error: label ? `${label}: ${message}` : message,
+        field: field || undefined,
+      },
       { status: 400 }
     )
   }
