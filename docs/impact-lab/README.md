@@ -37,6 +37,9 @@ output.
 | 12 | [Admin UI](./12-admin-ui.md) | The three tabs; rendering the score breakdown |
 | 13 | [Audit hardening](./13-hardening.md) | Security/perf fixes from the PR review, and why |
 | 14 | [Team project submissions](./14-submissions.md) | One row per team, links-only, deadline on the run, judging CSV |
+| 15 | [Judging card](./15-judging-form.md) | The scoring instrument; what is deliberately not on it |
+| 16 | [Running another event](./16-running-another-event.md) | Cohort switching runbook; what it costs the previous cohort |
+| 17 | [Rubric builder](./17-rubric-builder.md) | Organiser-authored rubrics; why structure freezes on first score |
 
 ## Try it
 

@@ -1,7 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Network, Save, FileText, UserCheck, Trophy, Gavel, ListChecks } from "lucide-react"
+import {
+  Users,
+  Network,
+  Save,
+  FileText,
+  UserCheck,
+  Trophy,
+  Gavel,
+  ListChecks,
+  SlidersHorizontal,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ParticipantsTab } from "./ParticipantsTab"
 import { MatchingTab } from "./MatchingTab"
@@ -11,6 +21,7 @@ import { CheckInTab } from "./CheckInTab"
 import { LeaderboardTab } from "./LeaderboardTab"
 import { JudgesTab } from "./JudgesTab"
 import { ResultsTab } from "./ResultsTab"
+import { RubricTab } from "./RubricTab"
 
 type Tab =
   | "participants"
@@ -18,6 +29,7 @@ type Tab =
   | "runs"
   | "submissions"
   | "checkin"
+  | "rubric"
   | "leaderboard"
   | "judges"
   | "results"
@@ -28,6 +40,10 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "runs", label: "Runs", icon: Save },
   { key: "submissions", label: "Submissions", icon: FileText },
   { key: "checkin", label: "Check-in", icon: UserCheck },
+  // Before Leaderboard: the rubric is what the leaderboard's numbers mean, and
+  // it has to be settled before judges start scoring — after that its structure
+  // locks.
+  { key: "rubric", label: "Rubric", icon: SlidersHorizontal },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy },
   { key: "judges", label: "Judges", icon: Gavel },
   { key: "results", label: "Results", icon: ListChecks },
@@ -70,6 +86,7 @@ export function ImpactLabDashboard({ cohort }: { cohort: string }) {
       {tab === "runs" && <RunsTab cohort={cohort} refreshKey={runsKey} />}
       {tab === "submissions" && <SubmissionsTab cohort={cohort} />}
       {tab === "checkin" && <CheckInTab cohort={cohort} />}
+      {tab === "rubric" && <RubricTab cohort={cohort} />}
       {tab === "leaderboard" && <LeaderboardTab cohort={cohort} />}
       {tab === "judges" && <JudgesTab cohort={cohort} />}
       {tab === "results" && <ResultsTab cohort={cohort} />}

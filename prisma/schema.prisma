@@ -908,6 +908,54 @@ model ImpactLabTeamReview {
   @@map("impact_lab_team_reviews")
 }
 
+/// The judging rubric a cohort is scored on, when an organiser has authored one.
+///
+/// Rubrics began life as code constants in lib/impact-lab/judging-rubrics.ts and
+/// those constants remain the fallback: a row here OVERRIDES the constant for
+/// its cohort, and deleting the row reverts to it. Nothing syncs the two.
+///
+/// Editing a rubric is dangerous in a way that is easy to miss. ImpactLabScore
+/// stores raw integers per criterion key and the total is derived at read time
+/// from the rubric, so changing a max, a weight, or the scoring mode silently
+/// rewrites every score already recorded — and renaming a key orphans them.
+/// Hence the freeze rule: once any ImpactLabScore row exists for the cohort (or
+/// the final run's judgingClosedAt is set), criterion keys, min, max, weight and
+/// `scoring` are immutable. Labels, guidance and score anchors stay editable
+/// because they carry no arithmetic. Enforced in lib/impact-lab/rubric-store.ts
+/// and derived from the scores themselves — deliberately NOT a flag on this row,
+/// which could go stale. See docs/impact-lab/17-rubric-builder.md.
+model ImpactLabRubric {
+  id     String @id @default(cuid())
+  /// One rubric per cohort — a second would be an unanswerable question about
+  /// which one judges are scoring against. Saving upserts on this.
+  cohort String @unique
+  /// Shown to judges so they know which rubric is on screen.
+  label  String
+  /// "normalized" | "points" — see ScoringMode. A String rather than a DB enum
+  /// because the union already lives in TypeScript and is validated by Zod on
+  /// write AND on read; a second declaration would only be a second thing to
+  /// change.
+  scoring String
+  /// JudgingCriterion[] — {key, label, guidance, min, max, weight}.
+  criteria Json
+  /// Record<string, string> keyed by score value, or null when the scale is too
+  /// long to anchor usefully. Keys are strings because JSON keys always are.
+  scoreLabels Json?
+  /// "manual", or the model id when the draft came from the extraction route.
+  /// Provenance only: nothing is ever saved without an organiser pressing Save.
+  source         String
+  createdByEmail String
+  updatedByEmail String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // totalOutOf and the JudgingRubric id are DERIVED, not stored: a stored total
+  // can disagree with the criteria it totals, and a stored id would let two
+  // rubrics claim one identity. The id is `db-<cohort>`.
+
+  @@map("impact_lab_rubrics")
+}
+
 /// One row per intended recipient of the results email. This is what makes the
 /// send idempotent: Resend's quota is 100/day and there are 93 recipients, so a
 /// careless retry exceeds it. A resend selects status <> 'sent' only.
