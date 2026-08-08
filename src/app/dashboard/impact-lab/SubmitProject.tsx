@@ -255,31 +255,37 @@ export function SubmitProject() {
         )}
 
         <form onSubmit={save} className="space-y-4">
-          {field("projectName", "Project name *", "What are you calling it?")}
-          {field("pitch", "One-line pitch *", "One sentence a judge can repeat.")}
-          {field("track", "Track *", "The track whose problem you built for.")}
-          {field("problemTackled", "Problem tackled *", "The specific problem, in your words.")}
-          {field("description", "What it does *", "What a judge sees when they open it.", true)}
+          {field(
+            "slidesUrl",
+            "Pitch deck link *",
+            "The only thing you must provide. Google Slides, Canva, Drive, PDF — any link judges can open."
+          )}
+
+          <p className="pt-2 font-mono text-xs text-text-dim">
+            Everything below is optional. Fill in what helps a judge; leave the
+            rest.
+          </p>
+
+          {field("projectName", "Project name", "What are you calling it?")}
+          {field("pitch", "One-line pitch", "One sentence a judge can repeat.")}
+          {field("track", "Track", "The track whose problem you built for.")}
+          {field("problemTackled", "Problem tackled", "The specific problem, in your words.")}
+          {field("description", "What it does", "What a judge sees when they open it.", true)}
           {field(
             "worksVsMocked",
-            "What works vs what's mocked *",
+            "What works vs what's mocked",
             "Be honest — a thin real slice beats a wide fake one.",
             true
           )}
           {field(
             "claudeUsage",
-            "How you used AI *",
+            "How you used AI",
             "Which AI tools you used — Claude, ChatGPT, Gemini, Copilot, or other — and what they actually did for you. No AI? Say so.",
             true
           )}
-          <p className="pt-2 font-mono text-xs text-text-dim">
-            Add at least one link judges can open. Not every project is
-            software — a deck or a video is fine on its own.
-          </p>
           {field("repoUrl", "Repo link", "github.com/you/project — https:// optional.")}
           {field("demoUrl", "Demo link", "A live URL judges can click.")}
           {field("videoUrl", "Video link", "A walkthrough, in case the live demo dies.")}
-          {field("slidesUrl", "Slides link", "Drive or Figma link — no file upload needed.")}
           {field("screenshotUrl", "Screenshot link", "Optional image link.")}
 
           {error && (
