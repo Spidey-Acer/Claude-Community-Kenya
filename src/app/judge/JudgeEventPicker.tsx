@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { JudgeScoring } from "./JudgeScoring";
+import { PitchTimer } from "./PitchTimer";
 
 interface JudgeEvent {
   cohort: string;
@@ -122,7 +123,9 @@ export function JudgeEventPicker({ judgeName }: { judgeName: string }) {
   }
 
   return (
-    <div>
+    // pb-24 clears the fixed pitch timer pinned to the bottom of the viewport
+    // so it never covers the scorecard's own Save button.
+    <div className="pb-24">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-default bg-bg-card px-4 py-3">
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-wider text-text-dim">
@@ -148,6 +151,7 @@ export function JudgeEventPicker({ judgeName }: { judgeName: string }) {
         )}
       </div>
       <JudgeScoring cohort={selected.cohort} onDirtyChange={setDirty} />
+      <PitchTimer cohort={selected.cohort} />
     </div>
   );
 }
