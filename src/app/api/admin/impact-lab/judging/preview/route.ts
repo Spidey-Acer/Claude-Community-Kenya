@@ -5,7 +5,8 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import { standings, type ScoreSheet } from "@/lib/impact-lab/judging"
+import { standings, totalOutOf, type ScoreSheet } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
  * What-if standings with judges excluded. READ ONLY, and deliberately so.
@@ -49,13 +50,20 @@ export async function POST(request: NextRequest) {
   }
 
   const cohort = safeCohort(parsed.data.cohort)
+  // Both averages below are in this rubric's units, so it travels with them.
+  const rubric = await resolveRubric(cohort)
+  const rubricMeta = { rubricLabel: rubric.label, totalOutOf: totalOutOf(rubric) }
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
   if (!run) {
-    return NextResponse.json({ success: true, data: { rows: [], orphaned: [] } })
+    return NextResponse.json({
+      success: true,
+      data: { rows: [], orphaned: [], ...rubricMeta },
+    })
   }
 
   const teams = extractFrozenTeams(run.result) ?? []
@@ -81,8 +89,8 @@ export async function POST(request: NextRequest) {
   }))
   const filteredSheets = allSheets.filter((s) => !excluded.has(s.judgeEmail))
 
-  const base = standings(allSheets)
-  const preview = standings(filteredSheets)
+  const base = standings(allSheets, rubric)
+  const preview = standings(filteredSheets, rubric)
   const previewIndexByTeam = new Map(preview.map((p, i) => [p.teamId, i]))
 
   const rows: PreviewRow[] = base.map((b, i) => {
@@ -104,5 +112,5 @@ export async function POST(request: NextRequest) {
 
   const orphaned = rows.filter((r) => r.previewRank === null).map((r) => r.teamName)
 
-  return NextResponse.json({ success: true, data: { rows, orphaned } })
+  return NextResponse.json({ success: true, data: { rows, orphaned, ...rubricMeta } })
 }

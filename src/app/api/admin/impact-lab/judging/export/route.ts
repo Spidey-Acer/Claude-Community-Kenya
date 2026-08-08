@@ -5,29 +5,45 @@ import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { toCsv } from "@/lib/impact-lab/csv"
 import {
-  JUDGING_CRITERIA,
   standings,
+  totalOutOf,
   trackOf,
   trackWinners,
-  type JudgingCriterion,
+  type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
-
-const HEADERS = [
-  "Team",
-  "Track",
-  "Project",
-  "Judges",
-  "Weighted average (/100)",
-  "Track winner",
-  "Champion",
-  ...JUDGING_CRITERIA.map((c: JudgingCriterion) => `${c.label} (avg /5)`),
-  "Judge feedback",
-]
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
- * The sheet the winners are read from: one row per team, sorted by weighted
- * average descending, carrying its own "Track winner" and "Champion" flags —
+ * Column headers for one rubric.
+ *
+ * Built per request, because both denominators are rubric-specific. The old
+ * hardcoded `(avg /5)` was actively misleading on a criterion scored out of 10 —
+ * a 7 read as an impossible score rather than a good one. The averages column
+ * keeps its "Weighted" wording only where the arithmetic is actually weighted;
+ * a points rubric's total is a sum, and calling it weighted invites someone to
+ * look for weights that are not there.
+ */
+function headersFor(rubric: JudgingRubric): string[] {
+  const outOf = totalOutOf(rubric)
+  return [
+    "Team",
+    "Track",
+    "Project",
+    "Judges",
+    rubric.scoring === "points"
+      ? `Average total (/${outOf})`
+      : `Weighted average (/${outOf})`,
+    "Track winner",
+    "Champion",
+    ...rubric.criteria.map((c) => `${c.label} (avg /${c.max})`),
+    "Judge feedback",
+  ]
+}
+
+/**
+ * The sheet the winners are read from: one row per team, sorted by average
+ * descending, carrying its own "Track winner" and "Champion" flags —
  * the program promises both, and this sheet needs to stand alone rather than
  * sending someone back to the leaderboard tab to know who actually won.
  * Reuses `standings` and `trackWinners` for the maths rather than
@@ -40,6 +56,8 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const rubric = await resolveRubric(cohort)
+  const headers = headersFor(rubric)
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
@@ -54,7 +72,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!run) {
-    return new NextResponse(toCsv(HEADERS, []), { headers: csvHeaders })
+    return new NextResponse(toCsv(headers, []), { headers: csvHeaders })
   }
 
   const teams = extractFrozenTeams(run.result) ?? []
@@ -85,7 +103,8 @@ export async function GET(request: NextRequest) {
       judgeEmail: s.judgeEmail,
       teamId: s.teamId,
       sheet: (s.scores ?? {}) as ScoreSheet,
-    }))
+    })),
+    rubric
   )
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
 
@@ -106,7 +125,7 @@ export async function GET(request: NextRequest) {
           standing?.average ?? 0,
           trackWinnerIds.has(t.id) ? "Yes" : "",
           champion?.teamId === t.id ? "Yes" : "",
-          ...JUDGING_CRITERIA.map((c: JudgingCriterion) => standing?.criterionAverages[c.key] ?? 0),
+          ...rubric.criteria.map((c) => standing?.criterionAverages[c.key] ?? 0),
           feedbackByTeam.get(t.id) ?? "",
         ],
       }
@@ -114,5 +133,5 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.average - a.average)
     .map((r) => r.cells)
 
-  return new NextResponse(toCsv(HEADERS, rows), { headers: csvHeaders })
+  return new NextResponse(toCsv(headers, rows), { headers: csvHeaders })
 }

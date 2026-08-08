@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react"
 import { AlertTriangle, Download, Loader2, Trophy } from "lucide-react"
 import { apiGet } from "./api"
 import {
-  JUDGING_CRITERIA,
   trackWinners,
   type JudgingCriterion,
+  type JudgingRubric,
   type TeamStanding,
 } from "@/lib/impact-lab/judging"
 
@@ -21,6 +21,12 @@ interface JudgingData {
   finalRunId: string | null
   teams: LeaderboardTeam[]
   standings: TeamStanding[]
+  /**
+   * Optional only for the transition while the API route is being made
+   * cohort-aware. Falls back to Impact Lab, which is what every stored score
+   * predating this field was made with.
+   */
+  rubric?: JudgingRubric
 }
 
 /**
@@ -76,6 +82,20 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
     )
   }
 
+  // No fallback rubric: this table is what winners get announced off. Guessing
+  // the rubric would label columns and quote totals against criteria the judges
+  // never scored, and it would look right.
+  const rubric = data.rubric
+  if (!rubric) {
+    return (
+      <p className="p-8 text-center text-sm font-mono text-[#ff3333]" role="alert">
+        The judging rubric for this cohort did not load — the leaderboard is
+        hidden rather than shown against the wrong criteria. Reload before
+        announcing anything.
+      </p>
+    )
+  }
+
   const nameByTeam = new Map(data.teams.map((t) => [t.teamId, t]))
   const teamNameById = new Map(data.teams.map((t) => [t.teamId, t.teamName]))
   const scoredIds = new Set(data.standings.map((s) => s.teamId))
@@ -110,7 +130,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
             </p>
             <p className="text-base font-mono font-bold text-[#e0e0e0]">{champion.teamName}</p>
             <p className="text-[11px] font-mono text-[#888]">
-              {champion.track} · {champion.average}/100 · {champion.judgeCount} judge
+              {champion.track} · {champion.average}/{rubric.totalOutOf} · {champion.judgeCount} judge
               {champion.judgeCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -138,7 +158,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                 <p className="mt-0.5 truncate text-[12px] font-mono font-semibold text-[#e0e0e0]">
                   {w.teamName}
                 </p>
-                <p className="text-[11px] font-mono text-[#00ff41]">{w.average}/100</p>
+                <p className="text-[11px] font-mono text-[#00ff41]">{w.average}/{rubric.totalOutOf}</p>
               </div>
             ))}
           </div>
@@ -171,7 +191,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                   "Project",
                   "Judges",
                   "Average",
-                  ...JUDGING_CRITERIA.map((c: JudgingCriterion) => c.label),
+                  ...rubric.criteria.map((c: JudgingCriterion) => c.label),
                 ].map(
                   (h) => (
                     <th
@@ -202,7 +222,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                     <td className="px-4 py-3 text-[11px] font-mono font-semibold text-[#00ff41]">
                       {s.average}
                     </td>
-                    {JUDGING_CRITERIA.map((c: JudgingCriterion) => (
+                    {rubric.criteria.map((c: JudgingCriterion) => (
                       <td key={c.key} className="px-4 py-3 text-[11px] font-mono text-[#888]">
                         {s.criterionAverages[c.key] ?? 0}
                       </td>

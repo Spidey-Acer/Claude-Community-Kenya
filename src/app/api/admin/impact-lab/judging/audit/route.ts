@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
 import { safeCohort } from "@/lib/impact-lab/constants"
-import { weightedTotal } from "@/lib/impact-lab/judging"
+import { scoreTotal, totalOutOf } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
  * Per-judge audit. Staff only — deliberately not reachable by a code-gated
@@ -48,13 +49,18 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  // Every total below is in this rubric's units, so the rubric travels with the
+  // response — a mean of 48.3 is a different verdict out of 50 than out of 100.
+  const rubric = await resolveRubric(cohort)
+  const rubricMeta = { rubricLabel: rubric.label, totalOutOf: totalOutOf(rubric) }
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
   if (!run) {
-    return NextResponse.json({ success: true, data: { judges: [] } })
+    return NextResponse.json({ success: true, data: { judges: [], ...rubricMeta } })
   }
 
   const [rows, submissions] = await Promise.all([
@@ -97,7 +103,7 @@ export async function GET(request: NextRequest) {
       teamId: row.teamId,
       teamName: nameById.get(row.teamId) ?? row.teamId,
       projectName: projectById.get(row.teamId) ?? null,
-      total: weightedTotal(sheet),
+      total: scoreTotal(sheet, rubric),
       scores: sheet,
       writeupOnly: row.writeupOnly,
       scoredAt: row.createdAt.toISOString(),
@@ -116,5 +122,5 @@ export async function GET(request: NextRequest) {
   }))
   judges.sort((a, b) => b.teamsScored - a.teamsScored || a.judgeName.localeCompare(b.judgeName))
 
-  return NextResponse.json({ success: true, data: { judges } })
+  return NextResponse.json({ success: true, data: { judges, ...rubricMeta } })
 }
