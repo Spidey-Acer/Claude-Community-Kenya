@@ -14,14 +14,8 @@
 
 import ExcelJS from "exceljs"
 import { JUDGING_CRITERIA, SCORE_LABELS } from "./judging"
-import {
-  EVENT_DATES,
-  EVENT_HOST,
-  EVENT_LOCATION,
-  EVENT_TITLE,
-  type ExportTeam,
-  type ResultsExport,
-} from "./export-data"
+import { type ExportTeam, type ResultsExport } from "./export-data"
+import { brandingForCohort } from "./event-branding"
 import { ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 
 // ─── Palette (print-safe echoes of the Terminal Noir tokens) ─────────────────
@@ -532,11 +526,14 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     sheet.addRow({})
   }
 
+  const branding = brandingForCohort(data.cohort)
+
   section("Event")
-  fact("Event", EVENT_TITLE)
-  fact("Hosted by", EVENT_HOST)
-  fact("Dates", EVENT_DATES)
-  fact("Location", EVENT_LOCATION)
+  fact("Event", branding.title)
+  fact("Hosted by", branding.host)
+  if (branding.platformNote) fact("Platform", branding.platformNote)
+  fact("Dates", branding.dates)
+  fact("Location", branding.location)
   fact("Cohort", data.cohort)
   fact("Generated", data.generatedAt.toISOString())
   fact(
@@ -648,7 +645,7 @@ export async function buildResultsWorkbook(
   analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = EVENT_HOST
+  workbook.creator = brandingForCohort(data.cohort).host
   workbook.created = data.generatedAt
 
   addResultsSheet(workbook, data)
