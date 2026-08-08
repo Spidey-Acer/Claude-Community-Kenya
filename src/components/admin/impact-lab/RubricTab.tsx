@@ -140,6 +140,26 @@ export function RubricTab({ cohort }: { cohort: string }) {
   const issueFor = (path: string): string | undefined =>
     issues.find((i) => i.path.join(".") === path)?.message
 
+  /**
+   * Issues whose path matches no rendered input — "a rubric needs at least one
+   * criterion" is pathed to `criteria`, and there is no `criteria` field to put
+   * it beside. Without this they would be swallowed and the organiser would see
+   * only "not valid yet" with no reason.
+   */
+  const renderedPaths = useMemo(() => {
+    const paths = new Set(["label"])
+    draft?.criteria.forEach((_, i) => {
+      for (const field of ["key", "label", "guidance", "min", "max", "weight"]) {
+        paths.add(`criteria.${i}.${field}`)
+      }
+    })
+    return paths
+  }, [draft])
+
+  const unplacedIssues = issues.filter(
+    (i) => !renderedPaths.has(i.path.join(".")) && i.path[0] !== "scoreLabels"
+  )
+
   const setCriterion = (index: number, patch: Partial<CriterionDraft>) => {
     setDraft((prev) => {
       if (!prev) return prev
@@ -651,12 +671,22 @@ export function RubricTab({ cohort }: { cohort: string }) {
       </div>
 
       {/* ── Save ──────────────────────────────────────────────────────────── */}
-      {error && (
+      {(error || unplacedIssues.length > 0) && (
         <div
           role="alert"
-          className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-3 text-[11px] font-mono text-[#ff3333]"
+          className="space-y-1 rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-3 text-[11px] font-mono text-[#ff3333]"
         >
-          {error}
+          {error && <p>{error}</p>}
+          {unplacedIssues.length > 0 && (
+            <ul className="ml-4 list-disc space-y-0.5">
+              {unplacedIssues.map((i) => (
+                <li key={`${i.path.join(".")}-${i.message}`}>
+                  {i.path.length > 0 && <span className="text-[#ff8888]">{i.path.join(".")}: </span>}
+                  {i.message}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {notice && (

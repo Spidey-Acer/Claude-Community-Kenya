@@ -38,6 +38,30 @@ import {
  * rubric they are scoring against.
  */
 
+/**
+ * This code can ship before `impact_lab_rubrics` exists — applying a migration
+ * against production is a human's decision, and `loadRubric` deliberately
+ * degrades to the code constant so every judging surface keeps working until
+ * then. Writes cannot degrade, so they say what is missing instead of throwing a
+ * bare 500 at an organiser who would have no way to interpret it.
+ *
+ * Prisma reports a missing table as P2021.
+ */
+function tableMissingResponse(error: unknown): NextResponse | null {
+  const code = (error as { code?: unknown })?.code
+  if (code !== "P2021") return null
+  console.error("[impact-lab/rubric] impact_lab_rubrics does not exist", error)
+  return NextResponse.json(
+    {
+      success: false,
+      error:
+        "The rubric table has not been created in this database yet. Apply migration 20260808120000_impact_lab_rubrics, then try again. Judging is unaffected — it is still using the built-in rubric.",
+      code: "RUBRIC_TABLE_MISSING",
+    },
+    { status: 503 }
+  )
+}
+
 /** GET — the live rubric for a cohort, its source, and its frozen state. */
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
@@ -81,6 +105,16 @@ export async function GET(request: NextRequest) {
 
 /** PUT — validate, freeze-check, upsert. The only write path for a rubric. */
 export async function PUT(request: NextRequest) {
+  try {
+    return await handlePut(request)
+  } catch (error) {
+    const missing = tableMissingResponse(error)
+    if (missing) return missing
+    throw error
+  }
+}
+
+async function handlePut(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
@@ -192,6 +226,16 @@ export async function PUT(request: NextRequest) {
 
 /** DELETE — revert the cohort to its built-in rubric. Freeze-gated like PUT. */
 export async function DELETE(request: NextRequest) {
+  try {
+    return await handleDelete(request)
+  } catch (error) {
+    const missing = tableMissingResponse(error)
+    if (missing) return missing
+    throw error
+  }
+}
+
+async function handleDelete(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
