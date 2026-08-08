@@ -32,6 +32,23 @@ and every member-facing write closes, leaving a read-only record.
 > read was hardcoded to `DEFAULT_COHORT`. Flipping the env var opened writes but
 > still served the old event's teams. `CURRENT_COHORT` exists to close that gap.
 
+`safeCohort()` — how all 21 admin API routes resolve a cohort from a query
+param — falls back to `CURRENT_COHORT` too. That matters more than it looks:
+the judge screen calls `/api/admin/impact-lab/judging` with no `cohort` param
+at all, so this fallback *is* the cohort judges score.
+
+### What switching costs the previous cohort
+
+Setting `IMPACT_LAB_ACTIVE_COHORT` points **every** read at the new event. The
+previous cohort's rows are untouched at rest, but nothing reads them any more:
+its participants sign in, are told no registration was found, and lose access to
+their team, results and reviews for the duration of the new event.
+
+That is an acceptable trade for a one-night event and it reverses by unsetting
+the variable. It is **not** an archive. Giving past participants durable
+read-only access to their own cohort is outstanding work — do not read the step
+below as claiming it is handled.
+
 ## Two kinds of event
 
 **Teams are formed at the event** (the July Impact Lab). Participants register,
@@ -69,6 +86,10 @@ meaningful match score and the admin dashboard should not imply otherwise.
 
 4. **Set the environment** in Vercel (no deploy needed):
    - `IMPACT_LAB_ACTIVE_COHORT=<slug>`
+   - `IMPACT_LAB_COHORT_LABEL=<event name>` — what the self-registration card
+     calls the event. Without it the card shows the raw slug. Since any signed-in
+     account sees that card, naming the event is what stops people registering
+     for something they are not attending.
    - `JUDGE_ACCESS_CODE=<fresh code>` — **rotate this every event.** It defaults
      to a literal in `judge-access.ts`, and anyone who learned the last event's
      code can otherwise submit scores under any name they type.
@@ -85,8 +106,10 @@ meaningful match score and the admin dashboard should not imply otherwise.
    orphans stored scores and breaks the export pipeline.
 
 6. **Smoke-test one real account end to end** before telling anyone to sign up:
-   log in as a seeded leader, see the team, save a submission, score it from
-   `/judge` with the new code.
+   log in as a seeded leader, see the team, save a submission, then score that
+   submission from `/judge` with the new code and confirm the score lands on
+   **this** cohort's leaderboard. That last check is the one that catches a
+   cohort-resolution mistake, and it is invisible from the participant side.
 
 7. **Confirm the previous cohort went read-only.** It should: `isCohortActive`
    is false for it, and its data is untouched.
