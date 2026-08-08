@@ -4,8 +4,22 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 
+// One letter would return most of the cohort and turn a teammate lookup into
+// a roster dump. Account search opens up a much larger pool (every site
+// signup, not just the ~20 registered leaders) so it needs a higher floor.
+const PARTICIPANT_MIN_QUERY_LENGTH = 2
+const ACCOUNT_MIN_QUERY_LENGTH = 3
+const RESULT_CAP = 10
+
 /**
  * Search the cohort so a team can find the person sitting with them.
+ *
+ * Registration only captured team leaders, so members who since signed up
+ * on the site have no `ImpactLabParticipant` row yet and would otherwise be
+ * invisible to their leader. Alongside the existing cohort search, this also
+ * matches site accounts (`User`) with no participant row for the current
+ * cohort — those come back as `kind: "account"` so the UI can label them as
+ * "not on the roster yet" before a leader adds them.
  *
  * Returns names only, never emails or phone numbers — this is a lookup for
  * adding a teammate, not a directory of a hundred people's contact details.
@@ -25,9 +39,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const q = (request.nextUrl.searchParams.get("q") ?? "").trim()
-  // Two characters is the floor: one letter would return most of the cohort and
-  // turn a teammate lookup into a roster dump.
-  if (q.length < 2) {
+  if (q.length < PARTICIPANT_MIN_QUERY_LENGTH) {
     return NextResponse.json({ success: true, results: [] })
   }
 
@@ -35,7 +47,7 @@ export async function GET(request: NextRequest) {
     where: { cohort: CURRENT_COHORT, fullName: { contains: q, mode: "insensitive" } },
     select: { id: true, fullName: true },
     orderBy: { fullName: "asc" },
-    take: 10,
+    take: RESULT_CAP,
   })
 
   const run = await prisma.impactLabMatchRun.findFirst({
@@ -49,12 +61,65 @@ export async function GET(request: NextRequest) {
     for (const id of team.memberIds) teamNameById.set(id, team.name)
   }
 
+  const participantResults = people.map((p) => ({
+    id: p.id,
+    fullName: p.fullName,
+    onTeam: teamNameById.get(p.id) ?? null,
+    kind: "participant" as const,
+  }))
+
+  const accountResults =
+    q.length >= ACCOUNT_MIN_QUERY_LENGTH
+      ? await searchAccounts(q, participantResults.length)
+      : []
+
   return NextResponse.json({
     success: true,
-    results: people.map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      onTeam: teamNameById.get(p.id) ?? null,
-    })),
+    results: [...participantResults, ...accountResults].slice(0, RESULT_CAP),
   })
+}
+
+/**
+ * Site accounts matching `q` by name that have no participant row for the
+ * current cohort yet. Matched against `firstName`/`lastName` separately
+ * (there is no stored full-name column), then de-duplicated against existing
+ * participants by email so someone who is both never appears twice — the
+ * cohort search above already returns them as `"participant"`.
+ */
+async function searchAccounts(q: string, alreadyFilled: number) {
+  const budget = RESULT_CAP - alreadyFilled
+  if (budget <= 0) return []
+
+  // Over-fetch before the participant-email filter removes some candidates.
+  const candidates = await prisma.user.findMany({
+    where: {
+      active: true,
+      OR: [
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, firstName: true, lastName: true, email: true },
+    orderBy: { firstName: "asc" },
+    take: RESULT_CAP * 3,
+  })
+  if (candidates.length === 0) return []
+
+  const existing = await prisma.impactLabParticipant.findMany({
+    where: {
+      cohort: CURRENT_COHORT,
+      email: { in: candidates.map((u) => u.email.toLowerCase()) },
+    },
+    select: { email: true },
+  })
+  const existingEmails = new Set(existing.map((p) => p.email.toLowerCase()))
+
+  return candidates
+    .filter((u) => !existingEmails.has(u.email.toLowerCase()))
+    .slice(0, budget)
+    .map((u) => ({
+      userId: u.id,
+      fullName: `${u.firstName} ${u.lastName}`.trim(),
+      kind: "account" as const,
+    }))
 }
