@@ -13,10 +13,16 @@
 import {
   JUDGING_CRITERIA,
   weightedTotal,
+  scoreTotal,
   isComplete,
   standings,
   trackOf,
   trackWinners,
+  totalOutOf,
+  maxPoints,
+  rubricForCohort,
+  IMPACT_LAB_RUBRIC,
+  AFRETEC_RUBRIC,
   type ScoreSheet,
 } from "../src/lib/impact-lab/judging"
 
@@ -169,6 +175,152 @@ assert(
 assert(
   trackWinners([], new Map()).champion === null,
   "no scores means no champion, rather than a phantom winner"
+)
+
+// ─── Per-event rubrics ───────────────────────────────────────────────────────
+
+// The engine used to hardcode one rubric: five criteria, all scored 1–5,
+// weights summing to 100. A second event arrived with eight criteria, uneven
+// maxima, and points-based arithmetic. Everything above asserts the Impact Lab
+// rubric still behaves exactly as it did; everything below asserts the second
+// rubric is not being scored with the first one's formula — which would
+// under-score every team, worst for the teams scored lowest.
+
+console.log("\nRubric resolution")
+assert(
+  rubricForCohort("impact-lab-2026-07").id === IMPACT_LAB_RUBRIC.id,
+  "the July cohort resolves to the Impact Lab rubric"
+)
+assert(
+  rubricForCohort("afretec-hackathon-2026-08").id === AFRETEC_RUBRIC.id,
+  "the Afretec cohort resolves to the Afretec rubric"
+)
+assert(
+  rubricForCohort("cohort-that-does-not-exist").id === IMPACT_LAB_RUBRIC.id,
+  "an unknown cohort falls back to Impact Lab rather than throwing mid-event"
+)
+assert(
+  scoreTotal(sheetOf(5)) === weightedTotal(sheetOf(5)),
+  "scoreTotal and the weightedTotal alias agree on the default rubric"
+)
+
+console.log("\nAfretec rubric shape")
+assert(AFRETEC_RUBRIC.criteria.length === 8, "there are eight criteria")
+assert(
+  new Set(AFRETEC_RUBRIC.criteria.map((c) => c.key)).size === 8,
+  "criterion keys are unique"
+)
+assert(
+  AFRETEC_RUBRIC.criteria.map((c) => c.max).join(",") === "10,10,8,4,4,4,6,4",
+  "the per-criterion maxima match the panel's form: 10,10,8,4,4,4,6,4"
+)
+assert(maxPoints(AFRETEC_RUBRIC) === 50, "the maxima sum to 50")
+assert(
+  totalOutOf(AFRETEC_RUBRIC) === 50,
+  "totals are quoted out of 50, not out of 100"
+)
+assert(
+  AFRETEC_RUBRIC.criteria.every((c) => c.weight === c.max),
+  "under points scoring each criterion's weight is its own maximum"
+)
+assert(
+  !AFRETEC_RUBRIC.criteria.some((c) => c.key === "claude"),
+  "the panel's rubric has no AI criterion — we must not invent one"
+)
+
+const afretecSheet = (per: (c: { max: number }) => number): ScoreSheet =>
+  Object.fromEntries(AFRETEC_RUBRIC.criteria.map((c) => [c.key, per(c)]))
+
+console.log("\nAfretec points arithmetic")
+assert(
+  scoreTotal(afretecSheet((c) => c.max), AFRETEC_RUBRIC) === 50,
+  "full marks on every criterion is exactly 50"
+)
+assert(
+  scoreTotal(afretecSheet(() => 1), AFRETEC_RUBRIC) === 8,
+  "all ones is 8 of 50, NOT zero — a points rubric's floor still earns its point"
+)
+assert(
+  scoreTotal({ problem: 7 }, AFRETEC_RUBRIC) === 7,
+  "a single criterion contributes its raw score as points"
+)
+assert(
+  scoreTotal({ problem: 10, presentation: 4 }, AFRETEC_RUBRIC) === 14,
+  "points add up across criteria with different maxima"
+)
+assert(
+  scoreTotal({ problem: 99 }, AFRETEC_RUBRIC) === 10,
+  "a score above the criterion maximum clamps to that maximum"
+)
+assert(
+  scoreTotal({ problem: -5 }, AFRETEC_RUBRIC) === 1,
+  "a score below the criterion minimum clamps to that minimum"
+)
+assert(
+  scoreTotal({ notACriterion: 10 }, AFRETEC_RUBRIC) === 0,
+  "an unknown key contributes nothing rather than throwing"
+)
+assert(
+  scoreTotal({}, AFRETEC_RUBRIC) === 0,
+  "an empty sheet is zero, not NaN"
+)
+
+// The bug this whole refactor exists to prevent: scoring the Afretec sheet on
+// the Impact Lab formula. Under normalisation a 4/4 on a max-4 criterion is
+// full marks, but a 4/10 is only a third — and the total would be quoted out
+// of 100 against criteria that only reach 50.
+assert(
+  scoreTotal(afretecSheet((c) => c.max), IMPACT_LAB_RUBRIC) !==
+    scoreTotal(afretecSheet((c) => c.max), AFRETEC_RUBRIC),
+  "the two rubrics do not produce the same total for the same sheet — proving the rubric argument is load-bearing"
+)
+
+console.log("\nAfretec completeness")
+assert(
+  isComplete(afretecSheet((c) => c.max), AFRETEC_RUBRIC),
+  "a fully scored Afretec sheet is complete"
+)
+assert(
+  !isComplete({ problem: 10 }, AFRETEC_RUBRIC),
+  "one criterion out of eight is not complete"
+)
+assert(
+  !isComplete(afretecSheet((c) => c.max), IMPACT_LAB_RUBRIC),
+  "an Afretec sheet is NOT complete against the Impact Lab rubric — the keys differ"
+)
+assert(
+  isComplete({ problem: 1, value: 1, prototype: 1, testing: 1, market: 1, feasibility: 1, team: 1, presentation: 1 }, AFRETEC_RUBRIC),
+  "all-minimum scores still count as a complete sheet"
+)
+assert(
+  !isComplete({ ...afretecSheet((c) => c.max), problem: 11 }, AFRETEC_RUBRIC),
+  "a score above a criterion's maximum makes the sheet incomplete rather than silently passing"
+)
+
+console.log("\nAfretec standings")
+const afretecStandings = standings(
+  [
+    { judgeEmail: "a@x", teamId: "t-1", sheet: afretecSheet((c) => c.max) },
+    { judgeEmail: "b@x", teamId: "t-1", sheet: afretecSheet(() => 1) },
+    { judgeEmail: "a@x", teamId: "t-2", sheet: afretecSheet((c) => c.max) },
+  ],
+  AFRETEC_RUBRIC
+)
+assert(
+  afretecStandings[0]?.teamId === "t-2",
+  "the team with the higher average leads, on the Afretec rubric's units"
+)
+assert(
+  afretecStandings.find((r) => r.teamId === "t-1")?.average === 29,
+  "two judges on one team average (50 and 8 => 29) rather than sum"
+)
+assert(
+  afretecStandings.find((r) => r.teamId === "t-1")?.judgeCount === 2,
+  "judgeCount reflects how many judges scored the team"
+)
+assert(
+  afretecStandings.find((r) => r.teamId === "t-1")?.criterionAverages.problem === 5.5,
+  "per-criterion averages report the raw score, so a 10 and a 1 average to 5.5"
 )
 
 console.log(

@@ -1,70 +1,46 @@
 /**
- * Impact Lab judging — criteria, weights, and score arithmetic.
+ * Impact Lab judging — score arithmetic over a rubric.
  *
  * Pure and dependency-free (no Prisma, no Next) so the arithmetic can be
  * asserted by a script, the same way the matching engine is.
  *
- * The criteria and weights are the ones published to builders in the program.
- * That matters more than it looks: teams spent the night optimising against
- * these five things, so judging on anything else — a revenue model nobody
- * asked them for, say — would score them on a brief they never received.
+ * The criteria themselves now live in `judging-rubrics.ts`, one rubric per
+ * event: this system runs more than one hackathon and they do not share a
+ * rubric or even a scale. Every function here takes the rubric it is scoring
+ * against. The parameter defaults to the Impact Lab rubric so that a caller
+ * which has not yet been made cohort-aware keeps its existing behaviour
+ * exactly — but a caller that touches a second event MUST pass the rubric,
+ * because the default will quietly score Afretec teams on Claude Community
+ * Kenya's criteria.
  */
 
-export interface JudgingCriterion {
-  key: string
-  label: string
-  /** Points this criterion contributes to a 100-point total. */
-  weight: number
-  /** What a judge is actually being asked to look at. */
-  guidance: string
-}
+import {
+  IMPACT_LAB_RUBRIC,
+  maxPoints,
+  type JudgingRubric,
+} from "./judging-rubrics"
 
-export const JUDGING_CRITERIA: readonly JudgingCriterion[] = [
-  {
-    key: "impact",
-    label: "Impact on the named beneficiary",
-    weight: 25,
-    guidance:
-      "Does this measurably help the specific person the team named? Not a market — a person.",
-  },
-  {
-    key: "demo",
-    label: "A working demo",
-    weight: 25,
-    guidance:
-      "Did it actually run in front of you? Working software only — what is real versus stubbed.",
-  },
-  {
-    key: "claude",
-    label: "Use of AI",
-    weight: 20,
-    guidance:
-      "How well did the team use AI to get further than they could have alone?",
-  },
-  {
-    key: "clarity",
-    label: "Beneficiary clarity",
-    guidance:
-      "Can they say who this helps and what that person struggles with today, in one sentence?",
-    weight: 15,
-  },
-  {
-    key: "presentation",
-    label: "Presentation",
-    weight: 15,
-    guidance: "Was the three minutes clear, honest, and well used?",
-  },
-] as const
+export type { JudgingCriterion, JudgingRubric } from "./judging-rubrics"
+export {
+  IMPACT_LAB_RUBRIC,
+  AFRETEC_RUBRIC,
+  ALL_RUBRICS,
+  rubricForCohort,
+  maxPoints,
+} from "./judging-rubrics"
+
+/**
+ * The Impact Lab criteria, for callers that are single-event by nature (its
+ * results email, its exports). Cohort-aware callers should read
+ * `rubricForCohort(cohort).criteria` instead.
+ */
+export const JUDGING_CRITERIA = IMPACT_LAB_RUBRIC.criteria
 
 export const CRITERION_KEYS = JUDGING_CRITERIA.map((c) => c.key)
 
-/** Anchors shown beside the 1–5 scale so judges calibrate the same way. */
+/** Anchors shown beside the Impact Lab 1–5 scale so judges calibrate the same way. */
 export const SCORE_LABELS: Record<number, string> = {
-  1: "Not shown / insufficient",
-  2: "Attempted, unsatisfactory",
-  3: "Neutral",
-  4: "Good",
-  5: "Outstanding",
+  ...(IMPACT_LAB_RUBRIC.scoreLabels ?? {}),
 }
 
 export const MIN_SCORE = 1
@@ -73,31 +49,65 @@ export const MAX_SCORE = 5
 export type ScoreSheet = Record<string, number>
 
 /**
- * Weighted total out of 100.
+ * A sheet's total, in the units the rubric quotes totals in.
  *
- * A score of 1 means "not shown" and therefore earns zero of that criterion's
- * weight — mapping 1 to a fifth of the points would hand marks to a team that
- * did not do the thing at all. So the scale is normalised (score - 1) / 4.
+ * Two arithmetics, because the two rubrics mean different things by their
+ * lowest score:
  *
- * Missing or out-of-range criteria contribute nothing rather than throwing:
- * a half-filled sheet during live demos should still produce a usable number.
+ * - `"normalized"` (Impact Lab): a 1 means "not shown" and therefore earns
+ *   zero of that criterion's weight. Mapping 1 to a fifth of the points would
+ *   hand marks to a team that did not do the thing at all. Hence
+ *   (score − min) / (max − min), out of 100.
+ * - `"points"` (Afretec): the panel published a points rubric, so the raw
+ *   score IS the points and a 1 out of 10 is worth one point. Out of the sum
+ *   of the maxima (50).
+ *
+ * Missing or out-of-range criteria contribute nothing rather than throwing: a
+ * half-filled sheet during live demos should still produce a usable number.
  */
-export function weightedTotal(sheet: ScoreSheet): number {
+export function scoreTotal(
+  sheet: ScoreSheet,
+  rubric: JudgingRubric = IMPACT_LAB_RUBRIC
+): number {
   let total = 0
-  for (const criterion of JUDGING_CRITERIA) {
+  for (const criterion of rubric.criteria) {
     const raw = sheet[criterion.key]
     if (typeof raw !== "number" || Number.isNaN(raw)) continue
-    const clamped = Math.min(MAX_SCORE, Math.max(MIN_SCORE, raw))
-    total += ((clamped - MIN_SCORE) / (MAX_SCORE - MIN_SCORE)) * criterion.weight
+    const clamped = Math.min(criterion.max, Math.max(criterion.min, raw))
+    if (rubric.scoring === "points") {
+      total += clamped
+    } else {
+      const span = criterion.max - criterion.min
+      // A single-value scale cannot be normalised; award full weight for the
+      // only score available rather than dividing by zero.
+      total += span === 0 ? criterion.weight : ((clamped - criterion.min) / span) * criterion.weight
+    }
   }
   return Math.round(total * 10) / 10
 }
 
+/**
+ * Back-compatible alias for `scoreTotal` against the Impact Lab rubric.
+ *
+ * Kept because "weighted total" is the wrong name for a points rubric, and
+ * renaming every call site at once during a live event is not a trade worth
+ * making. New cohort-aware code should call `scoreTotal(sheet, rubric)`.
+ */
+export function weightedTotal(
+  sheet: ScoreSheet,
+  rubric: JudgingRubric = IMPACT_LAB_RUBRIC
+): number {
+  return scoreTotal(sheet, rubric)
+}
+
 /** True when every criterion has a usable score — used to flag partial sheets. */
-export function isComplete(sheet: ScoreSheet): boolean {
-  return JUDGING_CRITERIA.every((c) => {
+export function isComplete(
+  sheet: ScoreSheet,
+  rubric: JudgingRubric = IMPACT_LAB_RUBRIC
+): boolean {
+  return rubric.criteria.every((c) => {
     const raw = sheet[c.key]
-    return typeof raw === "number" && raw >= MIN_SCORE && raw <= MAX_SCORE
+    return typeof raw === "number" && raw >= c.min && raw <= c.max
   })
 }
 
@@ -109,10 +119,10 @@ export interface JudgeScore {
 
 export interface TeamStanding {
   teamId: string
-  /** Mean of each judge's weighted total. */
+  /** Mean of each judge's total, in the rubric's units. */
   average: number
   judgeCount: number
-  /** Per-criterion mean of the raw 1–5 scores, for the breakdown view. */
+  /** Per-criterion mean of the raw scores, for the breakdown view. */
   criterionAverages: Record<string, number>
 }
 
@@ -124,7 +134,10 @@ export interface TeamStanding {
  * descending, then teamId, so the result is deterministic — a tie must not
  * reorder itself between two loads of the leaderboard.
  */
-export function standings(scores: JudgeScore[]): TeamStanding[] {
+export function standings(
+  scores: JudgeScore[],
+  rubric: JudgingRubric = IMPACT_LAB_RUBRIC
+): TeamStanding[] {
   const byTeam = new Map<string, JudgeScore[]>()
   for (const score of scores) {
     const list = byTeam.get(score.teamId)
@@ -134,11 +147,11 @@ export function standings(scores: JudgeScore[]): TeamStanding[] {
 
   const rows: TeamStanding[] = []
   for (const [teamId, sheets] of byTeam) {
-    const totals = sheets.map((s) => weightedTotal(s.sheet))
+    const totals = sheets.map((s) => scoreTotal(s.sheet, rubric))
     const average = totals.reduce((a, b) => a + b, 0) / (totals.length || 1)
 
     const criterionAverages: Record<string, number> = {}
-    for (const criterion of JUDGING_CRITERIA) {
+    for (const criterion of rubric.criteria) {
       const values = sheets
         .map((s) => s.sheet[criterion.key])
         .filter((v): v is number => typeof v === "number" && !Number.isNaN(v))
@@ -223,4 +236,9 @@ export function trackWinners(
         )
 
   return { winners, champion }
+}
+
+/** Highest total achievable under a rubric — the denominator to quote against. */
+export function totalOutOf(rubric: JudgingRubric = IMPACT_LAB_RUBRIC): number {
+  return rubric.scoring === "points" ? maxPoints(rubric) : 100
 }
