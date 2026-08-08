@@ -2,11 +2,9 @@
 
 import { ExternalLink, Loader2 } from "lucide-react"
 import {
-  JUDGING_CRITERIA,
-  MAX_SCORE,
-  MIN_SCORE,
-  SCORE_LABELS,
-  weightedTotal,
+  scoreTotal,
+  type JudgingCriterion,
+  type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
 
@@ -30,6 +28,7 @@ export interface Draft {
 
 interface TeamScoreCardProps {
   team: JudgeTeam
+  rubric: JudgingRubric
   draft: Draft
   saving: boolean
   unsaved: boolean
@@ -39,19 +38,33 @@ interface TeamScoreCardProps {
   onSave: () => void
 }
 
-const SCALE = Array.from(
-  { length: MAX_SCORE - MIN_SCORE + 1 },
-  (_, i) => MIN_SCORE + i
-)
+/** Every selectable value for one criterion, built from its own min/max. */
+function scaleFor(criterion: JudgingCriterion): number[] {
+  return Array.from(
+    { length: criterion.max - criterion.min + 1 },
+    (_, i) => criterion.min + i
+  )
+}
+
+// The labeled 1–5 Impact Lab scale stays a single stacked column so its
+// anchor text is legible. An unlabeled scale (Afretec, up to 1–10) has no
+// text to make room for, so it packs into a numeric grid instead — capped at
+// 5 columns so it wraps into extra rows rather than overflowing sideways.
+function gridColsClass(criterion: JudgingCriterion, labeled: boolean): string {
+  if (labeled) return "grid-cols-1"
+  return criterion.max - criterion.min + 1 <= 4 ? "grid-cols-4" : "grid-cols-5"
+}
 
 /**
- * One team's scorecard — the five criteria as full-width, thumb-sized 1–5
- * rows (not a slider or a tooltip) so a judge standing up can read every
- * anchor label before tapping, and a running total that always comes from
- * `weightedTotal` rather than a second calculation living in this component.
+ * One team's scorecard. The scale — how many buttons, what they're labeled —
+ * comes entirely from the rubric passed in, because a fixed five-button 1–5
+ * row cannot represent a criterion the panel scored out of 10. A running
+ * total that always comes from `scoreTotal(draft.scores, rubric)` rather than
+ * a second calculation living in this component.
  */
 export function TeamScoreCard({
   team,
+  rubric,
   draft,
   saving,
   unsaved,
@@ -60,7 +73,8 @@ export function TeamScoreCard({
   onFeedback,
   onSave,
 }: TeamScoreCardProps) {
-  const total = weightedTotal(draft.scores)
+  const total = scoreTotal(draft.scores, rubric)
+  const totalLabel = rubric.scoring === "points" ? "Total" : "Weighted total"
 
   return (
     <div className="space-y-5 p-4 sm:p-5">
@@ -103,8 +117,9 @@ export function TeamScoreCard({
       </div>
 
       <div className="space-y-5">
-        {JUDGING_CRITERIA.map((criterion) => {
+        {rubric.criteria.map((criterion) => {
           const selected = draft.scores[criterion.key]
+          const labels = rubric.scoreLabels
           return (
             <div key={criterion.key}>
               <div className="flex items-baseline justify-between gap-2">
@@ -122,18 +137,26 @@ export function TeamScoreCard({
               <div
                 role="radiogroup"
                 aria-label={criterion.label}
-                className="mt-2 grid grid-cols-1 gap-1.5"
+                className={`mt-2 grid gap-1.5 ${gridColsClass(criterion, !!labels)}`}
               >
-                {SCALE.map((value) => {
+                {scaleFor(criterion).map((value) => {
                   const isSelected = selected === value
+                  const anchor = labels?.[value]
                   return (
                     <button
                       key={value}
                       type="button"
                       role="radio"
                       aria-checked={isSelected}
+                      aria-label={
+                        anchor
+                          ? `${criterion.label}: ${value} — ${anchor}`
+                          : `${criterion.label}: ${value} of ${criterion.max}`
+                      }
                       onClick={() => onScore(criterion.key, value)}
-                      className={`flex items-center gap-2.5 rounded border px-3 py-3 text-left text-[12px] font-mono transition-colors ${
+                      className={`flex items-center gap-2.5 rounded border py-3 text-[12px] font-mono transition-colors ${
+                        labels ? "px-3 text-left" : "justify-center px-1"
+                      } ${
                         isSelected
                           ? "border-[#00ff41]/50 bg-[#00ff41]/10 text-[#00ff41]"
                           : "border-[#1e1e1e] bg-[#111] text-[#999] hover:bg-[#161616]"
@@ -148,7 +171,7 @@ export function TeamScoreCard({
                       >
                         {value}
                       </span>
-                      {SCORE_LABELS[value]}
+                      {anchor}
                     </button>
                   )
                 })}
@@ -160,11 +183,11 @@ export function TeamScoreCard({
 
       <div className="rounded-lg border border-[#1e1e1e] bg-[#111] p-3 text-center">
         <p className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
-          Weighted total
+          {totalLabel}
         </p>
         <p className="text-2xl font-mono font-bold text-[#00ff41]">
           {total}
-          <span className="text-sm text-[#444]"> / 100</span>
+          <span className="text-sm text-[#444]"> / {rubric.totalOutOf}</span>
         </p>
       </div>
 

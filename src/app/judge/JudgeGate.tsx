@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { JudgeScoring } from "./JudgeScoring";
+import { JudgeEventPicker } from "./JudgeEventPicker";
 
 /**
  * The code door. Once a judge is through, this stays mounted only to hold the
@@ -64,7 +64,7 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
             Not you?
           </button>
         </header>
-        <JudgeScoring />
+        <JudgeEventPicker judgeName={judge} />
       </div>
     );
   }

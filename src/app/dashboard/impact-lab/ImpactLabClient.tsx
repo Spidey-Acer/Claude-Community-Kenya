@@ -61,15 +61,19 @@ type Phase =
 export function ImpactLabClient({
   sessionEmail,
   cohortActive,
+  cohortLabel,
 }: {
   sessionEmail: string;
   cohortActive: boolean;
+  /** Name of the event now running, so registration copy can say which one. */
+  cohortLabel: string;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
   const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -219,6 +223,37 @@ export function ImpactLabClient({
   }
 
   if (phase === "not-registered") {
+    if (registering) {
+      return (
+        <MatchProfileForm
+          isNew
+          profile={{
+            fullName: "",
+            email: sessionEmail,
+            phone: null,
+            institution: null,
+            experienceLevel: "BEGINNER",
+            primaryRole: "",
+            secondaryRoles: [],
+            technicalSkills: [],
+            interests: [],
+            availability: [],
+            projectIdeas: null,
+            preferredTeammates: [],
+            blockedTeammates: [],
+            consentToMatch: false,
+            consentToShareContact: false,
+          }}
+          onSaved={() => {
+            setRegistering(false);
+            setPhase("loading");
+            setReloadKey((k) => k + 1);
+          }}
+          onCancel={() => setRegistering(false)}
+        />
+      );
+    }
+
     return (
       <section
         className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
@@ -230,22 +265,32 @@ export function ImpactLabClient({
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-mono text-base font-bold text-text-primary">
-              No hackathon registration found
+              No registration found for {cohortLabel}
             </h2>
             <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-              We couldn&apos;t find an Impact Lab registration under{" "}
-              <span className="font-mono text-text-primary">{sessionEmail}</span>.
-              Make sure this account uses the same email you registered with on
-              Luma. Registered with a different address, or just signed up on
-              site? Message the organizers below and we&apos;ll sort it out
-              before the event.
+              We couldn&apos;t find a registration under{" "}
+              <span className="font-mono text-text-primary">{sessionEmail}</span>{" "}
+              for <span className="text-text-primary">{cohortLabel}</span>. If
+              you are attending that event, register here using the same email
+              you gave the organisers — that address is what links this account
+              to your team. Your team leader then adds you to the team.
+            </p>
+            <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+              Not attending? Nothing to do — this card only concerns the event
+              currently running.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setRegistering(true)}
+                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+              >
+                Register now
+              </button>
               <a
                 href={SOCIAL_LINKS.discord}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
               >
                 Discord
               </a>
@@ -253,7 +298,7 @@ export function ImpactLabClient({
                 href={SOCIAL_LINKS.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
               >
                 WhatsApp
               </a>
@@ -405,9 +450,9 @@ export function ImpactLabClient({
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
               "Laptop + charger",
-              "Anthropic / Claude account signed in and ready",
-              "A project idea or two — even half-formed",
-              "Comfort with your team meeting as strangers",
+              "The AI tools you plan to use, signed in and ready",
+              "Whatever you need to demo — repo, data, hardware, deck",
+              "A decision on who presents",
             ].map((item) => (
               <li
                 key={item}

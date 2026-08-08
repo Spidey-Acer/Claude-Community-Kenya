@@ -252,7 +252,7 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
     { header: "Problem tackled", key: "problem", width: 40, wrap: true },
     { header: "What it does", key: "description", width: 56, wrap: true },
     { header: "What works vs mocked", key: "worksVsMocked", width: 46, wrap: true },
-    { header: "How Claude was used", key: "claudeUsage", width: 46, wrap: true },
+    { header: "How AI was used", key: "claudeUsage", width: 46, wrap: true },
     { header: "Repo URL", key: "repoUrl", width: 34 },
     { header: "Demo URL", key: "demoUrl", width: 30 },
     { header: "Video URL", key: "videoUrl", width: 30 },
@@ -427,7 +427,7 @@ function addAnalysesSheet(
     { header: "What they built", key: "built", width: 52, wrap: true },
     { header: "Who it serves", key: "serves", width: 44, wrap: true },
     { header: "Working vs mocked", key: "working", width: 52, wrap: true },
-    { header: "How Claude was used", key: "claude", width: 48, wrap: true },
+    { header: "How AI was used", key: "claude", width: 48, wrap: true },
     { header: "Provenance", key: "provenance", width: 40, wrap: true },
   ]
   const sheet = addSheet(workbook, "Project analyses", columns, { autoFilter: true })

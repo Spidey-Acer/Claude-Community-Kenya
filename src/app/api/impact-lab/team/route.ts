@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
+import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import {
   checkMemberAccess,
   extractFrozenTeams,
@@ -55,7 +55,7 @@ export async function GET() {
   if (!check.authorized) return check.response
 
   const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: DEFAULT_COHORT, email: check.email } },
+    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
     select: { id: true },
   })
   if (!participant) {
@@ -63,7 +63,7 @@ export async function GET() {
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: DEFAULT_COHORT, isFinal: true },
+    where: { cohort: CURRENT_COHORT, isFinal: true },
     orderBy: { createdAt: "desc" },
   })
   if (!run) {
@@ -99,7 +99,7 @@ export async function GET() {
     storedExplanationFor(run.explanations, team.id) ?? explainTeam(team, members)
 
   const live = await prisma.impactLabParticipant.findMany({
-    where: { cohort: DEFAULT_COHORT, id: { in: team.memberIds } },
+    where: { cohort: CURRENT_COHORT, id: { in: team.memberIds } },
   })
   const liveById = new Map(live.map((p) => [p.id, p]))
 

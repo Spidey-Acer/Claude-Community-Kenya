@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import {
-  JUDGING_CRITERIA,
-  SCORE_LABELS,
-  MIN_SCORE,
-  MAX_SCORE,
-  weightedTotal,
+  scoreTotal,
+  type JudgingCriterion,
+  type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging";
 
@@ -33,19 +31,45 @@ interface AssistResult {
 interface Payload {
   teams: TeamRow[];
   mine: Record<string, { scores: ScoreSheet; feedback: string | null }>;
+  /**
+   * The rubric this cohort is judged on. Optional in the type only because it
+   * arrives over the wire and a malformed response must be handled rather than
+   * trusted — there is deliberately NO default. Scoring refuses to render
+   * without it, because the wrong rubric produces a scorecard that looks
+   * completely normal and is silently against the wrong criteria.
+   */
+  rubric?: JudgingRubric;
 }
 
-const SCALE = Array.from(
-  { length: MAX_SCORE - MIN_SCORE + 1 },
-  (_, i) => MIN_SCORE + i
-);
+/** Every selectable value for one criterion, built from its own min/max. */
+function scaleFor(criterion: JudgingCriterion): number[] {
+  return Array.from(
+    { length: criterion.max - criterion.min + 1 },
+    (_, i) => criterion.min + i
+  );
+}
+
+// A 1–5 scale fits one row. A 1–10 scale does not — capping at 5 columns
+// wraps it into two rows of thumb-sized buttons instead of overflowing a
+// phone screen sideways.
+function gridColsClass(criterion: JudgingCriterion): string {
+  return criterion.max - criterion.min + 1 <= 4 ? "grid-cols-4" : "grid-cols-5";
+}
 
 /**
  * One team at a time. A judge is standing up holding a phone between demos —
  * a long scrolling grid of every team is unusable in that posture, so the list
  * collapses to the team being scored.
  */
-export function JudgeScoring() {
+export function JudgeScoring({
+  cohort,
+  onDirtyChange,
+}: {
+  cohort: string;
+  /** Reports whether any open team has scores edited since the last save, so
+   *  an event switcher one level up can warn before discarding them. */
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const [data, setData] = useState<Payload | null>(null);
   const [openTeam, setOpenTeam] = useState<string | null>(null);
   const [sheets, setSheets] = useState<Record<string, ScoreSheet>>({});
@@ -62,7 +86,9 @@ export function JudgeScoring() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/impact-lab/judging");
+      const res = await fetch(
+        `/api/admin/impact-lab/judging?cohort=${encodeURIComponent(cohort)}`
+      );
       const json = await res.json();
       if (!res.ok || !json.success) {
         setError(json.error || "Could not load the teams.");
@@ -80,14 +106,27 @@ export function JudgeScoring() {
           Object.entries(payload.mine).map(([id, v]) => [id, v.feedback ?? ""])
         )
       );
+      // Scores already on the server are not "unsaved" the moment the page
+      // loads — only mark a team dirty once its sheet is edited locally.
+      setSaved(
+        Object.fromEntries(Object.keys(payload.mine).map((id) => [id, true]))
+      );
     } catch {
       setError("Could not load the teams. Check your connection.");
     }
-  }, []);
+  }, [cohort]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const dirty = Object.entries(sheets).some(
+    ([id, sheet]) => Object.keys(sheet ?? {}).length > 0 && saved[id] === false
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   function setScore(teamId: string, key: string, value: number) {
     setSheets((prev) => ({ ...prev, [teamId]: { ...prev[teamId], [key]: value } }));
@@ -124,15 +163,18 @@ export function JudgeScoring() {
     setSaving(teamId);
     setError(null);
     try {
-      const res = await fetch("/api/admin/impact-lab/judging", {
-        method: "POST",
-        headers: await csrfHeaders(),
-        body: JSON.stringify({
-          teamId,
-          scores: sheets[teamId] ?? {},
-          feedback: feedback[teamId] ?? "",
-        }),
-      });
+      const res = await fetch(
+        `/api/admin/impact-lab/judging?cohort=${encodeURIComponent(cohort)}`,
+        {
+          method: "POST",
+          headers: await csrfHeaders(),
+          body: JSON.stringify({
+            teamId,
+            scores: sheets[teamId] ?? {},
+            feedback: feedback[teamId] ?? "",
+          }),
+        }
+      );
       const json = await res.json();
       if (!res.ok || !json.success) {
         setError(json.error || "That did not save.");
@@ -167,6 +209,21 @@ export function JudgeScoring() {
 
   if (data.teams.length === 0) {
     return <p className="text-sm text-text-dim">No teams are published yet.</p>;
+  }
+
+  // No fallback rubric on purpose. The server always sends one, and guessing
+  // the Impact Lab rubric here would silently show a judge five criteria out of
+  // 100 for an event scored on eight out of 50 — a wrong scorecard that looks
+  // entirely normal. Refusing to render is the safe failure.
+  const rubric = data.rubric;
+  if (!rubric) {
+    return (
+      <p className="text-sm text-red" role="alert">
+        This event&apos;s judging rubric did not load, so scoring is disabled
+        rather than risk scoring on the wrong criteria. Reload the page; if it
+        keeps happening, tell an organiser before scoring anything.
+      </p>
+    );
   }
 
   const scoredIds = new Set(
@@ -236,8 +293,8 @@ export function JudgeScoring() {
 
       {visible.map((team) => {
         const sheet = sheets[team.teamId] ?? {};
-        const total = weightedTotal(sheet);
-        const scoredCount = JUDGING_CRITERIA.filter(
+        const total = scoreTotal(sheet, rubric);
+        const scoredCount = rubric.criteria.filter(
           (c) => typeof sheet[c.key] === "number"
         ).length;
         const isOpen = openTeam === team.teamId;
@@ -267,10 +324,10 @@ export function JudgeScoring() {
                     scoredCount > 0 ? "text-green-primary" : "text-text-dim"
                   }`}
                 >
-                  {scoredCount > 0 ? `${total}/100` : "—"}
+                  {scoredCount > 0 ? `${total}/${rubric.totalOutOf}` : "—"}
                 </span>
                 <span className="block font-mono text-[10px] uppercase tracking-wider text-text-dim">
-                  {scoredCount}/{JUDGING_CRITERIA.length} scored
+                  {scoredCount}/{rubric.criteria.length} scored
                 </span>
               </span>
             </button>
@@ -356,7 +413,7 @@ export function JudgeScoring() {
                 </div>
 
                 <div className="space-y-6">
-                  {JUDGING_CRITERIA.map((criterion) => (
+                  {rubric.criteria.map((criterion) => (
                     <fieldset key={criterion.key}>
                       <legend className="font-mono text-xs uppercase tracking-wider text-text-primary">
                         {criterion.label}{" "}
@@ -367,9 +424,12 @@ export function JudgeScoring() {
                       <p className="mt-1 text-xs leading-relaxed text-text-dim">
                         {criterion.guidance}
                       </p>
-                      <div className="mt-3 grid grid-cols-5 gap-2">
-                        {SCALE.map((value) => {
+                      <div
+                        className={`mt-3 grid ${gridColsClass(criterion)} gap-2`}
+                      >
+                        {scaleFor(criterion).map((value) => {
                           const active = sheet[criterion.key] === value;
+                          const anchor = rubric.scoreLabels?.[value];
                           return (
                             <button
                               key={value}
@@ -378,7 +438,11 @@ export function JudgeScoring() {
                                 setScore(team.teamId, criterion.key, value)
                               }
                               aria-pressed={active}
-                              aria-label={`${criterion.label}: ${value} — ${SCORE_LABELS[value]}`}
+                              aria-label={
+                                anchor
+                                  ? `${criterion.label}: ${value} — ${anchor}`
+                                  : `${criterion.label}: ${value} of ${criterion.max}`
+                              }
                               className={`rounded-lg border px-2 py-3 font-mono text-base transition-colors ${
                                 active
                                   ? "border-green-primary bg-green-primary/15 text-green-primary"
@@ -390,11 +454,17 @@ export function JudgeScoring() {
                           );
                         })}
                       </div>
-                      <p className="mt-2 text-[11px] text-text-dim">
-                        {sheet[criterion.key]
-                          ? SCORE_LABELS[sheet[criterion.key]]
-                          : `1 = ${SCORE_LABELS[1]} · 5 = ${SCORE_LABELS[5]}`}
-                      </p>
+                      {/* Anchor text only where the rubric supplies one — on a
+                          scale too long to anchor per-value (Afretec), the
+                          guidance above is the only calibration, not a fake
+                          "1 = … · 5 = …" string that would not describe it. */}
+                      {rubric.scoreLabels && (
+                        <p className="mt-2 text-[11px] text-text-dim">
+                          {sheet[criterion.key]
+                            ? rubric.scoreLabels[sheet[criterion.key]]
+                            : `${criterion.min} = ${rubric.scoreLabels[criterion.min]} · ${criterion.max} = ${rubric.scoreLabels[criterion.max]}`}
+                        </p>
+                      )}
                     </fieldset>
                   ))}
                 </div>
@@ -431,7 +501,7 @@ export function JudgeScoring() {
                     {saving === team.teamId ? "Saving…" : "Save score"}
                   </button>
                   <span className="font-mono text-sm text-text-secondary">
-                    {total}/100
+                    {total}/{rubric.totalOutOf}
                   </span>
                   {saved[team.teamId] && (
                     <span role="status" className="text-sm text-green-primary">

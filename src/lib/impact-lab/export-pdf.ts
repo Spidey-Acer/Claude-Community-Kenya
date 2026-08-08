@@ -518,7 +518,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     doc,
     `Each team profile also carries a “${ANALYSIS_LABEL}” — a descriptive account written after ` +
       "the event, drawn solely from that team's own submission. The analyses describe what each " +
-      "team built, who it serves, what was working versus mocked, and how Claude was used — in " +
+      "team built, who it serves, what was working versus mocked, and how AI was used — in " +
       "the team's own terms, with nothing inferred beyond what they wrote. They are labelled " +
       "wherever they appear and are not judge commentary."
   )
@@ -1075,7 +1075,7 @@ function renderAnalysis(doc: Doc, analysis: TeamAnalysis): void {
     ["What they built", analysis.whatTheyBuilt],
     ["Who it serves", analysis.whoItServes],
     ["Working vs mocked", analysis.workingVsMocked],
-    ["How Claude was used", analysis.claudeUse],
+    ["How AI was used", analysis.claudeUse],
   ]
   const innerWidth = CONTENT_WIDTH - 28
   doc.font(SANS).fontSize(8.5)
@@ -1135,7 +1135,7 @@ function renderSubmission(doc: Doc, team: ExportTeam): void {
   paragraph(doc, "Problem tackled", s.problemTackled)
   paragraph(doc, "What it does", s.description)
   paragraph(doc, "What works vs what is mocked", s.worksVsMocked)
-  paragraph(doc, "How the team used Claude", s.claudeUsage)
+  paragraph(doc, "How the team used AI", s.claudeUsage)
 
   const links = [
     ["Repository", s.repoUrl],
@@ -1199,7 +1199,7 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
   const critWidth = 42
   const totalWidth = CONTENT_WIDTH - nameWidth - basisWidth - critWidth * JUDGING_CRITERIA.length
   ensureSpace(doc, 30 + team.judgeScores.length * 15)
-  const shortLabels = ["Impact", "Demo", "Claude", "Clarity", "Present."]
+  const shortLabels = ["Impact", "Demo", "AI", "Clarity", "Present."]
   let x = MARGIN
   const headTop = doc.y
   doc.font(SANS_BOLD).fontSize(6.5).fillColor(DIM)

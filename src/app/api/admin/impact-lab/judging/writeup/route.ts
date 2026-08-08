@@ -9,12 +9,12 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { safeCohort } from "@/lib/impact-lab/constants"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
-  CRITERION_KEYS,
-  JUDGING_CRITERIA,
-  MAX_SCORE,
-  MIN_SCORE,
+  AFRETEC_RUBRIC,
+  IMPACT_LAB_RUBRIC,
+  type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
  * Scoring a team from its written submission, for teams the panel did not see
@@ -25,9 +25,13 @@ import {
  * `action: "save"` with the numbers they accepted, and the row is stored as an
  * organiser review rather than attributed to a judge who never saw the work.
  *
- * The demo criterion is 25% of the weight and asks whether it ran in front of
- * you. No demo was seen, so the draft says so plainly instead of guessing, and
+ * Some criteria can only be judged by watching — the demo, the presentation.
+ * Nothing was seen, so the draft says so plainly instead of guessing, and
  * `writeupOnly` travels with the score wherever it is displayed.
+ *
+ * Every schema and prompt here is built from the cohort's rubric at request
+ * time. Both the criteria and their scales differ per event, so a module-scope
+ * schema would draft scores against the wrong sheet entirely.
  */
 // The platform default is 300s. This route reads a submission, calls a model
 // for ten fields, and may retry — a 60s ceiling turned a slow generation into
@@ -38,37 +42,68 @@ export const maxDuration = 300
 const MODEL = "claude-sonnet-5"
 const anthropic = createAnthropic()
 
-// Per-criterion reasoning hints, driven by CRITERION_KEYS rather than
-// hardcoded as separate fields — a renamed or added criterion in
-// @/lib/impact-lab/judging flows through here automatically, the same way
-// the `save` validation loop below already does.
-const REASONING_HINTS: Record<string, string> = {
-  demo: "Must state plainly that no live demo was seen, then say what the writeup itself evidences about working software.",
-  presentation:
-    "Must state plainly that no presentation was seen, then say what the writeup itself evidences about clarity and honesty — not how polished the writing is.",
+/**
+ * Criteria that can only be judged by watching, per rubric.
+ *
+ * Keyed by rubric id rather than by bare criterion key, because the two rubrics
+ * do not name the live-observed things the same way: Impact Lab watches a
+ * `demo` and a three-minute `presentation`; Afretec's panel watched a
+ * `prototype` walkthrough and a slide deck. Keying on the bare key would push
+ * Impact Lab's framing into the Afretec prompt. A rubric absent from this map
+ * gets no special handling, which is the safe direction — generic honesty
+ * instructions rather than claims about a criterion that may not exist.
+ *
+ * Keys are read off the rubrics rather than typed as literals: a rubric id is
+ * editorial (this one was renamed mid-build) and a stale literal would fail
+ * silently, quietly dropping the instruction that keeps a draft honest about
+ * work nobody watched.
+ */
+const LIVE_OBSERVED_KEYS: Readonly<Record<string, readonly string[]>> = {
+  [IMPACT_LAB_RUBRIC.id]: ["demo", "presentation"],
+  [AFRETEC_RUBRIC.id]: ["prototype", "presentation"],
 }
-const DEFAULT_REASONING_HINT = "One sentence, grounded in what the submission says."
 
-const scoreShape = Object.fromEntries(
-  // Deliberately NOT .int(): the model sometimes drafts a half-point (3.5),
-  // and with a strict integer schema that rejects the ENTIRE generation —
-  // AI_NoObjectGeneratedError, observed repeatedly in production for teams
-  // whose writeups sit between two scores. A draft is a starting point for a
-  // human, so accept any number in range and round it server-side below;
-  // the save path still enforces integers strictly.
-  CRITERION_KEYS.map((key) => [key, z.number().min(MIN_SCORE).max(MAX_SCORE)])
-)
-const reasoningShape = Object.fromEntries(
-  CRITERION_KEYS.map((key) => [
-    key,
-    z.string().describe(REASONING_HINTS[key] ?? DEFAULT_REASONING_HINT),
-  ])
-)
+function liveObservedCriteria(rubric: JudgingRubric) {
+  const keys = new Set(LIVE_OBSERVED_KEYS[rubric.id] ?? [])
+  return rubric.criteria.filter((c) => keys.has(c.key))
+}
 
-const draftSchema = z.object({
-  scores: z.object(scoreShape),
-  reasoning: z.object(reasoningShape),
-})
+type DraftSchema = z.ZodObject<{
+  scores: z.ZodObject<Record<string, z.ZodNumber>>
+  reasoning: z.ZodObject<Record<string, z.ZodString>>
+}>
+
+/**
+ * The draft schema for one rubric: one score and one reasoning field per
+ * criterion, each score bounded by that criterion's own min/max.
+ */
+function buildDraftSchema(rubric: JudgingRubric): DraftSchema {
+  const liveOnly = new Set(liveObservedCriteria(rubric).map((c) => c.key))
+
+  const scoreShape: Record<string, z.ZodNumber> = {}
+  const reasoningShape: Record<string, z.ZodString> = {}
+  for (const criterion of rubric.criteria) {
+    // Deliberately NOT .int(): the model sometimes drafts a half-point (3.5),
+    // and with a strict integer schema that rejects the ENTIRE generation —
+    // AI_NoObjectGeneratedError, observed repeatedly in production for teams
+    // whose writeups sit between two scores. A draft is a starting point for a
+    // human, so accept any number in range and round it server-side below;
+    // the save path still enforces integers strictly.
+    scoreShape[criterion.key] = z.number().min(criterion.min).max(criterion.max)
+    reasoningShape[criterion.key] = z
+      .string()
+      .describe(
+        liveOnly.has(criterion.key)
+          ? `Must state plainly that nothing was seen live for this, then say only what the writeup itself evidences about ${criterion.label} — confident writing is not evidence.`
+          : "One sentence, grounded in what the submission says."
+      )
+  }
+
+  return z.object({
+    scores: z.object(scoreShape),
+    reasoning: z.object(reasoningShape),
+  })
+}
 
 /**
  * Recover a draft from a malformed generation instead of discarding it.
@@ -105,17 +140,32 @@ function salvageDraft(text: string): unknown {
   return parsed
 }
 
-const SYSTEM = `You are drafting scores for a hackathon team that submitted written work but was never reached by a judge — no one saw a live demo or a live presentation.
+/**
+ * The system prompt for one rubric.
+ *
+ * The live-observed criteria are named from the rubric rather than hardcoded:
+ * the original prompt lectured the model about "the demo criterion", which is
+ * not on the Afretec sheet at all — it would have reasoned about a field it was
+ * not asked to fill. The panel's own wording carries the specifics; this prompt
+ * carries the honesty rules that wording cannot enforce.
+ */
+function buildSystemPrompt(rubric: JudgingRubric): string {
+  const liveOnly = liveObservedCriteria(rubric)
+  const liveLabels = liveOnly.map((c) => `"${c.label}"`).join(", ")
+  const liveSection = liveOnly.length
+    ? `
 
-Score only what this submission evidences. If the writeup does not say something, that is evidence of absence, not a gap to fill in the team's favour. Never infer competence, never round up to be kind, and never let confident writing substitute for a working demo or a good presentation.
+These criteria could only be judged by watching, and nothing was watched: ${liveLabels}. For each of them, say plainly in the reasoning that nothing was seen live, then score only what the writeup itself demonstrates — what it claims is built and running versus what it says is mocked, planned, or aspirational. A team that writes convincingly about work that may not exist must not score the same as a team that showed it. Writing well and building or presenting well are different skills. When in doubt, score low and say why in the reasoning.`
+    : ""
 
-For the "demo" criterion specifically: no live demo was seen. Say that plainly in the reasoning, then score only what the writeup itself demonstrates about working software — what it claims is built and running versus what it says is mocked, planned, or aspirational. A team that writes convincingly about software that may not exist must not receive the same score as a team that showed it work. When in doubt, score low and say why in the reasoning.
+  return `You are drafting scores for a hackathon team that submitted written work but was never reached by a judge — no one saw a live demo or a live presentation. You are scoring against the ${rubric.label} rubric.
 
-For the "presentation" criterion specifically: no presentation was seen either — there were no three minutes to judge. Say that plainly in the reasoning. A well-written submission is not evidence of a clear, honest, well-used three minutes; writing well and presenting well are different skills. Score only what the submission itself shows about clarity and honesty — how clearly it explains the problem and the named beneficiary, and whether it is straight about what works versus what is mocked rather than talking around the gaps. When in doubt, score low and say why in the reasoning.
+Score only what this submission evidences. If the writeup does not say something, that is evidence of absence, not a gap to fill in the team's favour. Never infer competence, never round up to be kind, and never let confident writing substitute for work that was never shown.${liveSection}
 
-For every other criterion, ground the score and the one-sentence reasoning in specific lines from the submission. A human organiser reviews every number before it counts — your job is to give them an honest, well-reasoned starting point, not a final answer.
+For every criterion, ground the score and the one-sentence reasoning in specific lines from the submission. Respect each criterion's own scale — they differ, and a criterion scored out of 4 is not scored out of 10. A human organiser reviews every number before it counts — your job is to give them an honest, well-reasoned starting point, not a final answer.
 
 Return scores and reasoning as separate structured fields. Never serialise the whole result into a single string, and never wrap it in a code fence.`
+}
 
 const bodySchema = z.object({
   teamId: z.string().min(1).max(64),
@@ -253,6 +303,8 @@ async function handlePost(request: NextRequest) {
   }
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const rubric = await resolveRubric(cohort)
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -318,11 +370,17 @@ async function handlePost(request: NextRequest) {
       )
     }
 
-    const criteria = JUDGING_CRITERIA.map(
-      (c) => `- ${c.key} — ${c.label}: ${c.guidance}`
-    ).join("\n")
+    // Scales are stated per criterion, not once: on the Afretec rubric they run
+    // from 1–4 to 1–10, so a single global range would be wrong for six of the
+    // eight and the model would draft numbers the save path then rejects.
+    const criteria = rubric.criteria
+      .map(
+        (c) =>
+          `- ${c.key} — ${c.label} (score ${c.min}–${c.max}): ${c.guidance}`
+      )
+      .join("\n")
 
-    const prompt = `Score this team on these criteria (key — label: guidance):
+    const prompt = `Score this team on these criteria (key — label (scale): guidance):
 ${criteria}
 
 The team's submission:
@@ -337,17 +395,20 @@ How they used Claude: ${submission.claudeUsage}
 
 No live demo and no live presentation were seen for this team.`
 
+    const draftSchema = buildDraftSchema(rubric)
+    const system = buildSystemPrompt(rubric)
+
     // Two attempts, with salvage between them: the malformed-envelope failure
     // is stochastic (the same team drafts fine on another roll), so one retry
     // resolves most of what salvage cannot.
-    let draft: z.infer<typeof draftSchema> | null = null
+    let draft: z.infer<DraftSchema> | null = null
     let lastError: unknown = null
     for (let attempt = 0; attempt < 2 && !draft; attempt += 1) {
       try {
         const { object } = await generateObject({
           model: anthropic(MODEL),
           schema: draftSchema,
-          system: SYSTEM,
+          system,
           prompt,
           maxOutputTokens: 2_000,
         })
@@ -369,14 +430,18 @@ No live demo and no live presentation were seen for this team.`
     }
 
     if (draft) {
-      // Round to the integers the UI and the save path expect. Math.round on
-      // an in-range value stays in range, but clamp anyway — cheap insurance.
+      // Round to the integers the UI and the save path expect, clamping to each
+      // criterion's OWN range — a shared ceiling would cap this rubric's 1–10
+      // criteria at whatever the narrowest one allows.
       const rounded: Record<string, number> = {}
-      for (const key of CRITERION_KEYS) {
-        const raw = draft.scores[key]
-        rounded[key] = Math.min(
-          MAX_SCORE,
-          Math.max(MIN_SCORE, Math.round(typeof raw === "number" ? raw : MIN_SCORE))
+      for (const criterion of rubric.criteria) {
+        const raw = draft.scores[criterion.key]
+        rounded[criterion.key] = Math.min(
+          criterion.max,
+          Math.max(
+            criterion.min,
+            Math.round(typeof raw === "number" ? raw : criterion.min)
+          )
         )
       }
       return NextResponse.json({
@@ -407,23 +472,26 @@ No live demo and no live presentation were seen for this team.`
   // action === "save" — the only branch that touches the database.
   const scoresInput = parsed.data.scores
   const scores: ScoreSheet = {}
-  for (const key of CRITERION_KEYS) {
-    const value = scoresInput?.[key]
+  for (const criterion of rubric.criteria) {
+    const value = scoresInput?.[criterion.key]
     if (
       typeof value !== "number" ||
       !Number.isInteger(value) ||
-      value < MIN_SCORE ||
-      value > MAX_SCORE
+      value < criterion.min ||
+      value > criterion.max
     ) {
+      // Name the criterion and its own range. "From 1 to 5" was already the
+      // wrong sentence for six of the eight Afretec criteria, and a save that
+      // fails without saying which field is wrong is a save nobody can fix.
       return NextResponse.json(
         {
           success: false,
-          error: `Score every criterion from ${MIN_SCORE} to ${MAX_SCORE} before saving.`,
+          error: `${criterion.label} must be a whole number from ${criterion.min} to ${criterion.max} before saving.`,
         },
         { status: 400 }
       )
     }
-    scores[key] = value
+    scores[criterion.key] = value
   }
 
   const judgeEmail = `organiser:${check.user.email}`

@@ -8,7 +8,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
 import { safeCohort } from "@/lib/impact-lab/constants"
-import { JUDGING_CRITERIA } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
  * Optional reading assistance for a judge, on one team's written submission.
@@ -94,6 +94,11 @@ export async function POST(request: NextRequest) {
   }
 
   const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  // The criteria in the prompt must be the ones this cohort's judges are
+  // actually filling in — observations against criteria that are not on their
+  // sheet are worse than no observations, because they read as authoritative.
+  const rubric = await resolveRubric(cohort)
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -130,11 +135,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const criteria = JUDGING_CRITERIA.map(
-    (c) => `- ${c.label}: ${c.guidance}`
-  ).join("\n")
+  const criteria = rubric.criteria
+    .map((c) => `- ${c.label}: ${c.guidance}`)
+    .join("\n")
 
-  const prompt = `The judge will score this team on these criteria:
+  // No scale is given, deliberately: this route returns observations and never a
+  // score, so telling the model the maxima would only invite it to imply one.
+  const prompt = `The judge will score this team on the ${rubric.label} rubric, against these criteria:
 ${criteria}
 
 The team's submission:

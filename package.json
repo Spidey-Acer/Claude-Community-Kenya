@@ -19,6 +19,7 @@
     "verify:results": "tsx scripts/verify-results.ts",
     "verify:reviews": "tsx scripts/verify-reviews.ts",
     "import:manual-teams": "tsx scripts/import-manual-teams.ts",
+    "seed:hackathon": "tsx scripts/seed-hackathon-cohort.ts",
     "backfill:gallery": "tsx scripts/backfill-gallery-r2.ts",
     "purge:closed-cohorts": "tsx scripts/purge-closed-cohorts.ts"
   },

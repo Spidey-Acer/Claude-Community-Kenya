@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { ChevronDown, Loader2 } from "lucide-react"
 import { apiGet, apiSend } from "@/components/admin/impact-lab/api"
-import { isComplete, type ScoreSheet } from "@/lib/impact-lab/judging"
+import {
+  isComplete,
+  type JudgingRubric,
+  type ScoreSheet,
+} from "@/lib/impact-lab/judging"
 import { TeamScoreCard, type Draft, type JudgeTeam } from "./TeamScoreCard"
 
 interface JudgingData {
@@ -11,6 +15,12 @@ interface JudgingData {
   teams: JudgeTeam[]
   mine: Record<string, { scores: ScoreSheet; feedback: string | null }>
   standings: { teamId: string; average: number; judgeCount: number }[]
+  /**
+   * The rubric this cohort is judged on. Optional in the type only because it
+   * arrives over the wire; there is no default, and the screen refuses to
+   * render without it rather than score against guessed criteria.
+   */
+  rubric?: JudgingRubric
 }
 
 const EMPTY_DRAFT: Draft = { scores: {}, feedback: "" }
@@ -51,9 +61,9 @@ export function JudgeScoringScreen({ cohort }: { cohort: string }) {
 
       // Land on the first team this judge hasn't finished, so opening the
       // page mid-event drops them where they left off rather than at the top.
-      const firstUnfinished = res.teams.find(
-        (t) => !isComplete(initial[t.teamId]?.scores ?? {})
-      )
+      const firstUnfinished = res.rubric
+        ? res.teams.find((t) => !isComplete(initial[t.teamId]?.scores ?? {}, res.rubric))
+        : undefined
       setExpanded(firstUnfinished?.teamId ?? res.teams[0]?.teamId ?? null)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load teams")
@@ -103,7 +113,10 @@ export function JudgeScoringScreen({ cohort }: { cohort: string }) {
 
   const progress = useMemo(() => {
     const teams = data?.teams ?? []
-    const done = teams.filter((t) => isComplete(drafts[t.teamId]?.scores ?? {})).length
+    const rubric = data?.rubric
+    const done = rubric
+      ? teams.filter((t) => isComplete(drafts[t.teamId]?.scores ?? {}, rubric)).length
+      : 0
     return { done, total: teams.length }
   }, [data, drafts])
 
@@ -132,6 +145,18 @@ export function JudgeScoringScreen({ cohort }: { cohort: string }) {
     )
   }
 
+  // Deliberately no fallback — see JudgeScoring.tsx. Defaulting to the Impact
+  // Lab rubric would render a plausible-looking scorecard on the wrong criteria.
+  const rubric = data.rubric
+  if (!rubric) {
+    return (
+      <p className="text-sm text-red" role="alert">
+        The judging rubric for this cohort did not load. Scoring is disabled
+        rather than risk recording scores against the wrong criteria.
+      </p>
+    )
+  }
+
   return (
     <div className="space-y-3">
       <div className="sticky top-0 z-10 -mx-4 sm:-mx-0 border-b border-[#1e1e1e] bg-[#0a0a0a]/95 px-4 sm:px-0 py-2 backdrop-blur">
@@ -145,7 +170,7 @@ export function JudgeScoringScreen({ cohort }: { cohort: string }) {
         const draft = drafts[team.teamId] ?? EMPTY_DRAFT
         const snapshot = savedSnapshot[team.teamId] ?? EMPTY_DRAFT
         const unsaved = JSON.stringify(draft) !== JSON.stringify(snapshot)
-        const complete = isComplete(draft.scores)
+        const complete = isComplete(draft.scores, rubric)
         const isOpen = expanded === team.teamId
 
         return (
@@ -195,6 +220,7 @@ export function JudgeScoringScreen({ cohort }: { cohort: string }) {
               <div className="border-t border-[#1e1e1e]">
                 <TeamScoreCard
                   team={team}
+                  rubric={rubric}
                   draft={draft}
                   saving={savingId === team.teamId}
                   unsaved={unsaved}
