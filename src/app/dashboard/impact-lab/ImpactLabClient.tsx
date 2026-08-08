@@ -61,9 +61,12 @@ type Phase =
 export function ImpactLabClient({
   sessionEmail,
   cohortActive,
+  cohortLabel,
 }: {
   sessionEmail: string;
   cohortActive: boolean;
+  /** Name of the event now running, so registration copy can say which one. */
+  cohortLabel: string;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
@@ -262,14 +265,19 @@ export function ImpactLabClient({
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-mono text-base font-bold text-text-primary">
-              No hackathon registration found
+              No registration found for {cohortLabel}
             </h2>
             <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-              We couldn&apos;t find an Impact Lab registration under{" "}
-              <span className="font-mono text-text-primary">{sessionEmail}</span>.
-              If that&apos;s the same email you registered with on Luma, you
-              can register right here — just use that same address. After
-              you&apos;re in, your team leader adds you to the team.
+              We couldn&apos;t find a registration under{" "}
+              <span className="font-mono text-text-primary">{sessionEmail}</span>{" "}
+              for <span className="text-text-primary">{cohortLabel}</span>. If
+              you are attending that event, register here using the same email
+              you gave the organisers — that address is what links this account
+              to your team. Your team leader then adds you to the team.
+            </p>
+            <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+              Not attending? Nothing to do — this card only concerns the event
+              currently running.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button

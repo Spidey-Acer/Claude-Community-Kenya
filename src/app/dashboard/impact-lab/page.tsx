@@ -5,7 +5,11 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
-import { CURRENT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
+import {
+  CURRENT_COHORT,
+  CURRENT_COHORT_LABEL,
+  isCohortActive,
+} from "@/lib/impact-lab/constants";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
@@ -74,6 +78,7 @@ export default async function ImpactLabPage() {
           <ImpactLabClient
             sessionEmail={session.user.email}
             cohortActive={cohortActive}
+            cohortLabel={CURRENT_COHORT_LABEL}
           />
         )}
       </div>
