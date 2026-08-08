@@ -450,9 +450,9 @@ export function ImpactLabClient({
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
               "Laptop + charger",
-              "Anthropic / Claude account signed in and ready",
-              "A project idea or two — even half-formed",
-              "Comfort with your team meeting as strangers",
+              "The AI tools you plan to use, signed in and ready",
+              "Whatever you need to demo — repo, data, hardware, deck",
+              "A decision on who presents",
             ].map((item) => (
               <li
                 key={item}
