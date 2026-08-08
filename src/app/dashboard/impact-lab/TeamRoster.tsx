@@ -6,11 +6,9 @@ import { UserPlus, UserMinus, Search, Loader2 } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import type { TeamMemberView } from "@/lib/impact-lab/member";
 
-interface SearchHit {
-  id: string;
-  fullName: string;
-  onTeam: string | null;
-}
+type SearchHit =
+  | { kind: "participant"; id: string; fullName: string; onTeam: string | null }
+  | { kind: "account"; userId: string; fullName: string };
 
 /**
  * Roster self-service for a team.
@@ -63,15 +61,19 @@ export function TeamRoster({
     }
   }
 
-  async function mutate(participantId: string, method: "POST" | "DELETE") {
-    setBusyId(participantId);
+  async function mutate(
+    body: { participantId: string } | { userId: string },
+    method: "POST" | "DELETE"
+  ) {
+    const busyKey = "participantId" in body ? body.participantId : body.userId;
+    setBusyId(busyKey);
     setError(null);
     setNotice(null);
     try {
       const res = await fetch("/api/impact-lab/team/roster", {
         method,
         headers: await csrfHeaders(),
-        body: JSON.stringify({ participantId }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -205,26 +207,39 @@ export function TeamRoster({
             {hits.length > 0 && (
               <ul className="mt-3 divide-y divide-border-default overflow-hidden rounded-lg border border-border-default">
                 {hits.map((hit) => {
-                  const already = memberIds.has(hit.id);
+                  const key = hit.kind === "participant" ? hit.id : hit.userId;
+                  const already = hit.kind === "participant" && memberIds.has(hit.id);
                   return (
                     <li
-                      key={hit.id}
+                      key={key}
                       className="flex items-center justify-between gap-3 bg-bg-primary px-3 py-2.5"
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-sm text-text-primary">
                           {hit.fullName}
                         </span>
-                        {hit.onTeam && !already && (
+                        {hit.kind === "participant" && hit.onTeam && !already && (
                           <span className="block text-xs text-amber">
                             Currently on {hit.onTeam} — adding moves them here
+                          </span>
+                        )}
+                        {hit.kind === "account" && (
+                          <span className="block text-xs text-text-dim">
+                            Has an account, not on the roster yet
                           </span>
                         )}
                       </span>
                       <button
                         type="button"
-                        disabled={already || busyId === hit.id}
-                        onClick={() => mutate(hit.id, "POST")}
+                        disabled={already || busyId === key}
+                        onClick={() =>
+                          mutate(
+                            hit.kind === "participant"
+                              ? { participantId: hit.id }
+                              : { userId: hit.userId },
+                            "POST"
+                          )
+                        }
                         className="shrink-0 rounded-md border border-green-primary/30 bg-green-primary/10 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-green-primary transition-colors hover:bg-green-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {already ? (
@@ -270,7 +285,7 @@ export function TeamRoster({
                     <button
                       type="button"
                       disabled={busyId === m.id}
-                      onClick={() => mutate(m.id, "DELETE")}
+                      onClick={() => mutate({ participantId: m.id }, "DELETE")}
                       className="shrink-0 rounded-md border border-red/30 bg-red/10 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-red transition-colors hover:bg-red/20 disabled:opacity-40"
                     >
                       <UserMinus className="mr-1 inline h-3 w-3" aria-hidden="true" />

@@ -76,24 +76,39 @@ function requiredMultilineText(max: number) {
 }
 
 /**
- * A repository link is NOT required, and a submission with no link at all is.
+ * The pitch deck is the only required field. Everything else is optional.
  *
- * The original form demanded a repo URL because the Impact Lab was a Claude
- * Code hackathon: every team shipped software and every team had a repo. That
- * does not survive a mixed cohort. Teams here include Black Soldier Fly
- * biotechnology, hardware IoT, and a media platform — a required repo link
- * locks those teams out of submitting entirely, which is a far worse failure
- * than a missing field.
+ * The original form required eight fields including a repository URL, which
+ * fitted the Impact Lab: a Claude Code hackathon where every team shipped
+ * software and every team had a repo. It does not fit a mixed startup cohort
+ * containing Black Soldier Fly biotechnology, hardware IoT and a healthcare
+ * media platform — those teams could not submit at all.
  *
- * So the rule moves from "must have a repo" to "must show us something": at
- * least one of repo, demo, video or slides. That is satisfiable by every team
- * (all 20 supplied a pitch deck at registration) while still refusing a
- * submission that gives judges nothing to look at.
- *
- * `screenshotUrl` deliberately does not count — an image is evidence about a
- * thing, not the thing.
+ * The organiser's ruling is that the deck is what judges actually score from,
+ * so it is the one thing a submission cannot be without. Teams pitch live for
+ * five minutes; the written fields are a convenience, not the evidence, and a
+ * required field that stops a team submitting at 2 AM costs more than a blank
+ * one. A team is identified by its team name, which comes from the run rather
+ * than from this form, so a sparse submission is still attributable.
  */
-const SHOWABLE_LINKS = ["repoUrl", "demoUrl", "videoUrl", "slidesUrl"] as const
+
+/** Optional single-line text; absent or whitespace-only becomes "". */
+function optionalText(max: number) {
+  return z
+    .string()
+    .max(max)
+    .optional()
+    .transform((v) => zodSanitizeString(v ?? ""))
+}
+
+/** Optional multi-line text; absent or whitespace-only becomes "". */
+function optionalMultilineText(max: number) {
+  return z
+    .string()
+    .max(max)
+    .optional()
+    .transform((v) => zodSanitizeMultilineText(max)(v ?? ""))
+}
 
 /**
  * Like `optionalUrl`, but absent becomes `""` rather than `null`.
@@ -113,26 +128,21 @@ const optionalUrlAsEmpty = z
   .refine((v) => v !== null, { message: "That link is not a valid http(s) URL" })
   .transform((v) => v ?? "")
 
-export const submissionInputSchema = z
-  .object({
-    projectName: requiredText(200),
-    pitch: requiredText(500),
-    description: requiredMultilineText(MAX_LONG_TEXT),
-    worksVsMocked: requiredMultilineText(MAX_LONG_TEXT),
-    claudeUsage: requiredMultilineText(MAX_LONG_TEXT),
-    track: requiredText(200),
-    problemTackled: requiredText(1000),
-    repoUrl: optionalUrlAsEmpty,
-    demoUrl: optionalUrl,
-    videoUrl: optionalUrl,
-    slidesUrl: optionalUrl,
-    screenshotUrl: optionalUrl,
-  })
-  .refine((v) => SHOWABLE_LINKS.some((k) => v[k]), {
-    message:
-      "Add at least one link judges can open — a repository, live demo, video, or slide deck.",
-    path: ["repoUrl"],
-  })
+export const submissionInputSchema = z.object({
+  projectName: optionalText(200),
+  pitch: optionalText(500),
+  description: optionalMultilineText(MAX_LONG_TEXT),
+  worksVsMocked: optionalMultilineText(MAX_LONG_TEXT),
+  claudeUsage: optionalMultilineText(MAX_LONG_TEXT),
+  track: optionalText(200),
+  problemTackled: optionalText(1000),
+  repoUrl: optionalUrlAsEmpty,
+  demoUrl: optionalUrl,
+  videoUrl: optionalUrl,
+  /** The one required field — see the note above. */
+  slidesUrl: requiredUrl,
+  screenshotUrl: optionalUrl,
+})
 
 export type SubmissionInput = z.infer<typeof submissionInputSchema>
 

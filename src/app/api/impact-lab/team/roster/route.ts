@@ -7,6 +7,7 @@ import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { Team } from "@/lib/matching"
+import type { Prisma } from "@/generated/prisma/client"
 
 /**
  * Team roster self-service.
@@ -22,6 +23,17 @@ import type { Team } from "@/lib/matching"
  */
 
 const bodySchema = z.object({ participantId: z.string().min(1).max(64) })
+
+// POST additionally accepts a site account that has no participant row yet
+// (a member who signed up after the leader-only registration import) —
+// resolveOrCreateParticipant below turns that into a participant row.
+const addBodySchema = z.union([
+  z.object({ participantId: z.string().min(1).max(64) }),
+  z.object({ userId: z.string().min(1).max(64) }),
+])
+
+type Target = { id: string; fullName: string }
+type TargetResolver = (tx: Prisma.TransactionClient) => Promise<Target | null>
 
 interface Resolved {
   runId: string
@@ -92,7 +104,110 @@ async function writeTeams(runId: string, mutate: (teams: Team[]) => Team[] | nul
   })
 }
 
-/** Add a participant to the caller's team, moving them off another if needed. */
+/**
+ * Look up an existing participant, or a not-yet-participant account.
+ * Called inside the same locked transaction as the roster write (see
+ * `addToTeam` below) so two leaders adding the same new account at once
+ * cannot both create a duplicate participant row — the second transaction
+ * blocks on the run-row lock until the first commits, then finds the row the
+ * first one already created.
+ */
+function resolveParticipant(participantId: string): TargetResolver {
+  return (tx) =>
+    tx.impactLabParticipant.findFirst({
+      where: { id: participantId, cohort: CURRENT_COHORT },
+      select: { id: true, fullName: true },
+    })
+}
+
+/**
+ * Resolve a site account to a participant row, creating one if this is their
+ * first appearance in the cohort. Mirrors the shape `POST /api/impact-lab/profile`
+ * uses for self-registration: `primaryRole: "Team member"` as a neutral
+ * default (they haven't filled in a profile) and no matching consent, since
+ * they didn't opt in — they're only here because a teammate is vouching for
+ * them being in the room.
+ */
+function resolveOrCreateParticipant(userId: string): TargetResolver {
+  return async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true, lastName: true },
+    })
+    if (!user) return null
+
+    const email = user.email.toLowerCase()
+    const where = { cohort_email: { cohort: CURRENT_COHORT, email } }
+
+    const existing = await tx.impactLabParticipant.findUnique({
+      where,
+      select: { id: true, fullName: true },
+    })
+    if (existing) return existing
+
+    return tx.impactLabParticipant.create({
+      data: {
+        cohort: CURRENT_COHORT,
+        email,
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        primaryRole: "Team member",
+        consentToMatch: false,
+        consentToShareContact: false,
+      },
+      select: { id: true, fullName: true },
+    })
+  }
+}
+
+type AddOutcome =
+  | { status: "ok"; target: Target }
+  | { status: "target_not_found" }
+  | { status: "no_team" }
+
+/**
+ * Resolve the target and persist the edited team list in one transaction —
+ * see `resolveOrCreateParticipant` for why resolution has to happen inside
+ * the same lock as the write.
+ */
+async function addToTeam(
+  runId: string,
+  myTeamId: string,
+  resolveTarget: TargetResolver
+): Promise<AddOutcome> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT id FROM impact_lab_match_runs WHERE id = ${runId} FOR UPDATE`
+
+    const target = await resolveTarget(tx)
+    if (!target) return { status: "target_not_found" }
+
+    const fresh = await tx.impactLabMatchRun.findUnique({
+      where: { id: runId },
+      select: { result: true },
+    })
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_team" }
+
+    const mine = teams.find((t) => t.id === myTeamId)
+    if (!mine) return { status: "no_team" }
+
+    if (!mine.memberIds.includes(target.id)) {
+      const next = teams.map((t) =>
+        t.id === myTeamId
+          ? { ...t, memberIds: [...t.memberIds, target.id] }
+          : { ...t, memberIds: t.memberIds.filter((id) => id !== target.id) }
+      )
+      const result = { ...(fresh?.result as object), teams: next }
+      await tx.impactLabMatchRun.update({
+        where: { id: runId },
+        data: { result: JSON.parse(JSON.stringify(result)) },
+      })
+    } // else already here — idempotent, nothing to write
+
+    return { status: "ok", target }
+  })
+}
+
+/** Add a participant (or a not-yet-participant account) to the caller's team, moving them off another if needed. */
 export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
@@ -111,7 +226,7 @@ export async function POST(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null))
+  const parsed = addBodySchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json(
       { success: false, error: "Pick someone from the list." },
@@ -122,36 +237,26 @@ export async function POST(request: NextRequest) {
   const me = await resolveCaller(check.email)
   if (!me) return noTeam()
 
-  const target = await prisma.impactLabParticipant.findFirst({
-    where: { id: parsed.data.participantId, cohort: CURRENT_COHORT },
-    select: { id: true, fullName: true },
-  })
-  if (!target) {
-    return NextResponse.json(
-      { success: false, error: "That person is not registered for this hackathon." },
-      { status: 404 }
-    )
-  }
-
   const myTeamId = me.teams[me.myTeamIndex].id
+  const resolveTarget =
+    "participantId" in parsed.data
+      ? resolveParticipant(parsed.data.participantId)
+      : resolveOrCreateParticipant(parsed.data.userId)
 
-  const next = await writeTeams(me.runId, (teams) => {
-    const mine = teams.find((t) => t.id === myTeamId)
-    if (!mine) return null
-    if (mine.memberIds.includes(target.id)) return teams // already here — idempotent
+  const outcome = await addToTeam(me.runId, myTeamId, resolveTarget)
 
-    return teams.map((t) =>
-      t.id === myTeamId
-        ? { ...t, memberIds: [...t.memberIds, target.id] }
-        : { ...t, memberIds: t.memberIds.filter((id) => id !== target.id) }
-    )
-  })
-
-  if (!next) return noTeam()
+  if (outcome.status === "no_team") return noTeam()
+  if (outcome.status === "target_not_found") {
+    const error =
+      "participantId" in parsed.data
+        ? "That person is not registered for this hackathon."
+        : "That account could not be found."
+    return NextResponse.json({ success: false, error }, { status: 404 })
+  }
 
   return NextResponse.json({
     success: true,
-    message: `${target.fullName} is now on your team.`,
+    message: `${outcome.target.fullName} is now on your team.`,
   })
 }
 
