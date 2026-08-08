@@ -272,7 +272,11 @@ export function SubmitProject() {
             "Which AI tools you used — Claude, ChatGPT, Gemini, Copilot, or other — and what they actually did for you. No AI? Say so.",
             true
           )}
-          {field("repoUrl", "Repo link *", "github.com/you/project — https:// optional.")}
+          <p className="pt-2 font-mono text-xs text-text-dim">
+            Add at least one link judges can open. Not every project is
+            software — a deck or a video is fine on its own.
+          </p>
+          {field("repoUrl", "Repo link", "github.com/you/project — https:// optional.")}
           {field("demoUrl", "Demo link", "A live URL judges can click.")}
           {field("videoUrl", "Video link", "A walkthrough, in case the live demo dies.")}
           {field("slidesUrl", "Slides link", "Drive or Figma link — no file upload needed.")}

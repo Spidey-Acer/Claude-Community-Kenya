@@ -75,20 +75,64 @@ function requiredMultilineText(max: number) {
     .refine((v) => v !== "", { message: "This field is required" })
 }
 
-export const submissionInputSchema = z.object({
-  projectName: requiredText(200),
-  pitch: requiredText(500),
-  description: requiredMultilineText(MAX_LONG_TEXT),
-  worksVsMocked: requiredMultilineText(MAX_LONG_TEXT),
-  claudeUsage: requiredMultilineText(MAX_LONG_TEXT),
-  track: requiredText(200),
-  problemTackled: requiredText(1000),
-  repoUrl: requiredUrl,
-  demoUrl: optionalUrl,
-  videoUrl: optionalUrl,
-  slidesUrl: optionalUrl,
-  screenshotUrl: optionalUrl,
-})
+/**
+ * A repository link is NOT required, and a submission with no link at all is.
+ *
+ * The original form demanded a repo URL because the Impact Lab was a Claude
+ * Code hackathon: every team shipped software and every team had a repo. That
+ * does not survive a mixed cohort. Teams here include Black Soldier Fly
+ * biotechnology, hardware IoT, and a media platform — a required repo link
+ * locks those teams out of submitting entirely, which is a far worse failure
+ * than a missing field.
+ *
+ * So the rule moves from "must have a repo" to "must show us something": at
+ * least one of repo, demo, video or slides. That is satisfiable by every team
+ * (all 20 supplied a pitch deck at registration) while still refusing a
+ * submission that gives judges nothing to look at.
+ *
+ * `screenshotUrl` deliberately does not count — an image is evidence about a
+ * thing, not the thing.
+ */
+const SHOWABLE_LINKS = ["repoUrl", "demoUrl", "videoUrl", "slidesUrl"] as const
+
+/**
+ * Like `optionalUrl`, but absent becomes `""` rather than `null`.
+ *
+ * `ImpactLabSubmission.repoUrl` is a non-nullable column and this is a live
+ * event — widening it would mean a schema migration against production during
+ * demos, to gain nothing a reader can see. Every consumer already guards with
+ * `submission.repoUrl && …`, and "" is falsy, so an empty string behaves
+ * identically to null at every call site.
+ */
+const optionalUrlAsEmpty = z
+  .string()
+  .max(1000)
+  .optional()
+  .transform((v) => withScheme(v ?? ""))
+  .transform((v) => (v === "" ? "" : zodSanitizeUrl(v)))
+  .refine((v) => v !== null, { message: "That link is not a valid http(s) URL" })
+  .transform((v) => v ?? "")
+
+export const submissionInputSchema = z
+  .object({
+    projectName: requiredText(200),
+    pitch: requiredText(500),
+    description: requiredMultilineText(MAX_LONG_TEXT),
+    worksVsMocked: requiredMultilineText(MAX_LONG_TEXT),
+    claudeUsage: requiredMultilineText(MAX_LONG_TEXT),
+    track: requiredText(200),
+    problemTackled: requiredText(1000),
+    repoUrl: optionalUrlAsEmpty,
+    demoUrl: optionalUrl,
+    videoUrl: optionalUrl,
+    slidesUrl: optionalUrl,
+    screenshotUrl: optionalUrl,
+  })
+  .refine((v) => SHOWABLE_LINKS.some((k) => v[k]), {
+    message:
+      "Add at least one link judges can open — a repository, live demo, video, or slide deck.",
+    path: ["repoUrl"],
+  })
 
 export type SubmissionInput = z.infer<typeof submissionInputSchema>
 
