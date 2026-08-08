@@ -223,8 +223,11 @@ export const AFRETEC_RUBRIC: JudgingRubric = {
     {
       key: "presentation",
       label: "Presentation & Clarity",
+      // The panel's wording, plus the slot length. The length is ours, not
+      // theirs — a judge scoring "well-structured" needs to know how long the
+      // team actually had, and five minutes was confirmed on the day.
       guidance:
-        "The presentation is clear, well-structured and professional. Slides and delivery effectively communicate the idea.",
+        "The presentation is clear, well-structured and professional. Slides and delivery effectively communicate the idea. Each team pitches for 5 minutes.",
       min: 1,
       max: 4,
       weight: 4,
