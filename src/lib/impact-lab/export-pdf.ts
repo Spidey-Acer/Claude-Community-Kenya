@@ -23,15 +23,8 @@
 
 import PDFDocument from "pdfkit"
 import { JUDGING_CRITERIA, SCORE_LABELS } from "./judging"
-import {
-  EVENT_DATES,
-  EVENT_FORMAT_NOTE,
-  EVENT_HOST,
-  EVENT_LOCATION,
-  EVENT_TITLE,
-  type ExportTeam,
-  type ResultsExport,
-} from "./export-data"
+import { type ExportTeam, type ResultsExport } from "./export-data"
+import { brandingForCohort, REPORT_PRODUCER, type EventBranding } from "./event-branding"
 import { REVIEW_PROVENANCE, REVIEW_SIGNATURE } from "./reviews"
 import { ANALYSIS_LABEL, ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 import {
@@ -204,7 +197,7 @@ const fmt1 = (value: number): string => value.toFixed(1)
  * figures, and the provenance line. Longer than 50 lines because a cover is
  * one composition — splitting it would scatter its geometry.
  */
-function renderCover(doc: Doc, data: ResultsExport): void {
+function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): void {
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT).fillColor(PAPER).fill()
   doc.rect(0, 0, PAGE_WIDTH, 10).fillColor(CLAY).fill()
 
@@ -213,7 +206,7 @@ function renderCover(doc: Doc, data: ResultsExport): void {
     .font(SANS_BOLD)
     .fontSize(8.5)
     .fillColor(INK)
-    .text(EVENT_HOST.toUpperCase(), MARGIN, 64, { characterSpacing: 2.2, width: CONTENT_WIDTH })
+    .text(branding.host.toUpperCase(), MARGIN, 64, { characterSpacing: 2.2, width: CONTENT_WIDTH })
   doc
     .font(SANS)
     .fontSize(8.5)
@@ -222,10 +215,10 @@ function renderCover(doc: Doc, data: ResultsExport): void {
 
   doc.y = 168
   kicker(doc, "Hackathon results — the complete record", CLAY_DEEP)
-  doc.font(SERIF).fontSize(44).fillColor(INK).text("Impact Lab:", MARGIN, doc.y, {
+  doc.font(SERIF).fontSize(44).fillColor(INK).text(branding.titleLead, MARGIN, doc.y, {
     width: CONTENT_WIDTH,
   })
-  doc.font(SERIF).fontSize(44).fillColor(CLAY).text("AI Mashinani", MARGIN, doc.y - 6, {
+  doc.font(SERIF).fontSize(44).fillColor(CLAY).text(branding.titleAccent, MARGIN, doc.y - 6, {
     width: CONTENT_WIDTH,
   })
   doc.moveDown(0.5)
@@ -233,13 +226,13 @@ function renderCover(doc: Doc, data: ResultsExport): void {
     .font(SANS)
     .fontSize(11)
     .fillColor(DIM)
-    .text(`${EVENT_DATES} · ${EVENT_LOCATION}`, MARGIN, doc.y, { width: CONTENT_WIDTH })
+    .text(`${branding.dates} · ${branding.location}`, MARGIN, doc.y, { width: CONTENT_WIDTH })
   doc.moveDown(0.3)
   doc
     .font(SERIF_ITALIC)
     .fontSize(10.5)
     .fillColor(DIM)
-    .text(EVENT_FORMAT_NOTE, MARGIN, doc.y, { width: CONTENT_WIDTH * 0.8, lineGap: 2.5 })
+    .text(branding.formatNote, MARGIN, doc.y, { width: CONTENT_WIDTH * 0.8, lineGap: 2.5 })
 
   doc.y += 30
   rule(doc, INK, 1)
@@ -290,7 +283,7 @@ function renderCover(doc: Doc, data: ResultsExport): void {
         (data.published && data.publishedAt
           ? ` · Results published ${data.publishedAt.slice(0, 10)}`
           : " · Results not yet published") +
-        ` · Hosted by ${EVENT_HOST}`,
+        ` · Hosted by ${branding.host}`,
       MARGIN,
       FOOTER_Y - 14,
       { width: CONTENT_WIDTH, lineBreak: false }
@@ -1414,7 +1407,12 @@ function renderTeamProfile(
 
 // ─── Appendix ────────────────────────────────────────────────────────────────
 
-function renderAppendix(doc: Doc, data: ResultsExport, state: RenderState): void {
+function renderAppendix(
+  doc: Doc,
+  data: ResultsExport,
+  state: RenderState,
+  branding: EventBranding
+): void {
   sectionOpener(
     doc,
     "Appendix",
@@ -1463,9 +1461,15 @@ function renderAppendix(doc: Doc, data: ResultsExport, state: RenderState): void
     .fontSize(8.5)
     .fillColor(DIM)
     .text(
-      `Produced by ${EVENT_HOST} from the event's operational records. Scores, submissions and ` +
-        "judge notes are reproduced exactly as recorded; provenance for every element is stated " +
-        "in “How this record was produced”. Contact details are deliberately omitted.",
+      // Producer and host are the same for our own events and deliberately
+      // different for someone else's — see REPORT_PRODUCER.
+      `Produced by ${REPORT_PRODUCER} from the operational records of ` +
+        (branding.host === REPORT_PRODUCER
+          ? "the event."
+          : `${branding.title}, hosted by ${branding.host}.`) +
+        " Scores, submissions and judge notes are reproduced exactly as recorded; provenance " +
+        "for every element is stated in “How this record was produced”. Contact details are " +
+        "deliberately omitted.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2.5 }
@@ -1479,7 +1483,7 @@ function renderAppendix(doc: Doc, data: ResultsExport, state: RenderState): void
  * a final pass over the buffered pages. The section for each page is the last
  * TOC mark at or before it.
  */
-function renderFurniture(doc: Doc, state: RenderState): void {
+function renderFurniture(doc: Doc, state: RenderState, branding: EventBranding): void {
   const range = doc.bufferedPageRange()
   const sections = state.toc.filter((e) => e.level === 0)
   for (let i = range.start + 1; i < range.start + range.count; i++) {
@@ -1502,7 +1506,7 @@ function renderFurniture(doc: Doc, state: RenderState): void {
         HEADER_Y,
         { characterSpacing: 1, width: CONTENT_WIDTH / 2, lineBreak: false }
       )
-    doc.text(`${EVENT_TITLE} · ${EVENT_DATES}`.toUpperCase(), MARGIN + CONTENT_WIDTH / 2, HEADER_Y, {
+    doc.text(`${branding.title} · ${branding.dates}`.toUpperCase(), MARGIN + CONTENT_WIDTH / 2, HEADER_Y, {
       characterSpacing: 1,
       width: CONTENT_WIDTH / 2,
       align: "right",
@@ -1519,7 +1523,7 @@ function renderFurniture(doc: Doc, state: RenderState): void {
       .font(SANS)
       .fontSize(7.5)
       .fillColor(FAINT)
-      .text(`${EVENT_HOST} — hackathon results`, MARGIN, FOOTER_Y, {
+      .text(`${branding.host} — hackathon results`, MARGIN, FOOTER_Y, {
         width: CONTENT_WIDTH / 2,
         lineBreak: false,
       })
@@ -1544,15 +1548,16 @@ export function buildResultsPdf(
   data: ResultsExport,
   analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
 ): Promise<Buffer> {
+  const branding = brandingForCohort(data.cohort)
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",
       margins: { top: MARGIN, bottom: 60, left: MARGIN, right: MARGIN },
       bufferPages: true,
       info: {
-        Title: `${EVENT_TITLE} — Results`,
-        Author: EVENT_HOST,
-        Subject: `Hackathon results, ${EVENT_DATES}, ${EVENT_LOCATION}`,
+        Title: `${branding.title} — Results`,
+        Author: branding.host,
+        Subject: `Hackathon results, ${branding.dates}, ${branding.location}`,
       },
     })
     const chunks: Buffer[] = []
@@ -1562,7 +1567,7 @@ export function buildResultsPdf(
 
     const state: RenderState = { toc: [], tocPageIndex: 1 }
 
-    renderCover(doc, data)
+    renderCover(doc, data, branding)
     reserveContentsPage(doc, state)
     renderMethodology(doc, data, state)
     renderEventInNumbers(doc, data, state)
@@ -1583,10 +1588,10 @@ export function buildResultsPdf(
         renderTeamProfile(doc, team, analyses.get(team.teamId), state)
       }
     }
-    renderAppendix(doc, data, state)
+    renderAppendix(doc, data, state, branding)
 
     renderContents(doc, state)
-    renderFurniture(doc, state)
+    renderFurniture(doc, state, branding)
 
     doc.end()
   })

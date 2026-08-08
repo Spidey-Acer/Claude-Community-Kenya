@@ -28,16 +28,6 @@ import {
 } from "./judging"
 import type { RankedTeam, ResultsSnapshot, ResultsTrackWinner } from "./results"
 
-/** Event facts both artefacts print. One source so they cannot drift. */
-export const EVENT_TITLE = "Impact Lab: AI Mashinani"
-export const EVENT_DATES = "25–26 July 2026"
-export const EVENT_HOST = "Claude Community Kenya"
-export const EVENT_LOCATION = "Nairobi, Kenya"
-/** An overnight hackathon: the judging window is part of the record. */
-export const EVENT_FORMAT_NOTE =
-  "An overnight build: teams formed in the evening, built through the night, " +
-  "and judging ran from the small hours into the morning."
-
 // ─── Source rows (what the loader hands in) ──────────────────────────────────
 
 /** A team as frozen in the final run's `result` JSON. */
