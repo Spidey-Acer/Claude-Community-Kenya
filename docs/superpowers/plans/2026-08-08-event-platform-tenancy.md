@@ -197,7 +197,10 @@ Follow the house pattern from `scripts/seed-hackathon-cohort.ts`: dry-run by def
  */
 import { PrismaClient } from "../src/generated/prisma/client"
 
-const prisma = new PrismaClient()
+// Prisma 7 driver adapter — copy the exact construction idiom from
+// prisma/seed.ts (PrismaPg adapter over DATABASE_URL); bare `new
+// PrismaClient()` does not work in this repo.
+const prisma = new PrismaClient(/* house adapter idiom */)
 const APPLY = process.argv.includes("--apply")
 
 interface OrgSeed {
