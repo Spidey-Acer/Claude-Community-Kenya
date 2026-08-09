@@ -19,6 +19,7 @@
 - **Do not delete or modify existing migration folders.** New migration folders only.
 - If `npx tsc --noEmit` shows dozens of "property does not exist on PrismaClient" errors, run `npx prisma generate` first — stale client, not real errors (known issue).
 - Existing production data is untouchable: no schema change to the nine existing Impact Lab tables, no data rewrites.
+- **Naming: the tenancy event model is `ImpactLabEvent`** (Prisma enum `ImpactLabEventStatus`, client accessor `prisma.impactLabEvent`) — the schema already has an unrelated community-meetup `Event` model and `EventStatus` enum, which must never be touched. Table names (`impact_lab_events`) and columns are unaffected by this naming.
 - JSDoc on every exported function: what, why, params, returns.
 
 ---
@@ -31,7 +32,7 @@
 
 **Interfaces:**
 - Consumes: nothing (first task).
-- Produces: Prisma models `Organisation`, `OrganisationMember`, `Event`; enums `OrgRole { OWNER ORGANISER }`, `EventStatus { DRAFT LIVE CLOSED ARCHIVED }`; `User.organisationMemberships` relation. Later tasks query `prisma.event`, `prisma.organisation`, `prisma.organisationMember`.
+- Produces: Prisma models `Organisation`, `OrganisationMember`, `ImpactLabEvent`; enums `OrgRole { OWNER ORGANISER }`, `ImpactLabEventStatus { DRAFT LIVE CLOSED ARCHIVED }`; `User.organisationMemberships` relation. Later tasks query `prisma.impactLabEvent`, `prisma.organisation`, `prisma.organisationMember`.
 
 - [ ] **Step 1: Add enums**
 
@@ -49,7 +50,9 @@ enum OrgRole {
 // Event lifecycle. Judging/submission windows are NOT statuses — they stay
 // as fine-grained flags on the match run (judgingOpen, submissionsCloseAt),
 // because Afretec needed judging and submissions open concurrently.
-enum EventStatus {
+// "ImpactLab" prefix because the schema already has an unrelated
+// community-meetup EventStatus enum.
+enum ImpactLabEventStatus {
   DRAFT // being set up; invisible to participants and judges
   LIVE // participants form teams and submit; judges score
   CLOSED // read-only for participants; reports and exports available
@@ -86,7 +89,7 @@ model Organisation {
   updatedAt    DateTime @updatedAt
 
   members OrganisationMember[]
-  events  Event[]
+  events  ImpactLabEvent[]
 
   @@map("organisations")
 }
@@ -105,14 +108,14 @@ model OrganisationMember {
   @@map("organisation_members")
 }
 
-model Event {
+model ImpactLabEvent {
   id             String      @id @default(cuid())
   organisationId String
   /// Authoritative registry entry for the cohort slug used across the nine
   /// Impact Lab tables. Unique: one Event per cohort, ever.
   cohort         String      @unique
   name           String
-  status         EventStatus @default(DRAFT)
+  status         ImpactLabEventStatus @default(DRAFT)
 
   // Branding — replaces the code constants in event-branding.ts (Task 11).
   titleLead   String
@@ -157,7 +160,7 @@ npx prisma generate
 npx tsc --noEmit
 ```
 
-Expected: clean. (`prisma.event` etc. now exist on the client.)
+Expected: clean. (`prisma.impactLabEvent` etc. now exist on the client.)
 
 - [ ] **Step 6: Commit**
 
@@ -273,10 +276,10 @@ async function main(): Promise<void> {
       continue
     }
     const { orgSlug: _orgSlug, ...data } = event
-    const existing = await prisma.event.findUnique({ where: { cohort: event.cohort } })
+    const existing = await prisma.impactLabEvent.findUnique({ where: { cohort: event.cohort } })
     console.log(`event ${event.cohort}: ${existing ? "exists" : "will create"}`)
     if (APPLY) {
-      await prisma.event.upsert({
+      await prisma.impactLabEvent.upsert({
         where: { cohort: event.cohort },
         // Backfill never overwrites a status an admin may have changed since.
         create: { ...data, organisationId: org.id },
@@ -722,7 +725,7 @@ function toRecord(row: EventRow): EventRecord {
 /** The event owning a cohort slug, or null (unknown cohort OR pre-migration). */
 export async function getEventByCohort(cohort: string): Promise<EventRecord | null> {
   try {
-    const row = await prisma.event.findUnique({ where: { cohort }, select: EVENT_SELECT })
+    const row = await prisma.impactLabEvent.findUnique({ where: { cohort }, select: EVENT_SELECT })
     return row ? toRecord(row as EventRow) : null
   } catch (error) {
     if (isMissingTable(error)) return null
@@ -733,7 +736,7 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
 /** Every event, newest first; [] pre-migration. */
 export async function listEvents(): Promise<EventRecord[]> {
   try {
-    const rows = await prisma.event.findMany({
+    const rows = await prisma.impactLabEvent.findMany({
       select: EVENT_SELECT,
       orderBy: { createdAt: "desc" },
     })
@@ -1107,7 +1110,7 @@ export async function POST(request: NextRequest) {
     )
   }
   const { organisationId, cohort: _raw, groundRules, ...branding } = parsed.data
-  await prisma.event.create({
+  await prisma.impactLabEvent.create({
     data: { organisationId, cohort, status: "DRAFT", groundRules: groundRules ?? null, ...branding },
   })
   const event = await getEventByCohort(cohort)
@@ -1144,7 +1147,7 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  await prisma.event.update({
+  await prisma.impactLabEvent.update({
     where: { cohort },
     data: {
       ...(status ? { status } : {}),
