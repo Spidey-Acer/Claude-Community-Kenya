@@ -7,7 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   // The criteria in the prompt must be the ones this cohort's judges are
   // actually filling in — observations against criteria that are not on their
   // sheet are worse than no observations, because they read as authoritative.

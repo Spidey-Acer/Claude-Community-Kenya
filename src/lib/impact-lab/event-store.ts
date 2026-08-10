@@ -123,8 +123,9 @@ export async function defaultAdminCohort(): Promise<string> {
 
 /**
  * The cohort an admin request operates on: the validated `?cohort=` input,
- * or the admin default. This is the successor to `safeCohort` — same
- * injection-safety contract, database-backed fallback.
+ * or the admin default. This is the successor to constants.ts's old
+ * single-cohort resolver — same injection-safety contract, database-backed
+ * fallback.
  */
 export async function resolveAdminCohort(
   input: string | null | undefined
@@ -147,10 +148,11 @@ export async function resolveMemberEvents(email: string): Promise<MemberEvent[]>
 
   const events = await listEvents()
   if (events.length === 0) {
-    // Pre-migration degrade: behave like the old CURRENT_COHORT world —
-    // including whether it's LIVE. isCohortActive reads IMPACT_LAB_ACTIVE_COHORT,
-    // the same env var guardClosedCohort still honors pre-migration; hardcoding
-    // CLOSED here would tell a member their live event had wrapped.
+    // Pre-migration degrade: behave like the old single-cohort, env-driven
+    // world — including whether it's LIVE. isCohortActive reads
+    // IMPACT_LAB_ACTIVE_COHORT, the same env var guardClosedCohort still
+    // honors pre-migration; hardcoding CLOSED here would tell a member their
+    // live event had wrapped.
     const fallback = participants.find((p) => p.cohort === DEFAULT_COHORT)
     return fallback
       ? [

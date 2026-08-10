@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
+import { listEvents } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { totalOutOf } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
@@ -85,11 +85,28 @@ export async function GET(request: NextRequest) {
 
   const open = [...latestByCohort.values()].filter((r) => r.judgingClosedAt === null)
 
+  const tenantEvents = await listEvents()
+  const eventByCohort = new Map(tenantEvents.map((e) => [e.cohort, e]))
+
+  // Visibility: once the tenancy table is populated, a run only reaches a
+  // judge if its cohort has a tenancy record that is neither DRAFT (not open
+  // yet) nor ARCHIVED (wrapped) — a run without any matching event is orphaned
+  // and should not surface either. Pre-migration, `tenantEvents` is empty
+  // because the table doesn't exist yet, so nothing is filtered: every open
+  // run stays visible, the same as before this table existed.
+  const visible =
+    tenantEvents.length === 0
+      ? open
+      : open.filter((r) => {
+          const event = eventByCohort.get(r.cohort)
+          return event !== undefined && event.status !== "DRAFT" && event.status !== "ARCHIVED"
+        })
+
   // `resolveRubric` rather than the code constant, so the name and denominator
   // a judge picks by are the same ones the scoring screen will show them. One
   // lookup per open event, in parallel — there are a handful, not hundreds.
   const events: JudgeEvent[] = await Promise.all(
-    open.map(async (run) => {
+    visible.map(async (run) => {
       const rubric = await resolveRubric(run.cohort)
       return {
         cohort: run.cohort,
@@ -103,15 +120,22 @@ export async function GET(request: NextRequest) {
     })
   )
 
-  // The live event first — at a single-event hackathon the judge should never
-  // have to choose. Everything else stays newest first, which is the order the
-  // runs already arrived in. Partitioned rather than sorted with a comparator
-  // that returns 0 for every other pair, which would leave the rest of the
-  // ordering resting on sort stability.
-  const ordered = [
-    ...events.filter((e) => e.cohort === CURRENT_COHORT),
-    ...events.filter((e) => e.cohort !== CURRENT_COHORT),
-  ]
+  // The LIVE event(s) first — at a single-event hackathon the judge should
+  // never have to choose. Everything else stays newest first, which is the
+  // order the runs already arrived in. Partitioned rather than sorted with a
+  // comparator that returns 0 for every other pair, which would leave the
+  // rest of the ordering resting on sort stability. Pre-migration there is no
+  // tenancy status to partition on, so the newest-first order is left as-is.
+  const liveCohorts = new Set(
+    tenantEvents.filter((e) => e.status === "LIVE").map((e) => e.cohort)
+  )
+  const ordered =
+    tenantEvents.length === 0
+      ? events
+      : [
+          ...events.filter((e) => liveCohorts.has(e.cohort)),
+          ...events.filter((e) => !liveCohorts.has(e.cohort)),
+        ]
 
   return NextResponse.json(
     { success: true, events: ordered },

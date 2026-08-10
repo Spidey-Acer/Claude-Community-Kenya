@@ -78,8 +78,8 @@ export async function GET(request: NextRequest) {
 
   // Never leak an unpublished snapshot — including its mere existence.
   // eventName falls back to the raw slug rather than being omitted — same
-  // "ugly but never wrong" convention CURRENT_COHORT_LABEL used — so this
-  // branch and the published one below always agree on the shape.
+  // "ugly but never wrong" convention the old cohort-label constant used —
+  // so this branch and the published one below always agree on the shape.
   if (!run?.resultsPublishedAt || !run.resultsSnapshot) {
     return NextResponse.json({
       success: true,

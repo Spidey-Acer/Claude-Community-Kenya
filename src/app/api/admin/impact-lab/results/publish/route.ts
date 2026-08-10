@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, type ResultsInput } from "@/lib/impact-lab/results"
 
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(parsed.data.cohort)
+  const cohort = await resolveAdminCohort(parsed.data.cohort)
   const existing = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },

@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { rubricForCohort } from "@/lib/impact-lab/judging-rubrics"
 import {
   checkRubricDeletable,
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
 
   const [stored, state] = await Promise.all([loadRubric(cohort), rubricFreezeState(cohort)])
   const rubric = stored ?? rubricForCohort(cohort)
@@ -153,7 +153,7 @@ async function handlePut(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const rubric = parsed.data
 
   const verdict = await checkRubricEditable(cohort, rubric)
@@ -242,7 +242,7 @@ async function handleDelete(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
 
   const existing = await prisma.impactLabRubric.findUnique({
     where: { cohort },

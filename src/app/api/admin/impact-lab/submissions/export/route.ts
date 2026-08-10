@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { toCsv } from "@/lib/impact-lab/csv"
 import {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const cohort = safeCohort(searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(searchParams.get("cohort"))
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },

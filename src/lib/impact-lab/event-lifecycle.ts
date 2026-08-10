@@ -85,11 +85,11 @@ const COHORT_PATTERN = /^[a-z0-9][a-z0-9-]{0,59}$/i
 /**
  * Validate user-supplied cohort input to a safe slug, or null.
  *
- * This is the successor to constants.ts `safeCohort`, minus the fallback:
- * what "no cohort named" means now depends on who is asking (a member's own
- * events, the admin default event), so callers own the fallback and this
- * function only answers "is this string safe to put in a query and a
- * Content-Disposition header?".
+ * This is the successor to constants.ts's single-cohort input coercer, minus
+ * the fallback: what "no cohort named" means now depends on who is asking (a
+ * member's own events, the admin default event), so callers own the fallback
+ * and this function only answers "is this string safe to put in a query and
+ * a Content-Disposition header?".
  */
 export function validCohort(input: string | null | undefined): string | null {
   const value = (input ?? "").trim()

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { runMatching } from "@/lib/matching"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Empty body is fine — run with defaults.
   }
 
-  const cohort = safeCohort(body.cohort)
+  const cohort = await resolveAdminCohort(body.cohort)
 
   let settings
   try {

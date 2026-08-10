@@ -4,7 +4,8 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { defaultAdminCohort } from "@/lib/impact-lab/event-store"
 import {
   DEFAULT_SECONDS,
   isValidSeconds,
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = validCohort(request.nextUrl.searchParams.get("cohort")) ?? (await defaultAdminCohort())
   const timer = await loadPitchTimer(cohort)
 
   return NextResponse.json({ success: true, timer }, { headers: rl.headers })
@@ -112,7 +113,7 @@ async function handlePost(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = validCohort(request.nextUrl.searchParams.get("cohort")) ?? (await defaultAdminCohort())
   const startedAt = new Date()
 
   // Upsert, not create: restarting while one is already running for this
@@ -163,7 +164,7 @@ async function handleDelete(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = validCohort(request.nextUrl.searchParams.get("cohort")) ?? (await defaultAdminCohort())
   // deleteMany rather than delete: stopping a timer that already finished (or
   // was never started) is a no-op, not a 404 a judge has to interpret.
   await prisma.impactLabPitchTimer.deleteMany({ where: { cohort } })

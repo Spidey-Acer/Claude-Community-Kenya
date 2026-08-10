@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   scoreTotal,
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
   const judge = await resolveJudge()
   if (!judge.ok) return judge.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   // `resolveRubric`, not `rubricForCohort`: an organiser-authored rubric for
   // this cohort overrides the code constant, and this response is where the
   // judging screen gets the criteria it renders. Falls back to the constant.
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
   // resolves to IS the validation: which criteria exist and what each one's
   // scale is. Validating first and looking up the rubric afterwards is how the
   // 1–5 ceiling came to reject a legitimate 10.
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const rubric = await resolveRubric(cohort)
 
   const parsed = buildScoreSchema(rubric).safeParse(

@@ -59,9 +59,9 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
 ]
 
 /**
- * `initialCohort` seeds the selector — the server passes `CURRENT_COHORT` so
- * the page opens on the live event, but the organiser can switch to any
- * cohort the system knows about without a redeploy.
+ * `initialCohort` seeds the selector — the server passes the admin default
+ * cohort so the page opens on the live event, but the organiser can switch
+ * to any cohort the system knows about without a redeploy.
  */
 export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }) {
   const [cohort, setCohort] = useState(initialCohort)
@@ -82,8 +82,8 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
        * Worded to cover both kinds of event this dashboard now serves: a
        * cohort that gets matched into teams here (Matching tab, Explain,
        * freeze a run) and a cohort whose teams already exist and only needs
-       * check-in, judging, and results. Naming the selected cohort — not
-       * CURRENT_COHORT — keeps this line honest after a switch.
+       * check-in, judging, and results. Naming the selected cohort — not a
+       * hardcoded default — keeps this line honest after a switch.
        */}
       <p className="text-xs font-mono text-[#555]">
         Managing <span className="text-[#00ff41]">{cohort}</span> — participants, teams, submissions,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { scoreTotal, totalOutOf } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "view")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   // Every total below is in this rubric's units, so the rubric travels with the
   // response — a mean of 48.3 is a different verdict out of 50 than out of 100.
   const rubric = await resolveRubric(cohort)

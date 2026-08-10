@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const teamId = (request.nextUrl.searchParams.get("teamId") ?? "").trim()
   if (teamId === "" || teamId.length > 64) {
     return NextResponse.json(

@@ -7,8 +7,8 @@ import { JudgeScoringScreen } from "./JudgeScoringScreen"
 
 /**
  * Cohort-aware wrapper around the judge scoring screen. Before this, the
- * page hardcoded `CURRENT_COHORT`, so an organiser judging a past event
- * (or re-checking a past event's scores) had no way to get there.
+ * page hardcoded a single default cohort, so an organiser judging a past
+ * event (or re-checking a past event's scores) had no way to get there.
  *
  * `JudgeScoringScreen`'s own `load` callback already depends on its `cohort`
  * prop, so switching the selection here is all that's needed — it refetches

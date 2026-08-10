@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { runMatching, type MatchResult } from "@/lib/matching"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const cohort = safeCohort(searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(searchParams.get("cohort"))
 
   // Only the fields the summary needs — skip the heavy participantsSnapshot and
   // settings JSONB (the list computes three numbers from `result`).
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(validation.data.cohort)
+  const cohort = await resolveAdminCohort(validation.data.cohort)
 
   let settings
   try {
