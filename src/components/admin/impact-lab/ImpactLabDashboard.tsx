@@ -11,6 +11,7 @@ import {
   Gavel,
   ListChecks,
   SlidersHorizontal,
+  CalendarDays,
   Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -25,8 +26,10 @@ import { LeaderboardTab } from "./LeaderboardTab"
 import { JudgesTab } from "./JudgesTab"
 import { ResultsTab } from "./ResultsTab"
 import { RubricTab } from "./RubricTab"
+import { EventsTab } from "./EventsTab"
 
 type Tab =
+  | "events"
   | "participants"
   | "matching"
   | "runs"
@@ -38,6 +41,9 @@ type Tab =
   | "results"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
+  // First: events span organisations and aren't scoped to the selected
+  // cohort below, unlike every other tab here.
+  { key: "events", label: "Events", icon: CalendarDays },
   { key: "participants", label: "Participants", icon: Users },
   { key: "matching", label: "Matching", icon: Network },
   { key: "runs", label: "Runs", icon: Save },
@@ -126,6 +132,7 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
        * half-filled participant form) can survive onto the new one.
        */}
       <div key={cohort} className="space-y-5">
+        {tab === "events" && <EventsTab />}
         {tab === "participants" && <ParticipantsTab cohort={cohort} />}
         {tab === "matching" && (
           <MatchingTab
