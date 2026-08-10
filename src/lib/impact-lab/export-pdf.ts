@@ -22,7 +22,7 @@
  */
 
 import PDFDocument from "pdfkit"
-import { JUDGING_CRITERIA, SCORE_LABELS } from "./judging"
+import { totalOutOf } from "./judging"
 import { type ExportTeam, type ResultsExport } from "./export-data"
 import { brandingForCohort, REPORT_PRODUCER, type EventBranding } from "./event-branding"
 import { REVIEW_PROVENANCE, REVIEW_SIGNATURE } from "./reviews"
@@ -378,8 +378,12 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
       "which is which."
   )
   markSection(doc, state, "How this record was produced")
+  const rubric = data.rubric
+  const denom = totalOutOf(rubric)
 
-  // 1 — Scoring model.
+  // 1 — Scoring model. The two rubrics score in different kinds of
+  // arithmetic (see judging-rubrics.ts) — this paragraph must say which one
+  // actually ran, never assert the other rubric's rule as if it were general.
   kicker(doc, "The scoring model")
   doc
     .font(SANS)
@@ -388,11 +392,18 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     .text(
       // Plain ASCII arithmetic: U+2212 and U+2044 fall outside pdfkit's
       // WinAnsi standard-font encoding and print as garbage.
-      "Judges scored each project on five published criteria, 1 to 5, anchored the same way for " +
-        "everyone. A score of 1 means “not shown” and earns none of that criterion's weight; the " +
-        "scale is normalised so a criterion contributes (score - 1) / 4 of its weight, out of 100. " +
-        "A team's number is the mean of its judges' weighted totals — judges are averaged, not " +
-        "summed, so a team seen by two judges is not beaten by an identical team seen by four.",
+      rubric.scoring === "normalized"
+        ? `Judges scored each project on ${rubric.criteria.length} published criteria, anchored the ` +
+            "same way for everyone. The lowest score on each criterion means “not shown” and earns " +
+            "none of that criterion's weight; the scale is normalised so a criterion contributes " +
+            `(score - min) / (max - min) of its weight, out of ${denom}. A team's number is the mean ` +
+            "of its judges' totals — judges are averaged, not summed, so a team seen by two judges " +
+            "is not beaten by an identical team seen by four."
+        : `Judges scored each project on ${rubric.criteria.length} published criteria, each with its ` +
+            "own point scale set by the panel. The raw score on each criterion IS the points it " +
+            `earns — a team's total is the sum of its criteria, out of ${denom}. A team's number is ` +
+            "the mean of its judges' totals — judges are averaged, not summed, so a team seen by " +
+            "two judges is not beaten by an identical team seen by four.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2.5 }
@@ -402,7 +413,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   // Criteria table: label, weight, guidance.
   const wCrit = 150
   const wWeight = 46
-  for (const criterion of JUDGING_CRITERIA) {
+  for (const criterion of rubric.criteria) {
     const top = doc.y
     doc.font(SANS_BOLD).fontSize(8.5).fillColor(INK).text(criterion.label, MARGIN, top, {
       width: wCrit - 8,
@@ -411,7 +422,14 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
       .font(SANS_BOLD)
       .fontSize(8.5)
       .fillColor(CLAY_DEEP)
-      .text(`${criterion.weight} pts`, MARGIN + wCrit, top, { width: wWeight, lineBreak: false })
+      .text(
+        rubric.scoring === "points"
+          ? `${criterion.min}–${criterion.max} pts`
+          : `${criterion.weight} pts`,
+        MARGIN + wCrit,
+        top,
+        { width: wWeight, lineBreak: false }
+      )
     doc
       .font(SANS)
       .fontSize(8.5)
@@ -423,19 +441,24 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     doc.x = MARGIN
     doc.moveDown(0.55)
   }
-  doc
-    .font(SANS)
-    .fontSize(7.5)
-    .fillColor(FAINT)
-    .text(
-      "Scale anchors: " +
-        Object.entries(SCORE_LABELS)
-          .map(([n, label]) => `${n} = ${label}`)
-          .join(" · "),
-      MARGIN,
-      doc.y,
-      { width: CONTENT_WIDTH, lineGap: 2 }
-    )
+  // Points rubrics anchor their scale in each criterion's own guidance text
+  // (see judging-rubrics.ts), so `scoreLabels` is null and there is nothing
+  // generic to print here.
+  if (rubric.scoreLabels) {
+    doc
+      .font(SANS)
+      .fontSize(7.5)
+      .fillColor(FAINT)
+      .text(
+        "Scale anchors: " +
+          Object.entries(rubric.scoreLabels)
+            .map(([n, label]) => `${n} = ${label}`)
+            .join(" · "),
+        MARGIN,
+        doc.y,
+        { width: CONTENT_WIDTH, lineGap: 2 }
+      )
+  }
   doc.moveDown(1.1)
 
   // 2 — Coverage and the writeup rule.
@@ -534,14 +557,16 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
 
 // ─── The event in numbers ────────────────────────────────────────────────────
 
-function scoreBins(teams: ExportTeam[]): HistogramBin[] {
+/** Ten bins spanning the rubric's own denominator, not a hardcoded 0–100. */
+function scoreBins(teams: ExportTeam[], denom: number): HistogramBin[] {
+  const width = denom / 10
   const bins: HistogramBin[] = Array.from({ length: 10 }, (_, i) => ({
-    label: `${i * 10}–${i * 10 + 10}`,
+    label: `${Math.round(i * width)}–${Math.round(i * width + width)}`,
     count: 0,
   }))
   for (const team of teams) {
     if (team.average === null) continue
-    const index = Math.min(9, Math.floor(team.average / 10))
+    const index = Math.min(9, Math.floor(team.average / width))
     bins[index].count += 1
   }
   return bins
@@ -553,13 +578,14 @@ function scoreBins(teams: ExportTeam[]): HistogramBin[] {
  * lines because it is one composed page of charts.
  */
 function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState): void {
+  const denom = totalOutOf(data.rubric)
   sectionOpener(
     doc,
     "The field",
     "The event in numbers",
     "How the scores fell across the whole field — read alongside the methodology on the " +
-      "previous page. Score charts show weighted averages out of 100; the podium was decided " +
-      "by the panel, not by these charts."
+      `previous page. Score charts show weighted averages out of ${denom}; the podium was ` +
+      "decided by the panel, not by these charts."
   )
   markSection(doc, state, "The event in numbers")
 
@@ -569,13 +595,20 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     .font(SANS)
     .fontSize(8)
     .fillColor(FAINT)
-    .text("Teams by weighted average (/100)", MARGIN, doc.y, { width: CONTENT_WIDTH })
+    .text(`Teams by weighted average (/${denom})`, MARGIN, doc.y, { width: CONTENT_WIDTH })
   doc.moveDown(0.5)
-  doc.y += drawHistogram(doc, MARGIN + 16, doc.y, CONTENT_WIDTH - 16, 90, scoreBins(data.teams))
+  doc.y += drawHistogram(
+    doc,
+    MARGIN + 16,
+    doc.y,
+    CONTENT_WIDTH - 16,
+    90,
+    scoreBins(data.teams, denom)
+  )
   doc.moveDown(1.2)
 
   // Tracks: mean score, with participation in the sublabel.
-  kicker(doc, "The five tracks", DIM)
+  kicker(doc, "The tracks", DIM)
   const trackRows: HBarRow[] = data.trackSummaries
     .filter((t) => t.track !== "Unassigned" || t.teamsFormed > 0)
     .map((t) => ({
@@ -585,9 +618,9 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
       valueLabel: t.meanAverage !== null ? fmt1(t.meanAverage) : "—",
     }))
   doc.y += drawHBars(doc, MARGIN, doc.y, CONTENT_WIDTH, trackRows, {
-    max: 100,
+    max: denom,
     labelWidth: 168,
-    scaleNote: "Mean of scored teams' weighted averages, 0–100. Track sizes differ — see sublabels.",
+    scaleNote: `Mean of scored teams' weighted averages, 0–${denom}. Track sizes differ — see sublabels.`,
   })
   doc.moveDown(1.2)
 
@@ -618,7 +651,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     .fontSize(8)
     .fillColor(FAINT)
     .text(
-      "Each judge's mean weighted total across their own scorecards (/100). Judges saw " +
+      `Each judge's mean weighted total across their own scorecards (/${denom}). Judges saw ` +
         "different, overlapping sets of teams, so these are calibration profiles — not rankings " +
         "of the judges and not comparable head-to-head.",
       MARGIN,
@@ -635,7 +668,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     dots: [j.meanWeightedTotal],
   }))
   doc.y += drawDotRows(doc, MARGIN, doc.y, CONTENT_WIDTH, judgeRows, {
-    max: 100,
+    max: denom,
     labelWidth: 168,
     rowHeight: 28,
   })
@@ -680,6 +713,7 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       : "Results have not been published; the leaders below are ordered by score alone."
   )
   markSection(doc, state, "The winners")
+  const denom = totalOutOf(data.rubric)
 
   const medals = ["Champion", "First runner-up", "Second runner-up"]
   const teamByName = new Map(data.teams.map((t) => [t.teamName, t]))
@@ -714,7 +748,7 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       .text(
         winner.teamName +
           (team?.average !== null && team?.average !== undefined
-            ? `  ·  panel average ${fmt1(team.average)}/100`
+            ? `  ·  panel average ${fmt1(team.average)}/${denom}`
             : ""),
         MARGIN + 16,
         top + 41,
@@ -788,23 +822,25 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
 // The team name is "Table N — Track", so a Team column would print the table
 // and track twice; Table + Track columns carry the same facts without the
 // noise. Headers sized to stay on one line at 7pt.
-const RANK_COLS = [
-  { label: "#", width: 24 },
-  { label: "Project", width: 132 },
-  { label: "Table", width: 48 },
-  { label: "Track", width: 100 },
-  { label: "Avg /100", width: 42 },
-  { label: "Range", width: 60 },
-  { label: "Judges", width: 38 },
-  { label: "Basis", width: 39 },
-] as const
+function rankCols(denom: number) {
+  return [
+    { label: "#", width: 24 },
+    { label: "Project", width: 132 },
+    { label: "Table", width: 48 },
+    { label: "Track", width: 100 },
+    { label: `Avg /${denom}`, width: 42 },
+    { label: "Range", width: 60 },
+    { label: "Judges", width: 38 },
+    { label: "Basis", width: 39 },
+  ] as const
+}
 
-function rankingHeader(doc: Doc): void {
+function rankingHeader(doc: Doc, cols: ReturnType<typeof rankCols>): void {
   if (doc.y < MARGIN + 8) doc.y = MARGIN + 8
   let x = MARGIN
   doc.font(SANS_BOLD).fontSize(7).fillColor(DIM)
   const top = doc.y
-  for (const col of RANK_COLS) {
+  for (const col of cols) {
     doc.text(col.label.toUpperCase(), x, top, { width: col.width - 6, characterSpacing: 0.5 })
     x += col.width
   }
@@ -828,7 +864,8 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       "the podium."
   )
   markSection(doc, state, "Full ranking")
-  rankingHeader(doc)
+  const cols = rankCols(totalOutOf(data.rubric))
+  rankingHeader(doc, cols)
 
   const ranked = data.teams.filter((t) => t.average !== null)
   for (const team of ranked) {
@@ -846,13 +883,12 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
     ]
     doc.font(SANS).fontSize(8)
     const rowHeight =
-      Math.max(
-        ...cells.map((text, i) => doc.heightOfString(text, { width: RANK_COLS[i].width - 6 }))
-      ) + 7
+      Math.max(...cells.map((text, i) => doc.heightOfString(text, { width: cols[i].width - 6 }))) +
+      7
     if (doc.y + rowHeight > CONTENT_BOTTOM) {
       doc.addPage()
       doc.y = MARGIN + 8
-      rankingHeader(doc)
+      rankingHeader(doc, cols)
     }
     const top = doc.y
     if (team.finalRankBasis === "announced") {
@@ -865,8 +901,8 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
         .font(i === 1 ? SANS_BOLD : SANS)
         .fontSize(8)
         .fillColor(i === 3 || i === 5 || i === 7 ? DIM : INK)
-        .text(text, x, top, { width: RANK_COLS[i].width - 6 })
-      x += RANK_COLS[i].width
+        .text(text, x, top, { width: cols[i].width - 6 })
+      x += cols[i].width
     })
     doc.x = MARGIN
     doc.y = top + rowHeight
@@ -1159,8 +1195,9 @@ function renderSubmission(doc: Doc, team: ExportTeam): void {
  * verbatim judge notes. Longer than 50 lines because the pieces share
  * geometry and pagination decisions that must be made together.
  */
-function renderJudging(doc: Doc, team: ExportTeam): void {
+function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric"]): void {
   if (team.judgeScores.length === 0) return
+  const denom = totalOutOf(rubric)
   ensureSpace(doc, 200)
   // No divider when the block landed at the top of a fresh page — it would
   // double the running header's rule.
@@ -1170,29 +1207,43 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
   }
   kicker(doc, "Judging", DIM)
 
-  // Criterion profile: the five published criteria, averaged across judges.
+  // Criterion profile: every published criterion, averaged across judges.
+  // Criteria can carry different maxima (the Afretec rubric does), so the
+  // bars share the largest one and each row states its own out of its label
+  // — one shared `max` would draw a 4-of-4 and a 4-of-10 identically.
   if (team.average !== null) {
-    const rows: HBarRow[] = JUDGING_CRITERIA.map((criterion) => ({
-      label: criterion.label,
+    const criteriaMax = Math.max(...rubric.criteria.map((c) => c.max))
+    const rows: HBarRow[] = rubric.criteria.map((criterion) => ({
+      label:
+        rubric.scoring === "points"
+          ? `${criterion.label} (/${criterion.max})`
+          : criterion.label,
       value: team.criterionAverages[criterion.key] ?? 0,
       valueLabel: fmt1(team.criterionAverages[criterion.key] ?? 0),
     }))
     doc.y += drawHBars(doc, MARGIN, doc.y, CONTENT_WIDTH * 0.72, rows, {
-      max: 5,
+      max: criteriaMax,
       labelWidth: 150,
       rowHeight: 15,
-      scaleNote: "Mean of judges' raw 1–5 scores per criterion. 1 = not shown.",
+      scaleNote:
+        rubric.scoring === "points"
+          ? "Mean of judges' raw scores per criterion, against that criterion's own maximum."
+          : `Mean of judges' raw ${rubric.criteria[0]?.min ?? 1}–${rubric.criteria[0]?.max ?? 5} scores per criterion. Lowest = not shown.`,
     })
     doc.moveDown(0.8)
   }
 
-  // Per-judge table.
+  // Per-judge table. Column width shrinks to fit however many criteria the
+  // rubric has — 42pt fits five (July) exactly; eight (Afretec) needs
+  // narrower columns to leave room for the name, basis and total columns.
   const nameWidth = 104
   const basisWidth = 62
-  const critWidth = 42
-  const totalWidth = CONTENT_WIDTH - nameWidth - basisWidth - critWidth * JUDGING_CRITERIA.length
+  const critWidth = Math.min(
+    42,
+    (CONTENT_WIDTH - nameWidth - basisWidth - 46) / rubric.criteria.length
+  )
+  const totalWidth = CONTENT_WIDTH - nameWidth - basisWidth - critWidth * rubric.criteria.length
   ensureSpace(doc, 30 + team.judgeScores.length * 15)
-  const shortLabels = ["Impact", "Demo", "AI", "Clarity", "Present."]
   let x = MARGIN
   const headTop = doc.y
   doc.font(SANS_BOLD).fontSize(6.5).fillColor(DIM)
@@ -1200,11 +1251,15 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
   x += nameWidth
   doc.text("BASIS", x, headTop, { width: basisWidth - 6 })
   x += basisWidth
-  shortLabels.forEach((label) => {
-    doc.text(label.toUpperCase(), x, headTop, { width: critWidth - 4 })
+  for (const criterion of rubric.criteria) {
+    doc.text(criterion.label.toUpperCase(), x, headTop, {
+      width: critWidth - 4,
+      lineBreak: false,
+      ellipsis: true,
+    })
     x += critWidth
-  })
-  doc.text("TOTAL /100", x, headTop, { width: totalWidth })
+  }
+  doc.text(`TOTAL /${denom}`, x, headTop, { width: totalWidth })
   doc.x = MARGIN
   doc.y = headTop + 11
   rule(doc, INK, 0.8)
@@ -1224,13 +1279,16 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
       .fillColor(score.writeupOnly ? CLAY_DEEP : DIM)
       .text(score.writeupOnly ? "Writeup" : "Live demo", cx, top, { width: basisWidth - 6 })
     cx += basisWidth
-    for (const criterion of JUDGING_CRITERIA) {
+    for (const criterion of rubric.criteria) {
       const value = score.criteria[criterion.key]
       doc
         .font(SANS)
         .fontSize(8)
         .fillColor(INK)
-        .text(value === null ? "—" : String(value), cx, top, { width: critWidth - 4 })
+        .text(value === null ? "—" : String(value), cx, top, {
+          width: critWidth - 4,
+          lineBreak: false,
+        })
       cx += critWidth
     }
     doc.font(SANS_BOLD).fontSize(8).fillColor(INK).text(fmt1(score.weightedTotal), cx, top, {
@@ -1253,7 +1311,7 @@ function renderJudging(doc: Doc, team: ExportTeam): void {
       },
     ]
     doc.y += drawDotRows(doc, MARGIN, doc.y, CONTENT_WIDTH * 0.72, spreadRows, {
-      max: 100,
+      max: denom,
       labelWidth: 92,
     })
     doc.moveDown(0.4)
@@ -1329,7 +1387,8 @@ function renderTeamProfile(
   doc: Doc,
   team: ExportTeam,
   analysis: TeamAnalysis | undefined,
-  state: RenderState
+  state: RenderState,
+  rubric: ResultsExport["rubric"]
 ): void {
   doc.addPage()
   doc.y = MARGIN + 8
@@ -1377,7 +1436,7 @@ function renderTeamProfile(
       .fontSize(8.5)
       .fillColor(DIM)
       .text(
-        `Panel average ${fmt1(team.average)}/100 across ${team.judgeCount} scorecard` +
+        `Panel average ${fmt1(team.average)}/${totalOutOf(rubric)} across ${team.judgeCount} scorecard` +
           `${team.judgeCount === 1 ? "" : "s"}` +
           (team.judgeCount > 1 && team.scoreLow !== null && team.scoreHigh !== null
             ? ` (judges ranged ${fmt1(team.scoreLow)}–${fmt1(team.scoreHigh)})`
@@ -1402,7 +1461,7 @@ function renderTeamProfile(
   if (team.communityReview !== null) renderCommunityReview(doc, team)
   else if (analysis) renderAnalysis(doc, analysis)
   renderSubmission(doc, team)
-  renderJudging(doc, team)
+  renderJudging(doc, team, rubric)
 }
 
 // ─── Appendix ────────────────────────────────────────────────────────────────
@@ -1578,14 +1637,14 @@ export async function buildResultsPdf(
     if (profiled.length > 0) {
       // The profiles section mark points at the first profile page.
       const first = profiled[0]
-      renderTeamProfile(doc, first, analyses.get(first.teamId), state)
+      renderTeamProfile(doc, first, analyses.get(first.teamId), state, data.rubric)
       state.toc.splice(state.toc.length - 1, 0, {
         title: "Team profiles",
         page: state.toc[state.toc.length - 1].page,
         level: 0,
       })
       for (const team of profiled.slice(1)) {
-        renderTeamProfile(doc, team, analyses.get(team.teamId), state)
+        renderTeamProfile(doc, team, analyses.get(team.teamId), state, data.rubric)
       }
     }
     renderAppendix(doc, data, state, branding)

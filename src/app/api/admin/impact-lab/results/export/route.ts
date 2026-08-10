@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { ScoreSheet } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import {
   buildResultsExport,
   parseResultsSnapshot,
@@ -141,7 +142,10 @@ export async function GET(request: NextRequest) {
     }),
   }
 
-  const data = buildResultsExport(source)
+  // `resolveRubric`, not the code constant: an organiser-authored rubric for
+  // this cohort must win, exactly as it does for the judging routes.
+  const rubric = await resolveRubric(cohort)
+  const data = buildResultsExport(source, rubric)
   const stamp = data.generatedAt.toISOString().slice(0, 10)
 
   // One generation pass per export run — both builders read the same map.

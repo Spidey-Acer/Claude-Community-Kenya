@@ -19,11 +19,11 @@
  */
 
 import {
-  JUDGING_CRITERIA,
+  scoreTotal,
   standings,
   trackOf,
   trackWinners,
-  weightedTotal,
+  type JudgingRubric,
   type ScoreSheet,
 } from "./judging"
 import type { RankedTeam, ResultsSnapshot, ResultsTrackWinner } from "./results"
@@ -229,6 +229,13 @@ export interface ExportSummary {
 export interface ResultsExport {
   cohort: string
   generatedAt: Date
+  /**
+   * The rubric this cohort was judged on. Carried on the export itself so the
+   * Excel and PDF renderers never fall back to a hardcoded default — every
+   * criteria loop, column count, and denominator in this document is driven
+   * by this rubric, not by the Impact Lab constant.
+   */
+  rubric: JudgingRubric
   /** Whether the announced result has been published (snapshot present). */
   published: boolean
   publishedAt: string | null
@@ -290,9 +297,9 @@ function toMember(p: SourceParticipant, leaderId: string | null | undefined): Ex
   }
 }
 
-function toJudgeScore(score: SourceScore): ExportJudgeScore {
+function toJudgeScore(score: SourceScore, rubric: JudgingRubric): ExportJudgeScore {
   const criteria: Record<string, number | null> = {}
-  for (const criterion of JUDGING_CRITERIA) {
+  for (const criterion of rubric.criteria) {
     const raw = score.sheet[criterion.key]
     criteria[criterion.key] =
       typeof raw === "number" && !Number.isNaN(raw) ? raw : null
@@ -301,7 +308,7 @@ function toJudgeScore(score: SourceScore): ExportJudgeScore {
     judgeName: score.judgeName,
     judgeEmail: score.judgeEmail,
     criteria,
-    weightedTotal: weightedTotal(score.sheet),
+    weightedTotal: scoreTotal(score.sheet, rubric),
     writeupOnly: score.writeupOnly,
     feedback: score.feedback?.trim() ? score.feedback.trim() : null,
   }
@@ -310,11 +317,19 @@ function toJudgeScore(score: SourceScore): ExportJudgeScore {
 /**
  * Assemble everything the Excel and PDF builders render.
  *
- * All ranking arithmetic is `standings`/`weightedTotal`/`trackWinners` from
+ * All ranking arithmetic is `standings`/`scoreTotal`/`trackWinners` from
  * `./judging` — this module joins and labels, it never re-derives a number
- * that decides who won.
+ * that decides who won. `rubric` must be the one this cohort was actually
+ * judged on (resolve it with `resolveRubric` before calling this — it stays
+ * pure and dependency-free, like `./judging`, so the caller owns the DB
+ * lookup) or every criterion, total, and ranking below is scored against the
+ * wrong event.
  */
-export function buildResultsExport(source: ExportSource, now: Date = new Date()): ResultsExport {
+export function buildResultsExport(
+  source: ExportSource,
+  rubric: JudgingRubric,
+  now: Date = new Date()
+): ResultsExport {
   const participantById = new Map(source.participants.map((p) => [p.id, p]))
   const submissionByTeam = new Map(source.submissions.map((s) => [s.teamId, s]))
   const reviewByTeam = new Map(source.reviews.map((r) => [r.teamId, r.text]))
@@ -327,7 +342,8 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
   }
 
   const table = standings(
-    source.scores.map((s) => ({ judgeEmail: s.judgeEmail, teamId: s.teamId, sheet: s.sheet }))
+    source.scores.map((s) => ({ judgeEmail: s.judgeEmail, teamId: s.teamId, sheet: s.sheet })),
+    rubric
   )
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
   // `standings` is already sorted by average desc, id — position is score rank.
@@ -378,7 +394,7 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
 
   const teams: ExportTeam[] = source.teams.map((team) => {
     const standing = standingByTeam.get(team.id)
-    const judgeScores = (scoresByTeam.get(team.id) ?? []).map(toJudgeScore)
+    const judgeScores = (scoresByTeam.get(team.id) ?? []).map((s) => toJudgeScore(s, rubric))
     const snapshotRow = finalRankByTeam.get(team.id)
     const submission = submissionByTeam.get(team.id)
 
@@ -455,7 +471,7 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
   }
   const judgeSummaries: ExportJudgeSummary[] = [...byJudge.values()]
     .map((sheets) => {
-      const totals = sheets.map((s) => weightedTotal(s.sheet))
+      const totals = sheets.map((s) => scoreTotal(s.sheet, rubric))
       return {
         judgeName: sheets[0].judgeName,
         judgeEmail: sheets[0].judgeEmail,
@@ -519,6 +535,7 @@ export function buildResultsExport(source: ExportSource, now: Date = new Date())
   return {
     cohort: source.cohort,
     generatedAt: now,
+    rubric,
     published: snapshot !== null,
     publishedAt: snapshot?.publishedAt ?? source.publishedAt,
     announced,

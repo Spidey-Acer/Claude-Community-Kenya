@@ -13,7 +13,7 @@
  */
 
 import ExcelJS from "exceljs"
-import { JUDGING_CRITERIA, SCORE_LABELS } from "./judging"
+import { totalOutOf } from "./judging"
 import { type ExportTeam, type ResultsExport } from "./export-data"
 import { brandingForCohort } from "./event-branding"
 import { ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
@@ -162,6 +162,8 @@ const WRITEUP_NOTE =
 // ─── Sheets ──────────────────────────────────────────────────────────────────
 
 function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const rubric = data.rubric
+  const denom = totalOutOf(rubric)
   const columns: ColumnSpec[] = [
     { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
     { header: "Placing basis", key: "basis", width: 26 },
@@ -170,13 +172,13 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     { header: "Track", key: "track", width: 22 },
     { header: "Project", key: "project", width: 26 },
     { header: "Score rank", key: "scoreRank", width: 11, numFmt: "0" },
-    { header: "Weighted average (/100)", key: "average", width: 16, numFmt: SCORE_FMT },
-    { header: "Judge low (/100)", key: "scoreLow", width: 11, numFmt: SCORE_FMT },
-    { header: "Judge high (/100)", key: "scoreHigh", width: 11, numFmt: SCORE_FMT },
+    { header: `Weighted average (/${denom})`, key: "average", width: 16, numFmt: SCORE_FMT },
+    { header: `Judge low (/${denom})`, key: "scoreLow", width: 11, numFmt: SCORE_FMT },
+    { header: `Judge high (/${denom})`, key: "scoreHigh", width: 11, numFmt: SCORE_FMT },
     { header: "Judge spread", key: "spread", width: 11, numFmt: SCORE_FMT },
     { header: "Judges", key: "judges", width: 8, numFmt: "0" },
-    ...JUDGING_CRITERIA.map((c) => ({
-      header: `${c.label} (avg /5)`,
+    ...rubric.criteria.map((c) => ({
+      header: `${c.label} (avg /${c.max})`,
       key: `avg_${c.key}`,
       width: 13,
       numFmt: SCORE_FMT,
@@ -213,7 +215,7 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
           : "—",
       judges: team.judgeCount,
       ...Object.fromEntries(
-        JUDGING_CRITERIA.map((c) => [`avg_${c.key}`, team.criterionAverages[c.key] ?? "—"])
+        rubric.criteria.map((c) => [`avg_${c.key}`, team.criterionAverages[c.key] ?? "—"])
       ),
       trackWinner: team.isTrackWinner ? "Yes" : "",
       champion: team.isChampion ? "Yes" : "",
@@ -231,9 +233,9 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     }
   }
 
-  // Honest in-cell bars: 0→100 anchoring, on the average column.
+  // Honest in-cell bars: 0→denom anchoring, on the average column.
   const averageColumn = columns.findIndex((c) => c.key === "average") + 1
-  addDataBars(sheet, averageColumn, data.teams.length, 100)
+  addDataBars(sheet, averageColumn, data.teams.length, denom)
 }
 
 function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
@@ -294,6 +296,7 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
 }
 
 function addJudgingSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const rubric = data.rubric
   const columns: ColumnSpec[] = [
     { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
     { header: "Team", key: "team", width: 26 },
@@ -302,13 +305,13 @@ function addJudgingSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     { header: "Judge", key: "judge", width: 20 },
     { header: "Judge email", key: "judgeEmail", width: 26 },
     { header: "Scoring basis", key: "basis", width: 20 },
-    ...JUDGING_CRITERIA.map((c) => ({
-      header: `${c.label} (1–5)`,
+    ...rubric.criteria.map((c) => ({
+      header: `${c.label} (${c.min}–${c.max})`,
       key: `crit_${c.key}`,
       width: 13,
       numFmt: "0",
     })),
-    { header: "Weighted total (/100)", key: "total", width: 13, numFmt: SCORE_FMT },
+    { header: `Weighted total (/${totalOutOf(rubric)})`, key: "total", width: 13, numFmt: SCORE_FMT },
     { header: "Feedback", key: "feedback", width: 70, wrap: true },
   ]
   const sheet = addSheet(workbook, "Judging detail", columns, { autoFilter: true })
@@ -324,7 +327,7 @@ function addJudgingSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
         judgeEmail: score.judgeEmail,
         basis: score.writeupOnly ? "Written submission" : "Live demo",
         ...Object.fromEntries(
-          JUDGING_CRITERIA.map((c) => [`crit_${c.key}`, score.criteria[c.key] ?? "—"])
+          rubric.criteria.map((c) => [`crit_${c.key}`, score.criteria[c.key] ?? "—"])
         ),
         total: score.weightedTotal,
         feedback: score.feedback ?? "",
@@ -341,6 +344,7 @@ function addJudgingSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
 
 /** One row per judge: coverage and how they used the scale. */
 function addJudgesSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const denom = totalOutOf(data.rubric)
   const columns: ColumnSpec[] = [
     { header: "Judge", key: "judge", width: 22 },
     { header: "Judge email", key: "email", width: 28 },
@@ -348,7 +352,7 @@ function addJudgesSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
     { header: "Live demos", key: "live", width: 11, numFmt: "0" },
     { header: "From writeups", key: "writeup", width: 12, numFmt: "0" },
     { header: "Written notes left", key: "notes", width: 14, numFmt: "0" },
-    { header: "Mean weighted total (/100)", key: "mean", width: 16, numFmt: SCORE_FMT },
+    { header: `Mean weighted total (/${denom})`, key: "mean", width: 16, numFmt: SCORE_FMT },
   ]
   const sheet = addSheet(workbook, "Judges", columns)
   for (const judge of data.judgeSummaries) {
@@ -362,7 +366,7 @@ function addJudgesSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
       mean: judge.meanWeightedTotal,
     })
   }
-  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.judgeSummaries.length, 100)
+  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.judgeSummaries.length, denom)
   const note = sheet.addRow({})
   note.getCell("judge").value =
     "Judges saw different, overlapping sets of teams; mean totals show how each judge used the scale, not a ranking of judges."
@@ -371,12 +375,13 @@ function addJudgesSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
 
 /** One row per track: participation, outcome, winner with its basis. */
 function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+  const denom = totalOutOf(data.rubric)
   const columns: ColumnSpec[] = [
     { header: "Track", key: "track", width: 26 },
     { header: "Teams formed", key: "formed", width: 12, numFmt: "0" },
     { header: "Teams submitted", key: "submitted", width: 13, numFmt: "0" },
     { header: "Teams scored", key: "scored", width: 12, numFmt: "0" },
-    { header: "Mean average (/100)", key: "mean", width: 16, numFmt: SCORE_FMT },
+    { header: `Mean average (/${denom})`, key: "mean", width: 16, numFmt: SCORE_FMT },
     { header: "Track winner (project)", key: "winnerProject", width: 24 },
     { header: "Track winner (team)", key: "winnerTeam", width: 28 },
     { header: "Winner basis", key: "basis", width: 22 },
@@ -401,7 +406,7 @@ function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
               : "—",
     })
   }
-  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, 100)
+  addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, denom)
 }
 
 /**
@@ -552,7 +557,7 @@ async function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport):
   fact("Teams scored from their writeup", s.teamsScoredFromWriteup)
   fact("Judges on the floor", s.judges)
   fact("Scorecards recorded", s.scorecards)
-  fact("Mean team score (/100)", s.meanTeamAverage ?? "—")
+  fact(`Mean team score (/${totalOutOf(data.rubric)})`, s.meanTeamAverage ?? "—")
   fact("Tracks", s.tracks)
   gap()
 
@@ -579,16 +584,27 @@ async function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport):
   gap()
 
   section("Scoring criteria and weights")
-  for (const criterion of JUDGING_CRITERIA) {
-    fact(`${criterion.label} — ${criterion.weight} pts`, criterion.guidance, true)
+  const rubric = data.rubric
+  for (const criterion of rubric.criteria) {
+    fact(
+      `${criterion.label} — ${
+        rubric.scoring === "points" ? `${criterion.min}–${criterion.max} pts` : `${criterion.weight} pts`
+      }`,
+      criterion.guidance,
+      true
+    )
   }
   fact(
     "Scale",
-    Object.entries(SCORE_LABELS)
-      .map(([n, label]) => `${n} = ${label}`)
-      .join(" · ") +
-      ". A criterion contributes (score - 1) / 4 of its weight; a team's number is the mean of " +
-      "its judges' weighted totals.",
+    rubric.scoreLabels
+      ? Object.entries(rubric.scoreLabels)
+          .map(([n, label]) => `${n} = ${label}`)
+          .join(" · ") +
+          ". A criterion contributes (score - min) / (max - min) of its weight; a team's number is " +
+          "the mean of its judges' weighted totals."
+      : "Each criterion's raw score IS its points, on the scale stated in its own guidance above " +
+          "(no shared anchor text — the panel published a points rubric, not a normalised one). A " +
+          "team's number is the mean of its judges' totals.",
     true
   )
   gap()
