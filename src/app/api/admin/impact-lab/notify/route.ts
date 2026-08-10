@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { rateLimit } from "@/lib/rate-limit"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { impactLabAccountEmail, sendEmailBatch, type BatchEmailItem } from "@/lib/email"
 
 // A full-cohort blast is ~125 emails = 2 Resend batch calls; give the function
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Validation failed" }, { status: 400 })
   }
 
-  const cohort = safeCohort(parsed.data.cohort)
+  const cohort = await resolveAdminCohort(parsed.data.cohort)
 
   const participants = await prisma.impactLabParticipant.findMany({
     where: { cohort },

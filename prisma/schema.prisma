@@ -115,6 +115,31 @@ enum ImpactLabExperience {
   ADVANCED
 }
 
+// Tenant-tier role, orthogonal to the site-wide UserRole. Site
+// SUPER_ADMIN/ADMIN are the *platform* tier and pass every event check;
+// OrganisationMember grants access to one organisation's events only.
+enum OrgRole {
+  OWNER
+  ORGANISER
+}
+
+// Event lifecycle. Judging/submission windows are NOT statuses — they stay
+// as fine-grained flags on the match run (judgingOpen, submissionsCloseAt),
+// because Afretec needed judging and submissions open concurrently.
+//
+// Named ImpactLabEventStatus (not EventStatus) because the site-wide
+// community-meetup `Event` model already owns an `EventStatus` enum
+// (UPCOMING/REGISTRATION_OPEN/SOLD_OUT/COMPLETED/CANCELLED, schema.prisma:51)
+// — Prisma does not allow two declarations with the same name. Table/column
+// names (@@map) are unaffected; only the Prisma-side identifiers changed
+// from the task-1 brief. See task-1-report.md.
+enum ImpactLabEventStatus {
+  DRAFT // being set up; invisible to participants and judges
+  LIVE // participants form teams and submit; judges score
+  CLOSED // read-only for participants; reports and exports available
+  ARCHIVED // hidden from default listings; data retained
+}
+
 // ─── Users & Auth ────────────────────────────────────────────────────────────
 
 model User {
@@ -145,6 +170,7 @@ model User {
   demoRequests         DemoRequest[]
   onboardingSessions   OnboardingSession[]
   impactLabMatchRuns   ImpactLabMatchRun[]
+  organisationMemberships OrganisationMember[]
 
   @@map("users")
 }
@@ -992,4 +1018,69 @@ model ImpactLabResultsEmail {
   @@unique([runId, participantId])
   @@index([runId, status])
   @@map("impact_lab_results_emails")
+}
+
+// ─── Event Platform Tenancy ──────────────────────────────────────────────────
+// An Event belongs to an Organisation and OWNS a unique cohort slug — the
+// join key into the nine cohort-keyed Impact Lab tables above. Those tables
+// keep their string columns; no FKs are added to them (the join is by slug,
+// matching every existing query). See the 2026-08-08 tenancy design spec.
+
+model Organisation {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  logoUrl      String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members OrganisationMember[]
+  events  ImpactLabEvent[]
+
+  @@map("organisations")
+}
+
+model OrganisationMember {
+  id             String   @id @default(cuid())
+  organisationId String
+  userId         String
+  role           OrgRole  @default(ORGANISER)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
+  @@map("organisation_members")
+}
+
+// Named ImpactLabEvent (not Event) — the site-wide community-meetup `Event`
+// model already owns that name (schema.prisma:294). Table name is still
+// impact_lab_events per @@map below, matching the task-1 brief verbatim.
+model ImpactLabEvent {
+  id             String               @id @default(cuid())
+  organisationId String
+  /// Authoritative registry entry for the cohort slug used across the nine
+  /// Impact Lab tables. Unique: one Event per cohort, ever.
+  cohort         String               @unique
+  name           String
+  status         ImpactLabEventStatus @default(DRAFT)
+
+  // Branding — replaces the code constants in event-branding.ts (Task 11).
+  titleLead   String
+  titleAccent String
+  dates       String
+  location    String
+  formatNote  String  @db.Text
+  groundRules String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId])
+  @@index([status])
+  @@map("impact_lab_events")
 }

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   submissionInputSchema,
@@ -49,16 +50,10 @@ const SUBMISSION_FIELD_LABELS: Readonly<Record<string, string>> = {
   screenshotUrl: "Screenshot link",
 }
 
-/** Resolve the caller to a team in the cohort's final run, or null. */
-async function resolveContext(email: string): Promise<ResolvedContext | null> {
-  const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
-    select: { id: true },
-  })
-  if (!participant) return null
-
+/** Resolve the caller's team in their event's final run, or null. */
+async function resolveContext(memberEvent: MemberEvent): Promise<ResolvedContext | null> {
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: CURRENT_COHORT, isFinal: true },
+    where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true, submissionsCloseAt: true },
   })
@@ -67,11 +62,11 @@ async function resolveContext(email: string): Promise<ResolvedContext | null> {
   const teams = extractFrozenTeams(run.result)
   if (!teams) return null
 
-  const teamRef = findTeamFor(teams, participant.id)
+  const teamRef = findTeamFor(teams, memberEvent.participantId)
   if (!teamRef) return null
 
   return {
-    participantId: participant.id,
+    participantId: memberEvent.participantId,
     runId: run.id,
     teamId: teamRef.teamId,
     teamName: teamRef.teamName,
@@ -80,15 +75,15 @@ async function resolveContext(email: string): Promise<ResolvedContext | null> {
 }
 
 /** Display name for whoever last edited, falling back to the email's local part. */
-async function lastEditedName(email: string): Promise<string> {
+async function lastEditedName(email: string, cohort: string): Promise<string> {
   const row = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
+    where: { cohort_email: { cohort, email } },
     select: { fullName: true },
   })
   return row?.fullName ?? email.split("@")[0]
 }
 
-async function toView(row: ImpactLabSubmission): Promise<SubmissionView> {
+async function toView(row: ImpactLabSubmission, cohort: string): Promise<SubmissionView> {
   return {
     projectName: row.projectName,
     pitch: row.pitch,
@@ -102,18 +97,26 @@ async function toView(row: ImpactLabSubmission): Promise<SubmissionView> {
     videoUrl: row.videoUrl,
     slidesUrl: row.slidesUrl,
     screenshotUrl: row.screenshotUrl,
-    lastEditedByName: await lastEditedName(row.lastEditedByEmail),
+    lastEditedByName: await lastEditedName(row.lastEditedByEmail, cohort),
     updatedAt: row.updatedAt.toISOString(),
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const context = await resolveContext(check.email)
-  if (!context) {
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
     return NextResponse.json({ success: true, status: "no_team" })
+  }
+
+  const context = await resolveContext(memberEvent)
+  if (!context) {
+    return NextResponse.json({ success: true, status: "no_team", eventName: memberEvent.name })
   }
 
   const existing = await prisma.impactLabSubmission.findUnique({
@@ -124,8 +127,10 @@ export async function GET() {
     success: true,
     status: submissionWindow(context.closeAt, new Date()),
     teamName: context.teamName,
+    eventName: memberEvent.name,
+    eventCohort: memberEvent.cohort,
     closeAt: context.closeAt ? context.closeAt.toISOString() : null,
-    submission: existing ? await toView(existing) : undefined,
+    submission: existing ? await toView(existing, memberEvent.cohort) : undefined,
   })
 }
 
@@ -143,13 +148,28 @@ export async function PUT(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const context = await resolveContext(check.email)
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "You are not on a team yet — please speak to an organiser.",
+        code: "NO_TEAM",
+      },
+      { status: 403 }
+    )
+  }
+
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
+
+  const context = await resolveContext(memberEvent)
   if (!context) {
     return NextResponse.json(
       {
@@ -204,7 +224,7 @@ export async function PUT(request: NextRequest) {
     where: { runId_teamId: { runId: context.runId, teamId: context.teamId } },
     create: {
       ...parsed.data,
-      cohort: CURRENT_COHORT,
+      cohort: memberEvent.cohort,
       runId: context.runId,
       teamId: context.teamId,
       teamName: context.teamName,
@@ -217,5 +237,5 @@ export async function PUT(request: NextRequest) {
     },
   })
 
-  return NextResponse.json({ success: true, submission: await toView(saved) })
+  return NextResponse.json({ success: true, submission: await toView(saved, memberEvent.cohort) })
 }

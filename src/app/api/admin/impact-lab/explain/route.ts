@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { runMatching, normalizeParticipants } from "@/lib/matching"
 import { explainWithAi } from "@/lib/matching/ai-explanations"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Defaults are fine.
   }
 
-  const cohort = safeCohort(body.cohort)
+  const cohort = await resolveAdminCohort(body.cohort)
 
   let settings
   try {

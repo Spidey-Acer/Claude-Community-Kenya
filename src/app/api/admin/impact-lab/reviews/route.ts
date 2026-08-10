@@ -7,7 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   JUDGING_CRITERIA,
@@ -269,7 +269,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const run = await loadFinalRun(cohort)
   if (!run) {
     return NextResponse.json({ success: true, data: { teams: [] } })
@@ -369,7 +369,7 @@ async function handlePost(request: NextRequest) {
   }
   const body = parsed.data
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const run = await loadFinalRun(cohort)
   if (!run) {
     return NextResponse.json(

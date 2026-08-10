@@ -496,7 +496,7 @@ function addParticipantsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): 
   }
 }
 
-function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
+async function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): Promise<void> {
   const sheet = workbook.addWorksheet("Summary")
   sheet.columns = [
     { key: "label", width: 34, style: { alignment: { vertical: "top" } } },
@@ -526,7 +526,7 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     sheet.addRow({})
   }
 
-  const branding = brandingForCohort(data.cohort)
+  const branding = await brandingForCohort(data.cohort)
 
   section("Event")
   fact("Event", branding.title)
@@ -645,7 +645,7 @@ export async function buildResultsWorkbook(
   analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = brandingForCohort(data.cohort).host
+  workbook.creator = (await brandingForCohort(data.cohort)).host
   workbook.created = data.generatedAt
 
   addResultsSheet(workbook, data)
@@ -655,7 +655,7 @@ export async function buildResultsWorkbook(
   addTracksSheet(workbook, data)
   addAnalysesSheet(workbook, data, analyses)
   addParticipantsSheet(workbook, data)
-  addSummarySheet(workbook, data)
+  await addSummarySheet(workbook, data)
 
   return Buffer.from(await workbook.xlsx.writeBuffer())
 }

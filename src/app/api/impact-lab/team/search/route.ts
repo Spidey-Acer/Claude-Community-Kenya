@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 
 // One letter would return most of the cohort and turn a teammate lookup into
@@ -12,13 +13,13 @@ const ACCOUNT_MIN_QUERY_LENGTH = 3
 const RESULT_CAP = 10
 
 /**
- * Search the cohort so a team can find the person sitting with them.
+ * Search the caller's event so a team can find the person sitting with them.
  *
  * Registration only captured team leaders, so members who since signed up
  * on the site have no `ImpactLabParticipant` row yet and would otherwise be
  * invisible to their leader. Alongside the existing cohort search, this also
- * matches site accounts (`User`) with no participant row for the current
- * cohort — those come back as `kind: "account"` so the UI can label them as
+ * matches site accounts (`User`) with no participant row for the caller's
+ * event — those come back as `kind: "account"` so the UI can label them as
  * "not on the roster yet" before a leader adds them.
  *
  * Returns names only, never emails or phone numbers — this is a lookup for
@@ -38,20 +39,33 @@ export async function GET(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const q = (request.nextUrl.searchParams.get("q") ?? "").trim()
-  if (q.length < PARTICIPANT_MIN_QUERY_LENGTH) {
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(request.nextUrl.searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
     return NextResponse.json({ success: true, results: [] })
   }
 
+  const q = (request.nextUrl.searchParams.get("q") ?? "").trim()
+  if (q.length < PARTICIPANT_MIN_QUERY_LENGTH) {
+    return NextResponse.json({
+      success: true,
+      results: [],
+      eventName: memberEvent.name,
+      eventCohort: memberEvent.cohort,
+    })
+  }
+
   const people = await prisma.impactLabParticipant.findMany({
-    where: { cohort: CURRENT_COHORT, fullName: { contains: q, mode: "insensitive" } },
+    where: { cohort: memberEvent.cohort, fullName: { contains: q, mode: "insensitive" } },
     select: { id: true, fullName: true },
     orderBy: { fullName: "asc" },
     take: RESULT_CAP,
   })
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: CURRENT_COHORT, isFinal: true },
+    where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { result: true },
   })
@@ -70,23 +84,25 @@ export async function GET(request: NextRequest) {
 
   const accountResults =
     q.length >= ACCOUNT_MIN_QUERY_LENGTH
-      ? await searchAccounts(q, participantResults.length)
+      ? await searchAccounts(q, participantResults.length, memberEvent.cohort)
       : []
 
   return NextResponse.json({
     success: true,
     results: [...participantResults, ...accountResults].slice(0, RESULT_CAP),
+    eventName: memberEvent.name,
+    eventCohort: memberEvent.cohort,
   })
 }
 
 /**
  * Site accounts matching `q` by name that have no participant row for the
- * current cohort yet. Matched against `firstName`/`lastName` separately
+ * caller's event yet. Matched against `firstName`/`lastName` separately
  * (there is no stored full-name column), then de-duplicated against existing
  * participants by email so someone who is both never appears twice — the
  * cohort search above already returns them as `"participant"`.
  */
-async function searchAccounts(q: string, alreadyFilled: number) {
+async function searchAccounts(q: string, alreadyFilled: number, cohort: string) {
   const budget = RESULT_CAP - alreadyFilled
   if (budget <= 0) return []
 
@@ -107,7 +123,7 @@ async function searchAccounts(q: string, alreadyFilled: number) {
 
   const existing = await prisma.impactLabParticipant.findMany({
     where: {
-      cohort: CURRENT_COHORT,
+      cohort,
       email: { in: candidates.map((u) => u.email.toLowerCase()) },
     },
     select: { email: true },

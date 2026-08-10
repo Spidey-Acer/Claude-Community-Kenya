@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { isResultsSnapshot } from "@/lib/impact-lab/results"
 import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid request body." }, { status: 400 })
   }
 
-  const cohort = safeCohort(parsed.data.cohort)
+  const cohort = await resolveAdminCohort(parsed.data.cohort)
   const run = await loadPublishedRun(cohort)
   if (!run.ok) {
     return NextResponse.json({ success: false, error: run.error }, { status: run.status })

@@ -21,11 +21,16 @@ type SearchHit =
 export function TeamRoster({
   members,
   onChanged,
+  cohort,
 }: {
   members: TeamMemberView[];
   onChanged: () => void;
+  /** The team's event — appended as `?cohort=` on every fetch. */
+  cohort?: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
+  const cohortSearchParam = cohort ? `&cohort=${encodeURIComponent(cohort)}` : "";
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -44,7 +49,7 @@ export function TeamRoster({
     setSearching(true);
     try {
       const res = await fetch(
-        `/api/impact-lab/team/search?q=${encodeURIComponent(value.trim())}`
+        `/api/impact-lab/team/search?q=${encodeURIComponent(value.trim())}${cohortSearchParam}`
       );
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -70,7 +75,7 @@ export function TeamRoster({
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/impact-lab/team/roster", {
+      const res = await fetch(`/api/impact-lab/team/roster${cohortQuery}`, {
         method,
         headers: await csrfHeaders(),
         body: JSON.stringify(body),
@@ -104,7 +109,7 @@ export function TeamRoster({
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/impact-lab/team/leader", {
+      const res = await fetch(`/api/impact-lab/team/leader${cohortQuery}`, {
         method: "POST",
         headers: await csrfHeaders(),
       });

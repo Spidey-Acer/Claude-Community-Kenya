@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { ScoreSheet } from "@/lib/impact-lab/judging"
 import {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const format = request.nextUrl.searchParams.get("format")
   if (format !== "xlsx" && format !== "pdf") {
     return NextResponse.json(

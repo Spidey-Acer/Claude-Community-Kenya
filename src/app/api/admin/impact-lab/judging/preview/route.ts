@@ -3,7 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { standings, totalOutOf, type ScoreSheet } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(parsed.data.cohort)
+  const cohort = await resolveAdminCohort(parsed.data.cohort)
   // Both averages below are in this rubric's units, so it travels with them.
   const rubric = await resolveRubric(cohort)
   const rubricMeta = { rubricLabel: rubric.label, totalOutOf: totalOutOf(rubric) }

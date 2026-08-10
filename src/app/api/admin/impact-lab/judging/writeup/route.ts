@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   AFRETEC_RUBRIC,
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -302,7 +302,7 @@ async function handlePost(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(request.nextUrl.searchParams.get("cohort"))
+  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const rubric = await resolveRubric(cohort)
 
   const run = await prisma.impactLabMatchRun.findFirst({

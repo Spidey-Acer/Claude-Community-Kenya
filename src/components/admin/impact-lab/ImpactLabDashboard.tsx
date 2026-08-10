@@ -11,6 +11,7 @@ import {
   Gavel,
   ListChecks,
   SlidersHorizontal,
+  CalendarDays,
   Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -25,8 +26,10 @@ import { LeaderboardTab } from "./LeaderboardTab"
 import { JudgesTab } from "./JudgesTab"
 import { ResultsTab } from "./ResultsTab"
 import { RubricTab } from "./RubricTab"
+import { EventsTab } from "./EventsTab"
 
 type Tab =
+  | "events"
   | "participants"
   | "matching"
   | "runs"
@@ -38,6 +41,9 @@ type Tab =
   | "results"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
+  // First: events span organisations and aren't scoped to the selected
+  // cohort below, unlike every other tab here.
+  { key: "events", label: "Events", icon: CalendarDays },
   { key: "participants", label: "Participants", icon: Users },
   { key: "matching", label: "Matching", icon: Network },
   { key: "runs", label: "Runs", icon: Save },
@@ -53,9 +59,9 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
 ]
 
 /**
- * `initialCohort` seeds the selector — the server passes `CURRENT_COHORT` so
- * the page opens on the live event, but the organiser can switch to any
- * cohort the system knows about without a redeploy.
+ * `initialCohort` seeds the selector — the server passes the admin default
+ * cohort so the page opens on the live event, but the organiser can switch
+ * to any cohort the system knows about without a redeploy.
  */
 export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }) {
   const [cohort, setCohort] = useState(initialCohort)
@@ -76,8 +82,8 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
        * Worded to cover both kinds of event this dashboard now serves: a
        * cohort that gets matched into teams here (Matching tab, Explain,
        * freeze a run) and a cohort whose teams already exist and only needs
-       * check-in, judging, and results. Naming the selected cohort — not
-       * CURRENT_COHORT — keeps this line honest after a switch.
+       * check-in, judging, and results. Naming the selected cohort — not a
+       * hardcoded default — keeps this line honest after a switch.
        */}
       <p className="text-xs font-mono text-[#555]">
         Managing <span className="text-[#00ff41]">{cohort}</span> — participants, teams, submissions,
@@ -126,6 +132,7 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
        * half-filled participant form) can survive onto the new one.
        */}
       <div key={cohort} className="space-y-5">
+        {tab === "events" && <EventsTab />}
         {tab === "participants" && <ParticipantsTab cohort={cohort} />}
         {tab === "matching" && (
           <MatchingTab

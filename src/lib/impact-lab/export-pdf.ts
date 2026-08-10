@@ -1544,11 +1544,11 @@ function renderFurniture(doc: Doc, state: RenderState, branding: EventBranding):
  * are optional by construction: a missing entry means that team's analysis
  * section is simply absent (see export-analysis's fail-soft rule).
  */
-export function buildResultsPdf(
+export async function buildResultsPdf(
   data: ResultsExport,
   analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
 ): Promise<Buffer> {
-  const branding = brandingForCohort(data.cohort)
+  const branding = await brandingForCohort(data.cohort)
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",

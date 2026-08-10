@@ -6,7 +6,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { computeRematch, type MatchResult } from "@/lib/matching"
-import { safeCohort } from "@/lib/impact-lab/constants"
+import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toRematchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cohort = safeCohort(validation.data.cohort)
+  const cohort = await resolveAdminCohort(validation.data.cohort)
   const write = validation.data.write === true
 
   const run = await prisma.impactLabMatchRun.findFirst({
