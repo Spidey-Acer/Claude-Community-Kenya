@@ -26,36 +26,21 @@
  *   npm run purge:closed-cohorts -- --apply   # actually clears
  *   npm run purge:closed-cohorts -- --cohort impact-lab-2026-07
  *
- * The active cohort (IMPACT_LAB_ACTIVE_COHORT) is skipped unless you name it
- * explicitly with --cohort, so running this mid-event cannot wipe the phone
- * numbers the organisers are relying on to reach people in the room.
+ * Every LIVE event's cohort is skipped unless you name it explicitly with
+ * --cohort, so running this mid-event cannot wipe the phone numbers the
+ * organisers are relying on to reach people in the room. LIVE status comes
+ * from the Event table (several events can be LIVE at once) rather than a
+ * single env var, so more than one cohort can be protected at a time.
  */
 
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { ACTIVE_COHORT } from "../src/lib/impact-lab/constants"
+import { listEvents } from "../src/lib/impact-lab/event-store"
 
 const apply = process.argv.includes("--apply")
 const cohortFlagIndex = process.argv.indexOf("--cohort")
 const cohortFilter =
   cohortFlagIndex !== -1 ? process.argv[cohortFlagIndex + 1] ?? null : null
-
-// Fail closed, not open. Without ACTIVE_COHORT, `cohort !== ACTIVE_COHORT`
-// degrades to `cohort !== null`, which every real cohort satisfies — the
-// live cohort would be purged right along with the closed ones, logging
-// only a quiet "No active cohort set". An explicit --cohort is a different
-// case: the operator has already named exactly what to purge, so there is
-// nothing left to protect against.
-if (apply && !ACTIVE_COHORT && !cohortFilter) {
-  console.error(
-    "Refusing --apply: IMPACT_LAB_ACTIVE_COHORT is not set, so this script " +
-      "cannot tell which cohort is still live and must be protected from the " +
-      "purge. Set IMPACT_LAB_ACTIVE_COHORT to the live cohort slug before " +
-      "running --apply, or pass --cohort <slug> to purge one specific cohort " +
-      "explicitly.",
-  )
-  process.exit(1)
-}
 
 /** Mask an email for the report — enough to identify a row, not enough to be a leak. */
 function maskEmail(email: string): string {
@@ -89,6 +74,27 @@ async function main() {
 }
 
 async function run(prisma: PrismaClient) {
+  const events = await listEvents()
+  const liveCohorts = new Set(events.filter((e) => e.status === "LIVE").map((e) => e.cohort))
+
+  // Fail closed, not open. A genuinely empty liveCohorts set is
+  // indistinguishable from "the tenancy migration has not run here yet"
+  // (listEvents degrades to [] in both cases) — purging without an explicit
+  // --cohort in that state could wipe a live cohort's phone numbers right
+  // along with the closed ones. An explicit --cohort is a different case:
+  // the operator has already named exactly what to purge, so there is
+  // nothing left to protect against.
+  if (apply && liveCohorts.size === 0 && !cohortFilter) {
+    console.error(
+      "Refusing --apply: no event is LIVE (or the tenancy migration has not " +
+        "run here), so this script cannot tell which cohort must be protected " +
+        "from the purge. Pass --cohort <slug> to purge one specific cohort " +
+        "explicitly.",
+    )
+    process.exitCode = 1
+    return
+  }
+
   const cohortRows = await prisma.impactLabParticipant.groupBy({
     by: ["cohort"],
     _count: { _all: true },
@@ -98,14 +104,14 @@ async function run(prisma: PrismaClient) {
     .map((c) => c.cohort)
     .filter((cohort) => {
       if (cohortFilter) return cohort === cohortFilter
-      return cohort !== ACTIVE_COHORT
+      return !liveCohorts.has(cohort)
     })
     .sort()
 
-  if (ACTIVE_COHORT && !cohortFilter) {
-    console.log(`Active cohort (skipped): ${ACTIVE_COHORT}`)
-  } else if (!ACTIVE_COHORT) {
-    console.log("No active cohort set (IMPACT_LAB_ACTIVE_COHORT unset).")
+  if (liveCohorts.size > 0 && !cohortFilter) {
+    console.log(`Live cohort(s) (skipped): ${[...liveCohorts].sort().join(", ")}`)
+  } else if (liveCohorts.size === 0) {
+    console.log("No LIVE event.")
   }
 
   if (candidates.length === 0) {

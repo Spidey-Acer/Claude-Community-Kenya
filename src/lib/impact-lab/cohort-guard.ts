@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { isCohortActive } from "./constants"
 import { getEventByCohort } from "./event-store"
 
 /**
@@ -11,16 +10,16 @@ import { getEventByCohort } from "./event-store"
  * rosters, check-ins and submissions are the historical record of what
  * happened, and a late write silently rewrites that record.
  *
- * Status comes from the Event row. Pre-migration (no row anywhere) the old
- * env-var behaviour still answers, so an un-migrated environment keeps
- * working exactly as before.
+ * Status comes from the Event row. Pre-migration (no row anywhere) there is
+ * no env signal left to honor, so writes stay closed until the tenancy
+ * migration has run.
  *
  * Reads are deliberately untouched: people should still be able to see their
  * team and what they built.
  */
 export async function guardClosedCohort(cohort: string): Promise<NextResponse | null> {
   const event = await getEventByCohort(cohort)
-  const open = event ? event.status === "LIVE" : isCohortActive(cohort)
+  const open = event ? event.status === "LIVE" : false
   if (open) return null
   return NextResponse.json(
     {

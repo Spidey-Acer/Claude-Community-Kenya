@@ -21,8 +21,8 @@ interface CohortSummary {
 /**
  * Every cohort the system knows about, with enough per-cohort activity to
  * tell them apart at a glance. Backs the cohort selector on the Impact Lab
- * admin dashboard — before this route existed, switching events meant
- * changing `IMPACT_LAB_ACTIVE_COHORT` and redeploying.
+ * admin dashboard — before events lived in the database, switching events
+ * meant changing an env var and redeploying.
  *
  * A cohort can exist in `ImpactLabParticipant`, `ImpactLabMatchRun`, or (for
  * a freshly configured event) neither yet — so the union of both tables is

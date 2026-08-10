@@ -9,7 +9,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { DEFAULT_COHORT, isCohortActive } from "./constants"
+import { DEFAULT_COHORT } from "./constants"
 import {
   orderMemberEvents,
   pickMemberEvent,
@@ -148,11 +148,10 @@ export async function resolveMemberEvents(email: string): Promise<MemberEvent[]>
 
   const events = await listEvents()
   if (events.length === 0) {
-    // Pre-migration degrade: behave like the old single-cohort, env-driven
-    // world — including whether it's LIVE. isCohortActive reads
-    // IMPACT_LAB_ACTIVE_COHORT, the same env var guardClosedCohort still
-    // honors pre-migration; hardcoding CLOSED here would tell a member their
-    // live event had wrapped.
+    // Pre-migration degrade: pre-migration environments are read-only by
+    // design once the env vars are gone — the deploy checklist applies the
+    // migration and seed before this code reaches production, and guard +
+    // UI now agree (both closed).
     const fallback = participants.find((p) => p.cohort === DEFAULT_COHORT)
     return fallback
       ? [
@@ -162,7 +161,7 @@ export async function resolveMemberEvents(email: string): Promise<MemberEvent[]>
             organisationName: "Claude Community Kenya",
             cohort: DEFAULT_COHORT,
             name: DEFAULT_COHORT,
-            status: isCohortActive(DEFAULT_COHORT) ? "LIVE" : "CLOSED",
+            status: "CLOSED",
             titleLead: "",
             titleAccent: "",
             dates: "",
