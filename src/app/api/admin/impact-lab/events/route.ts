@@ -30,6 +30,29 @@ function serialize(event: EventRecord) {
   return { ...event, createdAt: event.createdAt.toISOString() }
 }
 
+/**
+ * This route can ship before `impact_lab_events` exists — GET already
+ * degrades (listEvents/organisations both catch missing-table), but a write
+ * cannot degrade, so it says what is missing instead of throwing a bare 500
+ * at an organiser who would have no way to interpret it. Same idiom as the
+ * rubric route's tableMissingResponse. Prisma reports a missing table as
+ * P2021.
+ */
+function tableMissingResponse(error: unknown): NextResponse | null {
+  const code = (error as { code?: unknown })?.code
+  if (code !== "P2021") return null
+  console.error("[impact-lab/events] impact_lab_events does not exist", error)
+  return NextResponse.json(
+    {
+      success: false,
+      error:
+        "The events table has not been created in this database yet. Apply migration 20260808200000_event_platform_tenancy, then try again.",
+      code: "EVENTS_TABLE_MISSING",
+    },
+    { status: 503 }
+  )
+}
+
 const createSchema = z.strictObject({
   organisationId: z.string().min(1),
   cohort: z.string(),
@@ -73,6 +96,16 @@ export async function GET() {
 
 /** POST — create a DRAFT event under an organisation. */
 export async function POST(request: NextRequest) {
+  try {
+    return await handlePost(request)
+  } catch (error) {
+    const missing = tableMissingResponse(error)
+    if (missing) return missing
+    throw error
+  }
+}
+
+async function handlePost(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
@@ -164,6 +197,16 @@ export async function POST(request: NextRequest) {
 
 /** PATCH — edit branding and/or move an event through its lifecycle. */
 export async function PATCH(request: NextRequest) {
+  try {
+    return await handlePatch(request)
+  } catch (error) {
+    const missing = tableMissingResponse(error)
+    if (missing) return missing
+    throw error
+  }
+}
+
+async function handlePatch(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
