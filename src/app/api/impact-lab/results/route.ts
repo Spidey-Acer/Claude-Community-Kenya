@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
+import { DEFAULT_COHORT } from "@/lib/impact-lab/constants"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
-import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
+import { listEvents, resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   buildMemberPayload,
@@ -12,7 +13,8 @@ import {
 import { presentableJudgeNote, publishableReview } from "@/lib/impact-lab/reviews"
 
 /**
- * The published result, for one participant.
+ * The published result, for one participant — or, published results being
+ * member-visible in general, for any signed-in verified member.
  *
  * `perTeam` holds every team's private card, so the whole map must never reach
  * the client — only the caller's own entry is attached. Judge counts and judge
@@ -22,11 +24,15 @@ import { presentableJudgeNote, publishableReview } from "@/lib/impact-lab/review
  * can be asserted directly against that function rather than trusted of this
  * route's wiring.
  *
- * A caller who is not a participant in any visible event resolves to no
- * event at all, which reads the same as "not published yet" — there is
- * nothing to check publication against. A caller who IS a participant but was
- * never placed on a team (`viewerTeamId` stays null) still sees the public
- * overall results, just without a `yourTeam` card — the route's existing
+ * A caller who is a participant in some visible event checks publication
+ * against their own event, same as every other member route. A caller who is
+ * NOT a participant anywhere still gets a display event to check against —
+ * the requested `?cohort=`, or the newest visible one — because published
+ * results were always visible to any member, participant or not; multi-event
+ * only adds the question of which event's results to show. Either way,
+ * `viewerTeamId` stays null for a caller with no resolvable team (no
+ * participant row, or a participant row not on any team), which reads the
+ * same public overall results with no `yourTeam` card — the route's existing
  * behaviour for someone with no resolvable team.
  */
 export async function GET(request: NextRequest) {
@@ -41,34 +47,54 @@ export async function GET(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const memberEvent = await resolveMemberEvent(
-    check.email,
-    validCohort(new URL(request.url).searchParams.get("cohort"))
-  )
-  if (!memberEvent) {
-    return NextResponse.json({ success: true, published: false })
+  const requestedCohort = validCohort(new URL(request.url).searchParams.get("cohort"))
+  const memberEvent = await resolveMemberEvent(check.email, requestedCohort)
+
+  // The event to check publication against, and its name for the response —
+  // the caller's own event when they're a participant somewhere, else the
+  // requested (if visible) or newest visible event, so a non-participant
+  // member can still read the published leaderboard.
+  let displayCohort: string
+  let displayName: string | undefined
+  if (memberEvent) {
+    displayCohort = memberEvent.cohort
+    displayName = memberEvent.name
+  } else {
+    const events = await listEvents()
+    const visible = events.filter((e) => e.status === "LIVE" || e.status === "CLOSED")
+    const requestedMatch = requestedCohort
+      ? visible.find((e) => e.cohort === requestedCohort)
+      : undefined
+    const display = requestedMatch ?? visible[0]
+    displayCohort = display?.cohort ?? DEFAULT_COHORT
+    displayName = display?.name
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: memberEvent.cohort, isFinal: true },
+    where: { cohort: displayCohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
   })
 
   // Never leak an unpublished snapshot — including its mere existence.
+  // eventName falls back to the raw slug rather than being omitted — same
+  // "ugly but never wrong" convention CURRENT_COHORT_LABEL used — so this
+  // branch and the published one below always agree on the shape.
   if (!run?.resultsPublishedAt || !run.resultsSnapshot) {
     return NextResponse.json({
       success: true,
       published: false,
-      eventName: memberEvent.name,
-      eventCohort: memberEvent.cohort,
+      eventName: displayName ?? displayCohort,
+      eventCohort: displayCohort,
     })
   }
 
   const snapshot = run.resultsSnapshot as unknown as ResultsSnapshot
 
   const teams = extractFrozenTeams(run.result)
-  const team = teams?.find((t) => t.memberIds.includes(memberEvent.participantId))
+  const team = memberEvent
+    ? teams?.find((t) => t.memberIds.includes(memberEvent.participantId))
+    : undefined
   const viewerTeamId = team?.id ?? null
 
   // Written feedback for the viewer's own team only — queried by teamId, so
@@ -101,7 +127,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     ...buildMemberPayload(snapshot, viewerTeamId, feedback),
-    eventName: memberEvent.name,
-    eventCohort: memberEvent.cohort,
+    eventName: displayName ?? displayCohort,
+    eventCohort: displayCohort,
   })
 }
