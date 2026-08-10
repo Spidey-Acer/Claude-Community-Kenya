@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(CURRENT_COHORT)
+  const closed = await guardClosedCohort(CURRENT_COHORT)
   if (closed) return closed
 
   const check = await checkMemberAccess()
@@ -273,7 +273,7 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  const closed = guardClosedCohort(CURRENT_COHORT)
+  const closed = await guardClosedCohort(CURRENT_COHORT)
   if (closed) return closed
 
   const check = await checkMemberAccess()
