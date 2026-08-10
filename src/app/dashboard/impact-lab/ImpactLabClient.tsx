@@ -62,12 +62,19 @@ export function ImpactLabClient({
   sessionEmail,
   cohortActive,
   cohortLabel,
+  cohort,
 }: {
   sessionEmail: string;
   cohortActive: boolean;
   /** Name of the event now running, so registration copy can say which one. */
   cohortLabel: string;
+  /**
+   * The event these API calls read — appended as `?cohort=` on every fetch.
+   * Undefined when the caller has no resolvable event (nothing to scope to).
+   */
+  cohort?: string;
 }) {
+  const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
@@ -79,14 +86,14 @@ export function ImpactLabClient({
   useEffect(() => {
     let active = true;
     Promise.all([
-      fetch("/api/impact-lab/profile"),
-      fetch("/api/impact-lab/team"),
+      fetch(`/api/impact-lab/profile${cohortQuery}`),
+      fetch(`/api/impact-lab/team${cohortQuery}`),
       // Caught here, not left to reject Promise.all: the results endpoint is
       // rate-limited per client IP (100/60s), and hackathon venues put dozens
       // of participants behind one NAT address. A burst right after the
       // results email goes out can 429 this single fetch — that must not
       // black out profile/team, which have nothing to do with results.
-      fetch("/api/impact-lab/results").catch(() => null),
+      fetch(`/api/impact-lab/results${cohortQuery}`).catch(() => null),
     ])
       .then(async ([profileRes, teamRes, resultsRes]) => {
         const profileJson: ProfileResponse = await profileRes.json();
@@ -140,7 +147,7 @@ export function ImpactLabClient({
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [reloadKey, cohortQuery]);
 
   if (phase === "loading") {
     return (
@@ -179,7 +186,7 @@ export function ImpactLabClient({
   }
 
   if (phase === "revealed" && team) {
-    return <TeamReveal team={team} cohortActive={cohortActive} />;
+    return <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} />;
   }
 
   // ─── Closed cohort ───────────────────────────────────────────────────────
@@ -227,6 +234,7 @@ export function ImpactLabClient({
       return (
         <MatchProfileForm
           isNew
+          cohort={cohort}
           profile={{
             fullName: "",
             email: sessionEmail,
@@ -507,6 +515,7 @@ export function ImpactLabClient({
   return (
     <MatchProfileForm
       profile={profile}
+      cohort={cohort}
       onSaved={(saved) => {
         setProfile(saved);
         setEditing(false);

@@ -193,3 +193,18 @@ export async function eventHasParticipants(cohort: string): Promise<boolean> {
   const count = await prisma.impactLabParticipant.count({ where: { cohort } })
   return count > 0
 }
+
+/**
+ * The event a not-yet-registered visitor may self-register into: the newest
+ * LIVE event, or null when nothing is currently open. Distinct from
+ * `resolveMemberEvent`, which requires an existing participant row — this is
+ * the "is there anything to sign up for right now" check the registration
+ * invitation gates on. `listEvents` is already newest-first, so the first
+ * LIVE event found is the one wanted; [] pre-migration degrades to null, the
+ * same "no event live → read-only, no invitation" behaviour the env-var
+ * system had.
+ */
+export async function openRegistrationEvent(): Promise<EventRecord | null> {
+  const events = await listEvents()
+  return events.find((e) => e.status === "LIVE") ?? null
+}

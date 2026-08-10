@@ -25,12 +25,16 @@ const TEAMMATE_POLL_INTERVAL_MS = 30_000;
 export function TeamReveal({
   team,
   cohortActive = true,
+  cohort,
 }: {
   team: TeamRevealView;
   cohortActive?: boolean;
+  /** The event this team belongs to — appended as `?cohort=` on every fetch. */
+  cohort?: string;
 }) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
+  const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
 
   // Seeded from the team payload (the caller is always one of the members),
   // then flipped locally the moment the check-in call succeeds — no reload
@@ -60,7 +64,7 @@ export function TeamReveal({
     // value that can no longer change.
     if (!cohortActive) return;
     const interval = setInterval(() => {
-      fetch("/api/impact-lab/team")
+      fetch(`/api/impact-lab/team${cohortQuery}`)
         .then((res) => (res.ok ? (res.json() as Promise<TeamResponse>) : null))
         .then((json) => {
           if (!json?.success || !json.team) return; // keep showing current data, retry next tick
@@ -78,13 +82,13 @@ export function TeamReveal({
         .catch(() => {});
     }, TEAMMATE_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [cohortActive]);
+  }, [cohortActive, cohortQuery]);
 
   async function handleCheckIn() {
     setCheckingIn(true);
     setCheckInError(null);
     try {
-      const res = await fetch("/api/impact-lab/check-in", {
+      const res = await fetch(`/api/impact-lab/check-in${cohortQuery}`, {
         method: "POST",
         headers: await csrfHeaders(),
       });
@@ -328,6 +332,7 @@ export function TeamReveal({
         <>
           <TeamRoster
             members={team.members}
+            cohort={cohort}
             onChanged={() => {
               // The roster lives in the server-rendered payload, so a change is
               // only visible after a refetch — reload rather than patch local
@@ -336,7 +341,7 @@ export function TeamReveal({
             }}
           />
 
-          <SubmitProject />
+          <SubmitProject cohort={cohort} />
         </>
       )}
     </motion.div>

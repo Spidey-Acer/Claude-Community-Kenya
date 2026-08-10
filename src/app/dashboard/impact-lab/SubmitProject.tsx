@@ -85,7 +85,8 @@ const inputClass =
   "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
-export function SubmitProject() {
+export function SubmitProject({ cohort }: { cohort?: string }) {
+  const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [status, setStatus] = useState<Status | null>(null);
   const [closeAt, setCloseAt] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -103,7 +104,7 @@ export function SubmitProject() {
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const res = await fetch("/api/impact-lab/submission");
+      const res = await fetch(`/api/impact-lab/submission${cohortQuery}`);
       const json: GetResponse = await res.json();
       if (!res.ok || !json.success) {
         setLoadError(json.error ?? "Could not load your submission.");
@@ -118,7 +119,7 @@ export function SubmitProject() {
     } catch {
       setLoadError("Could not load your submission.");
     }
-  }, []);
+  }, [cohortQuery]);
 
   useEffect(() => {
     void load();
@@ -130,7 +131,7 @@ export function SubmitProject() {
     setError(null);
     setSaved(false);
     try {
-      const res = await fetch("/api/impact-lab/submission", {
+      const res = await fetch(`/api/impact-lab/submission${cohortQuery}`, {
         method: "PUT",
         headers: await csrfHeaders(),
         body: JSON.stringify(form),

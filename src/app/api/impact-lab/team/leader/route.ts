@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { Team } from "@/lib/matching"
 
@@ -32,25 +33,25 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
-    select: { id: true, fullName: true },
-  })
-  if (!participant) {
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
     return NextResponse.json(
       { success: false, error: "No hackathon registration found for your account.", code: "NO_TEAM" },
       { status: 403 }
     )
   }
 
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
+
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: CURRENT_COHORT, isFinal: true },
+    where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true },
   })
@@ -74,11 +75,11 @@ export async function POST(request: NextRequest) {
     const teams = extractFrozenTeams(fresh?.result)
     if (!teams) return null
 
-    const mine = teams.find((t) => t.memberIds.includes(participant.id))
+    const mine = teams.find((t) => t.memberIds.includes(memberEvent.participantId))
     if (!mine) return null
 
     const next: (Team & { leaderId?: string })[] = teams.map((t) =>
-      t.id === mine.id ? { ...t, leaderId: participant.id } : t
+      t.id === mine.id ? { ...t, leaderId: memberEvent.participantId } : t
     )
 
     await tx.impactLabMatchRun.update({
@@ -99,8 +100,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const participant = await prisma.impactLabParticipant.findUnique({
+    where: { id: memberEvent.participantId },
+    select: { fullName: true },
+  })
+
   return NextResponse.json({
     success: true,
-    message: `${participant.fullName} is now the team leader.`,
+    message: `${participant?.fullName ?? check.email.split("@")[0]} is now the team leader.`,
   })
 }

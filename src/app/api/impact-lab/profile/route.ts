@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { openRegistrationEvent, resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import {
   checkMemberAccess,
   memberProfileSchema,
@@ -11,18 +12,27 @@ import {
 } from "@/lib/impact-lab/member"
 
 /**
- * A member's own hackathon matching profile for the active cohort, matched by
- * session email. GET/PUT operate on a row the admin Luma import created; POST
- * lets a signed-in member create that row themselves when no import exists —
- * see the POST doc below for why that's safe to open up.
+ * A member's own hackathon matching profile for their event, matched by
+ * session email. GET/PUT operate on a row the admin Luma import created (or
+ * a self-registration created); POST lets a signed-in member create that row
+ * themselves when no import exists — see the POST doc below for why that's
+ * safe to open up.
  */
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
+    return NextResponse.json({ success: true, registered: false })
+  }
+
   const row = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
+    where: { id: memberEvent.participantId },
   })
   if (!row) {
     return NextResponse.json({ success: true, registered: false })
@@ -32,6 +42,8 @@ export async function GET() {
     success: true,
     registered: true,
     profile: toMemberProfile(row),
+    eventName: memberEvent.name,
+    eventCohort: memberEvent.cohort,
   })
 }
 
@@ -47,11 +59,26 @@ export async function PUT(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
+
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
+    return NextResponse.json(
+      {
+        success: false,
+        registered: false,
+        error: "No hackathon registration found for this account.",
+      },
+      { status: 404 }
+    )
+  }
+
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
 
   let body: unknown
   try {
@@ -69,24 +96,8 @@ export async function PUT(request: NextRequest) {
     )
   }
 
-  const where = { cohort_email: { cohort: CURRENT_COHORT, email: check.email } }
-  const existing = await prisma.impactLabParticipant.findUnique({
-    where,
-    select: { id: true },
-  })
-  if (!existing) {
-    return NextResponse.json(
-      {
-        success: false,
-        registered: false,
-        error: "No hackathon registration found for this account.",
-      },
-      { status: 404 }
-    )
-  }
-
   const updated = await prisma.impactLabParticipant.update({
-    where,
+    where: { id: memberEvent.participantId },
     data: parsed.data,
   })
 
@@ -98,15 +109,17 @@ export async function PUT(request: NextRequest) {
 }
 
 /**
- * Self-registration: a signed-in, verified member with no participant row for
- * the active cohort creates one for themselves. Until now, the admin Luma
- * import was the only allowlist into ImpactLabParticipant — this opens that
- * door to anyone who can sign in. That's contained two ways: being a
- * participant grants nothing by itself — a team leader still has to find and
- * add you via /api/impact-lab/team/search before you're on a team — and the
- * door only exists while a cohort is live. guardClosedCohort below is the
- * whole safety story; once IMPACT_LAB_ACTIVE_COHORT is unset this 403s like
- * every other member write.
+ * Self-registration: a signed-in, verified member with no participant row in
+ * any visible event creates one for the event currently open for
+ * registration — the newest LIVE event, per `openRegistrationEvent`. Until
+ * now, the admin Luma import was the only allowlist into
+ * ImpactLabParticipant — this opens that door to anyone who can sign in.
+ * That's contained two ways: being a participant grants nothing by itself —
+ * a team leader still has to find and add you via
+ * /api/impact-lab/team/search before you're on a team — and the door only
+ * exists while an event is LIVE. `openRegistrationEvent` finding nothing (or
+ * `guardClosedCohort` catching a race right before the write) is the whole
+ * safety story; once nothing is LIVE this 403s like every other member write.
  *
  * Re-submits (double-click, retry after a flaky network) must not 500 or
  * duplicate a row: a plain find-then-create has a race window, so on a
@@ -125,11 +138,19 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
+
+  const openEvent = await openRegistrationEvent()
+  if (!openEvent) {
+    return NextResponse.json(
+      { success: false, error: "There is no hackathon open for registration right now." },
+      { status: 403 }
+    )
+  }
+
+  const closed = await guardClosedCohort(openEvent.cohort)
+  if (closed) return closed
 
   let body: unknown
   try {
@@ -147,7 +168,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const where = { cohort_email: { cohort: CURRENT_COHORT, email: check.email } }
+  const where = { cohort_email: { cohort: openEvent.cohort, email: check.email } }
 
   const existing = await prisma.impactLabParticipant.findUnique({ where })
   if (existing) {
@@ -163,7 +184,7 @@ export async function POST(request: NextRequest) {
     // email comes from the verified session, never the body — nothing here
     // lets a caller register someone else's address.
     created = await prisma.impactLabParticipant.create({
-      data: { ...parsed.data, cohort: CURRENT_COHORT, email: check.email },
+      data: { ...parsed.data, cohort: openEvent.cohort, email: check.email },
     })
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") {

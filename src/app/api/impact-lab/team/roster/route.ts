@@ -3,8 +3,9 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { Team } from "@/lib/matching"
 import type { Prisma } from "@/generated/prisma/client"
@@ -42,15 +43,9 @@ interface Resolved {
   meId: string
 }
 
-async function resolveCaller(email: string): Promise<Resolved | null> {
-  const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email } },
-    select: { id: true },
-  })
-  if (!participant) return null
-
+async function resolveCaller(memberEvent: MemberEvent): Promise<Resolved | null> {
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: CURRENT_COHORT, isFinal: true },
+    where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
@@ -59,10 +54,10 @@ async function resolveCaller(email: string): Promise<Resolved | null> {
   const teams = extractFrozenTeams(run.result)
   if (!teams) return null
 
-  const myTeamIndex = teams.findIndex((t) => t.memberIds.includes(participant.id))
+  const myTeamIndex = teams.findIndex((t) => t.memberIds.includes(memberEvent.participantId))
   if (myTeamIndex < 0) return null
 
-  return { runId: run.id, teams, myTeamIndex, meId: participant.id }
+  return { runId: run.id, teams, myTeamIndex, meId: memberEvent.participantId }
 }
 
 function noTeam(): NextResponse {
@@ -112,10 +107,10 @@ async function writeTeams(runId: string, mutate: (teams: Team[]) => Team[] | nul
  * blocks on the run-row lock until the first commits, then finds the row the
  * first one already created.
  */
-function resolveParticipant(participantId: string): TargetResolver {
+function resolveParticipant(participantId: string, cohort: string): TargetResolver {
   return (tx) =>
     tx.impactLabParticipant.findFirst({
-      where: { id: participantId, cohort: CURRENT_COHORT },
+      where: { id: participantId, cohort },
       select: { id: true, fullName: true },
     })
 }
@@ -128,7 +123,7 @@ function resolveParticipant(participantId: string): TargetResolver {
  * they didn't opt in — they're only here because a teammate is vouching for
  * them being in the room.
  */
-function resolveOrCreateParticipant(userId: string): TargetResolver {
+function resolveOrCreateParticipant(userId: string, cohort: string): TargetResolver {
   return async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: userId },
@@ -137,7 +132,7 @@ function resolveOrCreateParticipant(userId: string): TargetResolver {
     if (!user) return null
 
     const email = user.email.toLowerCase()
-    const where = { cohort_email: { cohort: CURRENT_COHORT, email } }
+    const where = { cohort_email: { cohort, email } }
 
     const existing = await tx.impactLabParticipant.findUnique({
       where,
@@ -147,7 +142,7 @@ function resolveOrCreateParticipant(userId: string): TargetResolver {
 
     return tx.impactLabParticipant.create({
       data: {
-        cohort: CURRENT_COHORT,
+        cohort,
         email,
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         primaryRole: "Team member",
@@ -220,11 +215,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
+
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) return noTeam()
+
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
 
   const parsed = addBodySchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
@@ -234,14 +235,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const me = await resolveCaller(check.email)
+  const me = await resolveCaller(memberEvent)
   if (!me) return noTeam()
 
   const myTeamId = me.teams[me.myTeamIndex].id
   const resolveTarget =
     "participantId" in parsed.data
-      ? resolveParticipant(parsed.data.participantId)
-      : resolveOrCreateParticipant(parsed.data.userId)
+      ? resolveParticipant(parsed.data.participantId, memberEvent.cohort)
+      : resolveOrCreateParticipant(parsed.data.userId, memberEvent.cohort)
 
   const outcome = await addToTeam(me.runId, myTeamId, resolveTarget)
 
@@ -273,11 +274,17 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
+
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) return noTeam()
+
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
@@ -287,7 +294,7 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  const me = await resolveCaller(check.email)
+  const me = await resolveCaller(memberEvent)
   if (!me) return noTeam()
 
   // Removing yourself would drop you out of the only team you can still edit,

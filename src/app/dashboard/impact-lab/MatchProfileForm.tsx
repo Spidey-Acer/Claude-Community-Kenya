@@ -18,6 +18,12 @@ interface MatchProfileFormProps {
    * blank one (see ImpactLabClient) so the form has somewhere to write.
    */
   isNew?: boolean;
+  /**
+   * The event to edit into, appended as `?cohort=` on the PUT. Self-
+   * registration (POST) ignores this — it always targets whichever event is
+   * currently open for registration, resolved server-side.
+   */
+  cohort?: string;
 }
 
 /** Same multi-value convention as the admin participants form: split on ; or , */
@@ -28,7 +34,7 @@ const inputClass =
   "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
-export function MatchProfileForm({ profile, onSaved, onCancel, isNew }: MatchProfileFormProps) {
+export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort }: MatchProfileFormProps) {
   const [csrfToken, setCsrfToken] = useState("");
   const [fullName, setFullName] = useState(profile.fullName);
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel);
@@ -78,7 +84,13 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew }: MatchPro
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/impact-lab/profile", {
+        // Self-registration (POST) always targets the event currently open
+        // for registration, resolved server-side — no cohort to pass.
+        const url =
+          isNew || !cohort
+            ? "/api/impact-lab/profile"
+            : `/api/impact-lab/profile?cohort=${encodeURIComponent(cohort)}`;
+        const res = await fetch(url, {
           method: isNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
           body: JSON.stringify(body),

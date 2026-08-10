@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import {
   checkMemberAccess,
   extractFrozenTeams,
@@ -45,39 +46,54 @@ function withoutPercentages(strengths: string[]): string[] {
 }
 
 /**
- * The caller's finalized team for the active cohort, read from the frozen run
- * JSON. Returns no team scores, and teammate emails only where that teammate's
- * LIVE row has consentToShareContact = true (latest consent wins — same rule
- * as the admin CSV export).
+ * The caller's finalized team for their event, read from the frozen run JSON.
+ * Returns no team scores, and teammate emails only where that teammate's LIVE
+ * row has consentToShareContact = true (latest consent wins — same rule as
+ * the admin CSV export).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
-  const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
-    select: { id: true },
-  })
-  if (!participant) {
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
     return NextResponse.json({ success: true, status: "not_registered" })
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: CURRENT_COHORT, isFinal: true },
+    where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
   })
   if (!run) {
-    return NextResponse.json({ success: true, status: "pending" })
+    return NextResponse.json({
+      success: true,
+      status: "pending",
+      eventName: memberEvent.name,
+      eventCohort: memberEvent.cohort,
+    })
   }
 
   // Frozen JSON, not schema-enforced — a malformed run degrades to pending.
   const teams = extractFrozenTeams(run.result)
   if (!teams) {
-    return NextResponse.json({ success: true, status: "pending" })
+    return NextResponse.json({
+      success: true,
+      status: "pending",
+      eventName: memberEvent.name,
+      eventCohort: memberEvent.cohort,
+    })
   }
-  const team = teams.find((t) => t.memberIds.includes(participant.id))
+  const team = teams.find((t) => t.memberIds.includes(memberEvent.participantId))
   if (!team) {
-    return NextResponse.json({ success: true, status: "unassigned" })
+    return NextResponse.json({
+      success: true,
+      status: "unassigned",
+      eventName: memberEvent.name,
+      eventCohort: memberEvent.cohort,
+    })
   }
 
   // The snapshot holds every cohort email plus blockedTeammates — never return
@@ -99,14 +115,14 @@ export async function GET() {
     storedExplanationFor(run.explanations, team.id) ?? explainTeam(team, members)
 
   const live = await prisma.impactLabParticipant.findMany({
-    where: { cohort: CURRENT_COHORT, id: { in: team.memberIds } },
+    where: { cohort: memberEvent.cohort, id: { in: team.memberIds } },
   })
   const liveById = new Map(live.map((p) => [p.id, p]))
 
   const memberViews: TeamMemberView[] = team.memberIds.map((id) => {
     const liveP = liveById.get(id)
     const snap = snapshotById.get(id)
-    const isSelf = id === participant.id
+    const isSelf = id === memberEvent.participantId
     const shareEmail = isSelf || Boolean(liveP?.consentToShareContact)
     return {
       id,
@@ -130,5 +146,11 @@ export async function GET() {
     projectDirection: explanation.suggestedProjectDirection ?? null,
   }
 
-  return NextResponse.json({ success: true, status: "revealed", team: teamView })
+  return NextResponse.json({
+    success: true,
+    status: "revealed",
+    team: teamView,
+    eventName: memberEvent.name,
+    eventCohort: memberEvent.cohort,
+  })
 }

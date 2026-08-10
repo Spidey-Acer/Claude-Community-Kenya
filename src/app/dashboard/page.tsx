@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { getUpcomingEvents } from "@/lib/data";
 import { getSocialLinks } from "@/lib/social-links";
-import { CURRENT_COHORT, isCohortActive } from "@/lib/impact-lab/constants";
+import { openRegistrationEvent, resolveMemberEvent } from "@/lib/impact-lab/event-store";
 import { extractFrozenTeams } from "@/lib/impact-lab/member";
 import { Calendar, MessageSquare, BookOpen, Sparkles, Code2, FlaskConical } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
@@ -85,54 +85,54 @@ export default async function DashboardPage() {
   const nextEvent = upcomingEvents[0];
 
   // Impact Lab hackathon status — mirrors the states on /dashboard/impact-lab.
-  // null hides the card entirely: with the cohort closed, someone who never
-  // took part has no reason to see a hackathon card at all, and every live
-  // status ("complete your profile", "teams drop Saturday") would be a lie.
-  const cohortActive = isCohortActive(CURRENT_COHORT);
-  let impactLabStatus: ImpactLabStatus | null = cohortActive ? "verify" : null;
-  // Same flag the API and the Impact Lab page use: with verification off we
-  // send no verification mail, so gating on emailVerified alone would strand
-  // every pre-flag account on the "verify" card permanently.
-  if (!cohortActive) {
-    // Closed cohort: the card is a link to the record, and only for people who
-    // actually have one.
-    const participant = await prisma.impactLabParticipant.findUnique({
-      where: {
-        cohort_email: { cohort: CURRENT_COHORT, email: user.email.toLowerCase() },
-      },
-      select: { id: true },
-    });
-    impactLabStatus = participant ? "archived" : null;
-  } else if (!REQUIRE_EMAIL_VERIFICATION || user.emailVerified) {
-    // No .catch(() => null) here: swallowing a DB error would show a
-    // registered participant the affirmative "Registration not found" copy.
-    // A down DB surfaces via the page error boundary, same as the user query.
-    const participant = await prisma.impactLabParticipant.findUnique({
-      where: {
-        cohort_email: {
-          cohort: CURRENT_COHORT,
-          email: user.email.toLowerCase(),
-        },
-      },
-      select: { id: true, consentToMatch: true },
-    });
-    if (!participant) {
-      impactLabStatus = "not-registered";
-    } else {
+  // null hides the card entirely: someone with no event of their own and
+  // nothing open to register for has no reason to see a hackathon card at
+  // all, and every live status ("complete your profile", "teams drop
+  // Saturday") would be a lie.
+  //
+  // Membership decides which event this card is about: a member's own event
+  // (LIVE preferred, else their most recent) if they have one, else whatever
+  // event is currently open for self-registration, else nothing.
+  const memberEvent = await resolveMemberEvent(user.email.toLowerCase());
+  let impactLabStatus: ImpactLabStatus | null = null;
+  if (memberEvent) {
+    if (memberEvent.status !== "LIVE") {
+      // Closed event: the card is a link to the record.
+      impactLabStatus = "archived";
+    } else if (!REQUIRE_EMAIL_VERIFICATION || user.emailVerified) {
+      // No .catch(() => null) here: swallowing a DB error would show a
+      // registered participant the affirmative "Registration not found"
+      // copy. A down DB surfaces via the page error boundary, same as the
+      // user query.
+      const participant = await prisma.impactLabParticipant.findUnique({
+        where: { id: memberEvent.participantId },
+        select: { consentToMatch: true },
+      });
       const finalRun = await prisma.impactLabMatchRun.findFirst({
-        where: { cohort: CURRENT_COHORT, isFinal: true },
+        where: { cohort: memberEvent.cohort, isFinal: true },
         orderBy: { createdAt: "desc" },
         select: { result: true },
       });
       // Frozen JSON, not schema-enforced — a malformed run degrades to waiting.
       const teams = finalRun ? extractFrozenTeams(finalRun.result) : null;
       if (!teams) {
-        impactLabStatus = participant.consentToMatch ? "waiting" : "profile";
+        impactLabStatus = participant?.consentToMatch ? "waiting" : "profile";
       } else {
-        impactLabStatus = teams.some((t) => t.memberIds.includes(participant.id))
+        impactLabStatus = teams.some((t) => t.memberIds.includes(memberEvent.participantId))
           ? "revealed"
           : "unassigned";
       }
+    } else {
+      impactLabStatus = "verify";
+    }
+  } else {
+    // Same flag the API and the Impact Lab page use: with verification off
+    // we send no verification mail, so gating on emailVerified alone would
+    // strand every pre-flag account on the "verify" card permanently.
+    const openEvent = await openRegistrationEvent();
+    if (openEvent) {
+      impactLabStatus =
+        !REQUIRE_EMAIL_VERIFICATION || user.emailVerified ? "not-registered" : "verify";
     }
   }
 

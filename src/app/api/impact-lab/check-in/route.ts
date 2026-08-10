@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { CURRENT_COHORT } from "@/lib/impact-lab/constants"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
+import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess } from "@/lib/impact-lab/member"
 
 /**
@@ -24,15 +25,30 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const closed = await guardClosedCohort(CURRENT_COHORT)
-  if (closed) return closed
-
   const check = await checkMemberAccess()
   if (!check.authorized) return check.response
 
+  const memberEvent = await resolveMemberEvent(
+    check.email,
+    validCohort(new URL(request.url).searchParams.get("cohort"))
+  )
+  if (!memberEvent) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "No hackathon registration found for your account.",
+        code: "NOT_REGISTERED",
+      },
+      { status: 404 }
+    )
+  }
+
+  const closed = await guardClosedCohort(memberEvent.cohort)
+  if (closed) return closed
+
   const participant = await prisma.impactLabParticipant.findUnique({
-    where: { cohort_email: { cohort: CURRENT_COHORT, email: check.email } },
-    select: { id: true, checkedInAt: true },
+    where: { id: memberEvent.participantId },
+    select: { checkedInAt: true },
   })
   if (!participant) {
     return NextResponse.json(
@@ -49,7 +65,7 @@ export async function POST(request: NextRequest) {
     participant.checkedInAt ??
     (
       await prisma.impactLabParticipant.update({
-        where: { id: participant.id },
+        where: { id: memberEvent.participantId },
         data: { checkedInAt: new Date(), checkedInBy: "self" },
         select: { checkedInAt: true },
       })
