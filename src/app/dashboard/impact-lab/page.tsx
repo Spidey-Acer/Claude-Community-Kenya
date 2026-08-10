@@ -36,12 +36,23 @@ export default async function ImpactLabPage({
   const { cohort: requestedCohort } = await searchParams;
   const memberEvents = await resolveMemberEvents(email);
   const picked = pickMemberEvent(memberEvents, validCohort(requestedCohort));
+  const openEvent = await openRegistrationEvent();
   // No event of the member's own: fall back to whatever is currently open
   // for self-registration, so the page still names something and the
   // registration invitation can appear — same fallback the dashboard card
   // and the profile route use.
-  const activeEvent = picked ?? (await openRegistrationEvent());
+  const activeEvent = picked ?? openEvent;
   const cohortActive = activeEvent?.status === "LIVE";
+  // A returning participant — someone with a membership of their own
+  // (`picked`, however old or closed) who is not yet a member of the event
+  // now open — still deserves the invitation to join it. Additive to
+  // `activeEvent`, not a replacement: their own event keeps driving the
+  // page's main content below; this only decides whether the invite banner
+  // also shows. A member with no event of their own already sees the full
+  // invite as their main view (`activeEvent = openEvent` above), so there is
+  // nothing more to add there.
+  const inviteEvent =
+    picked && openEvent && openEvent.cohort !== picked.cohort ? openEvent : null;
 
   return (
     <main className="min-h-screen bg-bg-primary pt-24 pb-24">
@@ -117,6 +128,9 @@ export default async function ImpactLabPage({
             cohortActive={Boolean(cohortActive)}
             cohortLabel={activeEvent?.name ?? "Impact Lab"}
             cohort={activeEvent?.cohort}
+            inviteEvent={
+              inviteEvent ? { cohort: inviteEvent.cohort, name: inviteEvent.name } : null
+            }
           />
         )}
       </div>
