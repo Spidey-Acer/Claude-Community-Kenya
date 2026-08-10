@@ -11,6 +11,7 @@ import {
   pickMemberEvent,
   validCohort,
 } from "../src/lib/impact-lab/event-lifecycle"
+import { hasEventAccess } from "../src/lib/impact-lab/event-access"
 
 let passed = 0
 let failed = 0
@@ -69,6 +70,16 @@ check("validCohort rejects empty", validCohort("") === null)
 check("validCohort rejects null/undefined", validCohort(null) === null && validCohort(undefined) === null)
 check("validCohort rejects CR/LF injection", validCohort("x\r\nSet-Cookie: a=b") === null)
 check("validCohort rejects overlong input", validCohort("a".repeat(61)) === null)
+
+// ── hasEventAccess ───────────────────────────────────────────────────────────
+check("platform SUPER_ADMIN passes any action", hasEventAccess("SUPER_ADMIN", false, "delete"))
+check("platform ADMIN passes impact-lab actions", hasEventAccess("ADMIN", false, "approve"))
+check("MODERATOR gets view only", hasEventAccess("MODERATOR", false, "view") && !hasEventAccess("MODERATOR", false, "edit"))
+check("plain MEMBER refused without org membership", !hasEventAccess("MEMBER", false, "view"))
+check("org member passes every action on own org's event", hasEventAccess("MEMBER", true, "view") &&
+  hasEventAccess("MEMBER", true, "edit") && hasEventAccess("MEMBER", true, "approve"))
+check("no session refused", !hasEventAccess(null, false, "view"))
+check("org membership beats missing platform role", hasEventAccess(null, true, "edit") === false)
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
