@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { Award, Medal, Trophy } from "lucide-react";
-import { JUDGING_CRITERIA, MAX_SCORE, MIN_SCORE } from "@/lib/impact-lab/judging";
+import type { SerializedRubric } from "@/lib/impact-lab/judging";
 import type {
   AnnouncedWinner,
   PublicRankedTeam,
@@ -27,6 +27,14 @@ export interface ResultsViewProps {
     judgeNotes?: TeamJudgeNote[];
     review?: TeamReviewPayload;
   };
+  /**
+   * This event's own rubric — criteria, scales, and the denominator to quote
+   * totals against. Never the Impact Lab constant: a second event does not
+   * share Impact Lab's five criteria or its 1-5 scale, and every number
+   * rendered below (the criterion bars, the "/ N" denominators, the score
+   * range) is only meaningful read against the rubric it was scored on.
+   */
+  rubric: SerializedRubric;
 }
 
 const ORDINALS: Record<number, string> = {
@@ -39,6 +47,13 @@ function ordinal(rank: number): string {
   return ORDINALS[rank] ?? `${rank}th`;
 }
 
+// Spelled out, matching the original Impact Lab copy's "same five criteria"
+// rather than switching to a numeral once a second rubric exists.
+const CRITERIA_COUNT_WORDS: Record<number, string> = {
+  1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+  6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+};
+
 /**
  * Results view — the payoff page. Four sections, in a fixed order: winners
  * (announced champion + runners-up, then track winners), the caller's own
@@ -50,7 +65,7 @@ function ordinal(rank: number): string {
  * from the ranking before this component ever sees it (see the route's own
  * doc comment) — nothing here re-derives or re-fetches a score.
  */
-export function ResultsView({ results, yourTeam }: ResultsViewProps) {
+export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
   const prefersReducedMotion = useReducedMotion();
 
   const container = {
@@ -68,6 +83,14 @@ export function ResultsView({ results, yourTeam }: ResultsViewProps) {
   const yourTrack = yourTeam
     ? results.ranking.find((r) => r.teamId === yourTeam.teamId)?.track
     : undefined;
+
+  const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[rubric.criteria.length] ?? rubric.criteria.length} criteria`;
+  // "the demo criterion" only when this rubric actually has one keyed
+  // "demo" (Impact Lab's does) — naming a criterion that does not exist
+  // under a different rubric would be a plain factual error.
+  const demoCriterionPhrase = rubric.criteria.some((c) => c.key === "demo")
+    ? "the demo criterion"
+    : "the relevant criteria";
 
   return (
     <motion.div className="space-y-8" variants={container} initial="hidden" animate="show">
@@ -168,32 +191,35 @@ export function ResultsView({ results, yourTeam }: ResultsViewProps) {
 
           {yourTeam.card.basis === "submission" && (
             <p className="mt-3 rounded border border-border-default bg-bg-card p-3 text-xs leading-relaxed text-text-secondary">
-              Your project was reviewed from your written submission against the
-              same five criteria. A live demo was not part of that review, which
-              is noted against the demo criterion below.
+              Your project was reviewed from your written submission against{" "}
+              {criteriaPhrase}. A live demo was not part of that review, which
+              is noted against {demoCriterionPhrase} below.
             </p>
           )}
 
           <div className="mt-5 space-y-3">
-            {JUDGING_CRITERIA.map((criterion) => {
+            {rubric.criteria.map((criterion) => {
               const value = yourTeam.card.criterionAverages[criterion.key] ?? 0;
-              const pct = Math.max(
-                0,
-                Math.min(100, ((value - MIN_SCORE) / (MAX_SCORE - MIN_SCORE)) * 100)
-              );
+              const span = criterion.max - criterion.min;
+              const pct =
+                span === 0
+                  ? 100
+                  : Math.max(0, Math.min(100, ((value - criterion.min) / span) * 100));
               return (
                 <div key={criterion.key}>
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-mono text-xs text-text-secondary">
                       {criterion.label}
                     </span>
-                    <span className="font-mono text-xs text-text-dim">{value.toFixed(1)} / 5</span>
+                    <span className="font-mono text-xs text-text-dim">
+                      {value.toFixed(1)} / {criterion.max}
+                    </span>
                   </div>
                   <div
                     role="progressbar"
                     aria-label={criterion.label}
-                    aria-valuemin={MIN_SCORE}
-                    aria-valuemax={MAX_SCORE}
+                    aria-valuemin={criterion.min}
+                    aria-valuemax={criterion.max}
                     aria-valuenow={value}
                     className="mt-1 h-2 w-full overflow-hidden rounded-full bg-bg-card"
                   >
@@ -210,7 +236,7 @@ export function ResultsView({ results, yourTeam }: ResultsViewProps) {
           {yourTeam.card.low !== null && yourTeam.card.high !== null && (
             <p className="mt-4 font-mono text-[11px] text-text-dim">
               Score range across judges: {yourTeam.card.low.toFixed(1)}–
-              {yourTeam.card.high.toFixed(1)}
+              {yourTeam.card.high.toFixed(1)} / {rubric.totalOutOf}
             </p>
           )}
 
@@ -324,8 +350,8 @@ export function ResultsView({ results, yourTeam }: ResultsViewProps) {
             How these results were decided
           </p>
           <p>
-            Every project that was submitted has been reviewed against the same
-            five criteria and ranked. Where the panel saw a live demo, their
+            Every project that was submitted has been reviewed against{" "}
+            {criteriaPhrase} and ranked. Where the panel saw a live demo, their
             scores are the ones shown. Where a team submitted but the panel did
             not see it presented, the project was reviewed from the written
             submission instead.

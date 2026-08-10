@@ -13,7 +13,7 @@
 
 import type { Prisma } from "@/generated/prisma/client"
 import { extractFrozenTeams } from "./member"
-import { standings, trackOf, weightedTotal, type JudgeScore, type ScoreSheet } from "./judging"
+import { scoreTotal, standings, trackOf, type JudgeScore, type JudgingRubric, type ScoreSheet } from "./judging"
 import type { ResultsInput, TeamFeedback } from "./results"
 import { presentableJudgeNote, publishableReview } from "./reviews"
 import type { Team } from "@/lib/matching"
@@ -40,8 +40,17 @@ export interface RunResultsData {
  * inputs `buildSnapshot` needs — minus `publishedAt` and `announcedTeamIds`,
  * which are decided by the caller (publish takes them from the request body;
  * a pre-publish preview has no announced winners yet).
+ *
+ * `rubric` must be the cohort's own — resolved via `resolveRubric(cohort)` by
+ * the caller, never defaulted here. Every total and standing below is scored
+ * against it, and this cohort's rubric may not be Impact Lab's.
  */
-export async function buildResultsInputFromRun(db: Db, runId: string, runResult: unknown): Promise<RunResultsData> {
+export async function buildResultsInputFromRun(
+  db: Db,
+  runId: string,
+  runResult: unknown,
+  rubric: JudgingRubric
+): Promise<RunResultsData> {
   const teams = extractFrozenTeams(runResult) ?? []
   const nameById = new Map(teams.map((t) => [t.id, t.name]))
   const teamIds = new Set(teams.map((t) => t.id))
@@ -67,7 +76,7 @@ export async function buildResultsInputFromRun(db: Db, runId: string, runResult:
     teamId: s.teamId,
     sheet: (s.scores ?? {}) as ScoreSheet,
   }))
-  const table = standings(judgeScores)
+  const table = standings(judgeScores, rubric)
 
   const rowsByTeam = new Map<string, typeof scoreRows>()
   for (const row of scoreRows) {
@@ -81,7 +90,7 @@ export async function buildResultsInputFromRun(db: Db, runId: string, runResult:
   for (const [teamId, rows] of rowsByTeam) {
     if (rows.every((r) => r.writeupOnly)) writeupOnly.add(teamId)
 
-    const totals = rows.map((r) => weightedTotal((r.scores ?? {}) as ScoreSheet))
+    const totals = rows.map((r) => scoreTotal((r.scores ?? {}) as ScoreSheet, rubric))
     range.set(teamId, { low: Math.min(...totals), high: Math.max(...totals) })
   }
 

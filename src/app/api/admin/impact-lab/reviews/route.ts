@@ -10,11 +10,12 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
-  JUDGING_CRITERIA,
   standings,
   trackOf,
+  type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { presentableJudgeNote, type TeamJudgeNote } from "@/lib/impact-lab/reviews"
 
 /**
@@ -112,13 +113,13 @@ interface TeamContext {
   judgeNote: string | null
 }
 
-function buildPrompt(ctx: TeamContext): string {
+function buildPrompt(ctx: TeamContext, rubric: JudgingRubric): string {
   const s = ctx.submission
 
   const scoreLines = ctx.criterionAverages
-    ? JUDGING_CRITERIA.map((c) => {
+    ? rubric.criteria.map((c) => {
         const value = ctx.criterionAverages?.[c.key]
-        return `- ${c.label}: ${typeof value === "number" ? value.toFixed(1) : "—"} / 5`
+        return `- ${c.label}: ${typeof value === "number" ? value.toFixed(1) : "—"} / ${c.max}`
       }).join("\n")
     : "This team was never scored."
 
@@ -153,14 +154,14 @@ ${noteBlock}`
  * writeup-draft route. Returns the review text (paragraphs joined by blank
  * lines) or null when both attempts failed.
  */
-async function generateReview(ctx: TeamContext): Promise<string | null> {
+async function generateReview(ctx: TeamContext, rubric: JudgingRubric): Promise<string | null> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const { object } = await generateObject({
         model: anthropic(MODEL),
         schema: reviewSchema,
         system: SYSTEM,
-        prompt: buildPrompt(ctx),
+        prompt: buildPrompt(ctx, rubric),
         maxOutputTokens: 1_500,
       })
       return object.paragraphs.map((p) => p.trim()).join("\n\n")
@@ -186,8 +187,12 @@ async function loadFinalRun(cohort: string) {
  * Everything generation and the GET listing need about a run's teams:
  * submissions in full, per-team criterion averages, scoring basis, and the
  * (corrected) judge notes.
+ *
+ * `rubric` must be the cohort's own — every criterion average below is
+ * computed against it, and a cohort that is not Impact Lab does not share
+ * Impact Lab's criteria.
  */
-async function loadTeamContexts(runId: string, runResult: unknown) {
+async function loadTeamContexts(runId: string, runResult: unknown, rubric: JudgingRubric) {
   const teams = extractFrozenTeams(runResult) ?? []
   const nameById = new Map(teams.map((t) => [t.id, t.name]))
 
@@ -224,7 +229,8 @@ async function loadTeamContexts(runId: string, runResult: unknown) {
       judgeEmail: String(i),
       teamId: s.teamId,
       sheet: (s.scores ?? {}) as ScoreSheet,
-    }))
+    })),
+    rubric
   )
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
 
@@ -275,9 +281,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: { teams: [] } })
   }
 
+  const rubric = await resolveRubric(cohort)
   const { nameById, submissions, judgeNotesByTeam } = await loadTeamContexts(
     run.id,
-    run.result
+    run.result,
+    rubric
   )
   const reviews = await prisma.impactLabTeamReview.findMany({
     where: { runId: run.id },
@@ -458,7 +466,8 @@ async function handlePost(request: NextRequest) {
   }
 
   // ── generate ───────────────────────────────────────────────────────────────
-  const { submissions, contextFor } = await loadTeamContexts(run.id, run.result)
+  const rubric = await resolveRubric(cohort)
+  const { submissions, contextFor } = await loadTeamContexts(run.id, run.result, rubric)
   const existingReviews = await prisma.impactLabTeamReview.findMany({
     where: { runId: run.id },
     select: { teamId: true, editedAt: true, approvedAt: true },
@@ -488,7 +497,7 @@ async function handlePost(request: NextRequest) {
       )
     }
 
-    const text = await generateReview(contextFor(submission))
+    const text = await generateReview(contextFor(submission), rubric)
     if (text === null) {
       return NextResponse.json(
         {
@@ -528,7 +537,7 @@ async function handlePost(request: NextRequest) {
   let generated = 0
   const failedProjects: string[] = []
   for (const submission of batch) {
-    const text = await generateReview(contextFor(submission))
+    const text = await generateReview(contextFor(submission), rubric)
     if (text === null) {
       failedProjects.push(submission.projectName)
       continue

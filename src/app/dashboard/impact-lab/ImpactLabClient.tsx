@@ -41,6 +41,7 @@ interface ResultsResponse {
   published?: boolean;
   results?: ResultsViewProps["results"];
   yourTeam?: ResultsViewProps["yourTeam"];
+  rubric?: ResultsViewProps["rubric"];
   error?: string;
 }
 
@@ -146,8 +147,16 @@ export function ImpactLabClient({
 
         // Results published takes precedence over the team reveal — once
         // results are out, the hackathon is over and this is what matters.
-        if (resultsJson.published && resultsJson.results) {
-          setResults({ results: resultsJson.results, yourTeam: resultsJson.yourTeam });
+        // `rubric` travels on every response the route sends (see its own
+        // doc comment), so its absence here means a malformed payload —
+        // treated the same as "not published yet" rather than rendering the
+        // results view with no criteria to show.
+        if (resultsJson.published && resultsJson.results && resultsJson.rubric) {
+          setResults({
+            results: resultsJson.results,
+            yourTeam: resultsJson.yourTeam,
+            rubric: resultsJson.rubric,
+          });
           setPhase("results");
           return;
         }
@@ -257,7 +266,13 @@ export function ImpactLabClient({
   // when present, renders once above it rather than inside every branch.
   const content = (() => {
     if (phase === "results" && results) {
-      return <ResultsView results={results.results} yourTeam={results.yourTeam} />;
+      return (
+        <ResultsView
+          results={results.results}
+          yourTeam={results.yourTeam}
+          rubric={results.rubric}
+        />
+      );
     }
 
     if (phase === "revealed" && team) {

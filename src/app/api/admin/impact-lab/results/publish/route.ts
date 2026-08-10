@@ -8,6 +8,7 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, type ResultsInput } from "@/lib/impact-lab/results"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
  * Mark final. A one-way door.
@@ -150,12 +151,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // The rubric this run's totals are scored against — an organiser-authored
+    // one for this cohort if there is one, else the code constant. Every
+    // total and standing buildResultsInputFromRun computes below is in these
+    // units.
+    const rubric = await resolveRubric(cohort)
+
     // What an organiser actually recognises a team by — the run-JSON team
     // name is an internal id like "Table 12 — Kilimo (Agriculture)" — and
     // everything else needed to build a ResultsInput. Shared with the
     // preview-email route so the two never read the run differently.
     const { input: inputBase, teams, teamIds, submittedTeamIds, scoredTeamIds, displayName } =
-      await buildResultsInputFromRun(tx, runId, run.result)
+      await buildResultsInputFromRun(tx, runId, run.result, rubric)
 
     // 3. Every submitted team must have at least one score — this is what stops
     // the four unscored teams being published as blanks.
