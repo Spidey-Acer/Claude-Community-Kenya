@@ -20,7 +20,7 @@ import {
   type JudgingRubric,
 } from "./judging-rubrics"
 
-export type { JudgingCriterion, JudgingRubric } from "./judging-rubrics"
+export type { JudgingCriterion, JudgingRubric, ScoringMode } from "./judging-rubrics"
 export {
   IMPACT_LAB_RUBRIC,
   AFRETEC_RUBRIC,
@@ -241,4 +241,49 @@ export function trackWinners(
 /** Highest total achievable under a rubric — the denominator to quote against. */
 export function totalOutOf(rubric: JudgingRubric = IMPACT_LAB_RUBRIC): number {
   return rubric.scoring === "points" ? maxPoints(rubric) : 100
+}
+
+/** The wire shape of a rubric — every field a client needs to render it, nothing DB-internal. */
+export interface SerializedRubric {
+  id: string
+  label: string
+  scoring: JudgingRubric["scoring"]
+  totalOutOf: number
+  scoreLabels: Readonly<Record<number, string>> | null
+  criteria: {
+    key: string
+    label: string
+    guidance: string
+    min: number
+    max: number
+    weight: number
+  }[]
+}
+
+/**
+ * A rubric projected field-by-field for the wire — the shape every
+ * cohort-aware route sends a client so it can render that cohort's own
+ * criteria, scales and denominator instead of a hardcoded rubric.
+ *
+ * Projected rather than spread, so an internal field added to `JudgingRubric`
+ * later cannot silently widen this contract. `totalOutOf` is the derived
+ * value, not the declared one, so it can never disagree with the criteria a
+ * client is actually rendering.
+ */
+export function serializeRubric(rubric: JudgingRubric): SerializedRubric {
+  return {
+    id: rubric.id,
+    label: rubric.label,
+    scoring: rubric.scoring,
+    totalOutOf: totalOutOf(rubric),
+    scoreLabels: rubric.scoreLabels,
+    criteria: rubric.criteria.map((c) => ({
+      key: c.key,
+      label: c.label,
+      guidance: c.guidance,
+      min: c.min,
+      max: c.max,
+      weight: c.weight,
+    })),
+  }
 }

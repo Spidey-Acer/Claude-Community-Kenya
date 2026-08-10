@@ -5,7 +5,7 @@
 
 import { Resend } from "resend"
 import { VOLUNTEER_ROLE_LABELS as SHARED_VOLUNTEER_ROLE_LABELS } from "@/lib/volunteer-roles"
-import { JUDGING_CRITERIA } from "@/lib/impact-lab/judging"
+import type { JudgingRubric } from "@/lib/impact-lab/judging"
 import type { AnnouncedWinner, ResultsTrackWinner } from "@/lib/impact-lab/results"
 import {
   REVIEW_PROVENANCE,
@@ -578,6 +578,13 @@ export function impactLabResultsEmail(data: {
    * so generated words can never read as a judge's.
    */
   communityReview?: string | null
+  /**
+   * The rubric this team was actually scored against. Every criterion label,
+   * denominator, and the "same N criteria" language below is read off it —
+   * never off the Impact Lab constant — because a second event does not
+   * share Impact Lab's five criteria or its 1-5 scale.
+   */
+  rubric: JudgingRubric
 }): { subject: string; html: string } {
   // Publishing with zero announced winners is a legal (if unusual) state —
   // the publish panel warns rather than blocks it. Guard each block the same
@@ -618,14 +625,23 @@ export function impactLabResultsEmail(data: {
             </table>`
       : ""
 
+  // Spelled out, matching the original Impact Lab copy's "same five criteria"
+  // rather than switching to a numeral once a second rubric exists.
+  const CRITERIA_COUNT_WORDS: Record<number, string> = {
+    1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+    6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+  }
+  const criterionCount = data.rubric.criteria.length
+  const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[criterionCount] ?? criterionCount} criteria`
+
   const note =
     data.overall.length > 0
-      ? "The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
-      : "Every project was ranked by score across the same five criteria your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed."
+      ? `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed.`
+      : `Every project was ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed.`
 
-  const criterionRows = JUDGING_CRITERIA.map((criterion) => {
+  const criterionRows = data.rubric.criteria.map((criterion) => {
     const value = data.criterionAverages[criterion.key]
-    const shown = typeof value === "number" ? `${value.toFixed(1)} / 5` : "—"
+    const shown = typeof value === "number" ? `${value.toFixed(1)} / ${criterion.max}` : "—"
     return `
         <tr>
           <td style="padding:5px 0;font-family:monospace,monospace;font-size:12px;color:#888;">${esc(criterion.label)}</td>
@@ -635,7 +651,7 @@ export function impactLabResultsEmail(data: {
 
   const rangeRow =
     data.low !== null && data.high !== null
-      ? `<p style="margin:10px 0 0;font-family:monospace,monospace;font-size:11px;color:#888;">Score range across judges: ${data.low.toFixed(1)}–${data.high.toFixed(1)}</p>`
+      ? `<p style="margin:10px 0 0;font-family:monospace,monospace;font-size:11px;color:#888;">Score range across judges: ${data.low.toFixed(1)}–${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
   const judgeNotesSection = (data.judgeNotes ?? [])
@@ -672,9 +688,16 @@ export function impactLabResultsEmail(data: {
             </table>`
     : ""
 
+  // "the demo criterion" only when this rubric actually has one keyed
+  // "demo" (Impact Lab's does) — naming a criterion that does not exist
+  // under a different rubric would be a plain factual error.
+  const demoCriterionPhrase = data.rubric.criteria.some((c) => c.key === "demo")
+    ? "the demo criterion"
+    : "the relevant criteria"
+
   const submissionNote =
     data.basis === "submission"
-      ? `<p style="margin:0 0 14px;font-family:monospace,monospace;font-size:12px;line-height:1.6;color:#888;border:1px solid #1e1e1e;border-radius:4px;padding:10px 12px;">Your project was reviewed from your written submission against the same five criteria. A live demo was not part of that review, which is reflected in the demo criterion below.</p>`
+      ? `<p style="margin:0 0 14px;font-family:monospace,monospace;font-size:12px;line-height:1.6;color:#888;border:1px solid #1e1e1e;border-radius:4px;padding:10px 12px;">Your project was reviewed from your written submission against ${criteriaPhrase}. A live demo was not part of that review, which is reflected in ${demoCriterionPhrase} below.</p>`
       : ""
 
   const html = `

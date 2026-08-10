@@ -15,14 +15,7 @@ import {
   Trophy,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
-import {
-  CRITERION_KEYS,
-  JUDGING_CRITERIA,
-  MAX_SCORE,
-  MIN_SCORE,
-  trackOf,
-  type TeamStanding,
-} from "@/lib/impact-lab/judging"
+import { trackOf, type SerializedRubric, type TeamStanding } from "@/lib/impact-lab/judging"
 import { buildRanking, buildTrackWinners, toPublicRanking, type ResultsInput } from "@/lib/impact-lab/results"
 
 interface AwaitingTeam {
@@ -66,6 +59,7 @@ function emptyState(): TeamDraftState {
  */
 function AwaitingScoreSection({ cohort }: { cohort: string }) {
   const [teams, setTeams] = useState<AwaitingTeam[] | null>(null)
+  const [rubric, setRubric] = useState<SerializedRubric | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, TeamDraftState>>({})
@@ -76,10 +70,11 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiGet<{ teams: AwaitingTeam[] }>(
+      const data = await apiGet<{ teams: AwaitingTeam[]; rubric: SerializedRubric }>(
         `/api/admin/impact-lab/judging/writeup?cohort=${cohort}`
       )
       setTeams(data.teams)
+      setRubric(data.rubric)
       setLoadError(null)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load teams awaiting a score")
@@ -169,7 +164,7 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
     )
   }
 
-  if (loadError || !teams) {
+  if (loadError || !teams || !rubric) {
     return (
       <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
         {loadError ?? "No data"}
@@ -205,13 +200,13 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
       ) : (
         teams.map((team) => {
           const state = stateFor(team.teamId)
-          const canSave = CRITERION_KEYS.every((key) => {
-            const value = state.scores[key]
+          const canSave = rubric.criteria.every((criterion) => {
+            const value = state.scores[criterion.key]
             return (
               typeof value === "number" &&
               Number.isInteger(value) &&
-              value >= MIN_SCORE &&
-              value <= MAX_SCORE
+              value >= criterion.min &&
+              value <= criterion.max
             )
           })
 
@@ -275,7 +270,7 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
               </p>
 
               <div className="space-y-3">
-                {JUDGING_CRITERIA.map((criterion) => (
+                {rubric.criteria.map((criterion) => (
                   <div
                     key={criterion.key}
                     className="grid gap-2 sm:grid-cols-[180px_80px_1fr] sm:items-start"
@@ -290,8 +285,8 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
                     <input
                       id={`${team.teamId}-${criterion.key}`}
                       type="number"
-                      min={MIN_SCORE}
-                      max={MAX_SCORE}
+                      min={criterion.min}
+                      max={criterion.max}
                       step={1}
                       value={state.scores[criterion.key] ?? ""}
                       onChange={(e) => setScore(team.teamId, criterion.key, e.target.value)}

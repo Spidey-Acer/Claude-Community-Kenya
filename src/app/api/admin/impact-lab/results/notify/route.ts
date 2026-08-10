@@ -9,6 +9,8 @@ import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { isResultsSnapshot } from "@/lib/impact-lab/results"
 import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
+import { totalOutOf, type JudgingRubric } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailItem } from "@/lib/email"
 
 /**
@@ -64,13 +66,25 @@ const bodySchema = z.object({
  * name is deliberately unmissable as a placeholder so nobody mistakes this
  * for a real team's result.
  */
-const SAMPLE_CARD = {
-  projectName: "Sample Project (test preview — not a real team)",
-  rank: 4,
-  criterionAverages: { impact: 4.1, demo: 3.6, claude: 4.4, clarity: 3.9, presentation: 4.0 },
-  low: 68.5,
-  high: 84.0,
-  basis: "demo" as const,
+/**
+ * Built from the cohort's own rubric rather than a fixed Impact Lab shape —
+ * a fixed `{ impact, demo, claude, clarity, presentation }` object would
+ * render as a wall of dashes under Afretec's criteria, whose keys are
+ * entirely different. Each criterion is set to roughly 80% of its own range,
+ * so the sample plausibly looks like a strong, not perfect, scorecard under
+ * any rubric.
+ */
+function sampleCard(rubric: JudgingRubric) {
+  return {
+    projectName: "Sample Project (test preview — not a real team)",
+    rank: 4,
+    criterionAverages: Object.fromEntries(
+      rubric.criteria.map((c) => [c.key, Math.round((c.min + (c.max - c.min) * 0.8) * 10) / 10])
+    ),
+    low: Math.round(totalOutOf(rubric) * 0.685 * 10) / 10,
+    high: Math.round(totalOutOf(rubric) * 0.84 * 10) / 10,
+    basis: "demo" as const,
+  }
 }
 
 async function loadPublishedRun(cohort: string) {
@@ -166,16 +180,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: run.error }, { status: run.status })
   }
 
+  // `resolveRubric`, not the code constant: the results already published for
+  // this cohort were scored against its own rubric, and every email below
+  // must quote them in the same units.
+  const rubric = await resolveRubric(cohort)
+
   const dashboardUrl = `${APP_URL}/dashboard/impact-lab`
 
   // ── Test send: real winners, fabricated "your team" card, no DB rows touched
   if (parsed.data.testEmail) {
     const built = impactLabResultsEmail({
       fullName: "there",
-      ...SAMPLE_CARD,
+      ...sampleCard(rubric),
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
       dashboardUrl,
+      rubric,
     })
 
     const [result] = await sendEmailBatchTracked([
@@ -278,6 +298,7 @@ export async function POST(request: NextRequest) {
       dashboardUrl,
       judgeNotes: feedbackByTeam.get(team.id)?.judgeNotes ?? [],
       communityReview: feedbackByTeam.get(team.id)?.review ?? null,
+      rubric,
     })
     sendable.push({ row, item: { to: row.email, subject: built.subject, html: built.html } })
   }

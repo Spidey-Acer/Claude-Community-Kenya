@@ -11,6 +11,7 @@ import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   AFRETEC_RUBRIC,
   IMPACT_LAB_RUBRIC,
+  serializeRubric,
   type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
@@ -206,13 +207,18 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
+  // The score inputs this list's UI renders (criteria, per-criterion scale)
+  // must match this cohort's own rubric — the same one `draft` and `save`
+  // below score against.
+  const rubric = serializeRubric(await resolveRubric(cohort))
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
     select: { id: true, result: true },
   })
   if (!run) {
-    return NextResponse.json({ success: true, data: { teams: [] } })
+    return NextResponse.json({ success: true, data: { teams: [], rubric } })
   }
 
   const teams = extractFrozenTeams(run.result) ?? []
@@ -259,7 +265,7 @@ export async function GET(request: NextRequest) {
       submission: submissionAsRecord(s),
     }))
 
-  return NextResponse.json({ success: true, data: { teams: awaiting } })
+  return NextResponse.json({ success: true, data: { teams: awaiting, rubric } })
 }
 
 /**

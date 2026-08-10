@@ -12,7 +12,11 @@ import {
   Minus,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
-import { JUDGING_CRITERIA, type JudgingCriterion } from "@/lib/impact-lab/judging"
+
+interface AuditCriterion {
+  key: string
+  label: string
+}
 
 interface AuditSheet {
   teamId: string
@@ -36,6 +40,8 @@ interface JudgeAudit {
 
 interface AuditData {
   judges: JudgeAudit[]
+  totalOutOf: number
+  criteria: AuditCriterion[]
 }
 
 interface PreviewRow {
@@ -178,7 +184,8 @@ export function JudgesTab({ cohort }: { cohort: string }) {
               Lowest — <span className="text-[#ff3333]">{lowest.judgeName}</span> ({lowest.mean})
             </span>
             <span className="text-[#888]">
-              gap: <span className="font-semibold text-[#ffb000]">{spread}</span> points out of 100
+              gap: <span className="font-semibold text-[#ffb000]">{spread}</span> points out of{" "}
+              {data.totalOutOf}
             </span>
           </div>
         </div>
@@ -224,7 +231,7 @@ export function JudgesTab({ cohort }: { cohort: string }) {
                         {[
                           "Team",
                           "Project",
-                          ...JUDGING_CRITERIA.map((c: JudgingCriterion) => c.label),
+                          ...data.criteria.map((c) => c.label),
                           "Total",
                           "Basis",
                         ].map((h) => (
@@ -246,7 +253,7 @@ export function JudgesTab({ cohort }: { cohort: string }) {
                           <td className="whitespace-nowrap px-4 py-2 text-[11px] font-mono text-[#888]">
                             {sheet.projectName ?? "—"}
                           </td>
-                          {JUDGING_CRITERIA.map((c: JudgingCriterion) => (
+                          {data.criteria.map((c) => (
                             <td key={c.key} className="px-4 py-2 text-[11px] font-mono text-[#888]">
                               {sheet.scores[c.key] ?? "—"}
                             </td>

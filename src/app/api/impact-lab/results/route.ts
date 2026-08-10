@@ -10,6 +10,8 @@ import {
   type ResultsSnapshot,
   type TeamFeedback,
 } from "@/lib/impact-lab/results"
+import { serializeRubric } from "@/lib/impact-lab/judging"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { presentableJudgeNote, publishableReview } from "@/lib/impact-lab/reviews"
 
 /**
@@ -70,6 +72,12 @@ export async function GET(request: NextRequest) {
     displayName = display?.name
   }
 
+  // `resolveRubric`, not the code constant: the ranking's criterion averages
+  // and score range below are quoted against this cohort's own rubric, and
+  // ResultsView needs the criteria/scales/denominator to render them —
+  // Impact Lab's five 1-5 criteria are the wrong labels for a second event.
+  const rubric = serializeRubric(await resolveRubric(displayCohort))
+
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort: displayCohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -86,6 +94,7 @@ export async function GET(request: NextRequest) {
       published: false,
       eventName: displayName ?? displayCohort,
       eventCohort: displayCohort,
+      rubric,
     })
   }
 
@@ -129,5 +138,6 @@ export async function GET(request: NextRequest) {
     ...buildMemberPayload(snapshot, viewerTeamId, feedback),
     eventName: displayName ?? displayCohort,
     eventCohort: displayCohort,
+    rubric,
   })
 }

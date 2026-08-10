@@ -5,6 +5,7 @@ import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
+import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { APP_URL, impactLabResultsEmail } from "@/lib/email"
 
 /**
@@ -53,6 +54,10 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
+  // `resolveRubric`, not the code constant: an organiser-authored rubric for
+  // this cohort must score this preview the same way it scores the live
+  // judging screen and the eventual publish.
+  const rubric = await resolveRubric(cohort)
   const teamId = (request.nextUrl.searchParams.get("teamId") ?? "").trim()
   if (teamId === "" || teamId.length > 64) {
     return NextResponse.json(
@@ -112,7 +117,7 @@ export async function GET(request: NextRequest) {
     recipientCount = team.memberIds.length
   } else {
     const { input: inputBase, teams, submittedTeamIds, scoredTeamIds } =
-      await buildResultsInputFromRun(prisma, run.id, run.result)
+      await buildResultsInputFromRun(prisma, run.id, run.result, rubric)
 
     const team = teams.find((t) => t.id === teamId)
     if (!team) {
@@ -184,6 +189,7 @@ export async function GET(request: NextRequest) {
     dashboardUrl,
     judgeNotes: feedback?.judgeNotes ?? [],
     communityReview: feedback?.review ?? null,
+    rubric,
   })
 
   return NextResponse.json({

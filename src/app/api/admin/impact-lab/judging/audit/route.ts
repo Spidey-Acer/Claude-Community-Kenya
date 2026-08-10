@@ -51,8 +51,15 @@ export async function GET(request: NextRequest) {
   const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   // Every total below is in this rubric's units, so the rubric travels with the
   // response — a mean of 48.3 is a different verdict out of 50 than out of 100.
+  // The criteria list travels too: the per-judge table below has one column
+  // per criterion, and Impact Lab's five are the wrong columns for a second
+  // event's rubric.
   const rubric = await resolveRubric(cohort)
-  const rubricMeta = { rubricLabel: rubric.label, totalOutOf: totalOutOf(rubric) }
+  const rubricMeta = {
+    rubricLabel: rubric.label,
+    totalOutOf: totalOutOf(rubric),
+    criteria: rubric.criteria.map((c) => ({ key: c.key, label: c.label })),
+  }
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
