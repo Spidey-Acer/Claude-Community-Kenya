@@ -12,6 +12,8 @@
  * override can replace the lookup table later without touching call sites.
  */
 
+import { getEventByCohort } from "./event-store"
+
 /** The facts an export prints about the event it covers. */
 export interface EventBranding {
   /** Cover title split for the two-tone treatment. */
@@ -76,22 +78,34 @@ export const AFRETEC_BRANDING: EventBranding = {
 
 // ─── Resolution ──────────────────────────────────────────────────────────────
 
-/**
- * Cohort → branding. A cohort absent from this map is branded as the Impact
- * Lab event, which is the right default: every export produced before this
- * system knew about a second event was for that one.
- */
+/** Code-constant fallbacks for the two events that predate the Event table. */
 const BRANDING_BY_COHORT: Readonly<Record<string, EventBranding>> = {
   "afretec-makerthon-2026-08": AFRETEC_BRANDING,
 }
 
 /**
- * The branding a cohort's exports print.
+ * The branding a cohort's exports print, from the Event row when one exists.
  *
  * Never throws on an unknown cohort — an organiser generating a report mid
  * event must not hit an error page because a slug was typed differently
- * somewhere. An unknown cohort gets the Impact Lab branding.
+ * somewhere. Resolution order: Event row → per-cohort code constant →
+ * Impact Lab default.
  */
-export function brandingForCohort(cohort: string): EventBranding {
+export async function brandingForCohort(cohort: string): Promise<EventBranding> {
+  const event = await getEventByCohort(cohort)
+  if (event) {
+    return {
+      titleLead: event.titleLead,
+      titleAccent: event.titleAccent,
+      title: event.name,
+      dates: event.dates,
+      host: event.organisationName,
+      location: event.location,
+      formatNote: event.formatNote,
+      ...(event.organisationName !== REPORT_PRODUCER
+        ? { platformNote: `Run on the Impact Lab platform by ${REPORT_PRODUCER}` }
+        : {}),
+    }
+  }
   return BRANDING_BY_COHORT[cohort] ?? IMPACT_LAB_BRANDING
 }
