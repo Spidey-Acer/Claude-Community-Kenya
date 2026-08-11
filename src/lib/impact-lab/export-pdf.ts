@@ -239,18 +239,21 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   doc.y += 12
 
   const s = data.summary
+  // A count of 1 needs the singular form — "1 TRACKS" printed on a real
+  // cohort's cover before this fix.
+  const plural = (n: number, word: string): string => `${word}${n === 1 ? "" : "s"}`
   drawStatTiles(
     doc,
     MARGIN,
     doc.y,
     CONTENT_WIDTH,
     [
-      { value: String(s.participantsRegistered), label: "Builders" },
-      { value: String(s.teamsFormed), label: "Teams formed" },
-      { value: String(s.teamsSubmitted), label: "Projects submitted" },
-      { value: String(s.judges), label: "Judges" },
-      { value: String(s.scorecards), label: "Scorecards" },
-      { value: String(s.tracks), label: "Tracks" },
+      { value: String(s.participantsRegistered), label: plural(s.participantsRegistered, "Builder") },
+      { value: String(s.teamsFormed), label: `${plural(s.teamsFormed, "Team")} formed` },
+      { value: String(s.teamsSubmitted), label: `${plural(s.teamsSubmitted, "Project")} submitted` },
+      { value: String(s.judges), label: plural(s.judges, "Judge") },
+      { value: String(s.scorecards), label: plural(s.scorecards, "Scorecard") },
+      { value: String(s.tracks), label: plural(s.tracks, "Track") },
     ],
     3
   )
@@ -692,7 +695,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
       `The spread is part of the record. Judge means ranged from ${fmt1(Math.min(...judgeMeans))} ` +
         `to ${fmt1(Math.max(...judgeMeans))} — the panel used the scale differently, which is why ` +
         `teams are averaged across their judges rather than summed. The widest disagreement on a ` +
-        `single project was ${widest.submission.projectName}, where ${widest.judgeCount} judges ` +
+        `single project was ${widest.projectDisplayName}, where ${widest.judgeCount} judges ` +
         `scored from ${fmt1(widest.scoreLow ?? 0)} to ${fmt1(widest.scoreHigh ?? 0)}. Honest ` +
         "disagreement between judges who saw different moments of a live demo is what a real " +
         "panel looks like; each profile shows its own spread."
@@ -871,7 +874,7 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
   for (const team of ranked) {
     const cells = [
       team.finalRank !== null ? String(team.finalRank) : `(${team.scoreRank})`,
-      team.submission?.projectName ?? "—",
+      team.projectDisplayName,
       team.tableLabel,
       team.track,
       team.average !== null ? fmt1(team.average) : "—",
@@ -1213,11 +1216,13 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   // — one shared `max` would draw a 4-of-4 and a 4-of-10 identically.
   if (team.average !== null) {
     const criteriaMax = Math.max(...rubric.criteria.map((c) => c.max))
-    const rows: HBarRow[] = rubric.criteria.map((criterion) => ({
+    // Numbered — this is the legend for the "C1".."Cn" columns in the
+    // per-judge table below, so a reader can match a bar to its column.
+    const rows: HBarRow[] = rubric.criteria.map((criterion, i) => ({
       label:
         rubric.scoring === "points"
-          ? `${criterion.label} (/${criterion.max})`
-          : criterion.label,
+          ? `${i + 1}. ${criterion.label} (/${criterion.max})`
+          : `${i + 1}. ${criterion.label}`,
       value: team.criterionAverages[criterion.key] ?? 0,
       valueLabel: fmt1(team.criterionAverages[criterion.key] ?? 0),
     }))
@@ -1251,14 +1256,14 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   x += nameWidth
   doc.text("BASIS", x, headTop, { width: basisWidth - 6 })
   x += basisWidth
-  for (const criterion of rubric.criteria) {
-    doc.text(criterion.label.toUpperCase(), x, headTop, {
-      width: critWidth - 4,
-      lineBreak: false,
-      ellipsis: true,
-    })
+  // Compact numbered keys, not the criterion names — with up to eight
+  // criteria the full labels wrapped and overlapped each other and the
+  // first data row. "C1".."Cn" match the numbered bars above, in rubric
+  // order, and always fit on one fixed-height line.
+  rubric.criteria.forEach((_, i) => {
+    doc.text(`C${i + 1}`, x, headTop, { width: critWidth - 4, lineBreak: false })
     x += critWidth
-  }
+  })
   doc.text(`TOTAL /${denom}`, x, headTop, { width: totalWidth })
   doc.x = MARGIN
   doc.y = headTop + 11
@@ -1392,7 +1397,7 @@ function renderTeamProfile(
 ): void {
   doc.addPage()
   doc.y = MARGIN + 8
-  markSection(doc, state, team.submission?.projectName ?? team.teamName, 1)
+  markSection(doc, state, team.projectDisplayName, 1)
 
   // Header: placing kicker left, honours chip right.
   const kickerTop = doc.y
@@ -1424,7 +1429,7 @@ function renderTeamProfile(
     .font(SERIF)
     .fontSize(21)
     .fillColor(INK)
-    .text(team.submission?.projectName ?? team.teamName, MARGIN, doc.y, { width: CONTENT_WIDTH })
+    .text(team.projectDisplayName, MARGIN, doc.y, { width: CONTENT_WIDTH })
   doc
     .font(SANS)
     .fontSize(9)

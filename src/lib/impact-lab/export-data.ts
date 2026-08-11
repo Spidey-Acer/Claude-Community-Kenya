@@ -128,6 +128,14 @@ export type PlacingBasis = "announced" | "demo" | "submission"
 export interface ExportTeam {
   teamId: string
   teamName: string
+  /**
+   * The project name to print. Falls back to the team name when the
+   * submission's project name is blank — an optional field some teams left
+   * empty. The single place every renderer must call instead of reading
+   * `submission?.projectName` itself, so a blank field can never surface as
+   * a blank heading, contents entry, or table cell.
+   */
+  projectDisplayName: string
   /** The bit before the dash — "Table 12" — for the table column. */
   tableLabel: string
   track: string
@@ -407,6 +415,7 @@ export function buildResultsExport(
     return {
       teamId: team.id,
       teamName: team.name,
+      projectDisplayName: submission?.projectName.trim() || team.name,
       tableLabel: tableLabelOf(team.name),
       track: trackOf(team.name),
       members: team.memberIds
@@ -448,6 +457,28 @@ export function buildResultsExport(
       communityReview: reviewByTeam.get(team.id) ?? null,
     }
   })
+
+  // The stored snapshot's `ranking` array holds the non-announced remainder
+  // in whatever order the run produced on event day — arithmetic that this
+  // export no longer trusts (see the July regression this fixed). The
+  // announced podium is pinned exactly as the panel called it; everyone else
+  // is re-sorted here by the average this export just recomputed, and their
+  // printed `finalRank` is renumbered to match, so the "#" column and the
+  // sort order can never disagree with each other again.
+  const rankedTeams = teams.filter((t) => t.finalRank !== null)
+  const announcedTeams = rankedTeams
+    .filter((t) => t.finalRankBasis === "announced")
+    .sort((a, b) => (a.finalRank as number) - (b.finalRank as number))
+  const remainderTeams = rankedTeams
+    .filter((t) => t.finalRankBasis !== "announced")
+    .sort(
+      (a, b) =>
+        (b.average ?? -Infinity) - (a.average ?? -Infinity) || a.teamName.localeCompare(b.teamName)
+    )
+  let nextRank = announcedTeams.length + 1
+  for (const team of remainderTeams) {
+    team.finalRank = nextRank++
+  }
 
   teams.sort(
     (a, b) =>

@@ -180,19 +180,30 @@ export function drawHBars(
   options: { max: number; labelWidth?: number; rowHeight?: number; scaleNote?: string }
 ): number {
   const labelWidth = options.labelWidth ?? 118
-  const rowHeight = options.rowHeight ?? (rows.some((r) => r.sublabel) ? 26 : 18)
+  const minRowHeight = options.rowHeight ?? (rows.some((r) => r.sublabel) ? 26 : 18)
   const valueGutter = 30
   const barArea = width - labelWidth - valueGutter
   const barHeight = 7
 
+  // A row's height follows its own label's wrapped height, not a fixed
+  // increment — a long criterion name (e.g. "Value Proposition, Ideation
+  // Depth & Solution Clarity (/10)") wraps to two lines, and a fixed
+  // increment let the second line overstrike the row beneath it.
+  doc.font(SANS).fontSize(LABEL_FONT)
+  const rowHeights = rows.map((row) => {
+    const labelHeight = doc.heightOfString(row.label, { width: labelWidth - 8, lineGap: 1 })
+    return Math.max(minRowHeight, labelHeight + (row.sublabel ? 9 : 0) + 5)
+  })
+
+  let ry = y
   rows.forEach((row, i) => {
-    const ry = y + i * rowHeight
+    const rowHeight = rowHeights[i]
     const barY = ry + (rowHeight - barHeight) / 2 - (row.sublabel ? 4 : 0)
     doc
       .font(SANS)
       .fontSize(LABEL_FONT)
       .fillColor(INK)
-      .text(row.label, x, barY - 0.5, { width: labelWidth - 8, lineBreak: false, ellipsis: true })
+      .text(row.label, x, ry + 1, { width: labelWidth - 8, lineGap: 1 })
     if (row.sublabel) {
       doc
         .font(SANS)
@@ -214,9 +225,10 @@ export function drawHBars(
         width: valueGutter - 4,
         lineBreak: false,
       })
+    ry += rowHeight
   })
 
-  let used = rows.length * rowHeight
+  let used = ry - y
   if (options.scaleNote) {
     doc
       .font(SANS)
