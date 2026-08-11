@@ -26,7 +26,12 @@ import {
   type JudgingRubric,
   type ScoreSheet,
 } from "./judging"
-import type { RankedTeam, ResultsSnapshot, ResultsTrackWinner } from "./results"
+import {
+  buildTrackWinners,
+  type RankedTeam,
+  type ResultsSnapshot,
+  type ResultsTrackWinner,
+} from "./results"
 
 // ─── Source rows (what the loader hands in) ──────────────────────────────────
 
@@ -36,6 +41,15 @@ export interface SourceTeam {
   name: string
   memberIds: string[]
   leaderId?: string | null
+  /**
+   * An organiser-assigned track, frozen into the run's `result` JSON (e.g.
+   * backfilled from a registration file). Wins over parsing the team name
+   * when present — teams were matched into a track before building, so a
+   * team can build outside its track and its name alone would say the
+   * wrong thing. Absent for cohorts (like July) that only ever encoded the
+   * track in the name.
+   */
+  track?: string
 }
 
 export interface SourceParticipant {
@@ -128,6 +142,14 @@ export type PlacingBasis = "announced" | "demo" | "submission"
 export interface ExportTeam {
   teamId: string
   teamName: string
+  /**
+   * The project name to print. Falls back to the team name when the
+   * submission's project name is blank — an optional field some teams left
+   * empty. The single place every renderer must call instead of reading
+   * `submission?.projectName` itself, so a blank field can never surface as
+   * a blank heading, contents entry, or table cell.
+   */
+  projectDisplayName: string
   /** The bit before the dash — "Table 12" — for the table column. */
   tableLabel: string
   track: string
@@ -356,15 +378,12 @@ export function buildResultsExport(
 
   const nameById = new Map(source.teams.map((t) => [t.id, t.name]))
 
-  // Winners: the published snapshot is the record once it exists. Before
-  // publication, fall back to score order — labelled as such via basis.
+  // Overall winners: the published snapshot is the record once it exists.
+  // Before publication, fall back to score order for the champion. Track
+  // winners are handled separately, further below, once every team's
+  // corrected track and final rank are known — see the comment there.
   let announced: ExportWinner[] = []
-  let exportTrackWinners: ExportTrackWinner[] = []
   let championTeamId: string | null = null
-  const trackWinnerTeamIds = new Set<string>()
-
-  const projectNameOf = (teamId: string): string =>
-    submissionByTeam.get(teamId)?.projectName ?? nameById.get(teamId) ?? teamId
 
   if (snapshot) {
     announced = snapshot.overall.map((w) => ({
@@ -373,23 +392,9 @@ export function buildResultsExport(
       projectName: w.projectName,
     }))
     championTeamId = snapshot.overall.find((w) => w.rank === 1)?.teamId ?? null
-    exportTrackWinners = snapshot.trackWinners.map((w) => ({
-      track: w.track,
-      teamName: nameById.get(w.teamId) ?? w.teamId,
-      projectName: w.projectName,
-      basis: w.basis,
-    }))
-    for (const w of snapshot.trackWinners) trackWinnerTeamIds.add(w.teamId)
   } else {
-    const { winners, champion } = trackWinners(table, nameById)
+    const { champion } = trackWinners(table, nameById)
     championTeamId = champion?.teamId ?? null
-    exportTrackWinners = winners.map((w) => ({
-      track: w.track,
-      teamName: w.teamName,
-      projectName: projectNameOf(w.teamId),
-      basis: "score",
-    }))
-    for (const w of winners) trackWinnerTeamIds.add(w.teamId)
   }
 
   const teams: ExportTeam[] = source.teams.map((team) => {
@@ -407,8 +412,11 @@ export function buildResultsExport(
     return {
       teamId: team.id,
       teamName: team.name,
+      projectDisplayName: submission?.projectName.trim() || team.name,
       tableLabel: tableLabelOf(team.name),
-      track: trackOf(team.name),
+      // An explicit organiser assignment (frozen into the run JSON) wins;
+      // name-parsing is only the fallback for cohorts that never had one.
+      track: team.track?.trim() || trackOf(team.name),
       members: team.memberIds
         .map((id) => participantById.get(id))
         .filter((p): p is SourceParticipant => p !== undefined)
@@ -443,11 +451,35 @@ export function buildResultsExport(
       finalRankBasis: snapshotRow?.basis ?? null,
       scoreRank: scoreRankByTeam.get(team.id) ?? null,
       scoredFromWriteup,
-      isTrackWinner: trackWinnerTeamIds.has(team.id),
+      // Patched once track winners are recomputed below, after the tail
+      // re-sort — a team's own track isn't final until then.
+      isTrackWinner: false,
       isChampion: team.id === championTeamId,
       communityReview: reviewByTeam.get(team.id) ?? null,
     }
   })
+
+  // The stored snapshot's `ranking` array holds the non-announced remainder
+  // in whatever order the run produced on event day — arithmetic that this
+  // export no longer trusts (see the July regression this fixed). The
+  // announced podium is pinned exactly as the panel called it; everyone else
+  // is re-sorted here by the average this export just recomputed, and their
+  // printed `finalRank` is renumbered to match, so the "#" column and the
+  // sort order can never disagree with each other again.
+  const rankedTeams = teams.filter((t) => t.finalRank !== null)
+  const announcedTeams = rankedTeams
+    .filter((t) => t.finalRankBasis === "announced")
+    .sort((a, b) => (a.finalRank as number) - (b.finalRank as number))
+  const remainderTeams = rankedTeams
+    .filter((t) => t.finalRankBasis !== "announced")
+    .sort(
+      (a, b) =>
+        (b.average ?? -Infinity) - (a.average ?? -Infinity) || a.teamName.localeCompare(b.teamName)
+    )
+  let nextRank = announcedTeams.length + 1
+  for (const team of remainderTeams) {
+    team.finalRank = nextRank++
+  }
 
   teams.sort(
     (a, b) =>
@@ -455,6 +487,54 @@ export function buildResultsExport(
       (a.scoreRank ?? Number.MAX_SAFE_INTEGER) - (b.scoreRank ?? Number.MAX_SAFE_INTEGER) ||
       a.teamName.localeCompare(b.teamName)
   )
+
+  // Track winners: recomputed here, never trusted off `snapshot.trackWinners`
+  // wholesale — that array (like the old ranking order) was frozen before
+  // organiser track assignments existed, so its `track` values can lie. Feed
+  // `buildTrackWinners` the same corrected order the tail re-sort just
+  // produced (announced podium first) so "the champion leads its own track"
+  // still holds, and only scored, ranked teams are considered, so a track
+  // with nobody scored produces no winner line (and no divide-by-zero below).
+  //
+  // A hand-authored `organiser` override in the snapshot is a human
+  // correction — an organiser deciding a team built outside its matched
+  // track — that recomputation cannot reproduce, so it still wins for its
+  // own track, the same reasoning that pins the announced podium.
+  const teamById = new Map(teams.map((t) => [t.teamId, t]))
+  const rankedForTracks: RankedTeam[] = teams
+    .filter((t) => t.finalRank !== null)
+    .sort((a, b) => (a.finalRank as number) - (b.finalRank as number))
+    .map((t) => ({
+      rank: t.finalRank as number,
+      teamId: t.teamId,
+      projectName: t.projectDisplayName,
+      track: t.track,
+      average: t.average ?? 0,
+      basis: t.finalRankBasis ?? "demo",
+    }))
+  const winnersByTrack = new Map<string, ResultsTrackWinner>(
+    buildTrackWinners(rankedForTracks).map((w) => [w.track, w])
+  )
+  for (const w of snapshot?.trackWinners ?? []) {
+    if (w.basis === "organiser") winnersByTrack.set(w.track, w)
+  }
+
+  const exportTrackWinners: ExportTrackWinner[] = [...winnersByTrack.values()]
+    .map((w) => ({
+      track: w.track,
+      teamName: nameById.get(w.teamId) ?? w.teamId,
+      // The organiser's own frozen wording for a hand override; the live
+      // recomputed display name for an algorithmic pick.
+      projectName:
+        w.basis === "organiser"
+          ? w.projectName
+          : (teamById.get(w.teamId)?.projectDisplayName ?? w.projectName),
+      basis: w.basis,
+    }))
+    .sort((a, b) => a.track.localeCompare(b.track))
+
+  const trackWinnerTeamIds = new Set([...winnersByTrack.values()].map((w) => w.teamId))
+  for (const team of teams) team.isTrackWinner = trackWinnerTeamIds.has(team.teamId)
 
   const assignedIds = new Set(source.teams.flatMap((t) => t.memberIds))
   const unassignedParticipants = source.participants
