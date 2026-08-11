@@ -1547,8 +1547,21 @@ function NotifyPanel({ cohort }: { cohort: string }) {
  * publication the exports carry the announced placings alongside the raw
  * score order; before it, there is only score order and the files say so.
  */
+/** Reads the server-set filename off Content-Disposition; falls back if absent or unparsable. */
+function filenameFromDisposition(header: string | null, fallback: string): string {
+  if (!header) return fallback
+  const match = header.match(/filename="?([^"；;]+)"?/)
+  return match ? match[1] : fallback
+}
+
 function ExportPanel({ cohort }: { cohort: string }) {
   const [published, setPublished] = useState<boolean | null>(null)
+  // Which export is currently being built server-side, so the trigger can
+  // show visible progress instead of the founder "waiting there as a fool" —
+  // an <a href> download gives no lifecycle to hook into, so this fetches the
+  // file itself and hands the browser a blob to save.
+  const [building, setBuilding] = useState<"xlsx" | "pdf" | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -1564,6 +1577,38 @@ function ExportPanel({ cohort }: { cohort: string }) {
       cancelled = true
     }
   }, [cohort])
+
+  async function download(format: "xlsx" | "pdf") {
+    setBuilding(format)
+    setExportError(null)
+    try {
+      const res = await fetch(`/api/admin/impact-lab/results/export?cohort=${cohort}&format=${format}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(
+          (body && typeof body.error === "string" && body.error) ||
+            `Could not build the ${format === "xlsx" ? "Excel workbook" : "PDF"}.`
+        )
+      }
+      const blob = await res.blob()
+      const filename = filenameFromDisposition(
+        res.headers.get("Content-Disposition"),
+        `impact-lab-results-${cohort}.${format}`
+      )
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Could not build that export.")
+    } finally {
+      setBuilding(null)
+    }
+  }
 
   const exports = [
     {
@@ -1595,27 +1640,48 @@ function ExportPanel({ cohort }: { cohort: string }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {exports.map(({ format, label, description, Icon, accentClass }) => (
-          <a
-            key={format}
-            href={`/api/admin/impact-lab/results/export?cohort=${cohort}&format=${format}`}
-            className="group flex items-start gap-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4 transition-colors hover:border-[#333] hover:bg-[#111]"
-          >
-            <Icon
-              className={`mt-0.5 h-5 w-5 shrink-0 transition-transform group-hover:-translate-y-0.5 ${accentClass}`}
-              aria-hidden
-            />
-            <span>
-              <span className="block text-[12px] font-mono font-semibold text-[#e0e0e0]">
-                {label}
+        {exports.map(({ format, label, description, Icon, accentClass }) => {
+          const isBuilding = building === format
+          return (
+            <button
+              key={format}
+              type="button"
+              onClick={() => void download(format)}
+              disabled={building !== null}
+              className="group flex items-start gap-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4 text-left transition-colors hover:border-[#333] hover:bg-[#111] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isBuilding ? (
+                <Loader2 className={`mt-0.5 h-5 w-5 shrink-0 animate-spin ${accentClass}`} aria-hidden />
+              ) : (
+                <Icon
+                  className={`mt-0.5 h-5 w-5 shrink-0 transition-transform group-hover:-translate-y-0.5 ${accentClass}`}
+                  aria-hidden
+                />
+              )}
+              <span>
+                <span className="block text-[12px] font-mono font-semibold text-[#e0e0e0]">
+                  {isBuilding ? `Building ${format === "xlsx" ? "Excel" : "PDF"}…` : label}
+                </span>
+                <span className="mt-1 block text-[11px] font-mono leading-relaxed text-[#888]">
+                  {description}
+                </span>
               </span>
-              <span className="mt-1 block text-[11px] font-mono leading-relaxed text-[#888]">
-                {description}
-              </span>
-            </span>
-          </a>
-        ))}
+            </button>
+          )
+        })}
       </div>
+
+      {building && (
+        <p role="status" className="text-[11px] font-mono text-[#888]">
+          Generating the full report from the judging records — usually takes about ten seconds.
+        </p>
+      )}
+
+      {exportError && (
+        <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
+          {exportError}
+        </p>
+      )}
 
       <div className="space-y-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]">
         <p>
