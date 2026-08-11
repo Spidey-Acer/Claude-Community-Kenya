@@ -94,12 +94,20 @@ export async function buildResultsInputFromRun(
     range.set(teamId, { low: Math.min(...totals), high: Math.max(...totals) })
   }
 
+  // An organiser-assigned track (frozen into the run's `result` JSON, e.g.
+  // backfilled from a registration file) wins over parsing the team name —
+  // teams were matched into a track before building, so the name alone can
+  // say the wrong thing. The submission form's own free-text track field is
+  // deliberately not consulted here: it is the team's self-report, not the
+  // organiser's assignment.
+  const teamById = new Map(teams.map((t) => [t.id, t as Team & { track?: string }]))
   const teamsMeta = new Map<string, { projectName: string; track: string }>()
   for (const submission of submissions) {
-    const teamName = nameById.get(submission.teamId) ?? ""
+    const team = teamById.get(submission.teamId)
+    const teamName = team?.name ?? ""
     teamsMeta.set(submission.teamId, {
       projectName: submission.projectName,
-      track: trackOf(teamName),
+      track: team?.track?.trim() || trackOf(teamName),
     })
   }
 
