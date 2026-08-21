@@ -141,29 +141,52 @@ model ShowcaseFollow {
   @@map("showcase_follows")
 }
 
+/// Reactions are members-only, so `userId` is required — unlike CommunityUpvote,
+/// which keeps an anonymous path and therefore needs the `voterKey` scheme.
 model ShowcaseReaction {
   id           String   @id @default(cuid())
   submissionId String
-  voterKey     String   // "u:<userId>" or "ip:<hash>"
+  userId       String
   emoji        String   @db.VarChar(16)
   createdAt    DateTime @default(now())
 
   submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([submissionId, voterKey, emoji])
+  @@unique([submissionId, userId, emoji])
   @@index([submissionId])
   @@map("showcase_reactions")
 }
 
+enum ReportTarget {
+  SUBMISSION
+  COMMENT
+  UPDATE
+}
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  OFF_TOPIC
+  PLAGIARISM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
 model ContentReport {
   id         String        @id @default(cuid())
-  targetType ReportTarget  // SUBMISSION | COMMENT | UPDATE
+  targetType ReportTarget
   targetId   String
   reporterId String?
   reporterIp String?
-  reason     ReportReason  // SPAM | ABUSE | OFF_TOPIC | PLAGIARISM | OTHER
+  reason     ReportReason
   detail     String?       @db.Text
-  status     ReportStatus  @default(OPEN)   // OPEN | ACTIONED | DISMISSED
+  status     ReportStatus  @default(OPEN)
   reviewedBy String?
   reviewedAt DateTime?
   createdAt  DateTime      @default(now())
@@ -327,7 +350,8 @@ named owner before it ships. If no owner exists, ship Phase 1 and hold Phase 2.
 |---|---|
 | Post / update / comment | Verified member session; CSRF; rate limited per route |
 | Media presign | Verified member; magic-byte sniff on finalize; hard size and count caps; EXIF stripped |
-| Upvotes / reactions | `voterKey` uniqueness; anonymous still IP-keyed and rate limited |
+| Upvotes | `voterKey` uniqueness; anonymous path retained and rate limited |
+| Reactions | Members-only, keyed on `userId`; no anonymous path |
 | GIF picker | Tenor `contentfilter=high`; URL allowlist on the stored host |
 | Text fields | Existing `zodSanitizeString` (with the emoji round-trip test above) |
 | Rendering | Post bodies render as sanitised markdown — no raw HTML, no embedded script |
