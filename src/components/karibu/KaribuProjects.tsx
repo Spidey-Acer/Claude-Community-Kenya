@@ -5,7 +5,7 @@
  *
  * Redesigns two sections the original home had (Project of the Week + the
  * featured-projects showcase) into one coherent block, wired to the same DB
- * data (getProjectOfTheWeek + getFeaturedProjects). Renders nothing when there
+ * data (getProjectOfTheWeek + getProjects). Renders nothing when there
  * is no project data.
  */
 
