@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { MapPin, Mail } from "lucide-react";
 import { FOOTER_SECTIONS, SITE_CONFIG, CONTACT } from "@/lib/constants";
 import { useSkin } from "@/contexts/SkinContext";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
@@ -101,8 +102,14 @@ export function Footer() {
             <div className={isPro
               ? "mt-4 space-y-1 text-[12px] text-[#7a7870]"
               : "mt-4 font-mono text-xs text-text-dim"}>
-              <p>{isPro ? "" : "📍 "}{CONTACT.city}</p>
-              <p>{isPro ? "" : "✉ "}{CONTACT.email}</p>
+              <p className="flex items-center gap-1.5">
+                {!isPro && <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                {CONTACT.city}
+              </p>
+              <p className="flex items-center gap-1.5">
+                {!isPro && <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                {CONTACT.email}
+              </p>
             </div>
 
             {/* Newsletter */}
