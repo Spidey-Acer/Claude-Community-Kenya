@@ -103,11 +103,11 @@ export function Footer() {
               ? "mt-4 space-y-1 text-[12px] text-[#7a7870]"
               : "mt-4 font-mono text-xs text-text-dim"}>
               <p className="flex items-center gap-1.5">
-                {!isPro && <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {CONTACT.city}
               </p>
               <p className="flex items-center gap-1.5">
-                {!isPro && <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {CONTACT.email}
               </p>
             </div>
