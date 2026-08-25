@@ -226,7 +226,13 @@ async function main() {
     },
   ]
 
-  // Blog content is long — store a placeholder; admin can update via dashboard
+  // Blog content is long — store a placeholder; admin can update via dashboard.
+  //
+  // The placeholder is seeded as a DRAFT, and the PUBLISHED status carried in
+  // blogData is deliberately overridden. Seeding it as published is how three
+  // posts reading "[Content seeded from static data]" ended up live on
+  // claudekenya.org, one of them with 840 views. A post has to be written
+  // before it can be published; the seed can only do the first half.
   for (const post of blogData) {
     await prisma.blogPost.upsert({
       where: { slug: post.slug },
@@ -234,6 +240,8 @@ async function main() {
       create: {
         ...post,
         content: `[Content seeded from static data — update via admin dashboard]`,
+        status: BlogStatus.DRAFT,
+        publishedAt: null,
       },
     })
   }
