@@ -37,13 +37,38 @@ export function calculateReadingTime(text: string): number {
  * Convert a string to a URL-friendly slug.
  * E.g. "Hello World!" → "hello-world"
  */
-export function toSlug(text: string): string {
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+/**
+ * Decode the HTML entities a rich-text editor leaves in a title.
+ *
+ * Titles reach toSlug already escaped, so an apostrophe arrives as `&#x27;`.
+ * Stripping punctuation without decoding first leaves the digits behind: a post
+ * titled "Rain Couldn't Stop Us" became `rain-couldnx27t-stop-us` in production.
+ */
+function decodeEntities(text: string): string {
   return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-z]+);/gi, (match, name) => NAMED_ENTITIES[name.toLowerCase()] ?? match);
+}
+
+export function toSlug(text: string): string {
+  return decodeEntities(text)
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .trim();
+    // Trimming dashes, not whitespace: by this point every space is a dash, so
+    // .trim() had nothing left to remove and "-hello-" survived intact.
+    .replace(/^-+|-+$/g, "");
 }
 
 /**
