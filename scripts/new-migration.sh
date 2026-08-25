@@ -28,12 +28,15 @@ fi
 # docs/database/unrepresentable-objects.md — one grep pattern per entry.
 UNREPRESENTABLE='impact_lab_match_runs_one_final_per_cohort'
 
-STAMP="$(git log -1 --format=%cd --date=format:%Y%m%d%H%M%S)"
+STAMP="$(date -u +%Y%m%d%H%M%S)"
 DIR="prisma/migrations/${STAMP}_${NAME}"
 [ -e "$DIR" ] && { echo "$DIR already exists" >&2; exit 1; }
 
 RAW="$(mktemp)"; trap 'rm -f "$RAW"' EXIT
-npx prisma migrate diff --from-config-datasource --to-schema --script > "$RAW"
+npx prisma migrate diff \
+  --from-config-datasource \
+  --to-schema prisma/schema.prisma \
+  --script > "$RAW"
 
 if ! grep -qE '[A-Za-z]' "$RAW"; then
   echo "No changes — schema.prisma already matches the database."

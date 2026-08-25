@@ -8,6 +8,8 @@ import {
   zodSanitizeMultilineText,
   containsPromptInjection,
 } from "@/lib/input-sanitization"
+import { getSessionUserId } from "@/lib/auth-helpers"
+import { resolveCommentStatus } from "@/lib/showcase/comment-status"
 
 const commentSchema = z.object({
   authorName: z.string().max(100).optional().transform(v => v ? zodSanitizeString(v) : undefined),
@@ -70,19 +72,39 @@ export async function POST(
       console.warn("[COMMUNITY] Potential prompt injection detected in comment for:", slug)
     }
 
+    // The verified flag is read from the database, never from the request —
+    // the client has no say in whether its own comment skips moderation.
+    const userId = await getSessionUserId()
+    const user = userId
+      ? await prisma.user.findUnique({
+          where: { id: userId },
+          select: { emailVerified: true, firstName: true, lastName: true },
+        })
+      : null
+
+    const status = resolveCommentStatus({
+      userId,
+      emailVerified: user?.emailVerified ?? false,
+    })
+
     await prisma.communityComment.create({
       data: {
         submissionId: submission.id,
-        authorName: data.authorName,
+        userId,
+        authorName: user ? `${user.firstName} ${user.lastName}`.trim() : data.authorName,
         content: data.content,
-        status: "PENDING",
+        status,
       },
     })
 
     return NextResponse.json(
       {
         success: true,
-        message: "Your comment is pending approval.",
+        published: status === "APPROVED",
+        message:
+          status === "APPROVED"
+            ? "Comment posted."
+            : "Your comment is pending approval.",
       },
       { status: 201 }
     )

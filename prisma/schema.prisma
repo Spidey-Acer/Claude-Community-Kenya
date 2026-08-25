@@ -737,12 +737,15 @@ model ContentReport {
 model CommunityUpvote {
   id           String   @id @default(cuid())
   submissionId String
-  ipHash       String
+  /// Retained for abuse forensics only. No longer part of the uniqueness rule.
+  ipHash       String?
+  /// "u:<userId>" when signed in, "ip:<hash>" otherwise.
+  voterKey     String
   createdAt    DateTime @default(now())
 
   submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
-  @@unique([submissionId, ipHash])
+  @@unique([submissionId, voterKey])
   @@map("community_upvotes")
 }
 

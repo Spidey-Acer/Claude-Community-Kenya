@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { Prisma } from "@/generated/prisma/client"
+import { getSessionUserId } from "@/lib/auth-helpers"
+import { voterKeyFor } from "@/lib/showcase/voter-key"
 
 const UPVOTE_SALT = process.env.UPVOTE_SALT ?? "cck-dev-salt"
 
@@ -46,11 +48,19 @@ export async function POST(
       .update(ip + ":" + submission.id + ":" + UPVOTE_SALT)
       .digest("hex")
 
+    // Uniqueness is per voter, not per IP address. A signed-in member is one
+    // voter wherever they connect from; anonymous visitors still fall back to
+    // the hashed IP. The old IP-only rule meant two members sharing a carrier
+    // NAT blocked each other from voting.
+    const userId = await getSessionUserId()
+    const voterKey = voterKeyFor(userId, ipHash)
+
     const result = await prisma.$transaction(async (tx) => {
       await tx.communityUpvote.create({
         data: {
           submissionId: submission.id,
           ipHash,
+          voterKey,
         },
       })
 
