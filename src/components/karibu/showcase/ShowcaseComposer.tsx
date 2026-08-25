@@ -215,14 +215,13 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
       .catch(() => {})
   }, [])
 
-  // A cover pick that no longer has a matching upload (removed from the
-  // gallery) can't stay selected — the server rejects a coverImageUrl that
-  // isn't one of the submitted media URLs.
-  useEffect(() => {
-    if (coverImageUrl && !media.some((m) => m.url === coverImageUrl)) {
-      setCoverImageUrl(undefined)
-    }
-  }, [media, coverImageUrl])
+  // A cover pick whose upload has since been removed from the gallery cannot
+  // stay selected — the server rejects a coverImageUrl that is not one of the
+  // submitted media URLs. Derived rather than corrected in an effect: the
+  // selection is only ever valid *relative to* the current media, so reading
+  // it that way at render leaves no window where the two disagree.
+  const effectiveCoverImageUrl =
+    coverImageUrl && media.some((m) => m.url === coverImageUrl) ? coverImageUrl : undefined
 
   function insertEmoji(char: string) {
     const el = descriptionRef.current
@@ -269,7 +268,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             url: projectUrl.trim() || undefined,
             repoUrl: repoUrl.trim() || undefined,
             tags: tags.items,
-            coverImageUrl,
+            coverImageUrl: effectiveCoverImageUrl,
             media,
             eventId: eventId || undefined,
             needs,
@@ -393,7 +392,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                         type="button"
                         onClick={() => setCoverImageUrl(m.url)}
                         className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                          coverImageUrl === m.url ? "border-clay" : "border-transparent"
+                          effectiveCoverImageUrl === m.url ? "border-clay" : "border-transparent"
                         }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- R2-hosted upload thumbnail, not a Next-optimizable local asset */}

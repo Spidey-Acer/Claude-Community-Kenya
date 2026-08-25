@@ -21,6 +21,7 @@
     "verify:results": "tsx scripts/verify-results.ts",
     "verify:reviews": "tsx scripts/verify-reviews.ts",
     "verify:events": "tsx scripts/verify-events.ts",
+    "verify:showcase": "tsx scripts/verify-showcase.ts",
     "import:manual-teams": "tsx scripts/import-manual-teams.ts",
     "seed:hackathon": "tsx scripts/seed-hackathon-cohort.ts",
     "seed:events": "tsx scripts/seed-events.ts",

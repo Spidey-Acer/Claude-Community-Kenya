@@ -41,10 +41,18 @@ export function GifPicker({ onSelect }: GifPickerProps) {
   const [state, setState] = useState<SearchState>({ kind: "idle" })
   const requestSeq = useRef(0)
 
+  const term = query.trim()
+
+  // Derived, not stored. "Empty box means idle" is a fact about the current
+  // query, so reading it off `term` at render is both simpler and avoids the
+  // extra render pass that setting state inside the effect would cost.
+  const view: SearchState = term ? state : { kind: "idle" }
+
   useEffect(() => {
-    const term = query.trim()
     if (!term) {
-      setState({ kind: "idle" })
+      // Invalidate any in-flight request so its response cannot land after the
+      // box has been cleared.
+      requestSeq.current++
       return
     }
 
@@ -79,14 +87,13 @@ export function GifPicker({ onSelect }: GifPickerProps) {
     }, SEARCH_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [term])
 
   function handleSelect(item: TenorSearchResult) {
     onSelect({
-      // Not an R2 object — there is no upload key for a Tenor GIF. Prefixed
-      // so it's unmistakably not a pending-upload key if it ever needs to be
-      // told apart from one downstream.
-      // The server pins this prefix and the Tenor host; do not hand-write it.
+      // Not an R2 object — a picked GIF has no upload key. The server keys
+      // off this prefix to skip the pending-upload check and pin the host
+      // instead, so do not hand-write it.
       key: `${TENOR_KEY_PREFIX}${item.id}`,
       url: item.url,
       width: item.width,
@@ -109,35 +116,33 @@ export function GifPicker({ onSelect }: GifPickerProps) {
         />
       </div>
 
-      {state.kind === "loading" && (
+      {view.kind === "loading" && (
         <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Searching...
         </div>
       )}
 
-      {state.kind === "unavailable" && (
+      {view.kind === "unavailable" && (
         <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
-          <ImageOff className="h-3.5 w-3.5 shrink-0" /> {state.message}
+          <ImageOff className="h-3.5 w-3.5 shrink-0" /> {view.message}
         </div>
       )}
 
-      {state.kind === "empty" && (
+      {view.kind === "empty" && (
         <p className="py-4 font-inter text-xs text-ink-muted">No GIFs found for &ldquo;{query}&rdquo;.</p>
       )}
 
-      {state.kind === "results" && (
+      {view.kind === "results" && (
         <>
           <div className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto">
-            {state.items.map((item) => (
+            {view.items.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item)}
                 className="overflow-hidden rounded-lg border border-sand-2 transition-colors hover:border-clay"
               >
-                {
-                  // eslint-disable-next-line @next/next/no-img-element -- external Tenor thumbnail, not an optimizable local asset
-                }
+                {/* eslint-disable-next-line @next/next/no-img-element -- a remote Tenor thumbnail, not a local asset next/image can optimise */}
                 <img src={item.previewUrl} alt={item.description || "GIF"} className="h-20 w-full object-cover" />
               </button>
             ))}

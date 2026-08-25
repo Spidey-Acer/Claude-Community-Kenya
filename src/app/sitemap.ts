@@ -1,16 +1,23 @@
 import { MetadataRoute } from "next";
 import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues, getTeamMemberSlugs } from "@/lib/data";
+import { getShowcasePosts } from "@/lib/showcase/queries";
 
 const BASE_URL = "https://www.claudekenya.org";
 
+/** Upper bound per collection. Sitemaps allow 50,000 URLs; this is well under. */
+const SITEMAP_MAX_ITEMS = 1000;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs] = await Promise.all([
+  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs, showcaseData] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     getCommunitySubmissions().catch(() => ({ items: [] })),
     getGalleryPhotos({ limit: 1 }).catch(() => [] as { id: string }[]),
     getNewsletterIssues().catch(() => []),
     getTeamMemberSlugs().catch(() => [] as string[]),
+    // Explicit limit: the default page size is 20, which would silently cap
+    // the sitemap at the first 20 posts however many exist.
+    getShowcasePosts({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [], total: 0 })),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -24,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ? [{ url: `${BASE_URL}/gallery`, changeFrequency: "weekly" as const, priority: 0.7 }]
       : []),
     { url: `${BASE_URL}/community`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/showcase`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/join`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/resources`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/resources/getting-started`, changeFrequency: "monthly", priority: 0.8 },
@@ -69,6 +77,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
+  const showcaseRoutes: MetadataRoute.Sitemap = showcaseData.items.map((post) => ({
+    url: `${BASE_URL}/showcase/${post.slug}`,
+    lastModified: post.lastActivityAt,
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
   const newsletterRoutes: MetadataRoute.Sitemap = newsletterIssues.map((issue) => ({
     url: `${BASE_URL}/newsletter/${issue.slug}`,
     lastModified: issue.publishedAt,
@@ -82,5 +97,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...newsletterRoutes, ...teamRoutes];
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...newsletterRoutes, ...teamRoutes];
 }
