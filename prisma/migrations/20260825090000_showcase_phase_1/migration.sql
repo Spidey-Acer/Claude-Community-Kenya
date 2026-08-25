@@ -2,11 +2,17 @@
 --
 -- Generated with `prisma migrate diff --from-config-datasource --to-schema`.
 -- One line was removed from the generated output by hand: a
--- `DROP INDEX "impact_lab_match_runs_one_final_per_cohort"`. That index exists in
--- the database but not in schema.prisma, so the diff proposed dropping it. It is
--- a real Impact Lab uniqueness constraint added outside the migration history and
--- has nothing to do with the showcase; dropping it here would be a silent
--- regression. The drift is left for a separate, deliberate fix.
+-- `DROP INDEX "impact_lab_match_runs_one_final_per_cohort"`.
+--
+-- That index is NOT drift. It was created deliberately in
+-- 20260722120000_impact_lab_hardening and is present in every database. It is a
+-- *partial* unique index (`ON impact_lab_match_runs (cohort) WHERE "isFinal"`),
+-- and Prisma's schema language cannot express a WHERE predicate — so every diff
+-- against schema.prisma will keep proposing to drop it, forever. Dropping it
+-- would let a cohort have two final match runs.
+--
+-- See docs/database/unrepresentable-objects.md for the full register and the
+-- rule that governs generating migrations in this repo.
 
 -- CreateEnum
 CREATE TYPE "ReportTarget" AS ENUM ('SUBMISSION', 'COMMENT', 'UPDATE');
