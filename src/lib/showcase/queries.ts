@@ -158,6 +158,22 @@ export async function getShowcasePosts(opts?: {
   return { items: rows.map(mapRow), total }
 }
 
+/**
+ * The emoji this member has already reacted with on a post.
+ *
+ * Kept separate from `getShowcasePostBySlug` rather than folded into it: the
+ * post is the same for everyone and this answer is not, so mixing them would
+ * make a per-viewer result look cacheable alongside one that is.
+ */
+export async function getMyReactions(submissionId: string, userId: string | null): Promise<string[]> {
+  if (!userId) return []
+  const rows = await prisma.showcaseReaction.findMany({
+    where: { submissionId, userId },
+    select: { emoji: true },
+  })
+  return rows.map(r => r.emoji)
+}
+
 export async function getShowcasePostBySlug(slug: string): Promise<ShowcasePostView | null> {
   const row = await prisma.communitySubmission.findUnique({
     where: { slug },
