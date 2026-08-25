@@ -75,7 +75,10 @@ print('postgresql://${ROLE}:' + urllib.parse.quote(os.environ['PGPASSWORD'], saf
 export DIRECT_URL="$DATABASE_URL"
 
 echo "3/6  what is pending:"
-npx prisma migrate status 2>&1 | sed -n '/following migration/,$p' | head -20
+# `migrate status` exits non-zero whenever anything is pending, which is the
+# normal case here — without the guard, `set -e` kills the script before it
+# prints anything.
+npx prisma migrate status 2>&1 | tail -20 || true
 echo
 
 if [ "$APPLY" != "yes" ]; then
@@ -90,13 +93,19 @@ npx prisma migrate deploy 2>&1 | tail -12
 
 echo
 echo "5/6  verifying schema…"
-ssh -o BatchMode=yes "$VPS" "docker exec -i ${PGC} psql -U cck -d ${DB} -tAc \"
-  SELECT 'showcase tables: ' || count(*) FROM information_schema.tables
-   WHERE table_name IN ('showcase_reactions','content_reports');
-  SELECT 'voterKey present: ' || count(*) FROM information_schema.columns
-   WHERE table_name='community_upvotes' AND column_name='voterKey';
-  SELECT 'upvotes total/keyed: ' || count(*) || '/' || count(\\\"voterKey\\\") FROM community_upvotes;
-  SELECT 'newsletter_subscribers rows: ' || count(*) FROM newsletter_subscribers;\""
+# Piped over stdin rather than embedded in the ssh argument: the quoting needed
+# for "voterKey" through two shells is easy to get subtly wrong.
+ssh -o BatchMode=yes "$VPS" "docker exec -i ${PGC} psql -U cck -d ${DB} -tA" <<'SQL'
+SELECT 'showcase tables (want 2): ' || count(*) FROM information_schema.tables
+ WHERE table_name IN ('showcase_reactions','content_reports');
+SELECT 'new submission columns (want 8): ' || count(*) FROM information_schema.columns
+ WHERE table_name='community_submissions'
+   AND column_name IN ('coverImageUrl','media','eventId','needs','builtWith',
+                       'lastActivityAt','followerCount','reactionCounts');
+SELECT 'upvotes total/keyed (want equal): ' || count(*) || '/' || count("voterKey")
+  FROM community_upvotes;
+SELECT 'community submissions still present: ' || count(*) FROM community_submissions;
+SQL
 
 echo
 echo "6/6  done. Deploy the code now — until it ships, upvotes will fail:"
