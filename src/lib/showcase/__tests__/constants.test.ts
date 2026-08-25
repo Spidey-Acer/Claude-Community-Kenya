@@ -8,6 +8,7 @@ import {
   UPLOAD_CONTENT_TYPES,
   isUploadContentType,
   REPORT_REASONS,
+  isTenorUrl,
 } from "@/lib/showcase/constants"
 import { ReportReason } from "@/generated/prisma/client"
 
@@ -68,5 +69,26 @@ describe("REPORT_REASONS", () => {
       expect(r.label.length).toBeGreaterThan(0)
       expect(r.label).not.toBe(r.value)
     }
+  })
+})
+
+describe("isTenorUrl", () => {
+  it("accepts Tenor media hosts over https", () => {
+    expect(isTenorUrl("https://media.tenor.com/abc/x.gif")).toBe(true)
+    expect(isTenorUrl("https://c.tenor.com/abc/x.gif")).toBe(true)
+  })
+
+  // The reason this parses the URL instead of using startsWith: both of these
+  // pass a naive prefix or substring check and neither is Tenor.
+  it("rejects lookalike hosts", () => {
+    expect(isTenorUrl("https://media.tenor.com.evil.test/x.gif")).toBe(false)
+    expect(isTenorUrl("https://nottenor.com/x.gif")).toBe(false)
+    expect(isTenorUrl("https://evil.test/?u=https://media.tenor.com/x.gif")).toBe(false)
+  })
+
+  it("rejects non-https and unparseable values", () => {
+    expect(isTenorUrl("http://media.tenor.com/x.gif")).toBe(false)
+    expect(isTenorUrl("javascript:alert(1)")).toBe(false)
+    expect(isTenorUrl("not a url")).toBe(false)
   })
 })

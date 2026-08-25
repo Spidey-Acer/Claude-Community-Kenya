@@ -11,7 +11,12 @@ import {
   containsPromptInjection,
 } from "@/lib/input-sanitization"
 import { toSlug } from "@/lib/utils"
-import { isNeedKey, MAX_MEDIA_PER_POST } from "@/lib/showcase/constants"
+import {
+  isNeedKey,
+  isTenorUrl,
+  MAX_MEDIA_PER_POST,
+  TENOR_KEY_PREFIX,
+} from "@/lib/showcase/constants"
 import { publicUrl } from "@/lib/gallery/r2"
 
 /**
@@ -124,9 +129,20 @@ export async function POST(request: NextRequest) {
   // Width, height and kind stay as supplied. They are layout hints for an
   // object we have now confirmed is ours, and re-sniffing would mean a second
   // round trip to R2 for something finalize already checked.
+  // A picked GIF is the one exception: it is never uploaded, so it has no R2
+  // object and no key to check. It keeps its own URL, which means the host has
+  // to be pinned instead — otherwise `key: "tenor:anything"` becomes a way to
+  // put any URL on the internet into an APPROVED post, which is the exact hole
+  // the prefix check above exists to close.
   const pendingPrefix = `showcase/pending/${userId}/`
+  const isPickedGif = (key: string) => key.startsWith(TENOR_KEY_PREFIX)
 
-  if (data.media.some(item => !item.key.startsWith(pendingPrefix))) {
+  const badMedia = data.media.find(item =>
+    isPickedGif(item.key)
+      ? item.kind !== "gif" || !isTenorUrl(item.url)
+      : !item.key.startsWith(pendingPrefix),
+  )
+  if (badMedia) {
     return NextResponse.json(
       { success: false, error: "Validation failed", details: { media: "Unknown upload" } },
       { status: 400 },
@@ -135,7 +151,7 @@ export async function POST(request: NextRequest) {
 
   const media = data.media.map(item => ({
     ...item,
-    url: publicUrl(item.key),
+    url: isPickedGif(item.key) ? item.url : publicUrl(item.key),
     posterUrl: item.posterUrl?.startsWith(publicUrl(pendingPrefix)) ? item.posterUrl : undefined,
   }))
 

@@ -90,3 +90,33 @@ export const REPORT_REASONS = [
 ] as const
 
 export type ReportReasonValue = (typeof REPORT_REASONS)[number]["value"]
+
+/**
+ * Marker for a GIF picked from Tenor rather than uploaded to R2.
+ *
+ * Every other media item is claimed by an R2 key under the poster's own pending
+ * prefix, which is what proves it is theirs. A picked GIF has no object and no
+ * key, so it carries this prefix instead and is pinned by host on the way in.
+ */
+export const TENOR_KEY_PREFIX = "tenor:"
+
+/** Hosts Tenor actually serves media from. */
+const TENOR_HOSTS = ["media.tenor.com", "media1.tenor.com", "c.tenor.com", "tenor.com"]
+
+/**
+ * True only for a URL on a Tenor media host, over https.
+ *
+ * Parsed rather than matched with `startsWith`: `https://media.tenor.com.evil
+ * .test/x.gif` passes a prefix check and is not Tenor. Suffix matching is
+ * anchored on a dot so `nottenor.com` cannot pass either.
+ */
+export function isTenorUrl(value: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== "https:") return false
+  return TENOR_HOSTS.some(host => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))
+}
