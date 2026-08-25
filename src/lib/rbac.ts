@@ -21,6 +21,7 @@ export type AdminResource =
   | "team"
   | "photos"
   | "impact-lab"
+  | "reports"
 
 export type Action = "view" | "create" | "edit" | "delete" | "approve"
 
@@ -45,6 +46,7 @@ const rolePermissions: Record<
     team: ["view", "create", "edit", "delete"],
     photos: ["view", "create", "edit", "delete"],
     "impact-lab": ["view", "create", "edit", "delete", "approve"],
+    reports: ["view", "edit", "approve"],
   },
   ADMIN: {
     dashboard: ["view"],
@@ -68,6 +70,7 @@ const rolePermissions: Record<
     // reveal them — the one step the whole event depends on. ADMIN already
     // holds `delete` here, which is strictly more destructive.
     "impact-lab": ["view", "create", "edit", "delete", "approve"],
+    reports: ["view", "edit", "approve"],
   },
   MODERATOR: {
     dashboard: ["view"],
@@ -86,6 +89,7 @@ const rolePermissions: Record<
     team: ["view"],
     photos: ["view"],
     "impact-lab": ["view"],
+    reports: ["view", "edit", "approve"],
   },
   MEMBER: {
     // "dashboard" here means the admin dashboard. MEMBER must not have access —
@@ -106,6 +110,7 @@ const rolePermissions: Record<
     team: [],
     photos: [],
     "impact-lab": [],
+    reports: [],
   },
 }
 
