@@ -71,3 +71,22 @@ export const UPLOAD_CONTENT_TYPES = [
 export function isUploadContentType(value: string): boolean {
   return (UPLOAD_CONTENT_TYPES as readonly string[]).includes(value)
 }
+
+/**
+ * Report reasons, as plain strings rather than the Prisma `ReportReason` enum.
+ *
+ * The report control is a client component, and importing a generated Prisma
+ * enum into one pulls `@prisma/client/runtime` into the browser bundle — which
+ * fails the build outright ("the chunking context does not support external
+ * modules"). The values here must stay identical to the enum in schema.prisma;
+ * the test beside this file asserts that.
+ */
+export const REPORT_REASONS = [
+  { value: "SPAM", label: "Spam" },
+  { value: "ABUSE", label: "Abuse or harassment" },
+  { value: "OFF_TOPIC", label: "Off topic" },
+  { value: "PLAGIARISM", label: "Plagiarism" },
+  { value: "OTHER", label: "Something else" },
+] as const
+
+export type ReportReasonValue = (typeof REPORT_REASONS)[number]["value"]

@@ -2,20 +2,15 @@
 
 import { useState, useTransition } from "react"
 import { Flag, Loader2 } from "lucide-react"
-import { ReportReason, ReportTarget } from "@/generated/prisma/client"
+// Plain strings, not the Prisma enum: importing generated Prisma types into a
+// client component pulls the whole Prisma runtime into the browser bundle.
+import { REPORT_REASONS, type ReportReasonValue } from "@/lib/showcase/constants"
 import { cn } from "@/lib/utils"
 
 interface ReportButtonProps {
   targetId: string
 }
 
-const REASONS: Array<{ value: ReportReason; label: string }> = [
-  { value: ReportReason.SPAM, label: "Spam" },
-  { value: ReportReason.ABUSE, label: "Abuse or harassment" },
-  { value: ReportReason.OFF_TOPIC, label: "Off topic" },
-  { value: ReportReason.PLAGIARISM, label: "Plagiarism" },
-  { value: ReportReason.OTHER, label: "Something else" },
-]
 
 /**
  * Flags a showcase post for moderator review.
@@ -31,7 +26,7 @@ export function ReportButton({ targetId }: ReportButtonProps) {
   const [done, setDone] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  function submit(reason: ReportReason) {
+  function submit(reason: ReportReasonValue) {
     setError(null)
     startTransition(async () => {
       try {
@@ -41,7 +36,7 @@ export function ReportButton({ targetId }: ReportButtonProps) {
         const res = await fetch("/api/reports", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
-          body: JSON.stringify({ targetType: ReportTarget.SUBMISSION, targetId, reason }),
+          body: JSON.stringify({ targetType: "SUBMISSION", targetId, reason }),
         })
         const data = await res.json()
         if (!res.ok || !data.success) throw new Error(data.error ?? "Failed to report")
@@ -76,7 +71,7 @@ export function ReportButton({ targetId }: ReportButtonProps) {
           className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-sand bg-paper-card p-1.5 shadow-lg"
         >
           {error && <p className="px-2.5 py-1.5 font-inter text-[12px] text-clay">{error}</p>}
-          {REASONS.map((r) => (
+          {REPORT_REASONS.map((r) => (
             <button
               key={r.value}
               type="button"

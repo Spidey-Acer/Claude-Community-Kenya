@@ -7,7 +7,9 @@ import {
   MAX_MEDIA_PER_POST,
   UPLOAD_CONTENT_TYPES,
   isUploadContentType,
+  REPORT_REASONS,
 } from "@/lib/showcase/constants"
+import { ReportReason } from "@/generated/prisma/client"
 
 describe("showcase constants", () => {
   it("exposes the ten agreed need keys", () => {
@@ -48,5 +50,23 @@ describe("isUploadContentType", () => {
     expect(isUploadContentType("text/html")).toBe(false)
     expect(isUploadContentType("image/svg+xml")).toBe(false)
     expect(isUploadContentType("application/javascript")).toBe(false)
+  })
+})
+
+describe("REPORT_REASONS", () => {
+  // REPORT_REASONS deliberately does NOT import the Prisma enum — doing that in
+  // a client component pulls the Prisma runtime into the browser bundle and the
+  // build fails. This test is the seam that keeps the copy honest.
+  it("matches the ReportReason enum in the schema", () => {
+    expect(REPORT_REASONS.map(r => r.value).sort()).toEqual(
+      Object.values(ReportReason).sort(),
+    )
+  })
+
+  it("gives every reason a human label", () => {
+    for (const r of REPORT_REASONS) {
+      expect(r.label.length).toBeGreaterThan(0)
+      expect(r.label).not.toBe(r.value)
+    }
   })
 })
