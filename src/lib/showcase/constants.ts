@@ -49,3 +49,25 @@ export function isReactionEmoji(value: string): value is ReactionEmoji {
 export const MAX_MEDIA_PER_POST = 5
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 export const MAX_DEMO_BYTES = 15 * 1024 * 1024
+
+/**
+ * Content types a presigned upload URL may be minted for.
+ *
+ * The bytes still decide what a file really is — that happens in finalize. This
+ * list exists for a different reason: the content type is baked into the
+ * signature and stored on the object, and R2 serves the bucket from a public
+ * domain. Signing for `text/html` would put an attacker-authored page on that
+ * origin, reachable whether or not finalize ever accepts it. Doubles as the
+ * `accept` attribute for the composer's file input.
+ */
+export const UPLOAD_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+] as const
+
+export function isUploadContentType(value: string): boolean {
+  return (UPLOAD_CONTENT_TYPES as readonly string[]).includes(value)
+}
