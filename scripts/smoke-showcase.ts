@@ -10,6 +10,7 @@
  */
 // Must precede the prisma import: the client reads DATABASE_URL at module load.
 import "dotenv/config"
+import { requirePreviewDatabase } from "./preview-db-guard"
 import { prisma } from "@/lib/prisma"
 import { getShowcasePosts, getShowcasePostBySlug } from "@/lib/showcase/queries"
 
@@ -59,6 +60,8 @@ async function cleanup() {
 }
 
 async function main() {
+  requirePreviewDatabase()
+
   await cleanup()
   await seed()
 
@@ -98,8 +101,12 @@ async function main() {
   check("bySlug returns null for an unknown slug", await getShowcasePostBySlug("nope-xyz"), null)
 
   await cleanup()
-  const afterCleanup = await getShowcasePosts({ sort: "hot" })
-  check("fixtures removed", afterCleanup.total, 0)
+  // Count our own fixtures, not the whole table: asserting the table is empty
+  // would start failing the day a real member posts something.
+  const remaining = await prisma.communitySubmission.count({
+    where: { slug: { startsWith: PREFIX } },
+  })
+  check("fixtures removed", remaining, 0)
 
   console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`)
   process.exit(failures === 0 ? 0 : 1)

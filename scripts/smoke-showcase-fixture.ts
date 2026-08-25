@@ -7,6 +7,7 @@
  *   npx tsx scripts/smoke-showcase-fixture.ts down
  */
 import "dotenv/config"
+import { requirePreviewDatabase } from "./preview-db-guard"
 import { prisma } from "@/lib/prisma"
 
 const SLUG = "smoke-fixture-mkulimaos-field-logger"
@@ -41,7 +42,9 @@ async function down() {
 
 const mode = process.argv[2]
 const run = mode === "down" ? down : up
-run()
+Promise.resolve()
+  .then(requirePreviewDatabase)
+  .then(run)
   .then(() => process.exit(0))
   .catch(e => {
     console.error(e)
