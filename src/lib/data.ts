@@ -618,7 +618,10 @@ function mapPrismaCommunitySubmission(
   return {
     id: s.id,
     slug: s.slug,
-    type: s.type,
+    // Safe because every query in this module excludes SHOWCASE — /community
+    // renders only the four resource types and switches on this field. Showcase
+    // posts share the table but are read through src/lib/showcase/queries.ts.
+    type: s.type as CommunitySubmissionView["type"],
     title: decodeHtmlEntities(s.title),
     shortDescription: decodeHtmlEntities(s.shortDescription),
     fullDescription: decodeHtmlEntities(s.fullDescription),
@@ -652,9 +655,17 @@ export async function getCommunitySubmissions(opts?: {
   const limit = opts?.limit ?? 20
   const skip = (page - 1) * limit
 
+  // SHOWCASE shares this table but is a different surface with its own feed,
+  // moderation rules and card component. Excluding it here rather than at every
+  // call site means a showcase post can never leak into /community — including
+  // via a hand-crafted `?type=SHOWCASE`, which is ignored rather than honoured.
+  const requestedType =
+    opts?.type && opts.type !== "SHOWCASE"
+      ? (opts.type as PrismaCommunitySubmission["type"])
+      : undefined
   const where = {
     status: "APPROVED" as const,
-    ...(opts?.type && { type: opts.type as PrismaCommunitySubmission["type"] }),
+    type: requestedType ?? { not: "SHOWCASE" as const },
   }
 
   const orderBy = opts?.sort === "popular"

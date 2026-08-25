@@ -7,6 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -19,6 +21,7 @@
     "verify:results": "tsx scripts/verify-results.ts",
     "verify:reviews": "tsx scripts/verify-reviews.ts",
     "verify:events": "tsx scripts/verify-events.ts",
+    "verify:showcase": "tsx scripts/verify-showcase.ts",
     "import:manual-teams": "tsx scripts/import-manual-teams.ts",
     "seed:hackathon": "tsx scripts/seed-hackathon-cohort.ts",
     "seed:events": "tsx scripts/seed-events.ts",
@@ -76,6 +79,8 @@
     "prisma": "^7.4.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.7"
   }
 }

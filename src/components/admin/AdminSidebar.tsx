@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import {
   LayoutDashboard,
   Mic2,
@@ -23,6 +23,7 @@ import {
   Sparkles,
   Camera,
   Network,
+  ShieldAlert,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
@@ -40,6 +41,7 @@ const navItems = [
   { href: "/admin/photos", label: "Photos", icon: Camera },
   { href: "/admin/blog", label: "Blog Posts", icon: FileText },
   { href: "/admin/community", label: "Community Hub", icon: Library },
+  { href: "/admin/reports", label: "Reports", icon: ShieldAlert },
   { href: "/admin/impact-lab", label: "Impact Lab", icon: Network },
   { href: "/admin/contact", label: "Contact Messages", icon: MessageSquare },
   { href: "/admin/team", label: "Team", icon: UsersRound },
@@ -48,8 +50,17 @@ const navItems = [
 
 const COLLAPSED_KEY = "cck-admin-sidebar-collapsed"
 
+// Duplicated from rolePermissions in @/lib/rbac rather than imported: rbac.ts
+// pulls in @/auth (bcryptjs, a Prisma dynamic import) at module scope, which
+// breaks the client bundle. AdminUserManager.tsx and
+// admin/volunteers/[id]/page.tsx hit the same wall and duplicate ROLE_LABELS
+// / ROLE_COLORS locally for the same reason — this follows that precedent.
+// Keep in sync with rbac.ts's `reports` entry if that ever changes.
+const REPORTS_VISIBLE_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"])
+
 export function AdminSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
   // localStorage is read after mount — reading it during render would make the
   // server and client HTML disagree and trigger a hydration error.
@@ -59,6 +70,11 @@ export function AdminSidebar() {
     setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "1")
     setHydrated(true)
   }, [])
+
+  const role = (session?.user as { role?: string } | undefined)?.role
+  const visibleNavItems = navItems.filter(
+    (item) => item.href !== "/admin/reports" || REPORTS_VISIBLE_ROLES.has(role ?? "")
+  )
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -131,7 +147,7 @@ export function AdminSidebar() {
 
       {/* Navigation — scrolls internally, the rail itself stays pinned */}
       <nav className={cn("flex-1 overflow-y-auto p-3 space-y-0.5", collapsed && "p-2")}>
-        {navItems.map(({ href, label, icon: Icon, exact }) => {
+        {visibleNavItems.map(({ href, label, icon: Icon, exact }) => {
           const active = isActive(href, exact)
           return (
             <Link
