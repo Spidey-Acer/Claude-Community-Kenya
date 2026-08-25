@@ -74,6 +74,28 @@ enum CommunityResourceType {
   PROMPT
   WORKFLOW
   TOOL
+  // Added last on purpose: existing stored values keep their ordinal.
+  SHOWCASE
+}
+
+enum ReportTarget {
+  SUBMISSION
+  COMMENT
+  UPDATE
+}
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  OFF_TOPIC
+  PLAGIARISM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
 }
 
 enum CommunityStatus {
@@ -171,6 +193,9 @@ model User {
   onboardingSessions   OnboardingSession[]
   impactLabMatchRuns   ImpactLabMatchRun[]
   organisationMemberships OrganisationMember[]
+  showcaseReactions    ShowcaseReaction[]
+  communityComments    CommunityComment[]
+  contentReports       ContentReport[]
 
   @@map("users")
 }
@@ -348,6 +373,7 @@ model Event {
   updatedAt       DateTime    @updatedAt
 
   photos          MeetupPhoto[]
+  communitySubmissions CommunitySubmission[]
 
   @@map("events")
 }
@@ -620,20 +646,41 @@ model CommunitySubmission {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
-  user     User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  comments CommunityComment[]
-  upvotes  CommunityUpvote[]
+  // ─── Showcase fields (type = SHOWCASE). Null for the four resource types. ──
+  coverImageUrl  String?
+  /// MediaDescriptor[] — see src/lib/showcase/media.ts. Max 5.
+  media          Json?
+  eventId        String?
+  /// NeedKey[] — see src/lib/showcase/constants.ts.
+  needs          Json?
+  /// { models: string[], skills: string[], mcps: string[], tokensPerRun?: number }
+  builtWith      Json?
+  /// Feed ordering. Set on create; Phase 2 moves it on each ShowcaseUpdate.
+  lastActivityAt DateTime @default(now())
+  /// Denormalised for Phase 2's follow button; unused in Phase 1.
+  followerCount  Int      @default(0)
+  /// Denormalised { "🔥": 12 } so feed cards need no per-card aggregate.
+  reactionCounts Json?
+
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments  CommunityComment[]
+  upvotes   CommunityUpvote[]
+  event     Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  reactions ShowcaseReaction[]
 
   @@index([status])
   @@index([type])
   @@index([userId])
   @@index([status, type])
+  @@index([type, status, lastActivityAt])
+  @@index([eventId])
   @@map("community_submissions")
 }
 
 model CommunityComment {
   id           String          @id @default(cuid())
   submissionId String
+  userId       String?
   authorName   String?
   content      String          @db.Text
   status       CommunityStatus @default(PENDING)
@@ -643,9 +690,48 @@ model CommunityComment {
   updatedAt    DateTime        @updatedAt
 
   submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([submissionId, status])
+  @@index([userId])
   @@map("community_comments")
+}
+
+/// Reactions are members-only, so userId is required — unlike CommunityUpvote,
+/// which keeps an anonymous path and therefore needs the voterKey scheme.
+model ShowcaseReaction {
+  id           String   @id @default(cuid())
+  submissionId String
+  userId       String
+  emoji        String   @db.VarChar(16)
+  createdAt    DateTime @default(now())
+
+  submission CommunitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, userId, emoji])
+  @@index([submissionId])
+  @@map("showcase_reactions")
+}
+
+model ContentReport {
+  id         String       @id @default(cuid())
+  targetType ReportTarget
+  targetId   String
+  reporterId String?
+  reporterIp String?
+  reason     ReportReason
+  detail     String?      @db.Text
+  status     ReportStatus @default(OPEN)
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  reporter User? @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("content_reports")
 }
 
 model CommunityUpvote {
