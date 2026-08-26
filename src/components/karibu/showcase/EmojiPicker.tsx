@@ -106,7 +106,7 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
         <div
           role="dialog"
           aria-label="Emoji picker"
-          className="absolute z-20 mt-1 w-64 rounded-lg border border-sand-2 bg-paper-card p-3 shadow-lg"
+          className="absolute z-20 mt-1 w-80 rounded-lg border border-sand-2 bg-paper-card p-3 shadow-lg"
         >
           {EMOJI_GROUPS.map((group) => (
             <div key={group.label} className="mb-2 last:mb-0">
@@ -128,7 +128,7 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
                         onSelect(char)
                         close()
                       }}
-                      className="flex h-7 w-7 items-center justify-center rounded text-base transition-colors hover:bg-clay/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                      className="flex h-8 w-8 items-center justify-center rounded text-base transition-colors hover:bg-clay/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     >
                       {char}
                     </button>

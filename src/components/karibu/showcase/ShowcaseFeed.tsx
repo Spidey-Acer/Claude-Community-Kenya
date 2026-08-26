@@ -66,7 +66,9 @@ export function ShowcaseFeed({
 
   // Every returned item already belongs to the filtered event, so the first
   // one's name is the filter's name — no separate event lookup needed here.
-  const eventLabel = activeEvent ? (items[0]?.eventName ?? "this event") : null
+  // When the filter matches zero posts there's no row to read the name from —
+  // "selected event" at least says which chip the visitor can clear.
+  const eventLabel = activeEvent ? (items[0]?.eventName ?? "selected event") : null
 
   return (
     <>
@@ -143,7 +145,8 @@ export function ShowcaseFeed({
         </p>
       </section>
 
-      <section className={`${WRAP} pb-16`} aria-label="Showcase posts">
+      <section className={`${WRAP} pb-16`}>
+        <h2 className="sr-only">Showcase posts</h2>
         {dbError ? (
           <FeedErrorPanel surface="showcase" />
         ) : items.length > 0 ? (
@@ -199,6 +202,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
     <button
       type="button"
       onClick={onClear}
+      aria-label={`Remove filter — ${label}`}
       className="inline-flex items-center gap-1.5 rounded-full border border-clay bg-clay/10 px-3 py-1.5 font-inter text-[12.5px] font-medium text-clay transition-colors hover:bg-clay/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
       {label}

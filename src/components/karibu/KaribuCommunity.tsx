@@ -146,7 +146,8 @@ export function KaribuCommunity({
       </section>
 
       {/* Grid */}
-      <section className={`${WRAP} pb-16`} aria-label="Submissions">
+      <section className={`${WRAP} pb-16`}>
+        <h2 className="sr-only">Submissions</h2>
         {dbError ? (
           <FeedErrorPanel surface="Community Hub" />
         ) : items.length > 0 ? (
@@ -210,8 +211,11 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
       <div className="mt-auto flex items-center justify-between border-t border-sand pt-3">
         <div className="flex items-center gap-4 font-inter text-[12.5px] text-ink-muted">
           <span className="flex items-center gap-1 font-medium">
-            <ArrowUp className="h-3.5 w-3.5" />
+            <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
             {submission.upvoteCount}
+            <span className="sr-only">
+              {submission.upvoteCount === 1 ? "upvote" : "upvotes"}
+            </span>
           </span>
           <span>
             {submission.commentCount} {submission.commentCount === 1 ? "comment" : "comments"}

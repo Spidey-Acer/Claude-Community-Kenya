@@ -93,6 +93,7 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
               Visit project
+              <span className="sr-only"> (opens in new tab)</span>
             </a>
           )}
           {post.repoUrl && (
@@ -104,6 +105,7 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
             >
               <Github className="h-4 w-4" aria-hidden="true" />
               View source
+              <span className="sr-only"> (opens in new tab)</span>
             </a>
           )}
         </div>
