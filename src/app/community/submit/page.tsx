@@ -141,14 +141,20 @@ export default function CommunitySubmitPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Resource Type */}
           <div>
-            <label className="mb-3 block font-mono text-sm text-text-secondary">
+            <label id="submit-resource-type-label" className="mb-3 block font-mono text-sm text-text-secondary">
               Resource Type<span className="ml-0.5 text-red">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              role="radiogroup"
+              aria-labelledby="submit-resource-type-label"
+              className="grid grid-cols-2 gap-3"
+            >
               {RESOURCE_TYPES.map((rt) => (
                 <button
                   key={rt.key}
                   type="button"
+                  role="radio"
+                  aria-checked={type === rt.key}
                   onClick={() => setType(rt.key)}
                   className={cn(
                     "rounded border p-4 text-left transition-all",
@@ -167,8 +173,9 @@ export default function CommunitySubmitPage() {
           </div>
 
           {/* Title */}
-          <Field label="Title" required>
+          <Field label="Title" required id="submit-title">
             <input
+              id="submit-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -181,8 +188,9 @@ export default function CommunitySubmitPage() {
           </Field>
 
           {/* Short Description */}
-          <Field label="Short Description" required hint="20-300 characters. Shows in the card view.">
+          <Field label="Short Description" required hint="20-300 characters. Shows in the card view." id="submit-short-description">
             <textarea
+              id="submit-short-description"
               value={shortDescription}
               onChange={(e) => setShortDescription(e.target.value)}
               rows={2}
@@ -194,8 +202,9 @@ export default function CommunitySubmitPage() {
           </Field>
 
           {/* Full Description */}
-          <Field label="Full Description" required hint="Detailed explanation — what it does, how it works, use cases.">
+          <Field label="Full Description" required hint="Detailed explanation — what it does, how it works, use cases." id="submit-full-description">
             <textarea
+              id="submit-full-description"
               value={fullDescription}
               onChange={(e) => setFullDescription(e.target.value)}
               rows={6}
@@ -208,8 +217,9 @@ export default function CommunitySubmitPage() {
 
           {/* URLs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="URL" hint="Live demo or docs">
+            <Field label="URL" hint="Live demo or docs" id="submit-url">
               <input
+                id="submit-url"
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -217,8 +227,9 @@ export default function CommunitySubmitPage() {
                 className="w-full rounded border border-border-default bg-bg-card px-3 py-2.5 font-mono text-sm text-text-primary placeholder:text-text-dim focus:border-green-primary/50 focus:outline-none"
               />
             </Field>
-            <Field label="GitHub Repo" hint="Source code link">
+            <Field label="GitHub Repo" hint="Source code link" id="submit-repo-url">
               <input
+                id="submit-repo-url"
                 type="url"
                 value={repoUrl}
                 onChange={(e) => setRepoUrl(e.target.value)}
@@ -229,8 +240,9 @@ export default function CommunitySubmitPage() {
           </div>
 
           {/* Install Instructions */}
-          <Field label="Install Instructions" hint="Terminal commands, setup steps, config">
+          <Field label="Install Instructions" hint="Terminal commands, setup steps, config" id="submit-install-instructions">
             <textarea
+              id="submit-install-instructions"
               value={installInstructions}
               onChange={(e) => setInstallInstructions(e.target.value)}
               rows={4}
@@ -251,7 +263,12 @@ export default function CommunitySubmitPage() {
                       className="flex items-center gap-1 rounded border border-border-default px-2.5 py-1 font-mono text-xs text-text-secondary"
                     >
                       {tag}
-                      <button type="button" onClick={() => removeTag(i)} className="ml-0.5 text-text-dim hover:text-red transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => removeTag(i)}
+                        aria-label={`Remove ${tag}`}
+                        className="ml-0.5 text-text-dim hover:text-red transition-colors"
+                      >
                         <X className="h-3 w-3" />
                       </button>
                     </span>
@@ -266,6 +283,7 @@ export default function CommunitySubmitPage() {
                   onKeyDown={handleTagKeyDown}
                   placeholder="e.g. typescript, mcp, claude"
                   maxLength={30}
+                  aria-label="Add a tag"
                   className="flex-1 rounded border border-border-default bg-bg-card px-3 py-2 font-mono text-sm text-text-primary placeholder:text-text-dim focus:border-green-primary/50 focus:outline-none"
                 />
                 <button
@@ -285,8 +303,9 @@ export default function CommunitySubmitPage() {
           <div className="rounded border border-border-default bg-bg-card p-5 space-y-4">
             <h2 className="font-mono text-sm font-medium text-text-secondary">About You (Optional)</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Your Name">
+              <Field label="Your Name" id="submit-submitter-name">
                 <input
+                  id="submit-submitter-name"
                   type="text"
                   value={submitterName}
                   onChange={(e) => setSubmitterName(e.target.value)}
@@ -295,8 +314,9 @@ export default function CommunitySubmitPage() {
                   className="w-full rounded border border-border-default bg-bg-secondary px-3 py-2 font-mono text-sm text-text-primary placeholder:text-text-dim focus:border-green-primary/50 focus:outline-none"
                 />
               </Field>
-              <Field label="Contact" hint="Email, Twitter, Discord — private, not shown publicly">
+              <Field label="Contact" hint="Email, Twitter, Discord — private, not shown publicly" id="submit-submitter-contact">
                 <input
+                  id="submit-submitter-contact"
                   type="text"
                   value={submitterContact}
                   onChange={(e) => setSubmitterContact(e.target.value)}
@@ -329,16 +349,18 @@ function Field({
   label,
   required,
   hint,
+  id,
   children,
 }: {
   label: string
   required?: boolean
   hint?: string
+  id?: string
   children: React.ReactNode
 }) {
   return (
     <div>
-      <label className="mb-1.5 block font-mono text-sm text-text-secondary">
+      <label htmlFor={id} className="mb-1.5 block font-mono text-sm text-text-secondary">
         {label}
         {required && <span className="ml-0.5 text-red">*</span>}
       </label>

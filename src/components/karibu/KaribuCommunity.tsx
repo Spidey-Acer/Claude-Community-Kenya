@@ -99,7 +99,7 @@ export function KaribuCommunity({
                   className={`shrink-0 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
                     on
                       ? "bg-ink text-paper-card"
-                      : "border border-sand-2 bg-paper-card font-medium text-[#4A4238] hover:border-ink"
+                      : "border border-sand-2 bg-paper-card font-medium text-ink-muted hover:border-ink"
                   }`}
                 >
                   {t.label}
@@ -165,7 +165,7 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
       aria-label={`${submission.title} — ${TYPE_LABEL[submission.type]}`}
     >
       <div className="mb-3">
-        <span className="inline-block rounded-full bg-[#F3E3D9] px-2.5 py-0.5 font-inter text-[11px] font-semibold uppercase tracking-[0.06em] text-clay">
+        <span className="inline-block rounded-full bg-clay/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold uppercase tracking-[0.06em] text-clay">
           {TYPE_LABEL[submission.type]}
         </span>
       </div>

@@ -200,7 +200,7 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
               onClick={() => removeFinalized(media.key)}
               disabled={disabled}
               aria-label="Remove file"
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-paper opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-scrim/70 text-scrim-text opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
             >
               <X className="h-3 w-3" />
             </button>
@@ -220,8 +220,8 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-paper/70 p-1 text-center">
               {item.status === "error" ? (
                 <>
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <span className="font-inter text-[9px] leading-tight text-red-600">{item.error}</span>
+                  <AlertTriangle className="h-4 w-4 text-status-error" />
+                  <span className="font-inter text-[9px] leading-tight text-status-error">{item.error}</span>
                 </>
               ) : (
                 <>
@@ -236,7 +236,7 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
               type="button"
               onClick={() => dismissInFlight(item.id)}
               aria-label="Cancel upload"
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-paper"
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-scrim/70 text-scrim-text"
             >
               <X className="h-3 w-3" />
             </button>
