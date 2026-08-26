@@ -238,7 +238,7 @@ export default async function DashboardPage() {
             <DashboardCard
               href="/community"
               icon={Sparkles}
-              title="Community Hub"
+              title="Tools & Prompts"
               description="MCP servers, prompts, workflows shared by members"
               accent="cyan"
             />

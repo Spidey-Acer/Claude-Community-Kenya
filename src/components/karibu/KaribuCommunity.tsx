@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KaribuCommunity — the Community Hub, restyled warm-light (redesign in place).
+ * KaribuCommunity — the Tools & Prompts section, restyled warm-light (redesign in place).
  *
  * Preserves every Hub feature: type + sort filters (URL-driven), submission
  * count, resource cards with upvotes/comments/tags/links, submitter, and the

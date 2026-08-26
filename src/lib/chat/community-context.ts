@@ -133,6 +133,6 @@ ${resourceBlock}
 - FAQ: /faq
 - Blog: /blog
 - Projects: /projects
-- Community Hub: /community
+- Tools & Prompts: /community
 `.trim();
 }

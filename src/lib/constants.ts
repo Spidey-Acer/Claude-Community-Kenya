@@ -43,9 +43,10 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     label: "Community",
     href: "/community",
     children: [
+      { label: "Showcase", href: "/showcase", description: "What members are building right now — share yours." },
+      { label: "Tools & Prompts", href: "/community", description: "MCPs, prompts and workflows you can reuse." },
+      { label: "Projects", href: "/projects", description: "Selected work from across the community." },
       { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
-      { label: "Projects", href: "/projects", description: "What members are shipping with Claude." },
-      { label: "Community Hub", href: "/community", description: "MCPs, prompts, workflows shared by the community." },
     ],
   },
 ] as const;
