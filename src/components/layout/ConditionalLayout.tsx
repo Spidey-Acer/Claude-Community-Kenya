@@ -56,7 +56,6 @@ export function ConditionalLayout({
     "/dashboard",
     "/resources/",
     "/blog/",
-    "/community/",
   ];
   const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
 

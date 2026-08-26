@@ -16,7 +16,18 @@
  * component just renders whichever state it's told.
  */
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react"
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactElement,
+} from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Send, Loader2, Plus, X, AlertTriangle, CheckCircle2, LogIn, Mail } from "lucide-react"
@@ -93,7 +104,10 @@ function VerifyEmailPrompt() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {})
+      .catch(() => {
+        setStatus("error")
+        setMessage("Couldn't initialize this page. Refresh and try again.")
+      })
   }, [])
 
   function handleResend() {
@@ -212,7 +226,11 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {})
+      .catch(() =>
+        // Without a token the submit button stays disabled — say why instead
+        // of leaving the form silently bricked.
+        setError("Couldn't initialize the form. Refresh the page and try again.")
+      )
   }, [])
 
   // A cover pick whose upload has since been removed from the gallery cannot
@@ -342,7 +360,10 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
 
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                    <label
+                      htmlFor="showcase-full-description"
+                      className="block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+                    >
                       Full description * (50–5000 characters)
                     </label>
                     <div className="flex items-center gap-1.5">
@@ -350,6 +371,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     </div>
                   </div>
                   <textarea
+                    id="showcase-full-description"
                     ref={descriptionRef}
                     value={fullDescription}
                     onChange={(e) => setFullDescription(e.target.value)}
@@ -391,7 +413,11 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                         key={m.key}
                         type="button"
                         onClick={() => setCoverImageUrl(m.url)}
-                        className={`overflow-hidden rounded-lg border-2 transition-colors ${
+                        aria-pressed={effectiveCoverImageUrl === m.url}
+                        aria-label={`Use as cover image${m.alt ? `: ${m.alt}` : ""}${
+                          effectiveCoverImageUrl === m.url ? " (selected)" : ""
+                        }`}
+                        className={`overflow-hidden rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                           effectiveCoverImageUrl === m.url ? "border-clay" : "border-transparent"
                         }`}
                       >
@@ -495,7 +521,10 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error"
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
@@ -537,11 +566,17 @@ function TagInputField({
   placeholder,
   maxLength,
   error,
+  id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedby,
 }: {
   list: TagListState
   placeholder: string
   maxLength: number
   error?: string
+  id?: string
+  "aria-invalid"?: boolean
+  "aria-describedby"?: string
 }) {
   return (
     <div className="space-y-2">
@@ -567,12 +602,15 @@ function TagInputField({
       )}
       <div className="flex gap-2">
         <input
+          id={id}
           type="text"
           value={list.input}
           onChange={(e) => list.setInput(e.target.value)}
           onKeyDown={list.onKeyDown}
           maxLength={maxLength}
           placeholder={placeholder}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedby}
           className={inputCls(error)}
         />
         <button
@@ -589,17 +627,37 @@ function TagInputField({
 }
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  const id = useId()
+  const errorId = useId()
+  // Wire the label to its control and the error to the control's description.
+  // The single child is always an input/textarea or TagInputField, all of
+  // which accept these props.
+  const child = Children.only(children)
+  const wired = isValidElement(child)
+    ? cloneElement(child as ReactElement<Record<string, unknown>>, {
+        id,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errorId : undefined,
+      })
+    : child
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      >
         {label}
       </label>
-      {children}
-      {error && <FieldError msg={error} />}
+      {wired}
+      {error && <FieldError id={errorId} msg={error} />}
     </div>
   )
 }
 
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>
+function FieldError({ msg, id }: { msg: string; id?: string }) {
+  return (
+    <p id={id} role="alert" className="mt-1 font-inter text-[11px] text-error">
+      {msg}
+    </p>
+  )
 }

@@ -58,7 +58,7 @@ export default async function CommunityDetailPage({
   const descriptionParagraphs = submission.fullDescription.split("\n\n")
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+    <>
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -71,6 +71,6 @@ export default async function CommunityDetailPage({
         comments={comments}
         descriptionParagraphs={descriptionParagraphs}
       />
-    </main>
+    </>
   )
 }
