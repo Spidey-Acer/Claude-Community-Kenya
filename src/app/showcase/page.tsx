@@ -30,11 +30,19 @@ export default async function ShowcasePage({
   const sort = isShowcaseSort(rawSort) ? rawSort : "hot"
   const eventId = typeof params.event === "string" ? params.event : undefined
   const need = typeof params.need === "string" ? params.need : undefined
+  const rawPage = typeof params.page === "string" ? parseInt(params.page, 10) : 1
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1
 
-  const { items, total } = await getShowcasePosts({ sort, eventId, need }).catch(() => ({
-    items: [],
-    total: 0,
-  }))
+  // A database failure must not render as a cheerful "nothing here yet" —
+  // the feed distinguishes an outage from a genuinely empty feed.
+  let items: Awaited<ReturnType<typeof getShowcasePosts>>["items"] = []
+  let total = 0
+  let dbError = false
+  try {
+    ;({ items, total } = await getShowcasePosts({ sort, eventId, need, page }))
+  } catch {
+    dbError = true
+  }
 
   return (
     <>
@@ -45,6 +53,8 @@ export default async function ShowcasePage({
         activeSort={sort}
         activeEvent={eventId}
         activeNeed={need}
+        page={page}
+        dbError={dbError}
       />
     </>
   )

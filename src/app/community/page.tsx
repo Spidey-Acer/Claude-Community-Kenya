@@ -34,13 +34,31 @@ export default async function CommunityPage({
   const type =
     typeof params.type === "string" && VALID_TYPES.includes(params.type) ? params.type : undefined
   const sort = params.sort === "popular" ? ("popular" as const) : ("recent" as const)
+  const rawPage = typeof params.page === "string" ? parseInt(params.page, 10) : 1
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1
 
-  const { items, total } = await getCommunitySubmissions({ type, sort }).catch(() => ({ items: [], total: 0 }))
+  // A database failure must not render as a cheerful "nothing here yet" —
+  // the feed distinguishes an outage from a genuinely empty hub.
+  let items: Awaited<ReturnType<typeof getCommunitySubmissions>>["items"] = []
+  let total = 0
+  let dbError = false
+  try {
+    ;({ items, total } = await getCommunitySubmissions({ type, sort, page }))
+  } catch {
+    dbError = true
+  }
 
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Community Hub" }]} />
-      <KaribuCommunity items={items} total={total} activeType={type} activeSort={sort} />
+      <KaribuCommunity
+        items={items}
+        total={total}
+        activeType={type}
+        activeSort={sort}
+        page={page}
+        dbError={dbError}
+      />
     </>
   )
 }

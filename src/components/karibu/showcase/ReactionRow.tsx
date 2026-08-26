@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { REACTION_EMOJI } from "@/lib/showcase/constants"
 import { cn } from "@/lib/utils"
 
@@ -69,10 +70,13 @@ export function ReactionRow({ slug, initialCounts, initialMine, signedIn }: Reac
           <button
             key={emoji}
             type="button"
-            onClick={() => toggle(emoji)}
-            disabled={!signedIn}
+            // aria-disabled + a click guard, not `disabled` — disabled buttons
+            // drop out of the focus order, so keyboard/SR users could neither
+            // reach the reactions nor learn why they can't react.
+            onClick={signedIn ? () => toggle(emoji) : undefined}
+            aria-disabled={!signedIn}
             aria-pressed={isMine}
-            aria-label={`${emoji} reaction, ${count} so far`}
+            aria-label={`${emoji} reaction, ${count} so far${signedIn ? "" : " — sign in to react"}`}
             title={signedIn ? undefined : "Sign in to react"}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm",
@@ -89,6 +93,14 @@ export function ReactionRow({ slug, initialCounts, initialMine, signedIn }: Reac
           </button>
         )
       })}
+      {!signedIn && (
+        <span className="font-inter text-[12px] text-ink-muted">
+          <Link href="/login" className="text-clay underline-offset-2 hover:underline">
+            Sign in
+          </Link>{" "}
+          to react
+        </span>
+      )}
     </div>
   )
 }

@@ -136,9 +136,16 @@ export function KaribuSelect({
         ref={buttonRef}
         id={id}
         type="button"
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
+        // On the focused trigger, not the listbox — screen readers only
+        // announce the active option when activedescendant lives on the
+        // element that actually has DOM focus (APG select-only combobox).
+        aria-activedescendant={
+          open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined
+        }
         aria-describedby={error ? errorId : undefined}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={handleButtonKeyDown}
@@ -160,7 +167,6 @@ export function KaribuSelect({
           ref={listRef}
           id={listboxId}
           role="listbox"
-          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
           className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-sand-2 bg-paper-card p-1 shadow-lg motion-reduce:transition-none"
         >
           {options.map((opt, i) => (

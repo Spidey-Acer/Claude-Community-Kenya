@@ -37,9 +37,11 @@ export function MediaGallery({ media }: MediaGalleryProps) {
             muted
             loop
             playsInline
+            controls
             preload="metadata"
             autoPlay={!prefersReducedMotion}
             poster={current.posterUrl}
+            aria-label={current.alt || "Project demo video"}
             className="h-full w-full object-contain"
           >
             <source src={current.url} type="video/mp4" />
@@ -56,14 +58,15 @@ export function MediaGallery({ media }: MediaGalleryProps) {
         )}
       </div>
 
+      {/* Plain toggle buttons, not role=tab — tab semantics promise
+        * arrow-key navigation and a tabpanel this strip doesn't have. */}
       {media.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Media thumbnails">
+        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Media thumbnails">
           {media.map((item, i) => (
             <button
               key={item.key}
               type="button"
-              role="tab"
-              aria-selected={i === active}
+              aria-pressed={i === active}
               aria-label={`Show media ${i + 1} of ${media.length}`}
               onClick={() => setActive(i)}
               className={cn(

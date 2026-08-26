@@ -19,26 +19,29 @@ export function NeedsChips({ needs, activeNeed }: NeedsChipsProps) {
   if (needs.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-1.5" role="list" aria-label="Looking for">
+    // A real <ul> — a role="listitem" override on a <Link> replaces its link
+    // role, so screen readers stopped announcing these as links at all.
+    <ul className="flex flex-wrap gap-1.5" aria-label="Looking for">
       {needs.map((need) => {
         const isActive = activeNeed === need
         return (
-          <Link
-            key={need}
-            href={`/showcase?need=${need}`}
-            role="listitem"
-            className={cn(
-              "rounded-full border px-2.5 py-1 font-inter text-[11.5px] font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
-              isActive
-                ? "border-clay bg-clay/10 text-clay"
-                : "border-sand text-ink-muted hover:border-clay hover:text-clay",
-            )}
-          >
-            {NEED_LABELS[need]}
-          </Link>
+          <li key={need}>
+            <Link
+              href={`/showcase?need=${need}`}
+              aria-current={isActive ? "true" : undefined}
+              className={cn(
+                "rounded-full border px-2.5 py-1 font-inter text-[11.5px] font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
+                isActive
+                  ? "border-clay bg-clay/10 text-clay"
+                  : "border-sand text-ink-muted hover:border-clay hover:text-clay",
+              )}
+            >
+              {NEED_LABELS[need]}
+            </Link>
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }

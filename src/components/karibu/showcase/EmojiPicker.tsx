@@ -32,7 +32,15 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  // Closing unmounts the focused emoji cell — hand focus back to the trigger
+  // so keyboard users aren't dropped to <body>.
+  function close() {
+    setOpen(false)
+    triggerRef.current?.focus()
+  }
 
   useEffect(() => {
     if (!open) return
@@ -70,7 +78,7 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
         break
       case "Escape":
         e.preventDefault()
-        setOpen(false)
+        close()
         break
       default:
         break
@@ -80,6 +88,7 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
   return (
     <div ref={rootRef} className="relative inline-block">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
           setActiveIndex(0)
@@ -117,9 +126,9 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
                       tabIndex={index === activeIndex ? 0 : -1}
                       onClick={() => {
                         onSelect(char)
-                        setOpen(false)
+                        close()
                       }}
-                      className="flex h-7 w-7 items-center justify-center rounded text-base transition-colors hover:bg-clay/10 focus:bg-clay/10 focus:outline-none"
+                      className="flex h-7 w-7 items-center justify-center rounded text-base transition-colors hover:bg-clay/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     >
                       {char}
                     </button>

@@ -39,7 +39,15 @@ export default async function ShowcaseDetailPage({
   const post = await getShowcasePostBySlug(slug)
   if (!post) notFound()
 
-  const comments = await getCommunityCommentsBySlug(slug).catch(() => [])
+  // Comments are non-critical to the post itself; if their fetch fails the
+  // page still renders, but the section says so instead of "No comments yet".
+  let comments: Awaited<ReturnType<typeof getCommunityCommentsBySlug>> = []
+  let commentsFailed = false
+  try {
+    comments = await getCommunityCommentsBySlug(slug)
+  } catch {
+    commentsFailed = true
+  }
 
   return (
     <>
@@ -50,7 +58,7 @@ export default async function ShowcaseDetailPage({
           { name: post.title },
         ]}
       />
-      <ShowcaseDetail post={post} comments={comments} />
+      <ShowcaseDetail post={post} comments={comments} commentsFailed={commentsFailed} />
     </>
   )
 }

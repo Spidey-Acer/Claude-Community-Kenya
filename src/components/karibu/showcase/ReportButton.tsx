@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { Flag, Loader2 } from "lucide-react"
 // Plain strings, not the Prisma enum: importing generated Prisma types into a
 // client component pulls the whole Prisma runtime into the browser bundle.
@@ -19,12 +19,38 @@ interface ReportButtonProps {
  * reason attached isn't actionable by a moderator. Works signed-out, matching
  * `/api/reports`'s own policy of accepting anonymous reports so flagging
  * abuse never requires an account.
+ *
+ * The popover is a plain disclosure (Tab-navigable buttons), not an ARIA
+ * menu — menu roles promise arrow-key navigation this doesn't need.
  */
 export function ReportButton({ targetId }: ReportButtonProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [done, setDone] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    function onPointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("pointerdown", onPointerDown)
+    }
+  }, [open])
 
   function submit(reason: ReportReasonValue) {
     setError(null)
@@ -49,15 +75,19 @@ export function ReportButton({ targetId }: ReportButtonProps) {
   }
 
   if (done) {
-    return <p className="font-inter text-[13px] text-ink-muted">{done}</p>
+    return (
+      <p role="status" className="font-inter text-[13px] text-ink-muted">
+        {done}
+      </p>
+    )
   }
 
   return (
-    <div className="relative inline-block">
+    <div ref={rootRef} className="relative inline-block">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
         aria-expanded={open}
         className="inline-flex items-center gap-1.5 rounded-full border border-sand px-3 py-1.5 font-inter text-[12.5px] text-ink-muted transition-colors hover:border-clay hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
       >
@@ -66,16 +96,16 @@ export function ReportButton({ targetId }: ReportButtonProps) {
       </button>
 
       {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-sand bg-paper-card p-1.5 shadow-lg"
-        >
-          {error && <p className="px-2.5 py-1.5 font-inter text-[12px] text-clay">{error}</p>}
+        <div className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-sand bg-paper-card p-1.5 shadow-lg">
+          {error && (
+            <p role="alert" className="px-2.5 py-1.5 font-inter text-[12px] text-error">
+              {error}
+            </p>
+          )}
           {REPORT_REASONS.map((r) => (
             <button
               key={r.value}
               type="button"
-              role="menuitem"
               disabled={isPending}
               onClick={() => submit(r.value)}
               className={cn(

@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, ExternalLink, Github, Plus } from "lucide-react";
 import type { CommunitySubmissionView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -42,11 +43,15 @@ export function KaribuCommunity({
   total,
   activeType,
   activeSort,
+  page = 1,
+  dbError = false,
 }: {
   items: CommunitySubmissionView[];
   total: number;
   activeType?: string;
   activeSort: string;
+  page?: number;
+  dbError?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +60,9 @@ export function KaribuCommunity({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    // Changing a filter or sort restarts from the first page — a page number
+    // only means anything within the result set it was computed for.
+    if (key !== "page") params.delete("page");
     router.push(`/community?${params.toString()}`);
   }
 
@@ -139,12 +147,21 @@ export function KaribuCommunity({
 
       {/* Grid */}
       <section className={`${WRAP} pb-16`} aria-label="Submissions">
-        {items.length > 0 ? (
-          <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((s) => (
-              <ResourceCard key={s.slug} submission={s} />
-            ))}
-          </Reveal>
+        {dbError ? (
+          <FeedErrorPanel surface="Community Hub" />
+        ) : items.length > 0 ? (
+          <>
+            <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {items.map((s) => (
+                <ResourceCard key={s.slug} submission={s} />
+              ))}
+            </Reveal>
+            <FeedPagination
+              page={page}
+              total={total}
+              onPageChange={(p) => update("page", p > 1 ? String(p) : "")}
+            />
+          </>
         ) : (
           <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
             <p className="mb-4 font-newsreader text-[24px] text-ink">

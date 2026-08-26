@@ -18,6 +18,7 @@ import type { ShowcaseSort } from "@/lib/showcase/ranking"
 import { NEED_LABELS, type NeedKey } from "@/lib/showcase/constants"
 import { ShowcaseCard } from "@/components/karibu/showcase/ShowcaseCard"
 import { Reveal } from "@/components/karibu/motion/Reveal"
+import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination"
 import { cn } from "@/lib/utils"
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10"
@@ -36,9 +37,19 @@ interface ShowcaseFeedProps {
   activeSort: ShowcaseSort
   activeEvent?: string
   activeNeed?: string
+  page?: number
+  dbError?: boolean
 }
 
-export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed }: ShowcaseFeedProps) {
+export function ShowcaseFeed({
+  items,
+  total,
+  activeSort,
+  activeEvent,
+  activeNeed,
+  page = 1,
+  dbError = false,
+}: ShowcaseFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const hasFilters = Boolean(activeEvent || activeNeed)
@@ -47,6 +58,9 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
     const params = new URLSearchParams(searchParams.toString())
     if (value) params.set(key, value)
     else params.delete(key)
+    // Changing a filter or sort restarts from the first page — a page number
+    // only means anything within the result set it was computed for.
+    if (key !== "page") params.delete("page")
     router.push(`/showcase${params.toString() ? `?${params.toString()}` : ""}`)
   }
 
@@ -86,15 +100,14 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
       </section>
 
       <section className={`${WRAP} pb-6`} aria-label="Sort and filters">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Sort showcase">
+        <div className="flex flex-wrap gap-2" aria-label="Sort showcase">
           {SORTS.map(({ key, label, icon: Icon }) => {
             const on = activeSort === key
             return (
               <button
                 key={key}
                 type="button"
-                role="tab"
-                aria-selected={on}
+                aria-pressed={on}
                 onClick={() => update("sort", key === "hot" ? undefined : key)}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
@@ -131,12 +144,21 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
       </section>
 
       <section className={`${WRAP} pb-16`} aria-label="Showcase posts">
-        {items.length > 0 ? (
-          <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((post) => (
-              <ShowcaseCard key={post.slug} post={post} />
-            ))}
-          </Reveal>
+        {dbError ? (
+          <FeedErrorPanel surface="showcase" />
+        ) : items.length > 0 ? (
+          <>
+            <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {items.map((post) => (
+                <ShowcaseCard key={post.slug} post={post} />
+              ))}
+            </Reveal>
+            <FeedPagination
+              page={page}
+              total={total}
+              onPageChange={(p) => update("page", p > 1 ? String(p) : undefined)}
+            />
+          </>
         ) : hasFilters ? (
           <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
             <p className="mb-4 font-newsreader text-[22px] text-ink">
