@@ -95,9 +95,18 @@ export async function POST(
         reactionCounts[row.emoji] = row._count.emoji
       }
 
+      // Showcase posts have no separate upvote path — the reaction total IS
+      // the popularity signal the "popular" sort and "hot" ranking read from
+      // upvoteCount, and reacting is the activity that keeps a post "hot".
+      const totalReactions = Object.values(reactionCounts).reduce((sum, n) => sum + n, 0)
+
       await tx.communitySubmission.update({
         where: { id: submission.id },
-        data: { reactionCounts },
+        data: {
+          reactionCounts,
+          upvoteCount: totalReactions,
+          lastActivityAt: new Date(),
+        },
       })
 
       const mine = await tx.showcaseReaction.findMany({

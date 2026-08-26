@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowUp, MessageCircle, Sparkles } from "lucide-react"
+import { Heart, MessageCircle, Sparkles } from "lucide-react"
 import type { ShowcasePostView } from "@/lib/showcase/queries"
 import { NEED_LABELS } from "@/lib/showcase/constants"
 
@@ -76,13 +76,21 @@ export function ShowcaseCard({ post }: ShowcaseCardProps) {
 
         <div className="mt-auto flex items-center justify-between border-t border-sand pt-3">
           <div className="flex items-center gap-4 font-inter text-[12.5px] text-ink-muted">
+            {/* upvoteCount is maintained as the total reaction count for
+             * showcase posts — see /api/showcase/[slug]/react. */}
             <span className="flex items-center gap-1 font-medium">
-              <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+              <Heart className="h-3.5 w-3.5" aria-hidden="true" />
               {post.upvoteCount}
+              <span className="sr-only">
+                {post.upvoteCount === 1 ? "reaction" : "reactions"}
+              </span>
             </span>
             <span className="flex items-center gap-1">
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
               {post.commentCount}
+              <span className="sr-only">
+                {post.commentCount === 1 ? "comment" : "comments"}
+              </span>
             </span>
           </div>
           {reactions.length > 0 && (

@@ -58,7 +58,7 @@ export async function POST(
   try {
     const submission = await prisma.communitySubmission.findUnique({
       where: { slug },
-      select: { id: true, status: true },
+      select: { id: true, status: true, type: true },
     })
 
     if (!submission || submission.status !== "APPROVED") {
@@ -96,6 +96,17 @@ export async function POST(
         status,
       },
     })
+
+    // A publicly visible comment on a showcase post is activity — the "hot"
+    // ranking decays from lastActivityAt. Held-for-moderation comments don't
+    // count until a moderator approves them (accepted gap: approval in the
+    // admin panel doesn't currently bump it).
+    if (submission.type === "SHOWCASE" && status === "APPROVED") {
+      await prisma.communitySubmission.update({
+        where: { id: submission.id },
+        data: { lastActivityAt: new Date() },
+      })
+    }
 
     return NextResponse.json(
       {
