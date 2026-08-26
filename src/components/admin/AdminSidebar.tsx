@@ -82,11 +82,6 @@ export function AdminSidebar() {
     setHydrated(true)
   }, [])
 
-  // Navigating closes the drawer; Escape closes it too.
-  useEffect(() => {
-    setDrawerOpen(false)
-  }, [pathname])
-
   useEffect(() => {
     if (!drawerOpen) return
     function onKeyDown(e: KeyboardEvent) {
@@ -113,7 +108,10 @@ export function AdminSidebar() {
     return pathname.startsWith(href)
   }
 
-  const navLinks = (
+  // Rendered twice (drawer + rail); the drawer passes onNavigate so tapping a
+  // link closes it — cheaper and lint-cleaner than watching pathname in an
+  // effect.
+  const renderNav = (onNavigate?: () => void) => (
     <nav className={cn("flex-1 overflow-y-auto p-3 space-y-0.5", collapsed && "md:p-2")}>
       {visibleNavItems.map(({ href, label, icon: Icon, exact }) => {
         const active = isActive(href, exact)
@@ -121,6 +119,7 @@ export function AdminSidebar() {
           <Link
             key={href}
             href={href}
+            onClick={onNavigate}
             title={collapsed ? label : undefined}
             className={cn(
               "flex items-center gap-3 rounded text-sm font-mono transition-all group px-3 py-2.5",
@@ -218,7 +217,7 @@ export function AdminSidebar() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {navLinks}
+            {renderNav(() => setDrawerOpen(false))}
             {footer}
           </div>
         </div>
@@ -268,7 +267,7 @@ export function AdminSidebar() {
         )}
 
         {/* Navigation — scrolls internally, the rail itself stays pinned */}
-        {navLinks}
+        {renderNav()}
 
         {/* Sign Out */}
         {footer}
