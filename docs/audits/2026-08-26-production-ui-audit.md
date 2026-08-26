@@ -27,10 +27,11 @@ disappear.
    hard-coded text on the warm cream Karibu background (~1.1:1 — unreadable), is
    linked from nowhere, yet sits in the sitemap; `/newsletter/[slug]` is a full-black
    Noir page sandwiched inside warm Karibu chrome.
-3. **Every page title is double-suffixed.** The root layout defines
-   `title.template: "%s | Claude Community Kenya"` and nearly every page also bakes
-   the suffix into its title string → "About | Claude Community Kenya | Claude
-   Community Kenya" in tabs and search results, sitewide.
+3. **Title authoring is inverted, though not doubled.** (Corrected after
+   verification: the root template is a bare `"%s"`, so titles rendered once —
+   the double-suffix claim in the original pass was wrong.) 49 page titles baked
+   "| Claude Community Kenya" in by hand instead of letting a template append it;
+   fixed on `claude/ui-roadmap-1` (template appends, pages author bare titles).
 4. **`/resources/api-guide` teaches a fabricated model ID.** `claude-haiku-3-5` has
    never existed (that generation was `claude-3-5-haiku-*`); it appears in api-guide
    and production-guide as copy-pasteable code. The rest of the model lineup is a
@@ -91,11 +92,10 @@ files, validated with tsc/build/tests, lint surface identical to main).
 
 ## C. Sitewide metadata + content accuracy
 
-- **Double title suffix (high, sitewide):** `layout.tsx:59-62` sets
-  `title.template: "%s | Claude Community Kenya"`; nearly every page passes a string
-  title already containing "| Claude Community Kenya". Fix once: strip the suffix from
-  every page title and let the template append it (only `/chat` does this correctly
-  today).
+- **Title authoring (corrected):** the template was a bare `"%s"`, so no doubling
+  occurred; the finding downgrades to inconsistent authoring — 49 hand-baked
+  suffixes. Fixed on `claude/ui-roadmap-1`: template appends the suffix once,
+  pages author bare titles, home uses `title.absolute`.
 - **Missing canonicals:** `/` (has OG url, no canonical), `/chat`,
   `/code-of-conduct` (known gap, still open).
 - **`claude-haiku-3-5` is fabricated** (`resources/api-guide` ~line 39,
