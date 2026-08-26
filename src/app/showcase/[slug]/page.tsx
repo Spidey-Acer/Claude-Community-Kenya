@@ -14,10 +14,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const post = await getShowcasePostBySlug(slug)
-  if (!post) return { title: "Not found | Claude Community Kenya" }
+  if (!post) return { title: "Not found" }
 
   return {
-    title: `${post.title} | Showcase | Claude Community Kenya`,
+    title: `${post.title} | Showcase`,
     description: post.shortDescription,
     alternates: { canonical: `https://www.claudekenya.org/showcase/${slug}` },
     openGraph: {

@@ -11,11 +11,14 @@ import {
 import { getSocialLinks } from "@/lib/social-links";
 
 export const metadata: Metadata = {
-  title: "Curated Links | Claude Community Kenya",
+  title: "Curated Links",
   description:
     "A comprehensive directory of Claude AI resources, tools, communities, and learning materials curated for Kenyan developers.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/resources/links",
+  },
   openGraph: {
-    title: "Curated Links | Claude Community Kenya",
+    title: "Curated Links",
     description:
       "A comprehensive directory of Claude AI resources, tools, communities, and learning materials curated for Kenyan developers.",
     url: "https://www.claudekenya.org/resources/links",

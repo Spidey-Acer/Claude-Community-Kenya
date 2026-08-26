@@ -7,12 +7,12 @@ import { ShowcaseFeed } from "@/components/karibu/showcase/ShowcaseFeed"
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: "Showcase | Claude Community Kenya",
+  title: "Showcase",
   description:
     "What the Claude Community Kenya is building — projects, demos and works in progress from members across the country.",
   alternates: { canonical: "https://www.claudekenya.org/showcase" },
   openGraph: {
-    title: "Showcase | Claude Community Kenya",
+    title: "Showcase",
     description: "What the Claude Community Kenya is building.",
     url: "https://www.claudekenya.org/showcase",
     siteName: "Claude Community Kenya",

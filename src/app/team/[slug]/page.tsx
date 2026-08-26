@@ -24,7 +24,7 @@ export async function generateMetadata(
   const member = await getTeamMemberBySlug(slug)
   if (!member) return { title: "Member not found" }
 
-  const title = `${member.name} — ${member.role} | Claude Community Kenya`
+  const title = `${member.name} — ${member.role}`
   const description = member.tagline ?? member.bio.slice(0, 160)
   const url = `https://www.claudekenya.org/team/${slug}`
 

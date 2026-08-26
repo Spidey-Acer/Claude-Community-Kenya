@@ -4,12 +4,12 @@ import { ScrollReveal, TerminalWindow } from "@/components/terminal";
 import { MerchWaitlistForm } from "./MerchWaitlistForm";
 
 export const metadata: Metadata = {
-  title: "Merch | Claude Community Kenya",
+  title: "Merch",
   description:
     "CCK merch is on the way. T-shirts, stickers, and laptop accessories — built for builders. Join the waitlist and we'll let you know when the first drop ships.",
   alternates: { canonical: "https://www.claudekenya.org/merch" },
   openGraph: {
-    title: "Merch | Claude Community Kenya",
+    title: "Merch",
     description: "T-shirts, stickers, and accessories for the CCK community. Join the waitlist.",
     url: "https://www.claudekenya.org/merch",
     siteName: "Claude Community Kenya",

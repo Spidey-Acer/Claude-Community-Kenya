@@ -5,14 +5,14 @@ import { KaribuFaq } from "@/components/karibu/KaribuFaq";
 import { serializeJsonLd } from "@/lib/json-ld"
 
 export const metadata: Metadata = {
-  title: "FAQ | Claude Community Kenya",
+  title: "FAQ",
   description:
     "Answers to common questions about Claude Code, our events in Nairobi and Mombasa, joining the community, and getting started with Claude AI.",
   alternates: {
     canonical: "https://www.claudekenya.org/faq",
   },
   openGraph: {
-    title: "FAQ | Claude Community Kenya",
+    title: "FAQ",
     description:
       "Answers to common questions about Claude Code, our events in Nairobi and Mombasa, joining the community, and getting started with Claude AI.",
     url: "https://www.claudekenya.org/faq",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSocialLinks } from "@/lib/social-links";
 
 export const metadata: Metadata = {
-  title: "404 — Page Not Found | Claude Community Kenya",
+  title: "404 — Page Not Found",
   description: "The page you're looking for doesn't exist. Navigate back to Claude Community Kenya.",
 };
 

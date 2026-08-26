@@ -24,14 +24,14 @@ function shortHash(slug: string): string {
 }
 
 export const metadata: Metadata = {
-  title: "About | Claude Community Kenya",
+  title: "About",
   description:
     "Kenya's independent, volunteer-run Claude community. Developers, creators, researchers, and professionals using Claude AI across Kenya.",
   alternates: {
     canonical: "https://www.claudekenya.org/about",
   },
   openGraph: {
-    title: "About | Claude Community Kenya",
+    title: "About",
     description:
       "Kenya's independent, volunteer-run Claude developer community. Anthropic-supported meetups, workshops, and builders across Kenya.",
     url: "https://www.claudekenya.org/about",

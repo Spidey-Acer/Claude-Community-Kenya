@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign in | Claude Community Kenya",
+  title: "Sign in",
   robots: { index: false, follow: false },
 };
 

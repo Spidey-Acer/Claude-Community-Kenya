@@ -14,7 +14,7 @@ import { VerifyEmailBanner } from "./VerifyEmailBanner";
 import { ProfileEditor } from "./ProfileEditor";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Claude Community Kenya",
+  title: "Dashboard",
   description: "Your CCK member dashboard.",
   robots: { index: false, follow: false },
 };

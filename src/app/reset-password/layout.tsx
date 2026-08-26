@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Reset password | Claude Community Kenya",
+  title: "Reset password",
   robots: { index: false, follow: false },
 };
 

@@ -6,7 +6,7 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { ResetKaribuButton } from "./ResetKaribuButton";
 
 export const metadata: Metadata = {
-  title: "Your data | Claude Community Kenya",
+  title: "Your data",
   description: "Manage the data saved for your visit.",
   robots: { index: false, follow: false },
 };

@@ -6,14 +6,14 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
-  title: "Courses & Learning Paths | Claude Community Kenya",
+  title: "Courses & Learning Paths",
   description:
     "Free structured courses from Anthropic covering API fundamentals, prompt engineering, real-world prompting, evaluations, and tool use.",
   alternates: {
     canonical: "https://www.claudekenya.org/resources/courses",
   },
   openGraph: {
-    title: "Courses & Learning Paths | Claude Community Kenya",
+    title: "Courses & Learning Paths",
     description:
       "Free structured courses from Anthropic covering API fundamentals, prompt engineering, real-world prompting, evaluations, and tool use.",
     url: "https://www.claudekenya.org/resources/courses",

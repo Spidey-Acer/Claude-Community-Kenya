@@ -7,14 +7,14 @@ import { KaribuGalleryIndex } from "@/components/karibu/KaribuGalleryIndex";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Gallery | Claude Community Kenya",
+  title: "Gallery",
   description:
     "Photos from Claude Community Kenya meetups, workshops, and gatherings in Nairobi, Mombasa, and beyond.",
   alternates: {
     canonical: "https://www.claudekenya.org/gallery",
   },
   openGraph: {
-    title: "Gallery | Claude Community Kenya",
+    title: "Gallery",
     description:
       "Photos from Claude Community Kenya meetups, workshops, and gatherings.",
     url: "https://www.claudekenya.org/gallery",

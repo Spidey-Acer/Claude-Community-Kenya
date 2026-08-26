@@ -16,9 +16,9 @@ interface AlbumPageProps {
 export async function generateMetadata({ params }: AlbumPageProps): Promise<Metadata> {
   const { slug } = await params;
   const event = await getAlbumEvent(slug).catch(() => null);
-  if (!event) return { title: "Album not found | Claude Community Kenya" };
+  if (!event) return { title: "Album not found" };
 
-  const title = `${event.title} — photos | Claude Community Kenya`;
+  const title = `${event.title} — photos`;
   const description = `Photos from ${event.title} in ${event.city}.`;
   const url = `https://www.claudekenya.org/gallery/${slug}`;
 

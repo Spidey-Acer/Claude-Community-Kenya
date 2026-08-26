@@ -11,7 +11,7 @@ import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
 export const metadata: Metadata = {
-  title: "Impact Lab | Claude Community Kenya",
+  title: "Impact Lab",
   description: "Your Impact Lab hackathon matching profile and team.",
   robots: { index: false, follow: false },
 };

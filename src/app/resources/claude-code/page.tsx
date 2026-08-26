@@ -6,14 +6,14 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
-  title: "Claude Code Guide | Claude Community Kenya",
+  title: "Claude Code Guide",
   description:
     "Master Claude Code — Anthropic's CLI tool for building software with Claude directly in your terminal.",
   alternates: {
     canonical: "https://www.claudekenya.org/resources/claude-code",
   },
   openGraph: {
-    title: "Claude Code Guide | Claude Community Kenya",
+    title: "Claude Code Guide",
     description:
       "Master Claude Code — Anthropic's CLI tool for building software with Claude directly in your terminal.",
     url: "https://www.claudekenya.org/resources/claude-code",

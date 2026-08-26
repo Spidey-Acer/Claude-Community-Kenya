@@ -6,12 +6,12 @@ import { KaribuTeam } from "@/components/karibu/KaribuTeam"
 export const revalidate = 1800
 
 export const metadata: Metadata = {
-  title: "The team behind CCK | Claude Community Kenya",
+  title: "The team behind CCK",
   description:
     "Meet the organizers, ambassadors, and contributors who run Claude Community Kenya — Kenya's independent, volunteer-run Claude developer community.",
   alternates: { canonical: "https://www.claudekenya.org/team" },
   openGraph: {
-    title: "The team behind CCK | Claude Community Kenya",
+    title: "The team behind CCK",
     description:
       "Meet the organizers and ambassadors running Kenya's independent, volunteer-run Claude developer community.",
     url: "https://www.claudekenya.org/team",

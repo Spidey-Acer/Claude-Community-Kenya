@@ -6,14 +6,14 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
-  title: "Advanced Workflows | Claude Community Kenya",
+  title: "Advanced Workflows",
   description:
     "Agentic development patterns, plan mode, git worktrees, and production strategies for building with Claude Code.",
   alternates: {
     canonical: "https://www.claudekenya.org/resources/workflows",
   },
   openGraph: {
-    title: "Advanced Workflows | Claude Community Kenya",
+    title: "Advanced Workflows",
     description:
       "Agentic development patterns, plan mode, git worktrees, and production strategies for building with Claude Code.",
     url: "https://www.claudekenya.org/resources/workflows",

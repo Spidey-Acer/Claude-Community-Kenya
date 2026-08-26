@@ -8,14 +8,14 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
-  title: "Claude API Complete Guide | Claude Community Kenya",
+  title: "Claude API Complete Guide",
   description:
     "Complete guide to the Claude API — authentication, models, streaming, tool use, and code examples for Kenyan developers building with Claude.",
   alternates: {
     canonical: `${SITE_CONFIG.url}/resources/api-guide`,
   },
   openGraph: {
-    title: "Claude API Complete Guide | Claude Community Kenya",
+    title: "Claude API Complete Guide",
     description:
       "Complete guide to the Claude API — authentication, models, streaming, tool use, and code examples for Kenyan developers building with Claude.",
     url: `${SITE_CONFIG.url}/resources/api-guide`,

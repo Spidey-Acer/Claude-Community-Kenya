@@ -3,14 +3,14 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { KaribuLearn, type LearnCard } from "@/components/karibu/KaribuLearn";
 
 export const metadata: Metadata = {
-  title: "Resources | Claude Community Kenya",
+  title: "Resources",
   description:
     "Master Claude Code, the Claude API, and AI workflows. Free tutorials, courses, and learning paths curated for Kenyan developers.",
   alternates: {
     canonical: "https://www.claudekenya.org/resources",
   },
   openGraph: {
-    title: "Resources | Claude Community Kenya",
+    title: "Resources",
     description:
       "Master Claude Code, the Claude API, and AI workflows. Free tutorials, courses, and learning paths curated for Kenyan developers.",
     url: "https://www.claudekenya.org/resources",

@@ -8,14 +8,14 @@ import { PersonaHeading } from "@/components/persona/PersonaHeading";
 import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
-  title: "Building Production AI Apps with Claude | Claude Community Kenya",
+  title: "Building Production AI Apps with Claude",
   description:
     "Practical guide to deploying Claude in production — architecture patterns, error handling, rate limits, cost optimization, and real-world case studies from Kenya.",
   alternates: {
     canonical: `${SITE_CONFIG.url}/resources/production-guide`,
   },
   openGraph: {
-    title: "Building Production AI Apps with Claude | Claude Community Kenya",
+    title: "Building Production AI Apps with Claude",
     description:
       "Practical guide to deploying Claude in production — architecture patterns, error handling, rate limits, cost optimization, and real-world case studies from Kenya.",
     url: `${SITE_CONFIG.url}/resources/production-guide`,

@@ -56,6 +56,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.claudekenya.org"),
+  // Pages author bare titles ("Events", "Community Hub"); the template
+  // appends the site name exactly once. A page that needs full control
+  // (the home page's marketing title) uses `title: { absolute: ... }`.
   title: {
     default: "Claude Community Kenya",
     template: "%s | Claude Community Kenya",

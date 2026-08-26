@@ -21,11 +21,11 @@ export async function generateMetadata({
   const submission = await getCommunitySubmissionBySlug(slug)
 
   if (!submission) {
-    return { title: "Resource Not Found | Claude Community Kenya" }
+    return { title: "Resource Not Found" }
   }
 
   return {
-    title: `${submission.title} | Community Hub | Claude Community Kenya`,
+    title: `${submission.title} | Community Hub`,
     description: submission.shortDescription,
     alternates: {
       canonical: `${SITE_CONFIG.url}/community/${submission.slug}`,

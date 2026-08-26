@@ -6,14 +6,14 @@ import { KaribuCommunity } from "@/components/karibu/KaribuCommunity"
 export const revalidate = 1800
 
 export const metadata: Metadata = {
-  title: "Community Hub | Claude Community Kenya",
+  title: "Community Hub",
   description:
     "Discover MCPs, prompts, workflows, and tools built by the Claude Community Kenya. Share your own creations.",
   alternates: {
     canonical: "https://www.claudekenya.org/community",
   },
   openGraph: {
-    title: "Community Hub | Claude Community Kenya",
+    title: "Community Hub",
     description:
       "Discover MCPs, prompts, workflows, and tools built by the Claude Community Kenya.",
     url: "https://www.claudekenya.org/community",

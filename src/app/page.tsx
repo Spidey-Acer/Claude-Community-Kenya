@@ -7,9 +7,14 @@ import type { AudienceState } from "@/contexts/AudienceContext";
 import type { Recommendable } from "@/lib/recommendations";
 
 export const metadata: Metadata = {
-  title: "Claude Community Kenya — Build with Claude AI",
+  // absolute: the root template would append the site name to a title that
+  // already leads with it.
+  title: { absolute: "Claude Community Kenya — Build with Claude AI" },
   description:
     "Kenya's independent, volunteer-run Claude developer community. Join meetups, workshops, and build with Claude AI.",
+  alternates: {
+    canonical: "https://www.claudekenya.org",
+  },
   openGraph: {
     title: "Claude Community Kenya — Build with Claude AI",
     description:
