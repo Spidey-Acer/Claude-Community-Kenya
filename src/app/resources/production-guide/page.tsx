@@ -159,7 +159,7 @@ export default function ProductionGuidePage() {
                 </p>
                 <p className="ml-4 text-green-primary">{"}"}</p>
                 <p className="ml-4 text-text-secondary">{"const response = await client.messages.create({"}</p>
-                <p className="ml-8 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
+                <p className="ml-8 text-green-primary">{"model: \"claude-sonnet-5\","}</p>
                 <p className="ml-8 text-green-primary">{"max_tokens: 1024,"}</p>
                 <p className="ml-8 text-green-primary">{"system: process.env.SYSTEM_PROMPT,"}</p>
                 <p className="ml-8 text-green-primary">{"messages: [{ role: \"user\", content: message }]"}</p>
@@ -259,7 +259,7 @@ export default function ProductionGuidePage() {
                   <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
                   <span>
                     <span className="text-text-primary">Use Haiku for high volume</span> — switch
-                    to claude-haiku-3-5 for classification, tagging, and other simple tasks
+                    to claude-haiku-4-5 for classification, tagging, and other simple tasks
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -348,8 +348,8 @@ export default function ProductionGuidePage() {
                   <span className="mt-1 text-amber" aria-hidden="true">&gt;</span>
                   <span>
                     <span className="text-text-primary">Right-size your model</span> — use
-                    claude-haiku-3-5 for classification, extraction, and simple Q&A. Reserve
-                    claude-sonnet-4-5 for tasks that need deeper reasoning.
+                    claude-haiku-4-5 for classification, extraction, and simple Q&A. Reserve
+                    claude-sonnet-5 for tasks that need deeper reasoning.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">

@@ -8,6 +8,7 @@
  */
 
 import Image from "next/image";
+import Link from "next/link";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
 import type { TeamMemberView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
@@ -70,7 +71,18 @@ function TeamCard({ member }: { member: TeamMemberView }) {
           <span className="font-newsreader text-[28px] text-ink-muted">{initials}</span>
         )}
       </div>
-      <div className="font-inter text-[15px] font-semibold text-ink">{member.name}</div>
+      {/* The profile page existed but nothing linked it — it was orphaned in
+        * the sitemap. The name is the natural entry point. */}
+      {member.slug ? (
+        <Link
+          href={`/team/${member.slug}`}
+          className="font-inter text-[15px] font-semibold text-ink underline-offset-2 hover:text-clay hover:underline"
+        >
+          {member.name}
+        </Link>
+      ) : (
+        <div className="font-inter text-[15px] font-semibold text-ink">{member.name}</div>
+      )}
       <div className="font-inter text-[13px] text-clay">{member.role}</div>
       {member.location && (
         <div className="mt-0.5 font-inter text-[12px] text-ink-muted">{member.location}</div>

@@ -116,7 +116,7 @@ export const resources: Resource[] = [
   {
     id: "cursor-ai",
     title: "Cursor IDE",
-    url: "https://cursor.sh",
+    url: "https://cursor.com",
     category: "Developer Tools",
     description: "AI-powered code editor with Claude integration.",
   },

@@ -22,7 +22,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await params
   const member = await getTeamMemberBySlug(slug)
-  if (!member) return { title: "Member not found" }
+  if (!member) return { title: "Member not found", robots: { index: false } }
 
   const title = `${member.name} — ${member.role}`
   const description = member.tagline ?? member.bio.slice(0, 160)
@@ -51,7 +51,7 @@ export default async function TeamMemberPage({ params }: PageProps) {
   const paragraphs = (member.longBio ?? member.bio).split(/\n{2,}/)
 
   return (
-    <main className="min-h-screen px-4 py-16 sm:px-6 lg:px-8">
+    <div className="px-4 py-16 sm:px-6 lg:px-8">
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -60,28 +60,17 @@ export default async function TeamMemberPage({ params }: PageProps) {
         ]}
       />
 
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 60% 35% at 50% -10%, rgba(217, 119, 87, 0.08), transparent 60%),
-            radial-gradient(ellipse 50% 40% at 90% 60%, rgba(106, 155, 204, 0.05), transparent 65%)
-          `,
-        }}
-      />
-
       <div className="relative mx-auto max-w-3xl">
         <Link
           href="/team"
-          className="mb-10 inline-flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.14em] text-[#b0aea5] transition-colors hover:text-[#faf9f5]"
+          className="mb-10 inline-flex items-center gap-2 font-inter text-[13px] font-medium uppercase tracking-[0.14em] text-ink-muted transition-colors hover:text-clay"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           All team
         </Link>
 
         <header className="mb-10 flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left">
-          <div className="relative mb-6 h-28 w-28 shrink-0 overflow-hidden rounded-full border border-[#2a2a28] bg-[#1e1e1d] sm:mb-0 sm:mr-8 sm:h-32 sm:w-32">
+          <div className="relative mb-6 h-28 w-28 shrink-0 overflow-hidden rounded-full border border-sand-2 bg-paper-alt sm:mb-0 sm:mr-8 sm:h-32 sm:w-32">
             {member.avatar ? (
               <Image
                 src={member.avatar}
@@ -92,41 +81,29 @@ export default async function TeamMemberPage({ params }: PageProps) {
                 priority
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[28px] font-medium text-[#b0aea5]">
+              <div className="flex h-full w-full items-center justify-center font-newsreader text-[28px] font-medium text-ink-soft">
                 {initials(member.name)}
               </div>
             )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <h1
-              className="mb-3 text-[36px] font-medium leading-tight text-[#faf9f5] sm:text-[44px]"
-              style={{
-                fontFamily: 'var(--font-display), ui-serif, Georgia, serif',
-                letterSpacing: "-0.02em",
-              }}
-            >
+            <h1 className="mb-3 break-words font-newsreader text-[36px] font-medium leading-tight tracking-[-0.02em] text-ink sm:text-[44px]">
               {member.name}
             </h1>
 
-            <p className="mb-3 text-[15px] text-[#d97757]">{member.role}</p>
+            <p className="mb-3 font-inter text-[15px] font-semibold text-clay">{member.role}</p>
 
             {member.tagline && (
-              <p
-                className="mb-4 text-[17px] leading-snug text-[#faf9f5]"
-                style={{
-                  fontFamily: 'var(--font-display), ui-serif, Georgia, serif',
-                  fontStyle: "italic",
-                }}
-              >
-                "{member.tagline}"
+              <p className="mb-4 font-newsreader text-[17px] italic leading-snug text-ink-soft">
+                &ldquo;{member.tagline}&rdquo;
               </p>
             )}
 
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-start">
               {member.location && (
-                <span className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-[#7a7870]">
-                  <MapPin className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1.5 font-inter text-[12px] uppercase tracking-[0.14em] text-ink-muted">
+                  <MapPin className="h-3 w-3" aria-hidden="true" />
                   {member.location}
                 </span>
               )}
@@ -137,12 +114,12 @@ export default async function TeamMemberPage({ params }: PageProps) {
 
         <section
           aria-label="Biography"
-          className="card-elevated rounded-3xl p-8 sm:p-10"
+          className="rounded-3xl border border-sand bg-paper-card p-8 sm:p-10"
         >
           {paragraphs.map((p, i) => (
             <p
               key={i}
-              className="mb-4 text-[16px] leading-relaxed text-[#b0aea5] last:mb-0"
+              className="mb-4 break-words font-inter text-[16px] leading-relaxed text-ink-soft last:mb-0"
             >
               {p}
             </p>
@@ -150,18 +127,18 @@ export default async function TeamMemberPage({ params }: PageProps) {
         </section>
 
         <section className="mt-12 text-center">
-          <p className="mb-4 text-[12px] uppercase tracking-[0.14em] text-[#7a7870]">
+          <p className="mb-4 font-inter text-[12px] uppercase tracking-[0.14em] text-ink-muted">
             Want to join the team?
           </p>
           <Link
             href="/volunteer"
-            className="inline-flex items-center gap-2 rounded-full bg-[#d97757] px-6 py-3 text-[14px] font-medium text-[#faf9f5] transition-transform hover:-translate-y-0.5 btn-primary-shadow"
+            className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-[14px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
           >
             Volunteer with CCK
           </Link>
         </section>
       </div>
-    </main>
+    </div>
   )
 }
 
@@ -181,8 +158,8 @@ function Socials({ member }: { member: NonNullable<Awaited<ReturnType<typeof get
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${member.name} on ${label}`}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-[#b0aea5] transition-colors hover:bg-[#2a2a28] hover:text-[#faf9f5]"
+          aria-label={`${member.name} on ${label} (opens in new tab)`}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-alt hover:text-clay"
         >
           <Icon className="h-4 w-4" />
         </a>

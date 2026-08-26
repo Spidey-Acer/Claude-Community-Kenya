@@ -26,17 +26,17 @@ export const metadata: Metadata = {
 
 const models = [
   {
-    id: "claude-opus-4-5",
+    id: "claude-opus-5",
     label: "Most Capable",
     description: "Best for complex reasoning, analysis, and nuanced tasks. Highest intelligence.",
   },
   {
-    id: "claude-sonnet-4-5",
+    id: "claude-sonnet-5",
     label: "Best Balance",
     description: "Excellent performance with faster speed. Ideal for most production use cases.",
   },
   {
-    id: "claude-haiku-3-5",
+    id: "claude-haiku-4-5",
     label: "Fastest",
     description: "Near-instant responses. Perfect for high-volume, latency-sensitive applications.",
   },
@@ -247,7 +247,7 @@ export default function ApiGuidePage() {
               <p className="mt-3 text-text-secondary">
                 {"const message = await client.messages.create({"}
               </p>
-              <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
+              <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-5\","}</p>
               <p className="ml-4 text-green-primary">{"max_tokens: 1024,"}</p>
               <p className="ml-4 text-green-primary">{"messages: ["}</p>
               <p className="ml-8 text-amber">
@@ -274,7 +274,7 @@ export default function ApiGuidePage() {
                 <p className="ml-8 text-amber">{'"type": "text",'}</p>
                 <p className="ml-8 text-amber">{'"text": "Recursion is..."'}</p>
                 <p className="ml-4 text-green-primary">{"  }],"}</p>
-                <p className="ml-4 text-green-primary">{'"model": "claude-sonnet-4-5",'}</p>
+                <p className="ml-4 text-green-primary">{'"model": "claude-sonnet-5",'}</p>
                 <p className="ml-4 text-green-primary">
                   {'"stop_reason": "end_turn",'}
                 </p>
@@ -318,7 +318,7 @@ export default function ApiGuidePage() {
                 <p className="text-text-secondary">
                   {"const stream = client.messages.stream({"}
                 </p>
-                <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
+                <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-5\","}</p>
                 <p className="ml-4 text-green-primary">{"max_tokens: 1024,"}</p>
                 <p className="ml-4 text-green-primary">
                   {"messages: [{ role: \"user\", content: prompt }],"}
@@ -388,7 +388,7 @@ export default function ApiGuidePage() {
                 <p className="text-text-secondary">{"}];"}</p>
                 <p className="mt-3 text-text-dim">{"// Pass tools to the API"}</p>
                 <p className="text-text-secondary">{"const response = await client.messages.create({"}</p>
-                <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
+                <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-5\","}</p>
                 <p className="ml-4 text-green-primary">{"max_tokens: 1024,"}</p>
                 <p className="ml-4 text-green-primary">{"tools,"}</p>
                 <p className="ml-4 text-green-primary">
@@ -414,7 +414,7 @@ export default function ApiGuidePage() {
             <div className="space-y-1 font-mono text-sm">
               <p className="text-text-dim">{"// System prompt sets Claude's behavior"}</p>
               <p className="text-text-secondary">{"const response = await client.messages.create({"}</p>
-              <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
+              <p className="ml-4 text-green-primary">{"model: \"claude-sonnet-5\","}</p>
               <p className="ml-4 text-green-primary">{"max_tokens: 1024,"}</p>
               <p className="ml-4 text-green-primary">
                 {"system: \"You are a helpful assistant for Kenyan developers. " +

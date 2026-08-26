@@ -114,7 +114,7 @@ export default async function LinksPage() {
                           href={resource.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="ml-8 text-cyan hover:underline sm:ml-0"
+                          className="ml-8 break-all text-cyan hover:underline sm:ml-0"
                         >
                           {resource.url}
                         </a>
