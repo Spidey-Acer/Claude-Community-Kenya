@@ -8,7 +8,7 @@
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition , cloneElement, isValidElement, type ReactElement} from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/karibu/motion/Reveal";
@@ -49,7 +49,11 @@ export function KaribuSubmitIdea() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
+      .catch(() =>
+        // Without a token the submit button stays disabled — say why instead
+        // of leaving the form silently bricked.
+        setError("Couldn't initialize the form. Refresh the page and try again.")
+      );
   }, []);
 
   function toggleRole(role: string) {
@@ -191,10 +195,10 @@ export function KaribuSubmitIdea() {
                   />
                 </Field>
 
-                <div>
-                  <label className="mb-2 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                <fieldset>
+                  <legend className="mb-2 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                     Project stage *
-                  </label>
+                  </legend>
                   <div className="space-y-2">
                     {STAGES.map(({ value, label, desc }) => (
                       <label
@@ -209,7 +213,7 @@ export function KaribuSubmitIdea() {
                       </label>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 <Field label="Target timeline (optional)">
                   <input
@@ -231,6 +235,7 @@ export function KaribuSubmitIdea() {
                     key={value}
                     type="button"
                     onClick={() => toggleRole(value)}
+                    aria-pressed={selectedRoles.includes(value)}
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 font-inter text-xs transition-colors ${
                       selectedRoles.includes(value)
                         ? "border-clay bg-clay/10 text-clay"
@@ -238,6 +243,7 @@ export function KaribuSubmitIdea() {
                     }`}
                   >
                     <span
+                      aria-hidden="true"
                       className={`h-2 w-2 rounded-full border ${
                         selectedRoles.includes(value) ? "border-clay bg-clay" : "border-ink-muted"
                       }`}
@@ -257,6 +263,7 @@ export function KaribuSubmitIdea() {
                 value={techInput}
                 onChange={(e) => setTechInput(e.target.value)}
                 onKeyDown={addTech}
+                aria-label="Tech stack — type a technology and press Enter"
                 className={inputCls()}
                 placeholder="Type a technology and press Enter (e.g. React, Python, Claude API)"
               />
@@ -271,9 +278,10 @@ export function KaribuSubmitIdea() {
                       <button
                         type="button"
                         onClick={() => removeTech(tech)}
+                        aria-label={`Remove ${tech}`}
                         className="text-ink-muted transition-colors hover:text-clay"
                       >
-                        ×
+                        <span aria-hidden="true">×</span>
                       </button>
                     </span>
                   ))}
@@ -306,7 +314,7 @@ export function KaribuSubmitIdea() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
@@ -346,17 +354,29 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  // Wire the label to its control — a sibling <label> with no htmlFor leaves
+  // every field unnamed to assistive tech.
+  const id = `f-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      >
         {label}
       </label>
-      {children}
+      {control}
       {error && <FieldError msg={error} />}
     </div>
   );
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
+  return <p role="alert" className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }

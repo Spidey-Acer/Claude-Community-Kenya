@@ -369,7 +369,7 @@ export default function SignupPage() {
             </p>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
+              <div role="alert" className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 {error}
               </div>

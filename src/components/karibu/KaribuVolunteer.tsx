@@ -70,7 +70,7 @@ function CharCount({ value, max }: { value: string; max: number }) {
   const nearLimit = value.length > max * 0.9;
   return (
     <div className="mt-1 flex justify-end">
-      <span className={`font-inter text-[11px] ${nearLimit ? "text-amber-600" : "text-ink-muted"}`}>
+      <span className={`font-inter text-[11px] ${nearLimit ? "text-clay" : "text-ink-muted"}`}>
         {value.length} / {max}
       </span>
     </div>

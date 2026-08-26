@@ -8,7 +8,7 @@
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition , cloneElement, isValidElement, type ReactElement} from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/karibu/motion/Reveal";
@@ -40,7 +40,11 @@ export function KaribuSubmitProject() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
+      .catch(() =>
+        // Without a token the submit button stays disabled — say why instead
+        // of leaving the form silently bricked.
+        setError("Couldn't initialize the form. Refresh the page and try again.")
+      );
   }, []);
 
   function addTech(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -183,10 +187,10 @@ export function KaribuSubmitProject() {
                   />
                 </Field>
 
-                <div>
-                  <label className="mb-2 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                <fieldset>
+                  <legend className="mb-2 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                     Project status *
-                  </label>
+                  </legend>
                   <div className="space-y-2">
                     {STATUSES.map(({ value, label, desc }) => (
                       <label
@@ -201,7 +205,7 @@ export function KaribuSubmitProject() {
                       </label>
                     ))}
                   </div>
-                </div>
+                </fieldset>
               </div>
             </div>
 
@@ -278,7 +282,7 @@ export function KaribuSubmitProject() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
@@ -319,17 +323,29 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  // Wire the label to its control — a sibling <label> with no htmlFor leaves
+  // every field unnamed to assistive tech.
+  const id = `f-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      >
         {label}
       </label>
-      {children}
+      {control}
       {error && <FieldError msg={error} />}
     </div>
   );
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
+  return <p role="alert" className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }

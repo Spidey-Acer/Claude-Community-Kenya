@@ -43,7 +43,11 @@ export function KaribuSpeak() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
+      .catch(() =>
+        // Without a token the submit button stays disabled — say why instead
+        // of leaving the form silently bricked.
+        setError("Couldn't initialize the form. Refresh the page and try again.")
+      );
   }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -178,10 +182,10 @@ export function KaribuSpeak() {
                 <input name="topic" type="text" required className={inputCls(fieldErrors.topic)} placeholder="e.g. Building a production RAG pipeline with Claude" />
               </Field>
 
-              <div>
-                <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+              <fieldset>
+                <legend className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   Category *
-                </label>
+                </legend>
                 <div className="grid grid-cols-1 gap-2">
                   {CATEGORIES.map(({ value, label, desc }) => (
                     <label
@@ -197,7 +201,7 @@ export function KaribuSpeak() {
                   ))}
                 </div>
                 {fieldErrors.category && <FieldError msg={fieldErrors.category} />}
-              </div>
+              </fieldset>
 
               <Field label="Abstract * (min 100 chars)" error={fieldErrors.abstract}>
                 <textarea
@@ -211,10 +215,10 @@ export function KaribuSpeak() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                  <label htmlFor="speak-preferred-city" className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                     Preferred city
                   </label>
-                  <select name="preferredCity" className={inputCls()}>
+                  <select id="speak-preferred-city" name="preferredCity" className={inputCls()}>
                     <option value="">Any city</option>
                     {CITIES.map((c) => (
                       <option key={c} value={c}>
@@ -232,8 +236,9 @@ export function KaribuSpeak() {
 
           {/* Bio */}
           <div className="rounded-2xl border border-sand bg-paper-card p-6">
-            <h2 className="mb-4 font-newsreader text-[20px] text-ink">Speaker bio *</h2>
+            <h2 id="speak-bio-heading" className="mb-4 font-newsreader text-[20px] text-ink">Speaker bio *</h2>
             <textarea
+              aria-labelledby="speak-bio-heading"
               name="bio"
               required
               rows={4}
@@ -244,7 +249,7 @@ export function KaribuSpeak() {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+            <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
               {error}
             </div>
@@ -308,5 +313,5 @@ function Field({
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
+  return <p role="alert" className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }

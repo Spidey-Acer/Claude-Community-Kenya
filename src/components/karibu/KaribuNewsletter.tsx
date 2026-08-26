@@ -38,7 +38,12 @@ function SubscribeForm() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
+      .catch(() => {
+        // Without a token the subscribe button stays disabled — say why
+        // instead of leaving the page's main CTA silently bricked.
+        setStatus("error");
+        setMessage("Couldn't initialize the form. Refresh the page and try again.");
+      });
   }, []);
 
   function handleSubmit(e: FormEvent) {
@@ -144,7 +149,7 @@ function SubscribeForm() {
         <p
           id="newsletter-email-error"
           role="alert"
-          className="mt-2 text-center font-inter text-xs text-clay"
+          className="mt-2 text-center font-inter text-xs text-error"
         >
           {message}
         </p>

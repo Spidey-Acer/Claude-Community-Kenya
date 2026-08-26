@@ -101,9 +101,12 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <p className="text-[15px] font-medium text-[#faf9f5]">Check your email</p>
+                  {/* Same non-enumerating copy as the terminal variant — the
+                    * API deliberately won't confirm whether the account exists. */}
                   <p className="mt-1.5 text-[13px] leading-relaxed text-[#b0aea5]">
-                    We sent a reset link to{" "}
-                    <span className="text-[#faf9f5]">{email}</span>. It expires in 60 minutes.
+                    If an account exists for{" "}
+                    <span className="text-[#faf9f5]">{email}</span>, a reset link is on
+                    its way. It expires in 60 minutes.
                   </p>
                 </div>
                 <p className="text-[13px] text-[#7a7870]">
@@ -254,7 +257,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
+                <div role="alert" className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                   {error}
                 </div>

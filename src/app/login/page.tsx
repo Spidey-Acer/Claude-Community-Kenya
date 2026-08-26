@@ -141,7 +141,6 @@ function LoginInner() {
                   type="password"
                   required
                   autoComplete="current-password"
-                  minLength={8}
                   className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
                   placeholder="••••••••"
                 />
@@ -270,14 +269,13 @@ function LoginInner() {
                 type="password"
                 required
                 autoComplete="current-password"
-                minLength={8}
                 className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
+              <div role="alert" className="flex items-center gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 {error}
               </div>

@@ -194,7 +194,7 @@ function VerifyInner() {
 
           {status === "error" && (
             <div className="space-y-4">
-              <div className="flex items-start gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
+              <div role="alert" className="flex items-start gap-2 p-3 bg-red/10 border border-red/30 rounded text-[11px] font-mono text-red">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
