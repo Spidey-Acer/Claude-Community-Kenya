@@ -297,7 +297,7 @@ export default function NewBlogPostPage() {
             <p className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Personalization Tags</p>
             <fieldset className="space-y-2">
               <legend className="font-mono text-xs text-[#555]">Audiences</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {AUDIENCES.map((a) => (
                   <label key={a} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
                     <input
@@ -315,7 +315,7 @@ export default function NewBlogPostPage() {
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="font-mono text-xs text-[#555]">Intents</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {INTENTS.map((i) => (
                   <label key={i} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
                     <input

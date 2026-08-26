@@ -83,7 +83,7 @@ export default async function ReportsAdminPage() {
       <div className="p-6 space-y-4">
         <p className="text-xs font-mono text-[#555]">{reports.length} open report{reports.length !== 1 ? "s" : ""}</p>
 
-        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-x-auto">
           {reports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ShieldAlert className="w-8 h-8 text-[#333] mb-3" />
@@ -91,7 +91,7 @@ export default async function ReportsAdminPage() {
               <p className="text-xs font-mono text-[#333] mt-1">Flagged content will appear here</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-[#1e1e1e]">
                   <th className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">Target</th>

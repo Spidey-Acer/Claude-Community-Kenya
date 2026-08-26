@@ -1455,7 +1455,7 @@ function NotifyPanel({ cohort }: { cohort: string }) {
       </div>
 
       {counts && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             { label: "Queued", value: counts.queued, color: "#888" },
             { label: "Sent", value: counts.sent, color: "#00ff41" },

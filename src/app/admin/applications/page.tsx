@@ -24,7 +24,7 @@ export default async function ApplicationsPage() {
     <div>
       <AdminHeader title="Join Applications" />
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Total", value: counts.total, color: "#888" },
             { label: "Pending", value: counts.pending, color: "#ffb000" },
@@ -38,7 +38,7 @@ export default async function ApplicationsPage() {
           ))}
         </div>
 
-        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-x-auto">
           {applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="w-8 h-8 text-[#333] mb-3" />
@@ -46,7 +46,7 @@ export default async function ApplicationsPage() {
               <p className="text-xs font-mono text-[#333] mt-1">Applications via the /join form will appear here</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-[#1e1e1e]">
                   <th className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">Applicant</th>
@@ -62,7 +62,12 @@ export default async function ApplicationsPage() {
                   <tr key={app.id} className="hover:bg-[#111] transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono text-[#e0e0e0]">{app.name}</span>
+                        <Link
+                          href={`/admin/applications/${app.id}`}
+                          className="text-sm font-mono text-[#e0e0e0] hover:text-[#00ff41]"
+                        >
+                          {app.name}
+                        </Link>
                         {app.karibuAudience && (
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[#00ff41]/30 text-[#00ff41] bg-[#00ff41]/5 whitespace-nowrap">
                             From Karibu · {isAudience(app.karibuAudience) ? AUDIENCE_LABELS[app.karibuAudience] : app.karibuAudience}
@@ -84,7 +89,7 @@ export default async function ApplicationsPage() {
                       <span className="text-[11px] font-mono text-[#444]">{formatDate(app.createdAt.toISOString())}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/applications/${app.id}`} className="text-[#444] hover:text-[#00ff41] transition-colors group-hover:text-[#00ff41]">
+                      <Link href={`/admin/applications/${app.id}`} aria-label="View details" className="inline-flex p-2 -m-2 text-[#444] hover:text-[#00ff41] transition-colors group-hover:text-[#00ff41]">
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     </td>

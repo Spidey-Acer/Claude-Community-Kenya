@@ -26,6 +26,8 @@ import {
   ShieldAlert,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -58,10 +60,19 @@ const COLLAPSED_KEY = "cck-admin-sidebar-collapsed"
 // Keep in sync with rbac.ts's `reports` entry if that ever changes.
 const REPORTS_VISIBLE_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"])
 
+/**
+ * Admin navigation shell.
+ *
+ * Desktop (md+): the original sticky rail with a collapse toggle.
+ * Mobile (below md): the rail is hidden entirely — it used to occupy 256 of
+ * a phone's 375px and crush every page — replaced by a top bar with a
+ * hamburger that opens the same nav as an off-canvas drawer.
+ */
 export function AdminSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   // localStorage is read after mount — reading it during render would make the
   // server and client HTML disagree and trigger a hydration error.
   const [hydrated, setHydrated] = useState(false)
@@ -70,6 +81,20 @@ export function AdminSidebar() {
     setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "1")
     setHydrated(true)
   }, [])
+
+  // Navigating closes the drawer; Escape closes it too.
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!drawerOpen) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setDrawerOpen(false)
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [drawerOpen])
 
   const role = (session?.user as { role?: string } | undefined)?.role
   const visibleNavItems = navItems.filter(
@@ -88,110 +113,166 @@ export function AdminSidebar() {
     return pathname.startsWith(href)
   }
 
-  return (
-    <aside
-      className={cn(
-        "sticky top-0 h-screen shrink-0 bg-bg-secondary border-r border-border-default flex flex-col",
-        hydrated && "transition-[width] duration-200 motion-reduce:transition-none",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
-      {/* Logo + collapse toggle */}
-      <div
+  const navLinks = (
+    <nav className={cn("flex-1 overflow-y-auto p-3 space-y-0.5", collapsed && "md:p-2")}>
+      {visibleNavItems.map(({ href, label, icon: Icon, exact }) => {
+        const active = isActive(href, exact)
+        return (
+          <Link
+            key={href}
+            href={href}
+            title={collapsed ? label : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded text-sm font-mono transition-all group px-3 py-2.5",
+              collapsed && "md:px-0 md:justify-center",
+              active
+                ? "bg-green-primary/10 text-green-primary border border-green-primary/20"
+                : "text-text-secondary hover:text-text-primary hover:bg-bg-card border border-transparent"
+            )}
+          >
+            <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-green-primary" : "text-current")} />
+            <span className={cn("flex-1", collapsed && "md:hidden")}>{label}</span>
+            {active && (
+              <ChevronRight className={cn("w-3 h-3 text-green-primary", collapsed && "md:hidden")} />
+            )}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+
+  const footer = (
+    <div className={cn("border-t border-border-default p-3", collapsed && "md:p-2")}>
+      <button
+        onClick={() => signOut({ callbackUrl: "/admin/login" })}
+        title={collapsed ? "Sign Out" : undefined}
         className={cn(
-          "border-b border-border-default flex items-center",
-          collapsed ? "p-3 justify-center" : "p-5 justify-between"
+          "w-full flex items-center gap-3 rounded text-sm font-mono text-text-dim hover:text-red hover:bg-red/10 border border-transparent hover:border-red/20 transition-all px-3 py-2.5",
+          collapsed && "md:px-0 md:justify-center"
         )}
       >
-        <Link
-          href="/admin"
-          className="flex items-center gap-2.5 group"
-          title={collapsed ? "CCK Admin Panel" : undefined}
-        >
-          <div className="w-8 h-8 rounded bg-green-primary/10 border border-green-primary/30 flex items-center justify-center shrink-0">
-            <Terminal className="w-4 h-4 text-green-primary" />
-          </div>
-          {!collapsed && (
-            <div>
-              <div className="text-xs font-mono font-bold text-green-primary leading-none">CCK</div>
-              <div className="text-[10px] font-mono text-text-dim leading-none mt-0.5">Admin Panel</div>
-            </div>
-          )}
-        </Link>
-        {!collapsed && (
-          <button
-            onClick={toggleCollapsed}
-            aria-label="Collapse sidebar"
-            aria-expanded="true"
-            className="p-1.5 rounded text-text-dim hover:text-text-primary hover:bg-bg-card transition-colors"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+        <LogOut className="w-4 h-4" />
+        <span className={cn(collapsed && "md:hidden")}>Sign Out</span>
+      </button>
+      <Link
+        href="/"
+        className={cn(
+          "mt-1 w-full flex items-center gap-3 px-3 py-2 rounded text-xs font-mono text-text-dim hover:text-text-secondary transition-colors",
+          collapsed && "md:hidden"
         )}
-      </div>
+      >
+        <span>← Back to site</span>
+      </Link>
+    </div>
+  )
 
-      {/* Expand button when collapsed */}
-      {collapsed && (
-        <div className="p-3 border-b border-border-default flex justify-center">
-          <button
-            onClick={toggleCollapsed}
-            aria-label="Expand sidebar"
-            aria-expanded="false"
-            title="Expand sidebar"
-            className="p-1.5 rounded text-text-dim hover:text-text-primary hover:bg-bg-card transition-colors"
+  const logo = (
+    <Link href="/admin" className="flex items-center gap-2.5 group" title="CCK Admin Panel">
+      <div className="w-8 h-8 rounded bg-green-primary/10 border border-green-primary/30 flex items-center justify-center shrink-0">
+        <Terminal className="w-4 h-4 text-green-primary" />
+      </div>
+      <div className={cn(collapsed && "md:hidden")}>
+        <div className="text-xs font-mono font-bold text-green-primary leading-none">CCK</div>
+        <div className="text-[10px] font-mono text-text-dim leading-none mt-0.5">Admin Panel</div>
+      </div>
+    </Link>
+  )
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <header className="md:hidden sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-default bg-bg-secondary px-4">
+        {logo}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open admin menu"
+          aria-expanded={drawerOpen}
+          className="flex h-11 w-11 items-center justify-center rounded text-text-secondary hover:bg-bg-card hover:text-text-primary transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </header>
+
+      {/* Mobile drawer + backdrop */}
+      {drawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60"
+            aria-hidden="true"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-label="Admin navigation"
+            className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-border-default bg-bg-secondary"
           >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
+            <div className="flex items-center justify-between border-b border-border-default p-4">
+              {logo}
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Close admin menu"
+                className="flex h-11 w-11 items-center justify-center rounded text-text-dim hover:bg-bg-card hover:text-text-primary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {navLinks}
+            {footer}
+          </div>
         </div>
       )}
 
-      {/* Navigation — scrolls internally, the rail itself stays pinned */}
-      <nav className={cn("flex-1 overflow-y-auto p-3 space-y-0.5", collapsed && "p-2")}>
-        {visibleNavItems.map(({ href, label, icon: Icon, exact }) => {
-          const active = isActive(href, exact)
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded text-sm font-mono transition-all group",
-                collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5",
-                active
-                  ? "bg-green-primary/10 text-green-primary border border-green-primary/20"
-                  : "text-text-secondary hover:text-text-primary hover:bg-bg-card border border-transparent"
-              )}
-            >
-              <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-green-primary" : "text-current")} />
-              {!collapsed && <span className="flex-1">{label}</span>}
-              {!collapsed && active && <ChevronRight className="w-3 h-3 text-green-primary" />}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Sign Out */}
-      <div className={cn("border-t border-border-default", collapsed ? "p-2" : "p-3")}>
-        <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          title={collapsed ? "Sign Out" : undefined}
+      {/* Desktop rail */}
+      <aside
+        className={cn(
+          "hidden md:flex sticky top-0 h-screen shrink-0 bg-bg-secondary border-r border-border-default flex-col",
+          hydrated && "transition-[width] duration-200 motion-reduce:transition-none",
+          collapsed ? "w-16" : "w-64"
+        )}
+      >
+        {/* Logo + collapse toggle */}
+        <div
           className={cn(
-            "w-full flex items-center gap-3 rounded text-sm font-mono text-text-dim hover:text-red hover:bg-red/10 border border-transparent hover:border-red/20 transition-all",
-            collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"
+            "border-b border-border-default flex items-center",
+            collapsed ? "p-3 justify-center" : "p-5 justify-between"
           )}
         >
-          <LogOut className="w-4 h-4" />
-          {!collapsed && <span>Sign Out</span>}
-        </button>
-        {!collapsed && (
-          <Link
-            href="/"
-            className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded text-xs font-mono text-text-dim hover:text-text-secondary transition-colors"
-          >
-            <span>← Back to site</span>
-          </Link>
+          {logo}
+          {!collapsed && (
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Collapse sidebar"
+              aria-expanded="true"
+              className="p-1.5 rounded text-text-dim hover:text-text-primary hover:bg-bg-card transition-colors"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Expand button when collapsed */}
+        {collapsed && (
+          <div className="p-3 border-b border-border-default flex justify-center">
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Expand sidebar"
+              aria-expanded="false"
+              title="Expand sidebar"
+              className="p-1.5 rounded text-text-dim hover:text-text-primary hover:bg-bg-card transition-colors"
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </button>
+          </div>
         )}
-      </div>
-    </aside>
+
+        {/* Navigation — scrolls internally, the rail itself stays pinned */}
+        {navLinks}
+
+        {/* Sign Out */}
+        {footer}
+      </aside>
+    </>
   )
 }

@@ -166,7 +166,7 @@ export default function ContactAdminPage() {
 
       <div className="p-6 space-y-4">
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             { label: "Total", value: counts.total, color: "#888" },
             { label: "Unread", value: counts.unread, color: "#ffb000" },
@@ -215,9 +215,9 @@ export default function ContactAdminPage() {
         )}
 
         {/* Main Content */}
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row">
           {/* Message List */}
-          <div className={`bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden ${selectedMessage ? "w-1/2" : "w-full"} transition-all`}>
+          <div className={`bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden w-full ${selectedMessage ? "lg:w-1/2" : ""} transition-all`}>
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Loader2 className="w-6 h-6 text-[#00ff41] animate-spin mb-3" />
@@ -282,7 +282,7 @@ export default function ContactAdminPage() {
 
           {/* Detail Panel */}
           {selectedMessage && (
-            <div className="w-1/2 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden flex flex-col">
+            <div className="w-full lg:w-1/2 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden flex flex-col">
               {/* Detail Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e1e1e]">
                 <div className="flex items-center gap-2">

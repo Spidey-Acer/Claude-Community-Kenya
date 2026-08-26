@@ -65,7 +65,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <AdminProviders>
-      <div className="flex min-h-screen bg-[#0a0a0a]">
+      {/* Column below md so the mobile top bar stacks above the content;
+        * row from md up where the sticky rail sits beside it. */}
+      <div className="flex min-h-screen flex-col bg-[#0a0a0a] md:flex-row">
         <AdminSidebar />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
