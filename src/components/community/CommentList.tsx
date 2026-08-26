@@ -17,38 +17,44 @@ function timeAgo(dateStr: string): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "Africa/Nairobi",
   })
 }
 
 export function CommentList({ comments }: CommentListProps) {
   if (comments.length === 0) {
     return (
-      <p className="font-mono text-sm text-text-dim">
+      <p className="font-inter text-sm text-ink-muted">
         No comments yet. Be the first to share your thoughts.
       </p>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <ul className="space-y-4">
       {comments.map((comment) => (
-        <div
+        <li
           key={comment.id}
-          className="rounded border border-border-default bg-bg-card p-4"
+          className="rounded-xl border border-sand bg-paper-card p-4"
         >
           <div className="mb-2 flex items-center gap-2">
-            <span className="font-mono text-sm font-medium text-green-dim">
+            <span className="font-inter text-sm font-semibold text-ink">
               {comment.authorName}
             </span>
-            <span className="font-mono text-xs text-text-dim">
+            {/* Relative time re-computes at hydration; a minute rollover
+             * between server render and hydration is expected, not a bug. */}
+            <span
+              suppressHydrationWarning
+              className="font-inter text-xs text-ink-muted"
+            >
               {timeAgo(comment.createdAt)}
             </span>
           </div>
-          <p className="whitespace-pre-wrap font-sans text-sm text-text-secondary">
+          <p className="whitespace-pre-wrap break-words font-inter text-sm leading-relaxed text-ink-soft">
             {comment.content}
           </p>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }
