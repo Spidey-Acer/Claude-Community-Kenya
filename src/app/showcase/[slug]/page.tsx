@@ -45,7 +45,8 @@ export default async function ShowcaseDetailPage({
   let commentsFailed = false
   try {
     comments = await getCommunityCommentsBySlug(slug)
-  } catch {
+  } catch (error) {
+    console.error("[SHOWCASE] Failed to load comments for post:", slug, error)
     commentsFailed = true
   }
 

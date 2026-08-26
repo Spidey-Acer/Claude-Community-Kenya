@@ -40,7 +40,8 @@ export default async function ShowcasePage({
   let dbError = false
   try {
     ;({ items, total } = await getShowcasePosts({ sort, eventId, need, page }))
-  } catch {
+  } catch (error) {
+    console.error("[SHOWCASE] Failed to load posts feed:", error)
     dbError = true
   }
 

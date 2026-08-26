@@ -102,7 +102,7 @@ export function ShowcaseFeed({
       </section>
 
       <section className={`${WRAP} pb-6`} aria-label="Sort and filters">
-        <div className="flex flex-wrap gap-2" aria-label="Sort showcase">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Sort showcase">
           {SORTS.map(({ key, label, icon: Icon }) => {
             const on = activeSort === key
             return (
@@ -149,13 +149,23 @@ export function ShowcaseFeed({
         <h2 className="sr-only">Showcase posts</h2>
         {dbError ? (
           <FeedErrorPanel surface="showcase" />
-        ) : items.length > 0 ? (
+        ) : total > 0 ? (
           <>
-            <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((post) => (
-                <ShowcaseCard key={post.slug} post={post} />
-              ))}
-            </Reveal>
+            {items.length > 0 ? (
+              <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((post) => (
+                  <ShowcaseCard key={post.slug} post={post} />
+                ))}
+              </Reveal>
+            ) : (
+              // An out-of-range ?page (stale bookmark, removed post) — keep
+              // the pagination visible so the visitor can get back.
+              <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
+                <p className="font-newsreader text-[22px] text-ink">
+                  Nothing on this page.
+                </p>
+              </div>
+            )}
             <FeedPagination
               page={page}
               total={total}

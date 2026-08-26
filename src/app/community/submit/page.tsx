@@ -379,6 +379,7 @@ export default function CommunitySubmitPage() {
             <button
               type="submit"
               disabled={isPending || !type}
+              aria-describedby={error ? ids.error : undefined}
               className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? (

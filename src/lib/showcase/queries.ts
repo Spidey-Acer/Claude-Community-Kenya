@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/generated/prisma/client"
+import { FEED_PAGE_SIZE } from "@/lib/constants"
 import { HOT_SCORE_SQL, type ShowcaseSort } from "@/lib/showcase/ranking"
 import type { MediaDescriptor } from "@/lib/showcase/media"
 import type { NeedKey } from "@/lib/showcase/constants"
@@ -84,7 +85,7 @@ export async function getShowcasePosts(opts?: {
   limit?: number
 }): Promise<{ items: ShowcasePostView[]; total: number }> {
   const page = opts?.page ?? 1
-  const limit = opts?.limit ?? 20
+  const limit = opts?.limit ?? FEED_PAGE_SIZE
   const skip = (page - 1) * limit
   const sort = opts?.sort ?? "hot"
 

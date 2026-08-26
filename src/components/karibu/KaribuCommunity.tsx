@@ -150,13 +150,23 @@ export function KaribuCommunity({
         <h2 className="sr-only">Submissions</h2>
         {dbError ? (
           <FeedErrorPanel surface="Community Hub" />
-        ) : items.length > 0 ? (
+        ) : total > 0 ? (
           <>
-            <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((s) => (
-                <ResourceCard key={s.slug} submission={s} />
-              ))}
-            </Reveal>
+            {items.length > 0 ? (
+              <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((s) => (
+                  <ResourceCard key={s.slug} submission={s} />
+                ))}
+              </Reveal>
+            ) : (
+              // An out-of-range ?page (stale bookmark, unpublished item) —
+              // keep the pagination visible so the visitor can get back.
+              <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
+                <p className="font-newsreader text-[22px] text-ink">
+                  Nothing on this page.
+                </p>
+              </div>
+            )}
             <FeedPagination
               page={page}
               total={total}

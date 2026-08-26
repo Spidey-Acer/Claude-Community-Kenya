@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
@@ -106,6 +107,15 @@ export async function POST(
         where: { id: submission.id },
         data: { lastActivityAt: new Date() },
       })
+    }
+
+    // An auto-approved comment must actually appear when the client
+    // refreshes: /community/[slug] is ISR-cached (revalidate = 1800), so
+    // without this the new comment stays invisible for up to 30 minutes.
+    if (status === "APPROVED") {
+      revalidatePath(
+        submission.type === "SHOWCASE" ? `/showcase/${slug}` : `/community/${slug}`
+      )
     }
 
     return NextResponse.json(

@@ -17,6 +17,9 @@ export function UpvoteButton({ slug, initialCount }: UpvoteButtonProps) {
   const [voted, setVoted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Announced only for a vote cast in this session — the mount-time restore
+  // of `voted` must not make the live region speak on every page load.
+  const [announcement, setAnnouncement] = useState("")
 
   useEffect(() => {
     try {
@@ -45,6 +48,7 @@ export function UpvoteButton({ slug, initialCount }: UpvoteButtonProps) {
       if (res.ok && data.success) {
         setCount(data.upvoteCount)
         setVoted(true)
+        setAnnouncement(`Upvoted. ${data.upvoteCount} upvotes.`)
         try {
           localStorage.setItem(storageKey, "1")
         } catch {}
@@ -84,7 +88,7 @@ export function UpvoteButton({ slug, initialCount }: UpvoteButtonProps) {
         <span aria-hidden="true">{count}</span>
       </button>
       <span role="status" className="sr-only">
-        {voted ? `Upvoted. ${count} upvotes.` : ""}
+        {announcement}
       </span>
       {error && (
         <span role="alert" className="font-inter text-xs text-error">

@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { FEED_PAGE_SIZE } from "@/lib/constants"
 
 /**
  * Prev/next pagination for the URL-driven Karibu feeds. The server queries
@@ -10,7 +11,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 export function FeedPagination({
   page,
   total,
-  limit = 20,
+  limit = FEED_PAGE_SIZE,
   onPageChange,
 }: {
   page: number

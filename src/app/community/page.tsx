@@ -44,7 +44,8 @@ export default async function CommunityPage({
   let dbError = false
   try {
     ;({ items, total } = await getCommunitySubmissions({ type, sort, page }))
-  } catch {
+  } catch (error) {
+    console.error("[COMMUNITY] Failed to load submissions feed:", error)
     dbError = true
   }
 

@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { FEED_PAGE_SIZE } from "@/lib/constants"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import { publicUrl, variantKey } from "@/lib/gallery/r2"
 import type { Event } from "@/lib/types"
@@ -652,7 +653,7 @@ export async function getCommunitySubmissions(opts?: {
   limit?: number
 }): Promise<{ items: CommunitySubmissionView[]; total: number }> {
   const page = opts?.page ?? 1
-  const limit = opts?.limit ?? 20
+  const limit = opts?.limit ?? FEED_PAGE_SIZE
   const skip = (page - 1) * limit
 
   // SHOWCASE shares this table but is a different surface with its own feed,

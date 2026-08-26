@@ -113,6 +113,10 @@ export const FOOTER_SECTIONS = [
 ] as const;
 
 // ─── Contact ───
+// ─── Feeds ───
+/** Page size shared by the community/showcase feed queries and their pagination UI. */
+export const FEED_PAGE_SIZE = 20;
+
 export const CONTACT = {
   email: "claudecommunitykenya@gmail.com",
   phone: "+254 707 311 659",

@@ -61,7 +61,7 @@ export function MediaGallery({ media }: MediaGalleryProps) {
       {/* Plain toggle buttons, not role=tab — tab semantics promise
         * arrow-key navigation and a tabpanel this strip doesn't have. */}
       {media.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Media thumbnails">
+        <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Media thumbnails">
           {media.map((item, i) => (
             <button
               key={item.key}
