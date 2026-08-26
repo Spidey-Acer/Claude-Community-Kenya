@@ -66,7 +66,7 @@ export function ShowcaseCard({ post }: ShowcaseCardProps) {
             {post.needs.map((need) => (
               <span
                 key={need}
-                className="rounded-full border border-clay/30 bg-[#F3E3D9] px-2.5 py-1 font-inter text-[11px] font-medium text-clay"
+                className="rounded-full border border-clay/30 bg-clay/10 px-2.5 py-1 font-inter text-[11px] font-medium text-clay"
               >
                 {NEED_LABELS[need]}
               </span>

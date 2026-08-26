@@ -32,7 +32,7 @@ interface KaribuSelectProps {
 
 const triggerCls = (hasError: boolean) =>
   `flex w-full items-center justify-between gap-2 rounded-lg border ${
-    hasError ? "border-red-500/60" : "border-sand-2"
+    hasError ? "border-error/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 text-left font-inter text-sm text-ink transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
 
 export function KaribuSelect({
@@ -182,7 +182,7 @@ export function KaribuSelect({
       )}
 
       {error && (
-        <p id={errorId} role="alert" className="mt-1 font-inter text-[11px] text-red-600">
+        <p id={errorId} role="alert" className="mt-1 font-inter text-[11px] text-error">
           {error}
         </p>
       )}

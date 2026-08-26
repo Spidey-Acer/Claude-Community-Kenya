@@ -33,7 +33,7 @@ const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] tex
 
 const inputCls = (hasError?: string) =>
   `w-full rounded-lg border ${
-    hasError ? "border-red-500/60" : "border-sand-2"
+    hasError ? "border-error/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`
 
 export interface ComposerEventOption {
@@ -141,12 +141,12 @@ function VerifyEmailPrompt() {
             {status === "sent" ? "Sent" : "Resend verification email"}
           </button>
           {status === "sent" && (
-            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-green-700">
+            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-success">
               <CheckCircle2 className="h-3.5 w-3.5" /> {message}
             </p>
           )}
           {status === "error" && (
-            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-red-600">
+            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-error">
               <AlertTriangle className="h-3.5 w-3.5" /> {message}
             </p>
           )}
@@ -495,7 +495,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-inter text-sm text-red-700">
+              <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
@@ -601,5 +601,5 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-red-600">{msg}</p>
+  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>
 }

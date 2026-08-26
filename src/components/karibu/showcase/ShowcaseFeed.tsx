@@ -101,7 +101,7 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
                   on
                     ? "bg-ink text-paper-card"
-                    : "border border-sand-2 bg-paper-card font-medium text-[#4A4238] hover:border-ink",
+                    : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -177,7 +177,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
     <button
       type="button"
       onClick={onClear}
-      className="inline-flex items-center gap-1.5 rounded-full border border-clay bg-[#F3E3D9] px-3 py-1.5 font-inter text-[12.5px] font-medium text-clay transition-colors hover:bg-[#EAD3C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-1.5 rounded-full border border-clay bg-clay/10 px-3 py-1.5 font-inter text-[12.5px] font-medium text-clay transition-colors hover:bg-clay/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
       {label}
       <X className="h-3 w-3" aria-hidden="true" />

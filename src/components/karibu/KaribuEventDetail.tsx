@@ -137,7 +137,7 @@ export function KaribuEventDetail({
               </h2>
               <div className="mb-7 flex flex-col gap-2.5">
                 {agendaEntries.map((a) => (
-                  <div key={a.hash} className="flex gap-3 font-inter text-[15px] text-[#4A4238]">
+                  <div key={a.hash} className="flex gap-3 font-inter text-[15px] text-ink-soft">
                     {a.date && <span className="font-bold text-clay">{a.date}</span>}
                     <span>{a.title}</span>
                   </div>
@@ -407,7 +407,7 @@ function PhotoStrip({ photos, eventSlug }: { photos: PhotoView[]; eventSlug: str
 /* ─────────────────────────── bits ─────────────────────────── */
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: "clay" | "sand" }) {
-  const cls = tone === "clay" ? "bg-[#F3E3D9] text-clay" : "bg-paper-alt text-ink-muted";
+  const cls = tone === "clay" ? "bg-clay/10 text-clay" : "bg-paper-alt text-ink-muted";
   return (
     <span className={`rounded-full px-2.5 py-1 font-inter text-[11.5px] font-semibold ${cls}`}>
       {children}

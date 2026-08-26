@@ -31,7 +31,7 @@ export function NeedsChips({ needs, activeNeed }: NeedsChipsProps) {
               "rounded-full border px-2.5 py-1 font-inter text-[11.5px] font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
               isActive
-                ? "border-clay bg-[#F3E3D9] text-clay"
+                ? "border-clay bg-clay/10 text-clay"
                 : "border-sand text-ink-muted hover:border-clay hover:text-clay",
             )}
           >
