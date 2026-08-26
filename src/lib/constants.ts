@@ -46,6 +46,7 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
       { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
       { label: "Projects", href: "/projects", description: "What members are shipping with Claude." },
       { label: "Community Hub", href: "/community", description: "MCPs, prompts, workflows shared by the community." },
+      { label: "Showcase", href: "/showcase", description: "Member project posts — demos, launches, works in progress." },
     ],
   },
 ] as const;
@@ -74,6 +75,7 @@ export const FOOTER_SECTIONS = [
       { label: "Events", href: "/events" },
       { label: "Gallery", href: "/gallery" },
       { label: "Projects", href: "/projects" },
+      { label: "Showcase", href: "/showcase" },
       { label: "Blog", href: "/blog" },
       { label: "Newsletter", href: "/newsletter" },
       { label: "FAQ", href: "/faq" },

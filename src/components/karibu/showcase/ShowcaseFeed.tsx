@@ -68,6 +68,12 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
                 Projects, demos and works in progress from members across the
                 country. React, comment, and help each other ship.
               </p>
+              <p className="mt-2 font-inter text-[14px] text-ink-muted">
+                Sharing an MCP, prompt or workflow?{" "}
+                <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
+                  That lives in the Community Hub
+                </Link>
+              </p>
             </div>
             <Link
               href="/showcase/submit"
@@ -150,8 +156,8 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
               Nothing here yet — be the first.
             </p>
             <p className="mx-auto mb-6 max-w-md font-inter text-[14.5px] leading-[1.6] text-ink-soft">
-              Shipped an MCP, a prompt, a demo, or a full build with Claude?
-              Share it with the community.
+              Built something with Claude — a demo, a launch, or a work in
+              progress? Post it and let the community react.
             </p>
             <Link
               href="/showcase/submit"

@@ -73,6 +73,12 @@ export function KaribuCommunity({
                 MCPs, prompts, workflows and tools made by CCK members. Try them,
                 remix them, and share your own.
               </p>
+              <p className="mt-2 font-inter text-[14px] text-ink-muted">
+                Sharing a whole project instead?{" "}
+                <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
+                  Head to the Showcase
+                </Link>
+              </p>
             </div>
             <Link
               href="/community/submit"

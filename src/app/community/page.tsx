@@ -28,8 +28,12 @@ export default async function CommunityPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const type = typeof params.type === "string" ? params.type : undefined
-  const sort = typeof params.sort === "string" ? (params.sort as "recent" | "popular") : "recent"
+  // Validate rather than cast: an unknown type would otherwise throw inside
+  // Prisma's enum coercion and surface as a misleading empty feed.
+  const VALID_TYPES = ["MCP", "PROMPT", "WORKFLOW", "TOOL"]
+  const type =
+    typeof params.type === "string" && VALID_TYPES.includes(params.type) ? params.type : undefined
+  const sort = params.sort === "popular" ? ("popular" as const) : ("recent" as const)
 
   const { items, total } = await getCommunitySubmissions({ type, sort }).catch(() => ({ items: [], total: 0 }))
 

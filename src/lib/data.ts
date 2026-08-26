@@ -693,7 +693,11 @@ export async function getCommunitySubmissionBySlug(
     where: { slug },
     include: { _count: { select: { comments: { where: { status: "APPROVED" } } } } },
   })
-  if (!row || row.status !== "APPROVED") return null
+  // SHOWCASE posts live in this table but belong to /showcase/[slug]; treating
+  // them as missing here keeps /community/<slug> from serving a duplicate page
+  // with a competing canonical. (getCommunityCommentsBySlug stays type-agnostic
+  // — the showcase detail page reads its comments through it.)
+  if (!row || row.status !== "APPROVED" || row.type === "SHOWCASE") return null
   return mapPrismaCommunitySubmission(row)
 }
 

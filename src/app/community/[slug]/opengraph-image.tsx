@@ -30,8 +30,33 @@ export default async function Image({
   const { slug } = await params;
   const submission = await getCommunitySubmissionBySlug(slug).catch(() => null);
 
+  // A missing/removed submission must still return a valid image response —
+  // returning null 500s the image URL for crawlers re-fetching an old card.
   if (!submission) {
-    return null;
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            background: "#141413",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "Georgia, serif",
+          }}
+        >
+          <div style={{ display: "flex", color: "#faf9f5", fontSize: 64 }}>
+            Community Hub
+          </div>
+          <div style={{ display: "flex", color: "#b0aea5", fontSize: 32, marginTop: 16 }}>
+            Claude Community Kenya
+          </div>
+        </div>
+      ),
+      size
+    );
   }
 
   const badgeColor = typeBadgeColor(submission.type);
