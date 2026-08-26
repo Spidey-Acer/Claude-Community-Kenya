@@ -179,7 +179,7 @@ export function KaribuAbout({
                 href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex rounded-full bg-ink px-8 py-4 font-inter text-[15.5px] font-semibold text-paper transition-colors hover:bg-black"
+                className="inline-flex rounded-full bg-ink px-8 py-4 font-inter text-[15.5px] font-semibold text-paper transition-colors hover:bg-ink-soft"
               >
                 Join on WhatsApp
               </a>

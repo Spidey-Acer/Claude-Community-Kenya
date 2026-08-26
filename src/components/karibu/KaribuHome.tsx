@@ -84,7 +84,7 @@ export function KaribuHome({
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
   const memberLabel = communityStats?.totalMembers
-    ? `~${communityStats.totalMembers.toLocaleString()} members`
+    ? `~${communityStats.totalMembers.toLocaleString("en-KE")} members`
     : null;
 
   const marqueeItems = [
@@ -432,12 +432,12 @@ function WhatWeDo() {
 
         {/* 03 — clay */}
         <Reveal index={2}>
-          <article className="h-full rounded-2xl bg-clay p-6 text-paper-card transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
-            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay-light">
+          <article className="h-full rounded-2xl bg-clay-panel p-6 text-on-clay-panel transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
+            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-on-clay-panel-soft">
               03
             </div>
             <h3 className="mb-2 font-newsreader text-[22px]">Online community</h3>
-            <p className="font-inter text-sm leading-[1.5] text-[#F5E4DB]">
+            <p className="font-inter text-sm leading-[1.5] text-on-clay-panel">
               WhatsApp &amp; Discord — questions answered daily, wins shared
               nightly.
             </p>
@@ -719,7 +719,7 @@ function HowToJoin() {
               >
                 <div className="font-newsreader text-2xl text-clay-light">{step.n}</div>
                 <div>
-                  <div className="font-inter text-base font-semibold text-paper">
+                  <div className="font-inter text-base font-semibold text-on-panel-dark">
                     {step.title}
                   </div>
                   <div className="font-inter text-sm text-[#A79E90]">{step.body}</div>

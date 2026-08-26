@@ -47,13 +47,15 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = await getBlogPostBySlug(slug);
+  // A transient DB error should degrade (404 / no related posts), not 500
+  // the whole article.
+  const post = await getBlogPostBySlug(slug).catch(() => null);
 
   if (!post) {
     notFound();
   }
 
-  const allPosts = await getBlogPosts();
+  const allPosts = await getBlogPosts().catch(() => []);
   const relatedPosts = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2);
 
   const postUrl = `${SITE_CONFIG.url}/blog/${post.slug}`;

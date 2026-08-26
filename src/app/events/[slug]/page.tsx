@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const event = await getEventBySlug(slug).catch(() => null);
 
   if (!event) {
     return { title: "Event Not Found" };
@@ -49,7 +49,7 @@ export default async function EventDetailPage({
 }) {
   const { slug } = await params;
   const [event, allEvents] = await Promise.all([
-    getEventBySlug(slug),
+    getEventBySlug(slug).catch(() => null),
     getEvents().catch(() => []),
   ]);
 

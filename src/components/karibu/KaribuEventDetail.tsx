@@ -272,7 +272,7 @@ export function KaribuEventDetail({
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
+                  className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-ink-soft"
                 >
                   Sold out — get notified
                 </a>

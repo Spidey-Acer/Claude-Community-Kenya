@@ -87,6 +87,12 @@
   --scrim: #23201B;
   --scrim-text: #FBF7F0;
   --scrim-text-soft: #E9E0D2;
+  /* Clay brand slabs (the marquee band, the home clay card) stay deep clay in
+   * both themes — --clay itself lightens in dark mode, which dropped its
+   * fixed light-tint text to ~2.9:1. */
+  --clay-panel: #A84E2D;
+  --on-clay-panel: #FBF0E8;
+  --on-clay-panel-soft: #F0B49B;
   --footer-bg: #23201B;
   --footer-text: #E9E0D2;
   --footer-text-soft: #C7BEB0;
@@ -165,6 +171,9 @@
   --color-scrim: var(--scrim);
   --color-scrim-text: var(--scrim-text);
   --color-scrim-text-soft: var(--scrim-text-soft);
+  --color-clay-panel: var(--clay-panel);
+  --color-on-clay-panel: var(--on-clay-panel);
+  --color-on-clay-panel-soft: var(--on-clay-panel-soft);
   --color-footer-bg: var(--footer-bg);
   --color-footer-text: var(--footer-text);
   --color-footer-text-soft: var(--footer-text-soft);
