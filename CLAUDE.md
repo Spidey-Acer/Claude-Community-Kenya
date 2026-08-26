@@ -60,7 +60,7 @@ wart, see Known Issues.
 ```
 src/
 ├── app/                          # 25+ public pages, 15 admin pages, 42 API routes
-│   ├── page.tsx                  # Home (HeroTerminal + StatsBar + content sections)
+│   ├── page.tsx                  # Home (KaribuHome — warm-light composition)
 │   ├── about/                    # About with timeline
 │   ├── events/                   # Listing + [slug] detail + demo request forms
 │   ├── blog/                     # Listing + [slug] detail (DB-backed)
@@ -68,6 +68,9 @@ src/
 │   ├── community/                # Community Hub: MCP/Prompt/Workflow/Tool submissions
 │   │   ├── [slug]/               # Detail page with comments + upvotes
 │   │   └── submit/               # Submission form
+│   ├── showcase/                 # Member project posts: reactions + comments + media
+│   │   ├── [slug]/               # Post detail
+│   │   └── submit/               # Composer (members only)
 │   ├── resources/                # Resource hub with 7 sub-pages
 │   │   ├── getting-started/      # Beginner guide
 │   │   ├── claude-code/          # Claude Code tutorial
@@ -76,13 +79,12 @@ src/
 │   │   ├── api-guide/            # API usage guide
 │   │   ├── production-guide/     # Production best practices
 │   │   └── links/                # Curated links directory
-│   ├── join/                     # Terminal-themed application form
+│   ├── join/                     # WhatsApp-first join page (KaribuJoin)
 │   ├── speak/                    # Speaker application
 │   ├── volunteer/                # Volunteer application
 │   ├── submit-idea/              # Idea submission
 │   ├── submit-project/           # Project submission
 │   ├── faq/                      # FAQ with accordions + floating Discord CTA
-│   ├── ambassador/               # Ambassador program
 │   ├── code-of-conduct/
 │   ├── admin/                    # Full CRUD admin panel (auth-protected)
 │   │   ├── applications/         # Join applications management
@@ -104,18 +106,17 @@ src/
 │
 ├── components/
 │   ├── layout/                   # Navbar, Footer, MobileMenu, PageTransition, ConditionalLayout
-│   ├── sections/                 # HeroTerminal, HeroPro, StatsBar, StatsBarPro, EventCard,
-│   │                             # ProjectCard, BlogPostCard, TeamMemberCard, TestimonialsCarousel,
-│   │                             # CommunityResourceCard, HomeContent
+│   ├── karibu/                   # The Karibu design system components (Karibu* pages,
+│   │                             # showcase/*, Marquee, KaribuNav, KaribuFooter, motion/Reveal)
+│   ├── sections/                 # BlogPostCard, HeroEmailCapture, HeroTerminal (type source)
 │   ├── terminal/                 # TerminalWindow, MatrixRain, CommandPalette, GlitchText,
-│   │                             # TypingAnimation, CRTGlow, ScrollReveal, LoadingBar,
-│   │                             # TerminalApplication (1356 lines — needs refactor)
+│   │                             # TypingAnimation, CRTGlow, ScrollReveal, LoadingBar
 │   ├── persona/                  # PersonaToggle, PersonaHeading, PersonaText, PersonaSelectorModal,
 │   │                             # ParticleCanvas, ProWrappers
 │   ├── community/                # CommentForm, CommentList, CopyButton, UpvoteButton
 │   ├── admin/                    # AdminHeader, AdminSidebar, StatusBadge, ReviewForm, etc.
 │   ├── schema/                   # BreadcrumbSchema (structured data)
-│   └── ui/                       # Button, Card, Badge, CountUp, Accordion, Timeline, MediaFrame
+│   └── ui/                       # Card, Badge, CountUp, Skeleton
 │
 ├── data/                         # Static TypeScript data (events, blog, projects, resources, team, faq, persona-content)
 ├── lib/                          # Utilities: prisma, constants, utils, csrf, rate-limit, rbac,
@@ -125,9 +126,9 @@ src/
     └── terminal-effects.css      # Terminal CRT/scanline effects
 ```
 
-## Database (17 Prisma models)
+## Database (33 Prisma models)
 
-User, Event, BlogPost, Project, JoinApplication, SpeakerApplication, VolunteerApplication, DemoRequest, IdeaSubmission, ContactMessage, NewsletterSubscriber, CommunitySubmission, CommunityComment, CommunityUpvote, SiteSettings, TeamMember, AuditLog
+Core: User, Event, BlogPost, Project, JoinApplication, SpeakerApplication, VolunteerApplication, DemoRequest, IdeaSubmission, ContactMessage, NewsletterSubscriber, CommunitySubmission (also backs /showcase via type=SHOWCASE), CommunityComment, CommunityUpvote, ShowcaseReaction, Report, SiteSettings, TeamMember, AuditLog — plus gallery, newsletter and Impact Lab models. `grep "^model " prisma/schema.prisma` is authoritative.
 
 ## Commands
 
@@ -176,7 +177,6 @@ npm run db:seed          # Seed database
 
 ## Known Issues
 
-- `TerminalApplication.tsx` is 1,356 lines — needs refactoring into sub-components
 - Team avatars reference `/images/team/*.jpg` — files may not exist
 - CommandPalette FAQ links may point to wrong routes
 - **Dead font utility:** `.persona-pro h1,h2,h3` (specificity 0,1,1) beats the
@@ -185,9 +185,10 @@ npm run db:seed          # Seed database
   the class. Either drop `persona-pro` from Karibu routes or re-layer the rule.
 - **Five font families load globally** in `layout.tsx` while the public site
   paints mainly Fraunces + Inter. Newsreader alone pulls 5 weights plus italics.
-- **Metadata gaps:** 11 public pages export no `metadata` and fall back to the
-  root title; `/code-of-conduct` and `/resources/links` have no
-  `alternates.canonical` so they self-report as the homepage.
+- **Titles:** pages author bare titles ("Events"); the root layout's
+  `title.template` appends "| Claude Community Kenya" exactly once. Do not bake
+  the suffix into page titles — and a page whose title already leads with the
+  brand uses `title: { absolute: ... }` (the home page does).
 - **Prisma client goes stale after a GitHub Desktop pull** (no postinstall
   hook), producing dozens of phantom "property does not exist on PrismaClient"
   type errors. `npx prisma generate` fixes it — do not chase them as real.
