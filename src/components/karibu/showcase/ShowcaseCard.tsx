@@ -32,14 +32,18 @@ export function ShowcaseCard({ post }: ShowcaseCardProps) {
       href={`/showcase/${post.slug}`}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-sand bg-paper-card transition-[transform,border-color] duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 hover:border-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
-      <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-paper-alt">
+      {/* Showcase covers are whatever a member uploaded — usually a
+        * near-square screenshot. A 16:9 crop was taking 44% off a square
+        * source and 55% off a phone photo, which is the worst crop on the
+        * public site. Contained on the matte, nothing is destroyed. */}
+      <div className="frame-base frame-plate w-full shrink-0">
         {post.coverImageUrl ? (
           <Image
             src={post.coverImageUrl}
             alt=""
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+            className="object-contain"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

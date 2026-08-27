@@ -121,7 +121,16 @@ export function EventCoverPlaceholder({
   return (
     <div
       aria-hidden="true"
-      className={cn("absolute inset-0 flex flex-col justify-center overflow-hidden", tone, className)}
+      className={cn(
+        // The frames these sit in are square now, and a square affords a top
+        // and a bottom. Centring the block the way the 3:2 box needed leaves
+        // dead bands above and below it; pinning the eyebrow to the top and
+        // the copy to the bottom is what makes it read as a printed bill.
+        "absolute inset-0 flex flex-col justify-between overflow-hidden",
+        size === "lg" ? "p-7 md:p-9" : "p-5",
+        tone,
+        className,
+      )}
     >
       {/* Motif sits under the type, faint enough that the words stay the subject. */}
       <div
@@ -139,32 +148,47 @@ export function EventCoverPlaceholder({
         height={64}
         className={cn(
           "pointer-events-none absolute opacity-40",
-          size === "lg" ? "bottom-6 right-6 h-11 w-11" : "bottom-3.5 right-3.5 h-7 w-7",
+          size === "lg" ? "right-6 top-6 h-11 w-11" : "right-4 top-4 h-7 w-7",
         )}
       />
 
-      <div className={cn("relative", size === "lg" ? "p-7 pr-20 md:p-10 md:pr-28" : "p-5 pr-12")}>
-        <div
-          className={cn(
-            "mb-2 font-inter font-semibold uppercase tracking-[0.18em] text-clay",
-            size === "lg" ? "text-[11.5px]" : "text-[10px]",
-          )}
-        >
-          {[TYPE_EYEBROW[event.type], size === "lg" ? event.city : null]
-            .filter(Boolean)
-            .join(" · ")}
-        </div>
+      {/* Top: eyebrow. Only this needs clearance for the stamp. */}
+      <div
+        className={cn(
+          "relative font-inter font-semibold uppercase tracking-[0.18em] text-clay",
+          size === "lg" ? "pr-16 text-[11.5px]" : "pr-10 text-[10px]",
+        )}
+      >
+        {[TYPE_EYEBROW[event.type], size === "lg" ? event.city : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </div>
+
+      {/* Bottom: the copy block. */}
+      <div className="relative">
         {size === "lg" && dateParts ? (
           <>
-            <div className="font-newsreader leading-[0.9] tracking-[-0.02em] text-ink text-[56px] md:text-[76px]">
+            <div className="font-newsreader text-[64px] leading-[0.88] tracking-[-0.02em] text-ink md:text-[84px]">
               {dateParts.day}
             </div>
-            <div className="mt-1.5 font-inter text-[15px] font-medium text-ink-soft md:text-[17px]">
+            <div className="mt-1 font-inter text-[15px] font-medium text-ink-soft md:text-[17px]">
               {dateParts.month}
+            </div>
+            {/* The large variant can carry its title again. It was dropped
+              * when this sat in a 340px strip beside a 32px heading, where
+              * it read as an echo. In the rail the plate is 400px tall and
+              * the h1 is in the other column, so a small title under a rule
+              * is a caption on the bill — and the cover stops reading as a
+              * date widget that forgot which event it belongs to. */}
+            <div className="mt-4 h-px w-10 bg-clay/40" />
+            <div className="mt-3 line-clamp-2 font-newsreader text-[20px] leading-[1.15] text-ink md:text-[23px]">
+              {coverTitle(event.title, event.city)}
             </div>
           </>
         ) : (
-          <div className="line-clamp-3 font-newsreader text-[26px] leading-[1.06] tracking-[-0.01em] text-ink">
+          // The square tile is taller than the 3:2 it replaces, so the title
+          // gets another line rather than leaving a dead band under it.
+          <div className="line-clamp-4 font-newsreader text-[28px] leading-[1.06] tracking-[-0.01em] text-ink">
             {coverTitle(event.title, event.city)}
           </div>
         )}

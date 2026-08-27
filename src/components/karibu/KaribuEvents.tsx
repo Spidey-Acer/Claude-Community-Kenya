@@ -254,27 +254,34 @@ function FeaturedCard({ event }: { event: Event }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group grid overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay md:grid-cols-2"
+      className="group grid overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay md:grid-cols-[minmax(0,300px)_1fr] lg:grid-cols-[380px_1fr]"
     >
-      <div className="relative min-h-[220px] overflow-hidden md:min-h-[280px]">
+      <div className="frame-base frame-plate border-b border-sand md:border-b-0 md:border-r">
         {cover ? (
           <Image
             src={cover}
             alt={event.title}
             fill
             priority
-            sizes="(max-width: 768px) 100vw, 590px"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            sizes="(min-width: 1024px) 380px, (min-width: 768px) 300px, 100vw"
+            className="object-contain"
           />
         ) : (
           <EventCoverPlaceholder event={event} size="lg" />
         )}
-        <span className="absolute left-4 top-4 rounded-full bg-clay px-3 py-1.5 font-inter text-xs font-semibold uppercase tracking-[0.08em] text-paper-card">
-          Next up
-        </span>
       </div>
       <div className="p-8 md:p-[34px]">
+        {/*
+          "Next up" used to sit on the poster as an absolute pill. Two reasons
+          it moved here: it covered part of a poster this card now shows whole,
+          and on a poster-less event it landed directly on top of the
+          placeholder's own eyebrow. It is a status flag, so it belongs with
+          the other status badges.
+        */}
         <div className="mb-3.5 flex flex-wrap gap-2">
+          <span className="rounded-full bg-clay px-2.5 py-1 font-inter text-xs font-semibold uppercase tracking-[0.08em] text-paper-card">
+            Next up
+          </span>
           <Badge tone="clay">{event.city}</Badge>
           <Badge tone="sand">{TYPE_LABEL[event.type]}</Badge>
         </div>
@@ -348,15 +355,18 @@ function PastCard({ event }: { event: Event }) {
   const label = dt ? fmt(dt, { month: "short", year: "numeric" }) : event.date;
   const cover = eventCover(event.posterUrl);
   return (
-    <Link href={`/events/${event.slug}`} className="group block">
-      <div className="relative mb-2.5 aspect-[3/2] overflow-hidden rounded-xl border border-sand transition-colors group-hover:border-clay">
+    <Link
+      href={`/events/${event.slug}`}
+      className="group block transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 motion-reduce:transform-none"
+    >
+      <div className="frame-base frame-tile mb-2.5 rounded-xl border border-sand transition-colors duration-150 ease-[var(--ease-reversible)] group-hover:border-clay">
         {cover ? (
           <Image
             src={cover}
             alt={event.title}
             fill
-            sizes="(max-width: 640px) 100vw, 380px"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
           />
         ) : (
           <EventCoverPlaceholder event={event} />

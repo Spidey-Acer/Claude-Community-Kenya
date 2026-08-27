@@ -20,8 +20,8 @@ export default function EventsLoading() {
 
       {/* Featured "Next up" card */}
       <section className={`${WRAP} py-5`}>
-        <div className="grid overflow-hidden rounded-2xl border border-sand md:grid-cols-2">
-          <Skeleton className="aspect-[4/3] w-full md:aspect-auto md:min-h-[280px]" delay={0.24} />
+        <div className="grid overflow-hidden rounded-2xl border border-sand md:grid-cols-[minmax(0,300px)_1fr] lg:grid-cols-[380px_1fr]">
+          <Skeleton className="aspect-square w-full" delay={0.24} />
           <div className="p-8 md:p-[34px]">
             <div className="mb-3.5 flex gap-2">
               <Skeleton className="h-6 w-16 rounded-full" delay={0.28} />
