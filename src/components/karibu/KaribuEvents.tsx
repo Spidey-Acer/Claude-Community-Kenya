@@ -47,8 +47,12 @@ const fmt = (dt: Date, opts: Intl.DateTimeFormatOptions) =>
 
 type Filter = { key: string; label: string };
 
+/** Past events revealed per "Show more" press. */
+const PAST_PAGE_SIZE = 9;
+
 export function KaribuEvents({ events }: { events: Event[] }) {
   const [active, setActive] = useState("all");
+  const [pastPages, setPastPages] = useState(1);
   const reduce = useReducedMotion();
   const { whatsapp } = useSocialLinks();
 
@@ -102,6 +106,9 @@ export function KaribuEvents({ events }: { events: Event[] }) {
     [filtered],
   );
 
+  const shownPast = past.slice(0, pastPages * PAST_PAGE_SIZE);
+  const hiddenPast = past.length - shownPast.length;
+
   const featured = upcoming[0];
   const rest = upcoming.slice(1);
   const bandLabel = monthRange(rest.length ? rest : upcoming);
@@ -128,7 +135,10 @@ export function KaribuEvents({ events }: { events: Event[] }) {
                 <button
                   key={f.key}
                   type="button"
-                  onClick={() => setActive(f.key)}
+                  onClick={() => {
+                    setActive(f.key);
+                    setPastPages(1);
+                  }}
                   aria-pressed={on}
                   className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
                     on
@@ -196,18 +206,34 @@ export function KaribuEvents({ events }: { events: Event[] }) {
       {past.length > 0 && (
         <section className={`${WRAP} pb-16 pt-2`} aria-label="Past events">
           <Reveal>
-            <div className="mb-4 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              Past · picha
+            <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-sand pb-3">
+              <div className="font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+                Past · picha
+              </div>
+              <div className="font-inter text-xs text-ink-faint">
+                {past.length} {past.length === 1 ? "event" : "events"}
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence mode="popLayout" initial={false}>
-                {past.map((ev) => (
+                {shownPast.map((ev) => (
                   <motion.div key={ev.slug} {...flip}>
                     <PastCard event={ev} />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
+            {hiddenPast > 0 && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setPastPages((n) => n + 1)}
+                  className="rounded-full border border-sand-2 bg-paper-card px-7 py-3 font-inter text-[13.5px] font-semibold text-ink transition-colors hover:border-ink"
+                >
+                  Show {Math.min(hiddenPast, PAST_PAGE_SIZE)} more
+                </button>
+              </div>
+            )}
           </Reveal>
         </section>
       )}
@@ -241,7 +267,7 @@ function FeaturedCard({ event }: { event: Event }) {
             className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <EventCoverPlaceholder />
+          <EventCoverPlaceholder event={event} size="lg" />
         )}
         <span className="absolute left-4 top-4 rounded-full bg-clay px-3 py-1.5 font-inter text-xs font-semibold uppercase tracking-[0.08em] text-paper-card">
           Next up
@@ -323,7 +349,7 @@ function PastCard({ event }: { event: Event }) {
   const cover = eventCover(event.posterUrl);
   return (
     <Link href={`/events/${event.slug}`} className="group block">
-      <div className="relative mb-2.5 h-[150px] overflow-hidden rounded-xl border border-sand">
+      <div className="relative mb-2.5 aspect-[3/2] overflow-hidden rounded-xl border border-sand transition-colors group-hover:border-clay">
         {cover ? (
           <Image
             src={cover}
@@ -333,7 +359,7 @@ function PastCard({ event }: { event: Event }) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <EventCoverPlaceholder />
+          <EventCoverPlaceholder event={event} />
         )}
       </div>
       <div className="font-inter text-xs text-ink-muted">

@@ -107,7 +107,7 @@ export function KaribuEventDetail({
                 className="object-cover"
               />
             ) : (
-              <EventCoverPlaceholder />
+              <EventCoverPlaceholder event={event} size="lg" />
             )}
           </div>
         </Reveal>
