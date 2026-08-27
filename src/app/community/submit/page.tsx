@@ -120,13 +120,13 @@ export default function CommunitySubmitPage() {
             </h1>
             <p className="mb-6 font-inter text-[15px] leading-[1.6] text-ink-soft">
               Your resource is pending review by the CCK team. Once approved, it
-              will appear on the Community Hub.
+              will appear on Tools &amp; Prompts.
             </p>
             <Link
               href="/community"
               className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
             >
-              Browse Community Hub &rarr;
+              Browse Tools &amp; Prompts &rarr;
             </Link>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function CommunitySubmitPage() {
           className="mb-8 inline-flex items-center gap-2 font-inter text-[13px] text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Back to Community Hub
+          Back to Tools &amp; Prompts
         </Link>
 
         <h1 className="mb-2 font-newsreader text-[36px] leading-[1.1] tracking-[-0.01em] text-ink">

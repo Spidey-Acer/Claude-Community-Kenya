@@ -87,7 +87,7 @@ export function ShowcaseFeed({
               <p className="mt-2 font-inter text-[14px] text-ink-muted">
                 Sharing an MCP, prompt or workflow?{" "}
                 <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
-                  That lives in the Community Hub
+                  That lives in Tools &amp; Prompts
                 </Link>
               </p>
             </div>

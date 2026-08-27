@@ -25,6 +25,7 @@ const EXPLORE = [
   { label: "Home", href: "/" },
   { label: "Events", href: "/events" },
   { label: "Learn", href: "/resources" },
+  { label: "Showcase", href: "/showcase" },
   { label: "Community", href: "/community" },
   { label: "About", href: "/about" },
 ];

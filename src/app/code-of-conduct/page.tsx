@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Code of Conduct | Claude Community Kenya",
   description:
     "Our community code of conduct — ensuring a welcoming, inclusive, and harassment-free experience for everyone.",
+  alternates: {
+    canonical: "https://www.claudekenya.org/code-of-conduct",
+  },
   openGraph: {
     title: "Code of Conduct | Claude Community Kenya",
     description:

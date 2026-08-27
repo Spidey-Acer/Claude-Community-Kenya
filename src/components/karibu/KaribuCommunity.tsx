@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KaribuCommunity — the Community Hub, restyled warm-light (redesign in place).
+ * KaribuCommunity — the Tools & Prompts section, restyled warm-light (redesign in place).
  *
  * Preserves every Hub feature: type + sort filters (URL-driven), submission
  * count, resource cards with upvotes/comments/tags/links, submitter, and the
@@ -149,7 +149,7 @@ export function KaribuCommunity({
       <section className={`${WRAP} pb-16`}>
         <h2 className="sr-only">Submissions</h2>
         {dbError ? (
-          <FeedErrorPanel surface="Community Hub" />
+          <FeedErrorPanel surface="Tools & Prompts" />
         ) : total > 0 ? (
           <>
             {items.length > 0 ? (

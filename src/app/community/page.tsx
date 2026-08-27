@@ -6,14 +6,14 @@ import { KaribuCommunity } from "@/components/karibu/KaribuCommunity"
 export const revalidate = 1800
 
 export const metadata: Metadata = {
-  title: "Community Hub | Claude Community Kenya",
+  title: "Tools & Prompts | Claude Community Kenya",
   description:
     "Discover MCPs, prompts, workflows, and tools built by the Claude Community Kenya. Share your own creations.",
   alternates: {
     canonical: "https://www.claudekenya.org/community",
   },
   openGraph: {
-    title: "Community Hub | Claude Community Kenya",
+    title: "Tools & Prompts | Claude Community Kenya",
     description:
       "Discover MCPs, prompts, workflows, and tools built by the Claude Community Kenya.",
     url: "https://www.claudekenya.org/community",
@@ -51,7 +51,7 @@ export default async function CommunityPage({
 
   return (
     <>
-      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Community Hub" }]} />
+      <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Tools & Prompts" }]} />
       <KaribuCommunity
         items={items}
         total={total}

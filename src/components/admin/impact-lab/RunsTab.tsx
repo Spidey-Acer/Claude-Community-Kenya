@@ -123,7 +123,8 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
         ) : runs.length === 0 ? (
           <div className="p-8 text-center text-sm font-mono text-[#555]">No saved runs yet — generate and save from the Matching tab.</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[#1e1e1e]">
                 {["Name", "Teams", "Avg", "Unassigned", "Status", ""].map((h) => (
@@ -237,6 +238,7 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

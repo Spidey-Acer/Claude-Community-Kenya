@@ -171,11 +171,11 @@ export default function NewEventPage() {
           {/* Date, Time, Venue */}
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Schedule & Location</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldInput label="Date" type="date" value={date} onChange={setDate} required />
               <FieldInput label="Time" value={time} onChange={setTime} placeholder="e.g. 2:00 PM - 5:00 PM" required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldInput label="Venue" value={venue} onChange={setVenue} required />
               <FieldInput label="City" value={city} onChange={setCity} required />
             </div>
@@ -184,11 +184,11 @@ export default function NewEventPage() {
           {/* Type, Status, Featured */}
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Classification</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldSelect label="Type" value={type} onChange={setType} options={EVENT_TYPES.map(t => ({ value: t, label: TYPE_LABELS[t] }))} />
               <FieldSelect label="Status" value={status} onChange={setStatus} options={EVENT_STATUSES.map(s => ({ value: s, label: STATUS_LABELS[s] }))} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FieldInput label="Attendee Count" type="number" value={attendeeCount} onChange={setAttendeeCount} placeholder="Signed up" />
               <FieldInput label="Capacity" type="number" value={capacity} onChange={setCapacity} placeholder="Max seats" />
               <div className="flex items-center gap-3 pt-5">
@@ -207,14 +207,14 @@ export default function NewEventPage() {
           {/* Organizer & Links */}
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Organizer & Links</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldInput label="Host" value={host} onChange={setHost} placeholder="Optional" />
               {/* Renders publicly under "With thanks to" — per ambassador program
                   rules, never use "partner"/"co-host"/"sponsor" framing for orgs
                   that are not listed Claude customers. */}
               <FieldInput label="Venue / host orgs (thanks)" value={partnerOrg} onChange={setPartnerOrg} placeholder="Optional" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldInput label="Registration URL" type="url" value={registrationUrl} onChange={setRegistrationUrl} placeholder="Optional" />
               <FieldInput label="Luma URL" type="url" value={lumaUrl} onChange={setLumaUrl} placeholder="Optional" />
             </div>
@@ -237,7 +237,7 @@ export default function NewEventPage() {
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Personalization Tags</h2>
             <fieldset className="space-y-2">
               <legend className="font-mono text-xs text-[#555]">Audiences</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {AUDIENCES.map((a) => (
                   <label key={a} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
                     <input
@@ -255,7 +255,7 @@ export default function NewEventPage() {
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="font-mono text-xs text-[#555]">Intents</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {INTENTS.map((i) => (
                   <label key={i} className="flex items-center gap-2 text-xs font-mono text-[#888] cursor-pointer">
                     <input

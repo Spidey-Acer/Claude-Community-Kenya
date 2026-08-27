@@ -67,7 +67,7 @@ const whatWeDoItems = [
   {
     icon: MessageSquare,
     title: "Online Community",
-    proTitle: "Community Hub",
+    proTitle: "Tools & Prompts",
     description:
       "Active Discord server for daily discussions, code reviews, project collaboration, job sharing, and connecting with Claude developers.",
     proDescription:

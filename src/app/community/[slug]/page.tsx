@@ -25,7 +25,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${submission.title} | Community Hub | Claude Community Kenya`,
+    title: `${submission.title} | Tools & Prompts | Claude Community Kenya`,
     description: submission.shortDescription,
     alternates: {
       canonical: `${SITE_CONFIG.url}/community/${submission.slug}`,
@@ -62,7 +62,7 @@ export default async function CommunityDetailPage({
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
-          { name: "Community Hub", url: "/community" },
+          { name: "Tools & Prompts", url: "/community" },
           { name: submission.title },
         ]}
       />

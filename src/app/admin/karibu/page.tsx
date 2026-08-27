@@ -264,7 +264,7 @@ export default async function KaribuAdminPage() {
         </div>
 
         {/* ── Recent completions ────────────────────────────────────────── */}
-        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-x-auto">
           <div className="px-5 py-3 border-b border-[#1e1e1e]">
             <h2 className="text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">
               Recent Completions (last 10)
@@ -275,7 +275,7 @@ export default async function KaribuAdminPage() {
               <p className="text-sm font-mono text-[#444]">No completions yet</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-[#1a1a1a]">
                   <th className="px-4 py-2 text-left text-[10px] font-mono text-[#444] uppercase tracking-wider">When</th>

@@ -31,7 +31,7 @@ export function CommunitySubmissionDetail({
         className="mb-8 inline-flex items-center gap-2 font-inter text-[13px] text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-        Back to Community Hub
+        Back to Tools &amp; Prompts
       </Link>
 
       <header className="mb-8">

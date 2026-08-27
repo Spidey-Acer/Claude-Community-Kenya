@@ -68,7 +68,7 @@ export function SiteStatsEditor({ initialStats }: { initialStats: SiteStats }) {
           <div className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider mb-3">
             Platform Members
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               { key: "discordMembers" as const, label: "Discord", color: "#5865F2" },
               { key: "whatsappMembers" as const, label: "WhatsApp", color: "#25D366" },
@@ -96,7 +96,7 @@ export function SiteStatsEditor({ initialStats }: { initialStats: SiteStats }) {
           <div className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider mb-3">
             Activity
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="text-[11px] font-mono text-[#666] mb-1 block">Events Held</label>
               <input

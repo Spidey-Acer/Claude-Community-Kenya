@@ -84,7 +84,7 @@ export default async function PhotosAdminPage({
           </Link>
         </div>
 
-        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-x-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Camera className="w-8 h-8 text-[#333] mb-3" />
@@ -92,7 +92,7 @@ export default async function PhotosAdminPage({
               <p className="text-xs font-mono text-[#333] mt-1">Upload photos from community meetups.</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-[#1e1e1e]">
                   <th className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">Photo</th>

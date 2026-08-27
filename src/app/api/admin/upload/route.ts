@@ -5,6 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+const ALLOWED_FOLDERS = new Set(["events", "blog", "team", "community"])
 
 export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
@@ -15,7 +16,8 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData()
   const file = formData.get("file") as File | null
-  const folder = (formData.get("folder") as string) || "events"
+  const rawFolder = formData.get("folder") as string | null
+  const folder = rawFolder && ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "events"
 
   if (!file) {
     return NextResponse.json(

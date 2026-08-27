@@ -27,7 +27,9 @@ jobs:
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
-          model: claude-sonnet-4-6
+          # v1 has no `model` input (it was warned as ignored); the model is
+          # pinned via claude_args instead.
+          claude_args: "--model claude-sonnet-4-6"
           prompt: |
             Review this PR for:
             1. Bugs that pass TypeScript but break at runtime

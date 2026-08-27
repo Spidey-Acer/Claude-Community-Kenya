@@ -14,5 +14,32 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma validate:*)",
+      "Bash(npx prisma migrate status:*)",
+      "Bash(npx prisma migrate deploy:*)",
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run start)",
+      "Bash(npm run lint)",
+      "Bash(npm run db:generate)",
+      "Bash(npm run verify:matching)",
+      "Bash(npm run verify:submissions)",
+      "Bash(npm run verify:rematch)",
+      "Bash(npm run verify:judging)",
+      "Bash(npm run verify:results)",
+      "Bash(npm run verify:reviews)"
+    ],
+    "ask": [
+      "Bash(npx prisma migrate reset:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npm run db:migrate)",
+      "Bash(npm run db:push)",
+      "Bash(npm run purge:closed-cohorts)"
+    ]
   }
 }

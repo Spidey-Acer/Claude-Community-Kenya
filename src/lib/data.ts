@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { FEED_PAGE_SIZE } from "@/lib/constants"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import { publicUrl, variantKey } from "@/lib/gallery/r2"
+import { startOfTodayEAT } from "@/lib/event-dates"
 import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
@@ -238,26 +239,6 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   return row ? mapPrismaEvent(row) : null
 }
 
-/** East Africa Time is UTC+3 year-round — no DST to account for. */
-const EAT_OFFSET_MS = 3 * 60 * 60 * 1000
-
-/**
- * The instant of midnight-today in Nairobi, as a UTC Date.
- *
- * Events store `date` as the day (time lives in the separate `time` string),
- * so comparing against `now` would drop a same-day event the moment the clock
- * passed its stored midnight — the site would stop advertising tonight's
- * meetup on the morning of the meetup. Start-of-day keeps it listed until the
- * day is genuinely over.
- */
-function startOfTodayEAT(): Date {
-  const eatNow = new Date(Date.now() + EAT_OFFSET_MS)
-  return new Date(
-    Date.UTC(eatNow.getUTCFullYear(), eatNow.getUTCMonth(), eatNow.getUTCDate()) -
-      EAT_OFFSET_MS,
-  )
-}
-
 export async function getUpcomingEvents(): Promise<Event[]> {
   // Status alone is not enough: it is set by hand in admin, so a finished event
   // left as UPCOMING advertises itself forever. Date is the fact that cannot be
@@ -289,14 +270,6 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | nu
 }
 
 export async function getProjects(): Promise<ProjectView[]> {
-  const rows = await prisma.project.findMany({
-    where: { featured: true },
-    orderBy: { createdAt: "desc" },
-  })
-  return rows.map(mapPrismaProject)
-}
-
-export async function getFeaturedProjects(): Promise<ProjectView[]> {
   const rows = await prisma.project.findMany({
     where: { featured: true },
     orderBy: { createdAt: "desc" },
@@ -587,7 +560,7 @@ export async function getDashboardStats() {
   }
 }
 
-// ─── Community Hub Types ───────────────────────────────────────────────────
+// ─── Tools & Prompts Types ─────────────────────────────────────────────────
 
 export interface CommunitySubmissionView {
   id: string
