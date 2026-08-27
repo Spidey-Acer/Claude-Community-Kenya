@@ -151,7 +151,7 @@ export function KaribuSubmitIdea() {
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Submit an idea header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Submit an idea · Wazo</div>
+          <div className={`${KICKER} mb-4`}>Submit an idea</div>
           <h1 className="mb-4 max-w-[720px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Building something? <span className="italic text-clay">Find your collaborators.</span>
           </h1>

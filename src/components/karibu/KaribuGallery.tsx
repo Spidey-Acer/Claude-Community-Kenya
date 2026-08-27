@@ -53,7 +53,7 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Gallery header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Gallery · Picha</div>
+          <div className={`${KICKER} mb-4`}>Gallery</div>
           <h1 className="mb-4 max-w-[760px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Faces of the <span className="italic text-clay">community.</span>
           </h1>

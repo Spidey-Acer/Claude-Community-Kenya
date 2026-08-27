@@ -73,7 +73,7 @@ export function KaribuCommunity({
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className={`${KICKER} mb-4`}>Community · Jamii</div>
+              <div className={`${KICKER} mb-4`}>Community</div>
               <h1 className="mb-3 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
                 Built &amp; shared by the community.
               </h1>

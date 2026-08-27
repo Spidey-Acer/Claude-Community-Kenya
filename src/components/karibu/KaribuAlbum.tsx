@@ -60,7 +60,7 @@ export function KaribuAlbum({
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
             All events
           </Link>
-          <div className={`${KICKER} mb-3`}>Gallery · Picha</div>
+          <div className={`${KICKER} mb-3`}>Gallery</div>
           <h1 className="mb-3 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">
             {event.title}
           </h1>

@@ -26,7 +26,7 @@ export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
     <>
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Projects header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Projects · Miradi</div>
+          <div className={`${KICKER} mb-4`}>Projects</div>
           <h1 className="mb-4 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
             Built with Claude, in Kenya.
           </h1>

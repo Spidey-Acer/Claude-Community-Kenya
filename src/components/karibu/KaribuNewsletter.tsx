@@ -160,7 +160,7 @@ export function KaribuNewsletter({ issues }: { issues: readonly NewsletterIssueV
       <section className={`${WRAP} pb-10 pt-16 text-center`} aria-label="Newsletter header">
         <Reveal>
           <div className={`${KICKER} mb-4 flex items-center justify-center gap-2`}>
-            <span>Newsletter · Jarida</span>
+            <span>Newsletter</span>
             {issues.length > 0 && (
               <span className="rounded-full bg-clay/10 px-2 py-0.5 text-[10px] font-semibold text-clay">
                 {issues.length} issue{issues.length !== 1 ? "s" : ""}
