@@ -77,7 +77,7 @@ export function CommunitySubmissionDetail({
           className="link-refined mb-8 inline-flex items-center gap-1.5 text-[13px] text-[#9a9890] hover:text-[#e8e6dc]"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Back to Community Hub
+          Back to Tools &amp; Prompts
         </Link>
       ) : (
         <Link
@@ -85,7 +85,7 @@ export function CommunitySubmissionDetail({
           className="mb-8 inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Community Hub
+          Back to Tools &amp; Prompts
         </Link>
       )}
 

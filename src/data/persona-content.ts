@@ -161,7 +161,7 @@ const CONTENT: Record<string, PageDef> = {
   // ─── COMMUNITY HUB ───
   community: {
     hero: {
-      heading: { dev: "ls community/ --shared", pro: "Community Hub" },
+      heading: { dev: "ls community/ --shared", pro: "Tools & Prompts" },
       subtitle: {
         dev: "MCPs, prompts, workflows, and tools built by the community. Browse what others have shared or submit your own.",
         pro: "Prompts, workflows, and tools shared by the community. Browse what others have created or submit your own.",

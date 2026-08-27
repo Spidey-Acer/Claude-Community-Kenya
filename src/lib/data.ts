@@ -578,7 +578,7 @@ export async function getDashboardStats() {
   }
 }
 
-// ─── Community Hub Types ───────────────────────────────────────────────────
+// ─── Tools & Prompts Types ─────────────────────────────────────────────────
 
 export interface CommunitySubmissionView {
   id: string

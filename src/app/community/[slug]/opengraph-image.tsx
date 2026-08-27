@@ -5,7 +5,7 @@ import { getCommunitySubmissionBySlug } from "@/lib/data";
 // runtime can't resolve. Node runtime still supports ImageResponse fine.
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Claude Community Kenya — Community Hub";
+export const alt = "Claude Community Kenya — Tools & Prompts";
 
 /** Badge color per submission type */
 function typeBadgeColor(type: string): string {
@@ -89,7 +89,7 @@ export default async function Image({
             flex: 1,
           }}
         >
-          {/* Eyebrow: type badge + "Community Hub" */}
+          {/* Eyebrow: type badge + "Tools & Prompts" */}
           <div
             style={{
               display: "flex",
@@ -128,7 +128,7 @@ export default async function Image({
               ·
             </span>
 
-            {/* Community Hub label */}
+            {/* Tools & Prompts label */}
             <span
               style={{
                 color: "#7a7870",
@@ -139,7 +139,7 @@ export default async function Image({
                 display: "flex",
               }}
             >
-              Community Hub
+              Tools &amp; Prompts
             </span>
           </div>
 
