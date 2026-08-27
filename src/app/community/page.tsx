@@ -28,15 +28,38 @@ export default async function CommunityPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const type = typeof params.type === "string" ? params.type : undefined
-  const sort = typeof params.sort === "string" ? (params.sort as "recent" | "popular") : "recent"
+  // Validate rather than cast: an unknown type would otherwise throw inside
+  // Prisma's enum coercion and surface as a misleading empty feed.
+  const VALID_TYPES = ["MCP", "PROMPT", "WORKFLOW", "TOOL"]
+  const type =
+    typeof params.type === "string" && VALID_TYPES.includes(params.type) ? params.type : undefined
+  const sort = params.sort === "popular" ? ("popular" as const) : ("recent" as const)
+  const rawPage = typeof params.page === "string" ? parseInt(params.page, 10) : 1
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1
 
-  const { items, total } = await getCommunitySubmissions({ type, sort }).catch(() => ({ items: [], total: 0 }))
+  // A database failure must not render as a cheerful "nothing here yet" —
+  // the feed distinguishes an outage from a genuinely empty hub.
+  let items: Awaited<ReturnType<typeof getCommunitySubmissions>>["items"] = []
+  let total = 0
+  let dbError = false
+  try {
+    ;({ items, total } = await getCommunitySubmissions({ type, sort, page }))
+  } catch (error) {
+    console.error("[COMMUNITY] Failed to load submissions feed:", error)
+    dbError = true
+  }
 
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Tools & Prompts" }]} />
-      <KaribuCommunity items={items} total={total} activeType={type} activeSort={sort} />
+      <KaribuCommunity
+        items={items}
+        total={total}
+        activeType={type}
+        activeSort={sort}
+        page={page}
+        dbError={dbError}
+      />
     </>
   )
 }

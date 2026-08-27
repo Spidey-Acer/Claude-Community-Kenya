@@ -63,7 +63,7 @@ export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
               <article key={p.id} className="flex h-full flex-col rounded-2xl border border-sand bg-paper-card p-6">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="font-mono text-[11.5px] text-ink-muted">project</span>
-                  <span className="rounded-full bg-[#F3E3D9] px-2.5 py-1 font-inter text-[11.5px] font-semibold text-clay">
+                  <span className="rounded-full bg-clay/10 px-2.5 py-1 font-inter text-[11.5px] font-semibold text-clay">
                     {statusLabel(p.status)}
                   </span>
                 </div>

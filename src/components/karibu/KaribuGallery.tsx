@@ -120,7 +120,7 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                   className={cn(
                     "rounded-full border px-4 py-1.5 font-inter text-[13px] font-medium transition-colors",
                     activeFilter === null
-                      ? "border-clay bg-[#F3E3D9] text-clay"
+                      ? "border-clay bg-clay/10 text-clay"
                       : "border-sand text-ink-muted hover:border-clay",
                   )}
                 >
@@ -135,7 +135,7 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                     className={cn(
                       "rounded-full border px-4 py-1.5 font-inter text-[13px] font-medium transition-colors",
                       activeFilter === chip.slug
-                        ? "border-clay bg-[#F3E3D9] text-clay"
+                        ? "border-clay bg-clay/10 text-clay"
                         : "border-sand text-ink-muted hover:border-clay",
                     )}
                   >
@@ -195,7 +195,7 @@ export function KaribuGallery({ photos, eventChips = [], initialFilter = null }:
                       {photo.featured && (
                         <span
                           aria-label="Featured photo"
-                          className="absolute right-2 top-2 rounded-full border border-clay/40 bg-[#F3E3D9] px-2 py-0.5 font-inter text-[10px] font-semibold uppercase tracking-wider text-clay"
+                          className="absolute right-2 top-2 rounded-full border border-clay/40 bg-clay/10 px-2 py-0.5 font-inter text-[10px] font-semibold uppercase tracking-wider text-clay"
                         >
                           Featured
                         </span>

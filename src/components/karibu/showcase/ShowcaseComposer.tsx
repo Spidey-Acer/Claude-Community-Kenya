@@ -16,7 +16,18 @@
  * component just renders whichever state it's told.
  */
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react"
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactElement,
+} from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Send, Loader2, Plus, X, AlertTriangle, CheckCircle2, LogIn, Mail } from "lucide-react"
@@ -33,7 +44,7 @@ const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] tex
 
 const inputCls = (hasError?: string) =>
   `w-full rounded-lg border ${
-    hasError ? "border-red-500/60" : "border-sand-2"
+    hasError ? "border-error/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`
 
 export interface ComposerEventOption {
@@ -93,7 +104,10 @@ function VerifyEmailPrompt() {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {})
+      .catch(() => {
+        setStatus("error")
+        setMessage("Couldn't initialize this page. Refresh and try again.")
+      })
   }, [])
 
   function handleResend() {
@@ -141,12 +155,12 @@ function VerifyEmailPrompt() {
             {status === "sent" ? "Sent" : "Resend verification email"}
           </button>
           {status === "sent" && (
-            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-status-success">
+            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-success">
               <CheckCircle2 className="h-3.5 w-3.5" /> {message}
             </p>
           )}
           {status === "error" && (
-            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-status-error">
+            <p className="mt-3 inline-flex items-center gap-1.5 font-inter text-xs text-error">
               <AlertTriangle className="h-3.5 w-3.5" /> {message}
             </p>
           )}
@@ -212,7 +226,11 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
     fetch("/api/csrf-token")
       .then((r) => r.json())
       .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {})
+      .catch(() =>
+        // Without a token the submit button stays disabled — say why instead
+        // of leaving the form silently bricked.
+        setError("Couldn't initialize the form. Refresh the page and try again.")
+      )
   }, [])
 
   // A cover pick whose upload has since been removed from the gallery cannot
@@ -315,9 +333,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-5 font-newsreader text-[22px] text-ink">The basics</h2>
               <div className="space-y-4">
-                <Field label="Title *" error={fieldErrors.title} id="composer-title">
+                <Field label="Title *" error={fieldErrors.title}>
                   <input
-                    id="composer-title"
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -328,13 +345,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     className={inputCls(fieldErrors.title)}
                   />
                 </Field>
-                <Field
-                  label="Short description * (20–300 characters)"
-                  error={fieldErrors.shortDescription}
-                  id="composer-short-description"
-                >
+                <Field label="Short description * (20–300 characters)" error={fieldErrors.shortDescription}>
                   <textarea
-                    id="composer-short-description"
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     rows={2}
@@ -349,7 +361,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
                     <label
-                      htmlFor="composer-full-description"
+                      htmlFor="showcase-full-description"
                       className="block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
                     >
                       Full description * (50–5000 characters)
@@ -359,7 +371,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     </div>
                   </div>
                   <textarea
-                    id="composer-full-description"
+                    id="showcase-full-description"
                     ref={descriptionRef}
                     value={fullDescription}
                     onChange={(e) => setFullDescription(e.target.value)}
@@ -402,8 +414,10 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                         type="button"
                         onClick={() => setCoverImageUrl(m.url)}
                         aria-pressed={effectiveCoverImageUrl === m.url}
-                        aria-label={m.alt ? `Use "${m.alt}" as cover image` : "Use this image as cover image"}
-                        className={`overflow-hidden rounded-lg border-2 transition-colors ${
+                        aria-label={`Use as cover image${m.alt ? `: ${m.alt}` : ""}${
+                          effectiveCoverImageUrl === m.url ? " (selected)" : ""
+                        }`}
+                        className={`overflow-hidden rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                           effectiveCoverImageUrl === m.url ? "border-clay" : "border-transparent"
                         }`}
                       >
@@ -420,9 +434,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-4 font-newsreader text-[22px] text-ink">Links &amp; event</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Project URL" error={fieldErrors.url} id="composer-project-url">
+                <Field label="Project URL" error={fieldErrors.url}>
                   <input
-                    id="composer-project-url"
                     type="url"
                     value={projectUrl}
                     onChange={(e) => setProjectUrl(e.target.value)}
@@ -430,9 +443,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     className={inputCls(fieldErrors.url)}
                   />
                 </Field>
-                <Field label="Repository URL" error={fieldErrors.repoUrl} id="composer-repo-url">
+                <Field label="Repository URL" error={fieldErrors.repoUrl}>
                   <input
-                    id="composer-repo-url"
                     type="url"
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
@@ -458,13 +470,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
 
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-4 font-newsreader text-[22px] text-ink">Tags</h2>
-              <TagInputField
-                list={tags}
-                placeholder="e.g. nextjs, mcp, agriculture"
-                maxLength={30}
-                error={fieldErrors.tags}
-                label="Tags"
-              />
+              <TagInputField list={tags} placeholder="e.g. nextjs, mcp, agriculture" maxLength={30} error={fieldErrors.tags} />
             </div>
 
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
@@ -492,36 +498,17 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
               <h2 className="mb-1 font-newsreader text-[22px] text-ink">Built with</h2>
               <p className="mb-4 font-inter text-xs text-ink-muted">Optional — the models, skills and MCPs behind it.</p>
               <div className="space-y-4">
-                <Field label="Models" id="composer-models">
-                  <TagInputField
-                    id="composer-models"
-                    list={models}
-                    placeholder="e.g. Opus 5, Sonnet 5"
-                    maxLength={60}
-                    label="Models"
-                  />
+                <Field label="Models">
+                  <TagInputField list={models} placeholder="e.g. Opus 5, Sonnet 5" maxLength={60} />
                 </Field>
-                <Field label="Skills" id="composer-skills">
-                  <TagInputField
-                    id="composer-skills"
-                    list={skills}
-                    placeholder="e.g. message-drafter"
-                    maxLength={60}
-                    label="Skills"
-                  />
+                <Field label="Skills">
+                  <TagInputField list={skills} placeholder="e.g. message-drafter" maxLength={60} />
                 </Field>
-                <Field label="MCPs" id="composer-mcps">
-                  <TagInputField
-                    id="composer-mcps"
-                    list={mcps}
-                    placeholder="e.g. Notion, Gmail"
-                    maxLength={60}
-                    label="MCPs"
-                  />
+                <Field label="MCPs">
+                  <TagInputField list={mcps} placeholder="e.g. Notion, Gmail" maxLength={60} />
                 </Field>
-                <Field label="Tokens per run (optional)" id="composer-tokens-per-run">
+                <Field label="Tokens per run (optional)">
                   <input
-                    id="composer-tokens-per-run"
                     type="number"
                     min={1}
                     value={tokensPerRun}
@@ -534,7 +521,10 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-inter text-sm text-status-error">
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error"
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 {error}
               </div>
@@ -576,15 +566,17 @@ function TagInputField({
   placeholder,
   maxLength,
   error,
-  label,
   id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedby,
 }: {
   list: TagListState
   placeholder: string
   maxLength: number
   error?: string
-  label: string
   id?: string
+  "aria-invalid"?: boolean
+  "aria-describedby"?: string
 }) {
   return (
     <div className="space-y-2">
@@ -617,7 +609,8 @@ function TagInputField({
           onKeyDown={list.onKeyDown}
           maxLength={maxLength}
           placeholder={placeholder}
-          aria-label={label}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedby}
           className={inputCls(error)}
         />
         <button
@@ -633,17 +626,20 @@ function TagInputField({
   )
 }
 
-function Field({
-  label,
-  error,
-  id,
-  children,
-}: {
-  label: string
-  error?: string
-  id?: string
-  children: React.ReactNode
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  const id = useId()
+  const errorId = useId()
+  // Wire the label to its control and the error to the control's description.
+  // The single child is always an input/textarea or TagInputField, all of
+  // which accept these props.
+  const child = Children.only(children)
+  const wired = isValidElement(child)
+    ? cloneElement(child as ReactElement<Record<string, unknown>>, {
+        id,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errorId : undefined,
+      })
+    : child
   return (
     <div>
       <label
@@ -652,12 +648,16 @@ function Field({
       >
         {label}
       </label>
-      {children}
-      {error && <FieldError msg={error} />}
+      {wired}
+      {error && <FieldError id={errorId} msg={error} />}
     </div>
   )
 }
 
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-status-error">{msg}</p>
+function FieldError({ msg, id }: { msg: string; id?: string }) {
+  return (
+    <p id={id} role="alert" className="mt-1 font-inter text-[11px] text-error">
+      {msg}
+    </p>
+  )
 }

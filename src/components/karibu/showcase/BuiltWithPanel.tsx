@@ -40,7 +40,7 @@ export function BuiltWithPanel({ builtWith }: BuiltWithPanelProps) {
               {group.items.map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-[#3B352D] px-2.5 py-1 font-inter text-[12.5px] text-on-panel-dark"
+                  className="rounded-full border border-footer-border px-2.5 py-1 font-inter text-[12.5px] text-on-panel-dark"
                 >
                   {item}
                 </span>

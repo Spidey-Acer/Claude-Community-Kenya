@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
@@ -58,7 +59,7 @@ export async function POST(
   try {
     const submission = await prisma.communitySubmission.findUnique({
       where: { slug },
-      select: { id: true, status: true },
+      select: { id: true, status: true, type: true },
     })
 
     if (!submission || submission.status !== "APPROVED") {
@@ -96,6 +97,26 @@ export async function POST(
         status,
       },
     })
+
+    // A publicly visible comment on a showcase post is activity — the "hot"
+    // ranking decays from lastActivityAt. Held-for-moderation comments don't
+    // count until a moderator approves them (accepted gap: approval in the
+    // admin panel doesn't currently bump it).
+    if (submission.type === "SHOWCASE" && status === "APPROVED") {
+      await prisma.communitySubmission.update({
+        where: { id: submission.id },
+        data: { lastActivityAt: new Date() },
+      })
+    }
+
+    // An auto-approved comment must actually appear when the client
+    // refreshes: /community/[slug] is ISR-cached (revalidate = 1800), so
+    // without this the new comment stays invisible for up to 30 minutes.
+    if (status === "APPROVED") {
+      revalidatePath(
+        submission.type === "SHOWCASE" ? `/showcase/${slug}` : `/community/${slug}`
+      )
+    }
 
     return NextResponse.json(
       {

@@ -56,11 +56,11 @@
   --clay-light: #E6906F;
   --sand: #E4DAC8;
   --sand-2: #DDD3C2;
-  /* Status colors for form feedback — Tailwind's red-600/700 and green-700
-   * read fine on light --paper-card but drop to ~2-3.4:1 on dark --paper-card
-   * since they don't invert. Karibu-scoped, dark-mode-aware equivalents. */
-  --status-error: #B91C1C;
-  --status-success: #15803D;
+  /* Status colors for forms/feedback on Karibu surfaces. Both meet AA on
+   * --paper/--paper-card and are redefined by the dark blocks below —
+   * Tailwind's default red-600/green-700 fail contrast on the dark papers. */
+  --success: #3D6B35;
+  --error: #A03024;
 
   /* Intentional dark panels (feature cards outside the footer — KaribuAbout,
    * KaribuFaq, KaribuHome's "How to join", KaribuLearn). Deliberately NOT
@@ -155,8 +155,8 @@
   --color-clay-light: var(--clay-light);
   --color-sand: var(--sand);
   --color-sand-2: var(--sand-2);
-  --color-status-error: var(--status-error);
-  --color-status-success: var(--status-success);
+  --color-success: var(--success);
+  --color-error: var(--error);
   --color-panel-dark: var(--panel-dark);
   --color-on-panel-dark: var(--on-panel-dark);
   --color-on-panel-dark-muted: var(--on-panel-dark-muted);
@@ -875,8 +875,8 @@ body::before {
     --clay-light: #E6906F;
     --sand: #3a332a;
     --sand-2: #473d31;
-    --status-error: #F87171;
-    --status-success: #4ADE80;
+    --success: #8FBF7C;
+    --error: #E28170;
   }
 }
 
@@ -887,13 +887,14 @@ body::before {
   --ink: #F4EEE3;
   --ink-soft: #C7BEB0;
   --ink-muted: #9a9082;
+  --ink-faint: #8f8574;
   --clay: #d2704a;
   --clay-dark: #A84E2D;
   --clay-light: #E6906F;
   --sand: #3a332a;
   --sand-2: #473d31;
-  --status-error: #F87171;
-  --status-success: #4ADE80;
+  --success: #8FBF7C;
+  --error: #E28170;
 }
 
 /* ─── Anthropic wordmark: dark-theme legibility ───────────────────────────

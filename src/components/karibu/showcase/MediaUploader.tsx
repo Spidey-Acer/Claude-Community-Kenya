@@ -45,6 +45,7 @@ interface MediaUploaderProps {
 
 export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUploaderProps) {
   const [inFlight, setInFlight] = useState<InFlightUpload[]>([])
+  const [rejections, setRejections] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const xhrRefs = useRef<Record<string, XMLHttpRequest>>({})
 
@@ -70,8 +71,10 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
     const picked = Array.from(fileList)
     if (inputRef.current) inputRef.current.value = ""
 
+    const newRejections: string[] = []
+
     if (slotsUsed + picked.length > MAX_MEDIA_PER_POST) {
-      window.alert(`You can attach up to ${MAX_MEDIA_PER_POST} files per post.`)
+      setRejections([`You can attach up to ${MAX_MEDIA_PER_POST} files per post.`])
       return
     }
 
@@ -80,16 +83,17 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
     const accepted: File[] = []
     for (const file of picked) {
       if (!(UPLOAD_CONTENT_TYPES as readonly string[]).includes(file.type)) {
-        window.alert(`${file.name}: unsupported file type.`)
+        newRejections.push(`${file.name}: unsupported file type.`)
         continue
       }
       const limit = sizeLimitFor(file.type)
       if (file.size > limit) {
-        window.alert(`${file.name}: file is too large. Limit is ${Math.round(limit / (1024 * 1024))}MB.`)
+        newRejections.push(`${file.name}: file is too large. Limit is ${Math.round(limit / (1024 * 1024))}MB.`)
         continue
       }
       accepted.push(file)
     }
+    setRejections(newRejections)
     if (accepted.length === 0) return
 
     const items: InFlightUpload[] = accepted.map((file) => ({
@@ -199,10 +203,10 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
               type="button"
               onClick={() => removeFinalized(media.key)}
               disabled={disabled}
-              aria-label="Remove file"
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-scrim/70 text-scrim-text opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+              aria-label={`Remove ${media.alt || "uploaded file"}`}
+              className="absolute right-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-scrim/70 text-scrim-text"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
@@ -220,8 +224,8 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-paper/70 p-1 text-center">
               {item.status === "error" ? (
                 <>
-                  <AlertTriangle className="h-4 w-4 text-status-error" />
-                  <span className="font-inter text-[9px] leading-tight text-status-error">{item.error}</span>
+                  <AlertTriangle className="h-4 w-4 text-error" />
+                  <span className="font-inter text-[9px] leading-tight text-error">{item.error}</span>
                 </>
               ) : (
                 <>
@@ -235,10 +239,10 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
             <button
               type="button"
               onClick={() => dismissInFlight(item.id)}
-              aria-label="Cancel upload"
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-scrim/70 text-scrim-text"
+              aria-label={`Cancel upload: ${item.fileName}`}
+              className="absolute right-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-scrim/70 text-scrim-text"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
@@ -265,6 +269,27 @@ export function MediaUploader({ value, onChange, csrfToken, disabled }: MediaUpl
         onChange={(e) => handleFiles(e.target.files)}
         className="hidden"
       />
+
+      {rejections.length > 0 && (
+        <div role="alert" className="space-y-0.5">
+          {rejections.map((msg) => (
+            <p key={msg} className="font-inter text-[12px] text-error">
+              {msg}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Progress and completion for screen readers — the visual tiles above
+        * carry the same information but never announce it. */}
+      <p role="status" className="sr-only">
+        {inFlight.length > 0
+          ? `${inFlight.length} upload${inFlight.length === 1 ? "" : "s"} in progress` +
+            (inFlight.some((u) => u.status === "error") ? ", some failed" : "")
+          : value.length > 0
+            ? `${value.length} file${value.length === 1 ? "" : "s"} attached`
+            : ""}
+      </p>
 
       <p className="font-inter text-[11px] text-ink-muted">
         Up to {MAX_MEDIA_PER_POST} files. Images up to {Math.round(MAX_IMAGE_BYTES / (1024 * 1024))}MB, MP4 demos up to{" "}

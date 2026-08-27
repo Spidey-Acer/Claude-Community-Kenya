@@ -18,6 +18,7 @@ import type { ShowcaseSort } from "@/lib/showcase/ranking"
 import { NEED_LABELS, type NeedKey } from "@/lib/showcase/constants"
 import { ShowcaseCard } from "@/components/karibu/showcase/ShowcaseCard"
 import { Reveal } from "@/components/karibu/motion/Reveal"
+import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination"
 import { cn } from "@/lib/utils"
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10"
@@ -36,9 +37,19 @@ interface ShowcaseFeedProps {
   activeSort: ShowcaseSort
   activeEvent?: string
   activeNeed?: string
+  page?: number
+  dbError?: boolean
 }
 
-export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed }: ShowcaseFeedProps) {
+export function ShowcaseFeed({
+  items,
+  total,
+  activeSort,
+  activeEvent,
+  activeNeed,
+  page = 1,
+  dbError = false,
+}: ShowcaseFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const hasFilters = Boolean(activeEvent || activeNeed)
@@ -47,12 +58,17 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
     const params = new URLSearchParams(searchParams.toString())
     if (value) params.set(key, value)
     else params.delete(key)
+    // Changing a filter or sort restarts from the first page — a page number
+    // only means anything within the result set it was computed for.
+    if (key !== "page") params.delete("page")
     router.push(`/showcase${params.toString() ? `?${params.toString()}` : ""}`)
   }
 
   // Every returned item already belongs to the filtered event, so the first
   // one's name is the filter's name — no separate event lookup needed here.
-  const eventLabel = activeEvent ? (items[0]?.eventName ?? "this event") : null
+  // When the filter matches zero posts there's no row to read the name from —
+  // "selected event" at least says which chip the visitor can clear.
+  const eventLabel = activeEvent ? (items[0]?.eventName ?? "selected event") : null
 
   return (
     <>
@@ -68,6 +84,12 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
                 Projects, demos and works in progress from members across the
                 country. React, comment, and help each other ship.
               </p>
+              <p className="mt-2 font-inter text-[14px] text-ink-muted">
+                Sharing an MCP, prompt or workflow?{" "}
+                <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
+                  That lives in Tools &amp; Prompts
+                </Link>
+              </p>
             </div>
             <Link
               href="/showcase/submit"
@@ -80,22 +102,21 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
       </section>
 
       <section className={`${WRAP} pb-6`} aria-label="Sort and filters">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Sort showcase">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Sort showcase">
           {SORTS.map(({ key, label, icon: Icon }) => {
             const on = activeSort === key
             return (
               <button
                 key={key}
                 type="button"
-                role="tab"
-                aria-selected={on}
+                aria-pressed={on}
                 onClick={() => update("sort", key === "hot" ? undefined : key)}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
                   on
                     ? "bg-ink text-paper-card"
-                    : "border border-sand-2 bg-paper-card font-medium text-ink-muted hover:border-ink",
+                    : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -124,13 +145,33 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
         </p>
       </section>
 
-      <section className={`${WRAP} pb-16`} aria-label="Showcase posts">
-        {items.length > 0 ? (
-          <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((post) => (
-              <ShowcaseCard key={post.slug} post={post} />
-            ))}
-          </Reveal>
+      <section className={`${WRAP} pb-16`}>
+        <h2 className="sr-only">Showcase posts</h2>
+        {dbError ? (
+          <FeedErrorPanel surface="showcase" />
+        ) : total > 0 ? (
+          <>
+            {items.length > 0 ? (
+              <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((post) => (
+                  <ShowcaseCard key={post.slug} post={post} />
+                ))}
+              </Reveal>
+            ) : (
+              // An out-of-range ?page (stale bookmark, removed post) — keep
+              // the pagination visible so the visitor can get back.
+              <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
+                <p className="font-newsreader text-[22px] text-ink">
+                  Nothing on this page.
+                </p>
+              </div>
+            )}
+            <FeedPagination
+              page={page}
+              total={total}
+              onPageChange={(p) => update("page", p > 1 ? String(p) : undefined)}
+            />
+          </>
         ) : hasFilters ? (
           <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
             <p className="mb-4 font-newsreader text-[22px] text-ink">
@@ -150,8 +191,8 @@ export function ShowcaseFeed({ items, total, activeSort, activeEvent, activeNeed
               Nothing here yet — be the first.
             </p>
             <p className="mx-auto mb-6 max-w-md font-inter text-[14.5px] leading-[1.6] text-ink-soft">
-              Shipped an MCP, a prompt, a demo, or a full build with Claude?
-              Share it with the community.
+              Built something with Claude — a demo, a launch, or a work in
+              progress? Post it and let the community react.
             </p>
             <Link
               href="/showcase/submit"
@@ -171,6 +212,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
     <button
       type="button"
       onClick={onClear}
+      aria-label={`Remove filter — ${label}`}
       className="inline-flex items-center gap-1.5 rounded-full border border-clay bg-clay/10 px-3 py-1.5 font-inter text-[12.5px] font-medium text-clay transition-colors hover:bg-clay/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
       {label}

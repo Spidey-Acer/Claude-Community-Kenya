@@ -586,7 +586,7 @@ function EventsSection({ events }: { events: Event[] }) {
               <div className="p-[22px]">
                 <div className="mb-3 flex flex-wrap gap-2">
                   {ev.city && (
-                    <span className="rounded-full bg-[#F3E3D9] px-2.5 py-1 font-inter text-xs font-semibold text-clay">
+                    <span className="rounded-full bg-clay/10 px-2.5 py-1 font-inter text-xs font-semibold text-clay">
                       {ev.city}
                     </span>
                   )}

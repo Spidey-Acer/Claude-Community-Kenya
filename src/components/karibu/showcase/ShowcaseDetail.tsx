@@ -14,6 +14,7 @@ import { CommentList } from "@/components/community/CommentList"
 interface ShowcaseDetailProps {
   post: ShowcasePostView
   comments: CommunityCommentView[]
+  commentsFailed?: boolean
 }
 
 /**
@@ -35,7 +36,7 @@ interface ShowcaseDetailProps {
  * their own emoji un-highlighted and be invited to react a second time, which
  * the toggle would read as taking it back.
  */
-export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
+export async function ShowcaseDetail({ post, comments, commentsFailed }: ShowcaseDetailProps) {
   const userId = await getSessionUserId()
   const signedIn = Boolean(userId)
   const mine = await getMyReactions(post.id, userId)
@@ -62,7 +63,7 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
             )}
           </p>
         )}
-        <h1 className="mb-3 font-newsreader text-[36px] leading-[1.08] tracking-[-0.01em] text-ink sm:text-[44px]">
+        <h1 className="mb-3 break-words font-newsreader text-[36px] leading-[1.08] tracking-[-0.01em] text-ink sm:text-[44px]">
           {post.title}
         </h1>
         <p className="mb-4 font-inter text-[17px] leading-[1.6] text-ink-soft">{post.shortDescription}</p>
@@ -73,6 +74,7 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
               month: "short",
               day: "numeric",
               year: "numeric",
+              timeZone: "Africa/Nairobi",
             })}
           </span>
         </div>
@@ -91,6 +93,7 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
               Visit project
+              <span className="sr-only"> (opens in new tab)</span>
             </a>
           )}
           {post.repoUrl && (
@@ -102,6 +105,7 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
             >
               <Github className="h-4 w-4" aria-hidden="true" />
               View source
+              <span className="sr-only"> (opens in new tab)</span>
             </a>
           )}
         </div>
@@ -109,7 +113,7 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
 
       <div className="mt-8 space-y-4 font-inter text-[15.5px] leading-[1.7] text-ink-soft">
         {post.fullDescription.split(/\n{2,}/).map((paragraph, i) => (
-          <p key={i} className="whitespace-pre-wrap">
+          <p key={i} className="whitespace-pre-wrap break-words">
             {paragraph}
           </p>
         ))}
@@ -149,11 +153,19 @@ export async function ShowcaseDetail({ post, comments }: ShowcaseDetailProps) {
       </div>
 
       <section className="mt-10">
-        <h2 className="mb-4 font-newsreader text-[24px] text-ink">Comments ({comments.length})</h2>
+        <h2 className="mb-4 font-newsreader text-[24px] text-ink">
+          Comments{commentsFailed ? "" : ` (${comments.length})`}
+        </h2>
         <div className="mb-8">
           <CommentForm slug={post.slug} />
         </div>
-        <CommentList comments={comments} />
+        {commentsFailed ? (
+          <p className="font-inter text-sm text-ink-muted">
+            Comments couldn&apos;t be loaded right now — refresh to try again.
+          </p>
+        ) : (
+          <CommentList comments={comments} />
+        )}
       </section>
     </div>
   )

@@ -32,7 +32,7 @@ interface KaribuSelectProps {
 
 const triggerCls = (hasError: boolean) =>
   `flex w-full items-center justify-between gap-2 rounded-lg border ${
-    hasError ? "border-red-500/60" : "border-sand-2"
+    hasError ? "border-error/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 text-left font-inter text-sm text-ink transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
 
 export function KaribuSelect({
@@ -136,9 +136,16 @@ export function KaribuSelect({
         ref={buttonRef}
         id={id}
         type="button"
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
+        // On the focused trigger, not the listbox — screen readers only
+        // announce the active option when activedescendant lives on the
+        // element that actually has DOM focus (APG select-only combobox).
+        aria-activedescendant={
+          open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined
+        }
         aria-describedby={error ? errorId : undefined}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={handleButtonKeyDown}
@@ -160,7 +167,6 @@ export function KaribuSelect({
           ref={listRef}
           id={listboxId}
           role="listbox"
-          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
           className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-sand-2 bg-paper-card p-1 shadow-lg motion-reduce:transition-none"
         >
           {options.map((opt, i) => (
@@ -182,7 +188,7 @@ export function KaribuSelect({
       )}
 
       {error && (
-        <p id={errorId} role="alert" className="mt-1 font-inter text-[11px] text-red-600">
+        <p id={errorId} role="alert" className="mt-1 font-inter text-[11px] text-error">
           {error}
         </p>
       )}

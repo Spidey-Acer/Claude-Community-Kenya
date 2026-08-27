@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Loader2, Search, ImageOff } from "lucide-react"
+import { useReducedMotion } from "framer-motion"
+import { Loader2, Search, ImageOff, ImageIcon } from "lucide-react"
 import type { MediaDescriptor } from "@/lib/showcase/media"
 import { TENOR_KEY_PREFIX } from "@/lib/showcase/constants"
 
@@ -40,6 +41,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
   const [query, setQuery] = useState("")
   const [state, setState] = useState<SearchState>({ kind: "idle" })
   const requestSeq = useRef(0)
+  const prefersReducedMotion = useReducedMotion()
 
   const term = query.trim()
 
@@ -112,25 +114,36 @@ export function GifPicker({ onSelect }: GifPickerProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search GIFs..."
+          aria-label="Search GIFs"
           className="w-full rounded-lg border border-sand-2 bg-paper-card py-1.5 pl-8 pr-3 font-inter text-sm text-ink placeholder:text-ink-muted/70 focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20"
         />
       </div>
 
-      {view.kind === "loading" && (
-        <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Searching...
-        </div>
-      )}
+      {/* One polite live region spanning every async state, so screen-reader
+        * users hear the search resolve (or fail) after they stop typing. */}
+      <div aria-live="polite">
+        {view.kind === "loading" && (
+          <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Searching...
+          </div>
+        )}
 
-      {view.kind === "unavailable" && (
-        <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
-          <ImageOff className="h-3.5 w-3.5 shrink-0" /> {view.message}
-        </div>
-      )}
+        {view.kind === "unavailable" && (
+          <div className="flex items-center gap-2 py-4 font-inter text-xs text-ink-muted">
+            <ImageOff className="h-3.5 w-3.5 shrink-0" /> {view.message}
+          </div>
+        )}
 
-      {view.kind === "empty" && (
-        <p className="py-4 font-inter text-xs text-ink-muted">No GIFs found for &ldquo;{query}&rdquo;.</p>
-      )}
+        {view.kind === "empty" && (
+          <p className="py-4 font-inter text-xs text-ink-muted">No GIFs found for &ldquo;{query}&rdquo;.</p>
+        )}
+
+        {view.kind === "results" && (
+          <p className="sr-only">
+            {view.items.length} GIF{view.items.length === 1 ? "" : "s"} found.
+          </p>
+        )}
+      </div>
 
       {view.kind === "results" && (
         <>
@@ -142,8 +155,19 @@ export function GifPicker({ onSelect }: GifPickerProps) {
                 onClick={() => handleSelect(item)}
                 className="overflow-hidden rounded-lg border border-sand-2 transition-colors hover:border-clay"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- a remote Tenor thumbnail, not a local asset next/image can optimise */}
-                <img src={item.previewUrl} alt={item.description || "GIF"} className="h-20 w-full object-cover" />
+                {prefersReducedMotion ? (
+                  // Animated previews auto-play with no pause control, so under
+                  // reduced motion show a describable tile instead.
+                  <span className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-paper-card px-1 text-center">
+                    <ImageIcon className="h-4 w-4 text-ink-muted" aria-hidden="true" />
+                    <span className="line-clamp-2 font-inter text-[10px] leading-tight text-ink-soft">
+                      {item.description || "GIF"}
+                    </span>
+                  </span>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- a remote Tenor thumbnail, not a local asset next/image can optimise
+                  <img src={item.previewUrl} alt={item.description || "GIF"} className="h-20 w-full object-cover" />
+                )}
               </button>
             ))}
           </div>

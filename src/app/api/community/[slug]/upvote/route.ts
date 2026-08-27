@@ -29,10 +29,14 @@ export async function POST(
   try {
     const submission = await prisma.communitySubmission.findUnique({
       where: { slug },
-      select: { id: true, status: true },
+      select: { id: true, status: true, type: true },
     })
 
-    if (!submission || submission.status !== "APPROVED") {
+    // Showcase posts have no upvote path — their upvoteCount is maintained
+    // by the react route as the reaction total, and an upvote here would
+    // corrupt it (and inflate the popular/hot rankings) until the next
+    // reaction recount.
+    if (!submission || submission.status !== "APPROVED" || submission.type === "SHOWCASE") {
       return NextResponse.json(
         { success: false, error: "Submission not found" },
         { status: 404 }

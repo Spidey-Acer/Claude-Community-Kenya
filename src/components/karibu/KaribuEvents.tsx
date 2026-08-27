@@ -133,7 +133,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
                   className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
                     on
                       ? "bg-ink text-paper-card"
-                      : "border border-sand-2 bg-paper-card font-medium text-[#4A4238] hover:border-ink"
+                      : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
                   }`}
                 >
                   {f.label}
@@ -359,7 +359,7 @@ function Badge({
   const base = small ? "px-2.5 py-1 text-[11.5px]" : "px-2.5 py-1 text-xs";
   const toneCls =
     tone === "clay"
-      ? "bg-[#F3E3D9] text-clay"
+      ? "bg-clay/10 text-clay"
       : "bg-paper-alt text-ink-muted";
   return (
     <span className={`rounded-full font-inter font-semibold ${base} ${toneCls}`}>

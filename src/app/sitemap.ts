@@ -11,7 +11,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs, showcaseData] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
-    getCommunitySubmissions().catch(() => ({ items: [] })),
+    // Same trap as the showcase line below: the query defaults to one feed
+    // page (FEED_PAGE_SIZE), which would silently cap the sitemap at 20.
+    getCommunitySubmissions({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [] })),
     getGalleryPhotos({ limit: 1 }).catch(() => [] as { id: string }[]),
     getNewsletterIssues().catch(() => []),
     getTeamMemberSlugs().catch(() => [] as string[]),
@@ -47,6 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/submit-idea`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/submit-project`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/community/submit`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE_URL}/showcase/submit`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/newsletter`, changeFrequency: "weekly", priority: 0.7 },

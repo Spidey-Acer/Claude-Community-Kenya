@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, ExternalLink, Github, Plus } from "lucide-react";
 import type { CommunitySubmissionView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -42,11 +43,15 @@ export function KaribuCommunity({
   total,
   activeType,
   activeSort,
+  page = 1,
+  dbError = false,
 }: {
   items: CommunitySubmissionView[];
   total: number;
   activeType?: string;
   activeSort: string;
+  page?: number;
+  dbError?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +60,9 @@ export function KaribuCommunity({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    // Changing a filter or sort restarts from the first page — a page number
+    // only means anything within the result set it was computed for.
+    if (key !== "page") params.delete("page");
     router.push(`/community?${params.toString()}`);
   }
 
@@ -72,6 +80,12 @@ export function KaribuCommunity({
               <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
                 MCPs, prompts, workflows and tools made by CCK members. Try them,
                 remix them, and share your own.
+              </p>
+              <p className="mt-2 font-inter text-[14px] text-ink-muted">
+                Sharing a whole project instead?{" "}
+                <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
+                  Head to the Showcase
+                </Link>
               </p>
             </div>
             <Link
@@ -99,7 +113,7 @@ export function KaribuCommunity({
                   className={`shrink-0 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
                     on
                       ? "bg-ink text-paper-card"
-                      : "border border-sand-2 bg-paper-card font-medium text-ink-muted hover:border-ink"
+                      : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
                   }`}
                 >
                   {t.label}
@@ -132,13 +146,33 @@ export function KaribuCommunity({
       </section>
 
       {/* Grid */}
-      <section className={`${WRAP} pb-16`} aria-label="Submissions">
-        {items.length > 0 ? (
-          <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((s) => (
-              <ResourceCard key={s.slug} submission={s} />
-            ))}
-          </Reveal>
+      <section className={`${WRAP} pb-16`}>
+        <h2 className="sr-only">Submissions</h2>
+        {dbError ? (
+          <FeedErrorPanel surface="Tools & Prompts" />
+        ) : total > 0 ? (
+          <>
+            {items.length > 0 ? (
+              <Reveal className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((s) => (
+                  <ResourceCard key={s.slug} submission={s} />
+                ))}
+              </Reveal>
+            ) : (
+              // An out-of-range ?page (stale bookmark, unpublished item) —
+              // keep the pagination visible so the visitor can get back.
+              <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
+                <p className="font-newsreader text-[22px] text-ink">
+                  Nothing on this page.
+                </p>
+              </div>
+            )}
+            <FeedPagination
+              page={page}
+              total={total}
+              onPageChange={(p) => update("page", p > 1 ? String(p) : "")}
+            />
+          </>
         ) : (
           <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
             <p className="mb-4 font-newsreader text-[24px] text-ink">
@@ -165,7 +199,7 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
       aria-label={`${submission.title} — ${TYPE_LABEL[submission.type]}`}
     >
       <div className="mb-3">
-        <span className="inline-block rounded-full bg-clay/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold uppercase tracking-[0.06em] text-clay">
+        <span className="inline-block rounded-full border border-clay/30 bg-clay/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold uppercase tracking-[0.06em] text-clay">
           {TYPE_LABEL[submission.type]}
         </span>
       </div>
@@ -187,8 +221,11 @@ function ResourceCard({ submission }: { submission: CommunitySubmissionView }) {
       <div className="mt-auto flex items-center justify-between border-t border-sand pt-3">
         <div className="flex items-center gap-4 font-inter text-[12.5px] text-ink-muted">
           <span className="flex items-center gap-1 font-medium">
-            <ArrowUp className="h-3.5 w-3.5" />
+            <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
             {submission.upvoteCount}
+            <span className="sr-only">
+              {submission.upvoteCount === 1 ? "upvote" : "upvotes"}
+            </span>
           </span>
           <span>
             {submission.commentCount} {submission.commentCount === 1 ? "comment" : "comments"}
