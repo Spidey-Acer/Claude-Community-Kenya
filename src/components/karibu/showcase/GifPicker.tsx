@@ -162,13 +162,12 @@ export function GifPicker({ onSelect }: GifPickerProps) {
               </button>
             ))}
           </div>
-          {/* Required by GIPHY's API terms whenever results are shown. */}
-          {/* eslint-disable-next-line @next/next/no-img-element -- GIPHY's own attribution mark, served from their CDN per their terms */}
-          <img
-            src="https://giphy.com/static/img/poweredby_giphy.png"
-            alt="Powered by GIPHY"
-            className="mt-2 h-4 w-auto"
-          />
+          {/* Required by GIPHY's API terms whenever results are shown. Text
+            * mark rather than their hosted PNG — the old static asset URL
+            * 404s, and a broken image is worse attribution than none. */}
+          <p className="mt-2 font-inter text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            Powered by GIPHY
+          </p>
         </>
       )}
     </div>
