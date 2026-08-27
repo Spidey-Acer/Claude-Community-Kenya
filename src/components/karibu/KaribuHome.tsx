@@ -568,7 +568,7 @@ function EventsSection({ events }: { events: Event[] }) {
                 className={`relative overflow-hidden border-sand ${
                   single
                     ? "h-[220px] border-b md:h-full md:min-h-[280px] md:border-b-0 md:border-r"
-                    : "h-[150px] border-b"
+                    : "aspect-[3/2] border-b"
                 }`}
               >
                 {cover ? (
@@ -580,7 +580,7 @@ function EventsSection({ events }: { events: Event[] }) {
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <EventCoverPlaceholder />
+                  <EventCoverPlaceholder event={ev} size={single ? "lg" : "sm"} />
                 )}
               </div>
               <div className="p-[22px]">
