@@ -52,6 +52,20 @@ type Row = Prisma.CommunitySubmissionGetPayload<{
   }
 }>
 
+/**
+ * The card thumbnail must never be empty when the post has visual media: an
+ * explicit cover pick wins, otherwise the first image/gif, otherwise a video
+ * poster. Older rows submitted before the composer defaulted the cover rely
+ * on this fallback.
+ */
+function resolveCoverImage(row: Row): string | null {
+  if (row.coverImageUrl) return row.coverImageUrl
+  const media = asArray<MediaDescriptor>(row.media)
+  const image = media.find(m => m.kind !== "mp4")
+  if (image) return image.url
+  return media.find(m => m.posterUrl)?.posterUrl ?? null
+}
+
 function mapRow(row: Row): ShowcasePostView {
   return {
     id: row.id,
@@ -63,7 +77,7 @@ function mapRow(row: Row): ShowcasePostView {
     repoUrl: row.repoUrl,
     tags: asArray<string>(row.tags),
     authorName: row.submitterName,
-    coverImageUrl: row.coverImageUrl,
+    coverImageUrl: resolveCoverImage(row),
     media: asArray<MediaDescriptor>(row.media),
     needs: asArray<NeedKey>(row.needs),
     builtWith: (row.builtWith as BuiltWith | null) ?? null,
