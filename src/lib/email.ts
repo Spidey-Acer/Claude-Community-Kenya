@@ -744,7 +744,7 @@ export function impactLabResultsEmail(data: {
             </table>
             <p style="margin:0 0 24px;font-family:monospace,monospace;font-size:11px;color:#888;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.dashboardUrl)}</p>
 
-            <p style="margin:0;font-family:monospace,monospace;font-size:11px;color:#555;">Claude Community Kenya · ${APP_URL}</p>
+            <p style="margin:0;font-family:monospace,monospace;font-size:11px;color:#888;">Claude Community Kenya · ${APP_URL}</p>
           </td>
         </tr>
       </table>

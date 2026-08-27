@@ -21,6 +21,7 @@ import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm
 import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { isEventPast } from "@/lib/event-dates";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
@@ -68,7 +69,8 @@ export function KaribuEventDetail({
   const dt = parseDate(event.date);
   const registerUrl = event.registrationUrl || event.lumaUrl;
   const soldOut = event.status === "sold-out";
-  const isPast = event.status === "completed";
+  // Status alone is not enough — it is set by hand in admin. See lib/event-dates.
+  const isPast = event.status === "completed" || isEventPast(event.date);
   const cover = eventCover(event.posterUrl);
 
   return (

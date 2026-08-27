@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { EventDetailClient } from "./EventDetailClient";
 import { DemoRequestForm } from "./DemoRequestForm";
+import { isEventPast } from "@/lib/event-dates";
 
 /** Fraunces display-serif style for Pro headings. */
 const FRAUNCES: React.CSSProperties = {
@@ -84,8 +85,10 @@ export function EventDetailContent({
   const { skin } = useSkin();
   const isPro = skin === "pro";
 
+  // Status alone is not enough — it is set by hand in admin. See lib/event-dates.
   const isActionable =
-    event.status === "upcoming" || event.status === "registration-open";
+    (event.status === "upcoming" || event.status === "registration-open") &&
+    !isEventPast(event.date);
 
   // ─── Pro section heading ───────────────────────────────────────────────────
   function ProHeading({ children }: { children: React.ReactNode }) {

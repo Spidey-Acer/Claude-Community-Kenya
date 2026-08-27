@@ -18,6 +18,7 @@ import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { isEventPast } from "@/lib/event-dates";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const FLIP_EASE = [0.16, 1, 0.3, 1] as const;
@@ -83,17 +84,20 @@ export function KaribuEvents({ events }: { events: Event[] }) {
     return events.filter((e) => (kind === "city" ? e.city === value : e.type === value));
   }, [events, active]);
 
+  // Both halves test the date as well as the status: status is set by hand in
+  // admin, so a finished event left as UPCOMING would otherwise sit in the
+  // upcoming band and be missing from the past one. See lib/event-dates.
   const upcoming = useMemo(
     () =>
       filtered
-        .filter((e) => UPCOMING_STATUSES.includes(e.status))
+        .filter((e) => UPCOMING_STATUSES.includes(e.status) && !isEventPast(e.date))
         .sort((a, b) => a.date.localeCompare(b.date)),
     [filtered],
   );
   const past = useMemo(
     () =>
       filtered
-        .filter((e) => e.status === "completed")
+        .filter((e) => e.status === "completed" || isEventPast(e.date))
         .sort((a, b) => b.date.localeCompare(a.date)),
     [filtered],
   );

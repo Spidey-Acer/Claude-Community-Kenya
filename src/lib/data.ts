@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prisma"
 import { decodeHtmlEntities } from "@/lib/input-sanitization"
 import { publicUrl, variantKey } from "@/lib/gallery/r2"
+import { startOfTodayEAT } from "@/lib/event-dates"
 import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
@@ -235,26 +236,6 @@ export async function getEvents(): Promise<Event[]> {
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   const row = await prisma.event.findUnique({ where: { slug } })
   return row ? mapPrismaEvent(row) : null
-}
-
-/** East Africa Time is UTC+3 year-round — no DST to account for. */
-const EAT_OFFSET_MS = 3 * 60 * 60 * 1000
-
-/**
- * The instant of midnight-today in Nairobi, as a UTC Date.
- *
- * Events store `date` as the day (time lives in the separate `time` string),
- * so comparing against `now` would drop a same-day event the moment the clock
- * passed its stored midnight — the site would stop advertising tonight's
- * meetup on the morning of the meetup. Start-of-day keeps it listed until the
- * day is genuinely over.
- */
-function startOfTodayEAT(): Date {
-  const eatNow = new Date(Date.now() + EAT_OFFSET_MS)
-  return new Date(
-    Date.UTC(eatNow.getUTCFullYear(), eatNow.getUTCMonth(), eatNow.getUTCDate()) -
-      EAT_OFFSET_MS,
-  )
 }
 
 export async function getUpcomingEvents(): Promise<Event[]> {
