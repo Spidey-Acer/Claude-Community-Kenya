@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   // metrics from node_modules at runtime and exceljs is a large CJS tree —
   // both must stay external to the bundle too.
   serverExternalPackages: ["bcryptjs", "sharp", "archiver", "pdfkit", "exceljs"],
+  // Vercel's output file tracing misses sharp's platform packages (@img/*),
+  // so the linux libvips .so never reaches /var/task and every sharp route
+  // dies with ERR_DLOPEN_FAILED in production. Force-include them on the
+  // routes that import sharp (directly or via gallery derivatives).
+  outputFileTracingIncludes: {
+    "/api/showcase/media/finalize": ["./node_modules/@img/**"],
+    "/api/admin/photos/finalize": ["./node_modules/@img/**"],
+    "/api/admin/photos/presign": ["./node_modules/@img/**"],
+  },
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },
