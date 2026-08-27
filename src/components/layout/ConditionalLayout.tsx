@@ -17,6 +17,7 @@ import { SocialLinksProvider } from "@/contexts/SocialLinksContext";
 import type { SocialLinks } from "@/lib/social-links-schema";
 import { KaribuBanner } from "@/components/karibu/KaribuBanner";
 import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
+import { StreamingCleanup } from "@/components/layout/StreamingCleanup";
 
 const KaribuModal = dynamic(
   () => import("@/components/karibu/KaribuModal").then((m) => m.KaribuModal),
@@ -60,7 +61,12 @@ export function ConditionalLayout({
   const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
 
   if (isAdmin || isBareDisplay) {
-    return <>{children}</>;
+    return (
+      <>
+        <StreamingCleanup />
+        {children}
+      </>
+    );
   }
 
   return (
@@ -84,6 +90,7 @@ export function ConditionalLayout({
             <KaribuBanner />
             {!isDashboard && !isKaribu && <StickyMobileCTA />}
             {showKaribu && <KaribuModal />}
+            <StreamingCleanup />
           </SocialLinksProvider>
         </AudienceProvider>
       </SkinProvider>
