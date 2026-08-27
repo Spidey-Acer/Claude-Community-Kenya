@@ -13,13 +13,20 @@ interface MediaGalleryProps {
 
 /**
  * The post's media strip: images and gifs through `next/image`, mp4 through
- * a native `<video>`. Every container is a fixed aspect ratio with
- * `overflow-hidden` so the layout never reflows as media loads in.
+ * a native `<video>`. The container never letterboxes: a single image gets a
+ * frame matching its own aspect ratio (so the upload fills it edge to edge),
+ * while multi-item posts share one fixed 16:9 frame with `object-cover` so
+ * switching items never resizes the viewer. `overflow-hidden` everywhere so
+ * the layout never reflows as media loads in.
  *
  * The mp4 autoplays only when the OS has no reduced-motion preference; it is
  * always muted, looped and inline regardless, so a reduced-motion visitor
  * still gets a poster frame with the same fixed footprint, not a gap.
  */
+
+/** Tallest frame a single upload may claim: 4:5, so a phone-portrait shot cannot swallow the page. */
+const MIN_SINGLE_RATIO = 0.8
+
 export function MediaGallery({ media }: MediaGalleryProps) {
   const prefersReducedMotion = useReducedMotion()
   const [active, setActive] = useState(0)
@@ -28,9 +35,24 @@ export function MediaGallery({ media }: MediaGalleryProps) {
 
   const current = media[active]
 
+  // A lone image adopts its own aspect ratio; anything else keeps 16:9.
+  const hasOwnRatio =
+    media.length === 1 && current.kind !== "mp4" && current.width > 0 && current.height > 0
+  const singleRatio = hasOwnRatio
+    ? Math.max(current.width / current.height, MIN_SINGLE_RATIO)
+    : undefined
+  // If the ratio had to be clamped, contain would letterbox — cover instead.
+  const ratioClamped = hasOwnRatio && current.width / current.height < MIN_SINGLE_RATIO
+
   return (
     <div className="space-y-3">
-      <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-sand bg-paper-card">
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-2xl border border-sand bg-paper-card",
+          !hasOwnRatio && "aspect-video",
+        )}
+        style={singleRatio ? { aspectRatio: `${singleRatio}` } : undefined}
+      >
         {current.kind === "mp4" ? (
           <video
             key={current.url}
@@ -53,7 +75,7 @@ export function MediaGallery({ media }: MediaGalleryProps) {
             fill
             sizes="(max-width: 768px) 100vw, 768px"
             unoptimized={current.kind === "gif"}
-            className="object-contain"
+            className={hasOwnRatio && !ratioClamped ? "object-contain" : "object-cover"}
           />
         )}
       </div>

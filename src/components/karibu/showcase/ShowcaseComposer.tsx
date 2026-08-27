@@ -237,9 +237,13 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
   // stay selected — the server rejects a coverImageUrl that is not one of the
   // submitted media URLs. Derived rather than corrected in an effect: the
   // selection is only ever valid *relative to* the current media, so reading
-  // it that way at render leaves no window where the two disagree.
-  const effectiveCoverImageUrl =
+  // it that way at render leaves no window where the two disagree. When
+  // nothing is picked, the first image is the cover — a post with visual
+  // media must never publish without a card thumbnail.
+  const explicitCoverImageUrl =
     coverImageUrl && media.some((m) => m.url === coverImageUrl) ? coverImageUrl : undefined
+  const effectiveCoverImageUrl =
+    explicitCoverImageUrl ?? media.find((m) => m.kind !== "mp4")?.url
 
   function insertEmoji(char: string) {
     const el = descriptionRef.current
