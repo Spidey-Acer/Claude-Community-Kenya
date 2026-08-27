@@ -2,4 +2,4 @@
 __pycache__/
 .idea/
 .vscode/
-
+settings.local.json
