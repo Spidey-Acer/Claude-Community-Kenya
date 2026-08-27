@@ -213,7 +213,7 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
         <div
           data-hero-rise
           style={{ "--i": 1 } as React.CSSProperties}
-          className="relative h-[300px] overflow-hidden rounded-2xl border border-sand-2 lg:h-[460px]"
+          className="frame-base frame-photo rounded-2xl border border-sand-2"
         >
           <Image
             src={HERO_PHOTO}
@@ -561,14 +561,14 @@ function EventsSection({ events }: { events: Event[] }) {
               key={ev.slug}
               href={`/events/${ev.slug}`}
               className={`group overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay active:border-clay active:-translate-y-0.5 ${
-                single ? "md:grid md:grid-cols-2" : "block"
+                single ? "md:grid md:grid-cols-[minmax(0,300px)_1fr]" : "block"
               }`}
             >
               <div
-                className={`relative overflow-hidden border-sand ${
+                className={`frame-base border-sand ${
                   single
-                    ? "h-[220px] border-b md:h-full md:min-h-[280px] md:border-b-0 md:border-r"
-                    : "aspect-[3/2] border-b"
+                    ? "frame-plate border-b md:border-b-0 md:border-r"
+                    : "frame-tile border-b"
                 }`}
               >
                 {cover ? (
@@ -576,8 +576,12 @@ function EventsSection({ events }: { events: Event[] }) {
                     src={cover}
                     alt={ev.title}
                     fill
-                    sizes={single ? "(max-width: 768px) 100vw, 590px" : "(max-width: 768px) 100vw, 380px"}
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes={
+                      single
+                        ? "(min-width: 768px) 300px, 100vw"
+                        : "(min-width: 1024px) 240px, (min-width: 768px) 33vw, 100vw"
+                    }
+                    className={single ? "object-contain" : "object-cover"}
                   />
                 ) : (
                   <EventCoverPlaceholder event={ev} size={single ? "lg" : "sm"} />
@@ -623,7 +627,7 @@ function CommunityInAction() {
       </Reveal>
       <Reveal className="grid items-stretch gap-6 lg:grid-cols-2">
         {/* Real member & event photos. */}
-        <div className="grid min-h-[380px] grid-cols-2 grid-rows-2 gap-3">
+        <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-3">
           <div className="relative row-span-2 overflow-hidden rounded-xl">
             <Image src={GALLERY_PHOTOS.tall} alt="CCK members building with Claude" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
           </div>

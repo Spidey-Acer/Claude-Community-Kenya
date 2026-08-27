@@ -85,37 +85,59 @@ export function KaribuEventDetail({
       {/* Header */}
       <section className={`${WRAP} pb-8 pt-5`} aria-label="Event header">
         <Reveal>
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Badge tone="clay">{event.city}</Badge>
-            <Badge tone="sand">{TYPE_LABEL[event.type]}</Badge>
-            {event.audiences?.includes("all-levels") && <Badge tone="sand">All levels</Badge>}
-          </div>
-          <h1 className="mb-4 max-w-[760px] font-newsreader text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[52px]">
-            {event.title}
-          </h1>
-          <p className="mb-6 max-w-[640px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            {event.description}
-          </p>
-          <div className="relative h-[240px] overflow-hidden rounded-[14px] border border-sand-2 sm:h-[340px]">
-            {cover ? (
-              <Image
-                src={cover}
-                alt={event.title}
-                fill
-                priority
-                sizes="(max-width: 1180px) 100vw, 1100px"
-                className="object-cover"
-              />
-            ) : (
-              <EventCoverPlaceholder event={event} size="lg" />
-            )}
+          {/*
+            The poster used to be a full-width band under the title, at a
+            fixed pixel height on a fluid-width box — so its ratio drifted
+            1.43 -> 2.02 -> 3.24 across breakpoints and a 1100x1100 poster
+            landed in a 1098x338 slot with 69% of it cut away. Organisers
+            author these posters square, so the frame is square now and the
+            whole poster is visible.
+
+            It lives in a rail rather than full-bleed because a 1:1 poster
+            at the 1100px content width would be a 1100px wall of image
+            before you reach the date. The rail is the same 400px column the
+            body grid uses, so poster and Register button read as one
+            continuous column — what you look at and what you act on.
+            Source order gives text-then-poster when it collapses.
+          */}
+          <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px] lg:gap-10">
+            <div className="min-w-0">
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Badge tone="clay">{event.city}</Badge>
+                <Badge tone="sand">{TYPE_LABEL[event.type]}</Badge>
+                {event.audiences?.includes("all-levels") && <Badge tone="sand">All levels</Badge>}
+              </div>
+              <h1 className="mb-4 font-newsreader text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[44px] lg:text-[52px]">
+                {event.title}
+              </h1>
+              <p className="font-inter text-[17px] leading-[1.6] text-ink-soft">
+                {event.description}
+              </p>
+            </div>
+
+            <div className="w-full max-w-[420px] lg:max-w-none">
+              <div className="frame-base frame-plate rounded-2xl border border-sand-2">
+                {cover ? (
+                  <Image
+                    src={cover}
+                    alt={event.title}
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 400px, (min-width: 480px) 420px, 100vw"
+                    className="object-contain"
+                  />
+                ) : (
+                  <EventCoverPlaceholder event={event} size="lg" />
+                )}
+              </div>
+            </div>
           </div>
         </Reveal>
       </section>
 
       {/* Body: main + sidebar */}
       <section
-        className={`${WRAP} grid grid-cols-1 items-start gap-10 pb-12 lg:grid-cols-[1fr_340px]`}
+        className={`${WRAP} grid grid-cols-1 items-start gap-10 pb-12 lg:grid-cols-[1fr_400px]`}
         aria-label="Event details"
       >
         <Reveal className="min-w-0">

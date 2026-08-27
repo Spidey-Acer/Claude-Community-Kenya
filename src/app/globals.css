@@ -910,3 +910,52 @@ body::before {
 :root[data-theme="dark"] .anthropic-mark {
   filter: invert(1);
 }
+
+/* ─────────────────────── Frame tokens ───────────────────────
+ * The site used to carry seven different image ratios across surfaces
+ * showing the same kind of content, and several frames had no declared
+ * ratio at all — a fixed pixel height on a fluid-width box encodes a
+ * ratio nobody wrote down and nobody can review. The event detail hero
+ * was the worst of them: it drifted 1.43 -> 2.02 -> 3.24 across
+ * breakpoints and threw away 69% of a square poster.
+ *
+ * The rule these tokens enforce: a frame takes the shape its content's
+ * author intended. Assets composed in a canvas (posters, screenshots,
+ * avatars) are square, so they get square frames and lose nothing.
+ * Photographs are shot through a lens at 3:2-ish, so they get a
+ * landscape frame — forcing those square would cut 44% off the portrait
+ * shots, which is the same injury, just moved onto people's faces.
+ *
+ * Two standing rules ride with these: no frame ships without a declared
+ * ratio, and `sizes` moves whenever the ratio does — it is part of the
+ * frame, not an afterthought. */
+
+@utility frame-base {
+  position: relative;
+  overflow: hidden;
+}
+
+/** 1:1, object-cover. Grid thumbnails of square-composed assets. */
+@utility frame-tile {
+  aspect-ratio: 1 / 1;
+}
+
+/** 1:1, object-contain on a matte. Display frames >=300px where the
+  * source shape is not guaranteed — a future off-ratio poster survives
+  * instead of losing most of itself. The matte is mixed off Karibu
+  * tokens so it inverts with the theme; --scrim would not. */
+@utility frame-plate {
+  aspect-ratio: 1 / 1;
+  background: color-mix(in oklab, var(--clay) 5%, var(--paper-alt));
+}
+
+/** 4:3, object-cover. Photographs. The uncut view is the lightbox. */
+@utility frame-photo {
+  aspect-ratio: 4 / 3;
+}
+
+/** 1:1 round, object-cover. People. */
+@utility frame-avatar {
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+}
