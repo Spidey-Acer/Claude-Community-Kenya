@@ -295,14 +295,6 @@ export async function getProjects(): Promise<ProjectView[]> {
   return rows.map(mapPrismaProject)
 }
 
-export async function getFeaturedProjects(): Promise<ProjectView[]> {
-  const rows = await prisma.project.findMany({
-    where: { featured: true },
-    orderBy: { createdAt: "desc" },
-  })
-  return rows.map(mapPrismaProject)
-}
-
 /**
  * Returns the most recent Project of the Week, or null if none has been set.
  * The current POTW is whichever project has the latest non-null `potwAt` date.
