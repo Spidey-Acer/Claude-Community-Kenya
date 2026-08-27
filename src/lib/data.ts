@@ -261,7 +261,9 @@ export async function getBlogPosts(): Promise<BlogPostView[]> {
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | null> {
-  const row = await prisma.blogPost.findUnique({ where: { slug } })
+  // Public surface: drafts and archived posts must 404, not render half-empty.
+  // Admin reads go through the admin API routes, never this helper.
+  const row = await prisma.blogPost.findFirst({ where: { slug, status: "PUBLISHED" } })
   if (!row) return null
   // Increment view count (non-blocking)
   prisma.blogPost.update({ where: { slug }, data: { views: { increment: 1 } } }).catch(() => {})
