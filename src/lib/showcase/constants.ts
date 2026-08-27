@@ -92,25 +92,28 @@ export const REPORT_REASONS = [
 export type ReportReasonValue = (typeof REPORT_REASONS)[number]["value"]
 
 /**
- * Marker for a GIF picked from Tenor rather than uploaded to R2.
+ * Marker for a GIF picked from GIPHY rather than uploaded to R2.
  *
  * Every other media item is claimed by an R2 key under the poster's own pending
  * prefix, which is what proves it is theirs. A picked GIF has no object and no
  * key, so it carries this prefix instead and is pinned by host on the way in.
+ *
+ * (Tenor shut down 30 June 2026; no "tenor:" rows ever reached production —
+ * the key was never enabled there — so this is a clean swap, not a dual read.)
  */
-export const TENOR_KEY_PREFIX = "tenor:"
+export const GIPHY_KEY_PREFIX = "giphy:"
 
-/** Hosts Tenor actually serves media from. */
-const TENOR_HOSTS = ["media.tenor.com", "media1.tenor.com", "c.tenor.com", "tenor.com"]
+/** Hosts GIPHY actually serves media from (media0–media4 rotate under giphy.com). */
+const GIPHY_HOSTS = ["giphy.com"]
 
 /**
- * True only for a URL on a Tenor media host, over https.
+ * True only for a URL on a GIPHY media host, over https.
  *
- * Parsed rather than matched with `startsWith`: `https://media.tenor.com.evil
- * .test/x.gif` passes a prefix check and is not Tenor. Suffix matching is
- * anchored on a dot so `nottenor.com` cannot pass either.
+ * Parsed rather than matched with `startsWith`: `https://media.giphy.com.evil
+ * .test/x.gif` passes a prefix check and is not GIPHY. Suffix matching is
+ * anchored on a dot so `notgiphy.com` cannot pass either.
  */
-export function isTenorUrl(value: string): boolean {
+export function isGiphyUrl(value: string): boolean {
   let parsed: URL
   try {
     parsed = new URL(value)
@@ -118,5 +121,5 @@ export function isTenorUrl(value: string): boolean {
     return false
   }
   if (parsed.protocol !== "https:") return false
-  return TENOR_HOSTS.some(host => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))
+  return GIPHY_HOSTS.some(host => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))
 }

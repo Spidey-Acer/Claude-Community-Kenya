@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
         hostname: "media.claudekenya.org",
         pathname: "/**",
       },
+      // GIPHY — a picked GIF can become a post's cover image, and the feed
+      // card renders covers through next/image, so the media hosts
+      // (media0–media4, i.giphy.com) must be allowed.
+      {
+        protocol: "https",
+        hostname: "*.giphy.com",
+        pathname: "/**",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },

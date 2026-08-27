@@ -13,9 +13,9 @@ import {
 import { toSlug } from "@/lib/utils"
 import {
   isNeedKey,
-  isTenorUrl,
+  isGiphyUrl,
   MAX_MEDIA_PER_POST,
-  TENOR_KEY_PREFIX,
+  GIPHY_KEY_PREFIX,
 } from "@/lib/showcase/constants"
 import { publicUrl } from "@/lib/gallery/r2"
 
@@ -131,15 +131,15 @@ export async function POST(request: NextRequest) {
   // round trip to R2 for something finalize already checked.
   // A picked GIF is the one exception: it is never uploaded, so it has no R2
   // object and no key to check. It keeps its own URL, which means the host has
-  // to be pinned instead — otherwise `key: "tenor:anything"` becomes a way to
+  // to be pinned instead — otherwise `key: "giphy:anything"` becomes a way to
   // put any URL on the internet into an APPROVED post, which is the exact hole
   // the prefix check above exists to close.
   const pendingPrefix = `showcase/pending/${userId}/`
-  const isPickedGif = (key: string) => key.startsWith(TENOR_KEY_PREFIX)
+  const isPickedGif = (key: string) => key.startsWith(GIPHY_KEY_PREFIX)
 
   const badMedia = data.media.find(item =>
     isPickedGif(item.key)
-      ? item.kind !== "gif" || !isTenorUrl(item.url)
+      ? item.kind !== "gif" || !isGiphyUrl(item.url)
       : !item.key.startsWith(pendingPrefix),
   )
   if (badMedia) {

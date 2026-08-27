@@ -8,7 +8,7 @@ import {
   UPLOAD_CONTENT_TYPES,
   isUploadContentType,
   REPORT_REASONS,
-  isTenorUrl,
+  isGiphyUrl,
 } from "@/lib/showcase/constants"
 import { ReportReason } from "@/generated/prisma/client"
 
@@ -72,23 +72,24 @@ describe("REPORT_REASONS", () => {
   })
 })
 
-describe("isTenorUrl", () => {
-  it("accepts Tenor media hosts over https", () => {
-    expect(isTenorUrl("https://media.tenor.com/abc/x.gif")).toBe(true)
-    expect(isTenorUrl("https://c.tenor.com/abc/x.gif")).toBe(true)
+describe("isGiphyUrl", () => {
+  it("accepts GIPHY media hosts over https", () => {
+    expect(isGiphyUrl("https://media.giphy.com/media/abc/giphy.gif")).toBe(true)
+    expect(isGiphyUrl("https://media2.giphy.com/media/abc/200.gif")).toBe(true)
+    expect(isGiphyUrl("https://i.giphy.com/abc.gif")).toBe(true)
   })
 
   // The reason this parses the URL instead of using startsWith: both of these
-  // pass a naive prefix or substring check and neither is Tenor.
+  // pass a naive prefix or substring check and neither is GIPHY.
   it("rejects lookalike hosts", () => {
-    expect(isTenorUrl("https://media.tenor.com.evil.test/x.gif")).toBe(false)
-    expect(isTenorUrl("https://nottenor.com/x.gif")).toBe(false)
-    expect(isTenorUrl("https://evil.test/?u=https://media.tenor.com/x.gif")).toBe(false)
+    expect(isGiphyUrl("https://media.giphy.com.evil.test/x.gif")).toBe(false)
+    expect(isGiphyUrl("https://notgiphy.com/x.gif")).toBe(false)
+    expect(isGiphyUrl("https://evil.test/?u=https://media.giphy.com/x.gif")).toBe(false)
   })
 
   it("rejects non-https and unparseable values", () => {
-    expect(isTenorUrl("http://media.tenor.com/x.gif")).toBe(false)
-    expect(isTenorUrl("javascript:alert(1)")).toBe(false)
-    expect(isTenorUrl("not a url")).toBe(false)
+    expect(isGiphyUrl("http://media.giphy.com/x.gif")).toBe(false)
+    expect(isGiphyUrl("javascript:alert(1)")).toBe(false)
+    expect(isGiphyUrl("not a url")).toBe(false)
   })
 })
