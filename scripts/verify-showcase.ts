@@ -110,7 +110,7 @@ async function seed(): Promise<void> {
       needs: [],
       media: [
         { key: "fixture/img.png", url: "https://example.test/img.png", width: 100, height: 100, kind: "image" },
-        { key: "tenor:abc", url: "https://media.tenor.com/abc.gif", width: 200, height: 200, kind: "gif" },
+        { key: "giphy:abc", url: "https://media.giphy.com/media/abc/giphy.gif", width: 200, height: 200, kind: "gif" },
       ],
       lastActivityAt: new Date(),
     },
