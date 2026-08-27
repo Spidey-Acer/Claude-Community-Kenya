@@ -108,13 +108,13 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
         </div>
       )}
 
-      <div className="flex items-center gap-1 border-b border-[#1e1e1e]">
+      <div className="flex items-center gap-1 border-b border-[#1e1e1e] overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 text-xs font-mono transition-all border-b-2 -mb-px",
+              "flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2.5 text-xs font-mono transition-all border-b-2 -mb-px",
               tab === key
                 ? "border-[#00ff41] text-[#00ff41]"
                 : "border-transparent text-[#666] hover:text-[#999]"

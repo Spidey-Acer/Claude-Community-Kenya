@@ -219,7 +219,7 @@ export function AdminUserManager({
           <div className="text-[11px] font-mono font-semibold text-[#00ff41] uppercase tracking-wider">
             New Admin User
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-[10px] font-mono text-[#555] mb-1">First Name</label>
               <input
@@ -248,7 +248,7 @@ export function AdminUserManager({
               className="w-full bg-[#0a0a0a] border border-[#222] rounded px-3 py-2 text-sm font-mono text-[#e0e0e0] focus:border-[#00ff41]/50 focus:outline-none transition-colors"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-[10px] font-mono text-[#555] mb-1">Password</label>
               <input
@@ -284,8 +284,8 @@ export function AdminUserManager({
       )}
 
       {/* Users Table */}
-      <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
-        <table className="w-full">
+      <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b border-[#1e1e1e]">
               <th className="px-4 py-3 text-left text-[10px] font-mono font-semibold text-[#555] uppercase tracking-wider">User</th>
@@ -345,8 +345,10 @@ export function AdminUserManager({
                   </span>
                 </td>
                 <td className="px-4 py-3">
+                  {/* Hover-revealed on desktop only — touch devices have no
+                    * hover, so below md the actions stay visible. */}
                   {user.id !== currentUserId ? (
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
                       <button
                         onClick={() => setEditingRole(editingRole === user.id ? null : user.id)}
                         title="Change role"

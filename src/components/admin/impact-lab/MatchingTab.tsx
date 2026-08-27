@@ -198,7 +198,7 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
     <div className="space-y-4">
       <div className="p-4 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg space-y-3">
         <p className="text-[10px] font-mono text-[#555] uppercase tracking-wider">Settings</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Num label="Desired size" value={settings.desiredTeamSize} onChange={(v) => setSettings({ ...settings, desiredTeamSize: v })} />
           <Num label="Min size" value={settings.minTeamSize} onChange={(v) => setSettings({ ...settings, minTeamSize: v })} />
           <Num label="Max size" value={settings.maxTeamSize} onChange={(v) => setSettings({ ...settings, maxTeamSize: v })} />

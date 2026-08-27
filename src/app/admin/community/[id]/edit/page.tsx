@@ -175,7 +175,7 @@ export default function EditCommunityPage() {
           {/* Links */}
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Links</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldInput label="URL" type="url" value={url} onChange={setUrl} placeholder="https://..." />
               <FieldInput label="Repository URL" type="url" value={repoUrl} onChange={setRepoUrl} placeholder="https://github.com/..." />
             </div>
@@ -190,7 +190,7 @@ export default function EditCommunityPage() {
           {/* Classification */}
           <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5 space-y-4">
             <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Classification</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldSelect label="Type" value={type} onChange={setType} options={SUBMISSION_TYPES.map((t) => ({ value: t, label: TYPE_LABELS[t] }))} />
               <FieldSelect label="Status" value={status} onChange={setStatus} options={SUBMISSION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))} />
             </div>

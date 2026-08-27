@@ -217,7 +217,8 @@ export function SubmissionsTab({ cohort }: { cohort: string }) {
             No submissions yet
           </p>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[#1e1e1e]">
                 {["Team", "Project", "Track", "Links", "Status", "Updated", ""].map((h) => (
@@ -301,6 +302,7 @@ export function SubmissionsTab({ cohort }: { cohort: string }) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
