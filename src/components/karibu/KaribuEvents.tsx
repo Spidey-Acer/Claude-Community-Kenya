@@ -28,12 +28,14 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   workshop: "Workshop",
   "career-talk": "Career talk",
   hackathon: "Hackathon",
+  conversations: "Conversations",
 };
 const TYPE_PLURAL: Record<Event["type"], string> = {
   meetup: "Meetups",
   workshop: "Workshops",
   "career-talk": "Career talks",
   hackathon: "Hackathons",
+  conversations: "Conversations",
 };
 
 const UPCOMING_STATUSES: Event["status"][] = ["upcoming", "registration-open"];

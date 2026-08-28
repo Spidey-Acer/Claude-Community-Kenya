@@ -36,6 +36,7 @@ const EVENT_TYPE_MAP: Record<string, Event["type"]> = {
   CAREER_TALK: "career-talk",
   HACKATHON: "hackathon",
   CONFERENCE: "meetup", // fallback
+  CONVERSATIONS: "conversations",
 }
 
 function mapPrismaEvent(e: PrismaEvent): Event {

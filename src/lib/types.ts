@@ -15,7 +15,7 @@ export interface Event {
   time: string;
   venue: string;
   city: string;
-  type: "meetup" | "workshop" | "career-talk" | "hackathon";
+  type: "meetup" | "workshop" | "career-talk" | "hackathon" | "conversations";
   status: "upcoming" | "registration-open" | "completed" | "sold-out";
   description: string;
   fullDescription?: string;

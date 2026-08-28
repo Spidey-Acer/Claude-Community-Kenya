@@ -36,6 +36,8 @@ const TYPE_MOTIF: Record<Event["type"], string> = {
     "bg-[repeating-linear-gradient(0deg,var(--clay)_0_1.5px,transparent_1.5px_13px)]",
   hackathon:
     "bg-[repeating-linear-gradient(135deg,var(--clay)_0_2px,transparent_2px_11px)]",
+  conversations:
+    "bg-[repeating-radial-gradient(circle_at_12%_-20%,var(--clay)_0_1px,transparent_1px_18px)]",
 };
 
 /**
@@ -81,6 +83,7 @@ const TYPE_EYEBROW: Record<Event["type"], string> = {
   workshop: "Workshop",
   "career-talk": "Career talk",
   hackathon: "Hackathon",
+  conversations: "Conversations",
 };
 
 /** Day numeral + month, for the large variant. */
