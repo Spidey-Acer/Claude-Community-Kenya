@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getConversationsEvents, getConversationsPageBySlug } from "@/lib/conversations/queries";
+import { getConversationsPageBySlug } from "@/lib/conversations/queries";
 import { SITE_CONFIG } from "@/lib/constants";
 import { ConversationsHero } from "@/components/karibu/conversations/ConversationsHero";
 import { StatWall } from "@/components/karibu/conversations/StatWall";
@@ -10,14 +10,16 @@ import { ContributionForm } from "@/components/karibu/conversations/Contribution
 import { SeedDrawer } from "@/components/karibu/conversations/SeedDrawer";
 import { ResultBanner } from "@/components/karibu/conversations/ResultBanner";
 
-export const revalidate = 60;
+// Rendered on every request, not ISR. The root layout reads cookies (a dynamic
+// API) on every page; routes prerendered at build discover that and become
+// dynamic automatically, but this route had no slugs at build time, so Next
+// classified it static and every on-demand render then died with
+// DYNAMIC_SERVER_USAGE (prod 500, 28 Aug). Forcing dynamic matches how every
+// other public page actually runs, and the live-result flip needs freshness
+// anyway.
+export const dynamic = "force-dynamic";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-
-export async function generateStaticParams() {
-  const events = await getConversationsEvents().catch(() => []);
-  return events.map((event) => ({ slug: event.slug }));
-}
 
 export async function generateMetadata({
   params,
