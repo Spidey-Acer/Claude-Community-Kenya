@@ -76,7 +76,7 @@ export function ShowcaseFeed({
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className={`${KICKER} mb-4`}>Showcase · Maonyesho</div>
+              <div className={`${KICKER} mb-4`}>Showcase</div>
               <h1 className="mb-3 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
                 What the community is building.
               </h1>

@@ -112,7 +112,7 @@ export function KaribuBlog({ posts }: { posts: readonly BlogPostView[] }) {
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Blog header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Blog · Blogu</div>
+          <div className={`${KICKER} mb-4`}>Blog</div>
           <h1 className="mb-4 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Notes from the <span className="italic text-clay">community.</span>
           </h1>

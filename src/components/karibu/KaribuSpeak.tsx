@@ -122,7 +122,7 @@ export function KaribuSpeak() {
     <>
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Speak header">
-        <div className={`${KICKER} mb-4`}>Speak · Ongea</div>
+        <div className={`${KICKER} mb-4`}>Speak</div>
         <h1 className="mb-4 max-w-[720px] font-newsreader text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[48px]">
           Share your knowledge with{" "}
           <span className="italic text-clay">Kenya&apos;s AI community.</span>

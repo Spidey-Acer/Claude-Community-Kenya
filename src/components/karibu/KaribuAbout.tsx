@@ -50,7 +50,7 @@ export function KaribuAbout({
       {/* Header */}
       <section className={`${WRAP} pb-8 pt-16`} aria-label="About hero">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>About · Kuhusu sisi</div>
+          <div className={`${KICKER} mb-4`}>About</div>
           <h1 className="max-w-[880px] font-newsreader text-[38px] font-normal leading-[1.12] tracking-[-0.02em] text-ink sm:text-[52px]">
             We&apos;re a free, founder-led community for anyone in Kenya{" "}
             <span className="italic text-clay">learning and building</span> with

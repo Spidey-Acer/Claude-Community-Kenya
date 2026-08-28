@@ -119,7 +119,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Events header">
         <Reveal>
           <div className="mb-4 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay">
-            Events · Matukio
+            Events
           </div>
           <h1 className="mb-[18px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Where we meet.
@@ -208,7 +208,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
           <Reveal>
             <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-sand pb-3">
               <div className="font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-                Past · picha
+                Past
               </div>
               <div className="font-inter text-xs text-ink-faint">
                 {past.length} {past.length === 1 ? "event" : "events"}

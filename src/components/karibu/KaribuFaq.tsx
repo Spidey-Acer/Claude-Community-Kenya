@@ -126,7 +126,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="FAQ header">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>FAQ · Maswali</div>
+          <div className={`${KICKER} mb-4`}>FAQ</div>
           <h1 className="mb-4 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
             Questions, <span className="italic text-clay">answered.</span>
           </h1>
