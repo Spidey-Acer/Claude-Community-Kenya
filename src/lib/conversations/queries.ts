@@ -20,7 +20,9 @@ import type { SubmissionModerationStatus } from "@/generated/prisma/client"
 const MAX_PUBLIC_CONTRIBUTIONS = 100
 
 /** Questions counted toward the "X questions already in" counter — never FEATURED/REJECTED, and never the question bodies. */
-const OPEN_SESSION_COUNTED_STATUSES: SubmissionModerationStatus[] = ["PENDING", "APPROVED"]
+// FEATURED must stay counted: featuring a question during the live session
+// would otherwise make the public counter visibly drop mid-event.
+const OPEN_SESSION_COUNTED_STATUSES: SubmissionModerationStatus[] = ["PENDING", "APPROVED", "FEATURED"]
 
 const PUBLIC_CONTRIBUTION_STATUSES: SubmissionModerationStatus[] = ["APPROVED", "FEATURED"]
 
