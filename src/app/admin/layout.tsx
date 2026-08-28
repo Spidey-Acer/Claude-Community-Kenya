@@ -8,7 +8,9 @@ import { hasPermission, ROLE_LABELS } from "@/lib/rbac"
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
-  // No session = unauthenticated user on login page (middleware allows /admin/login through)
+  // No session = unauthenticated user on login page (the auth redirect for
+  // /admin/* lives in src/proxy.ts — Next 16 renamed middleware.ts — which
+  // lets /admin/login through)
   // Render children without sidebar so login page gets a clean full-screen layout
   if (!session?.user) {
     return <AdminProviders>{children}</AdminProviders>

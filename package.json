@@ -25,6 +25,7 @@
     "import:manual-teams": "tsx scripts/import-manual-teams.ts",
     "seed:hackathon": "tsx scripts/seed-hackathon-cohort.ts",
     "seed:events": "tsx scripts/seed-events.ts",
+    "seed:conversations": "tsx scripts/seed-conversations-29aug.ts",
     "backfill:gallery": "tsx scripts/backfill-gallery-r2.ts",
     "purge:closed-cohorts": "tsx scripts/purge-closed-cohorts.ts"
   },

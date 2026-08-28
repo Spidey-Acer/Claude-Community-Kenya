@@ -22,6 +22,7 @@ export type AdminResource =
   | "photos"
   | "impact-lab"
   | "reports"
+  | "conversations"
 
 export type Action = "view" | "create" | "edit" | "delete" | "approve"
 
@@ -47,6 +48,7 @@ const rolePermissions: Record<
     photos: ["view", "create", "edit", "delete"],
     "impact-lab": ["view", "create", "edit", "delete", "approve"],
     reports: ["view", "edit", "approve"],
+    conversations: ["view", "create", "edit", "delete", "approve"],
   },
   ADMIN: {
     dashboard: ["view"],
@@ -71,6 +73,10 @@ const rolePermissions: Record<
     // holds `delete` here, which is strictly more destructive.
     "impact-lab": ["view", "create", "edit", "delete", "approve"],
     reports: ["view", "edit", "approve"],
+    // ADMIN gets the same full range as SUPER_ADMIN here — attach/config/
+    // result-publish for Conversations events is organiser work, not a
+    // super-admin-only privilege, matching this resource's "impact-lab" peer.
+    conversations: ["view", "create", "edit", "delete", "approve"],
   },
   MODERATOR: {
     dashboard: ["view"],
@@ -90,6 +96,10 @@ const rolePermissions: Record<
     photos: ["view"],
     "impact-lab": ["view"],
     reports: ["view", "edit", "approve"],
+    // Queue moderation only — no page-config edits or result publish. Result
+    // publish/clear routes require "edit" (not "approve") specifically to
+    // keep that Saturday-5pm action out of MODERATOR's reach.
+    conversations: ["view", "approve"],
   },
   MEMBER: {
     // "dashboard" here means the admin dashboard. MEMBER must not have access —
@@ -111,6 +121,7 @@ const rolePermissions: Record<
     photos: [],
     "impact-lab": [],
     reports: [],
+    conversations: [],
   },
 }
 

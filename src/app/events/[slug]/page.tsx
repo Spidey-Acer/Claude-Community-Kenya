@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
+import { getOpenQuestionSession } from "@/lib/conversations/queries"
 
 export const revalidate = 1800;
 
@@ -57,11 +58,12 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  const [approvedDemos, eventPhotos] = await Promise.all([
+  const [approvedDemos, eventPhotos, openQuestionSession] = await Promise.all([
     event.id
       ? getApprovedDemosByEventId(event.id).catch(() => [])
       : Promise.resolve([]),
     getEventPhotos(event.slug).catch(() => []),
+    event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
   ]);
 
   const relatedEvents = allEvents
@@ -147,6 +149,7 @@ export default async function EventDetailPage({
         twitterShareUrl={twitterShareUrl}
         linkedInShareUrl={linkedInShareUrl}
         photos={eventPhotos}
+        openQuestionSession={openQuestionSession}
       />
     </>
   );

@@ -4,6 +4,7 @@ const statusConfig: Record<string, { label: string; classes: string }> = {
   PENDING: { label: "Pending", classes: "bg-[#ffb000]/10 text-[#ffb000] border-[#ffb000]/30" },
   UNDER_REVIEW: { label: "Under Review", classes: "bg-[#00d4ff]/10 text-[#00d4ff] border-[#00d4ff]/30" },
   APPROVED: { label: "Approved", classes: "bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/30" },
+  FEATURED: { label: "Featured", classes: "bg-[#00d4ff]/10 text-[#00d4ff] border-[#00d4ff]/30" },
   REJECTED: { label: "Rejected", classes: "bg-[#ff3333]/10 text-[#ff3333] border-[#ff3333]/30" },
   UNREAD: { label: "Unread", classes: "bg-[#ffb000]/10 text-[#ffb000] border-[#ffb000]/30" },
   READ: { label: "Read", classes: "bg-[#666]/10 text-[#888] border-[#444]/30" },

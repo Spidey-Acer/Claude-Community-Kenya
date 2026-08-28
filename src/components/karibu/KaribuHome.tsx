@@ -47,6 +47,7 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   workshop: "Workshop",
   "career-talk": "Career talk",
   hackathon: "Hackathon",
+  conversations: "Conversations",
 };
 
 /**
