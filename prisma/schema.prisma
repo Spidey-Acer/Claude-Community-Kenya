@@ -46,6 +46,7 @@ enum EventType {
   CAREER_TALK
   HACKATHON
   CONFERENCE
+  CONVERSATIONS
 }
 
 enum EventStatus {
@@ -374,6 +375,9 @@ model Event {
 
   photos          MeetupPhoto[]
   communitySubmissions CommunitySubmission[]
+  questionSessions     EventQuestionSession[]
+  contributions        EventContribution[]
+  conversationsPage    ConversationsPage?
 
   @@map("events")
 }
@@ -1172,4 +1176,91 @@ model ImpactLabEvent {
   @@index([organisationId])
   @@index([status])
   @@map("impact_lab_events")
+}
+
+// ─── Conversations Live ──────────────────────────────────────────────────────
+// Event Q&A sessions and open participation for Claude Conversations events.
+// All four models key off the existing `Event` — no new tenancy concept.
+// See docs/superpowers/specs/2026-08-28-conversations-live-design.md.
+
+enum SubmissionModerationStatus {
+  PENDING
+  APPROVED
+  FEATURED // surfaced prominently; framing/read-aloud pool
+  REJECTED
+}
+
+/// A question-collection session attached to an event ("Ask Anthropic's team").
+/// Reusable by any event; Conversations pages don't use it on day one, the
+/// Impact Lab page does.
+model EventQuestionSession {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  title     String // "Ask Anthropic's team"
+  prompt    String   @db.Text // helper copy above the form
+  isOpen    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions EventQuestion[]
+
+  @@index([eventId])
+  @@map("event_question_sessions")
+}
+
+model EventQuestion {
+  id            String                      @id @default(cuid())
+  sessionId     String
+  session       EventQuestionSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  body          String                      @db.VarChar(500)
+  submitterName String                      @db.VarChar(80)
+  county        String                      @db.VarChar(40) // one of the 47, validated server-side
+  /// sha256(ip + server salt) for daily submission caps. Never the raw IP —
+  /// see src/lib/events/participation.ts hashSubmitterIp.
+  ipHash        String?                     @db.VarChar(64)
+  status        SubmissionModerationStatus  @default(PENDING)
+  createdAt     DateTime                    @default(now())
+
+  @@index([sessionId, status])
+  @@map("event_questions")
+}
+
+/// A problem statement contributed to a Conversations event, from the room or
+/// from anywhere in Kenya. Mapped to one of the page's table questions.
+model EventContribution {
+  id            String                      @id @default(cuid())
+  eventId       String
+  event         Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  questionKey   String                      @db.VarChar(40) // matches ConversationsPage.tableQuestions[].key
+  body          String                      @db.VarChar(600)
+  submitterName String                      @db.VarChar(80)
+  county        String                      @db.VarChar(40)
+  /// sha256(ip + server salt) for daily submission caps. Never the raw IP —
+  /// see src/lib/events/participation.ts hashSubmitterIp.
+  ipHash        String?                     @db.VarChar(64)
+  status        SubmissionModerationStatus  @default(PENDING)
+  createdAt     DateTime                    @default(now())
+
+  @@index([eventId, status])
+  @@map("event_contributions")
+}
+
+/// Per-event page config for a Conversations event. One row per event.
+model ConversationsPage {
+  id            String   @id @default(cuid())
+  eventId       String   @unique
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  heroHeadline  String   @db.VarChar(200) // "Kenya is #1 in the world at using AI..."
+  heroSubline   String   @db.VarChar(300) // "...and fewer than half of us are online."
+  framingStats  Json // [{line, source}]
+  tableQuestions Json // [{key, label, description}] — the kit's canonical three by default
+  seedProblems  Json // [{title, statement, questionKey, buildWedge}] — collapsed drawer
+  contributionsOpen Boolean @default(true)
+  /// null until the room decides; set from the phone at the venue.
+  result        Json? // {winner: {title, statement}, runnersUp: [{title, statement}], note, publishedAt}
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("conversations_pages")
 }

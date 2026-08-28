@@ -209,11 +209,22 @@ phones from WhatsApp).
 
 ## Rollout
 
-1. PR from `feat/conversations-live`; Vercel preview.
-2. Peter click-test → merge (his click) → prod deploy.
-3. Run seed against prod (via the repo's established prod-DB access path — see CCK database
-   access memory: cck_migrator over SSH tunnel).
-4. Afternoon feature post goes out ONLY after Peter has submitted a real question end-to-end
+Verified 28 Aug: the 29 Aug ("Nairobi | Claude Conversations") and 2 Sept ("Nairobi | Claude
+Impact Lab - AI Mashinani 02") events ALREADY EXIST as Event rows — seed attaches to them by
+lookup, never creates. Vercel build does NOT run `migrate deploy` (build = `prisma generate &&
+next build`), so the prod migration is a manual step.
+
+1. `SUBMISSION_IP_SALT` env var: in `.env.example`; a missing salt fails loudly at submit time
+   (500 with clear server log), never hashes with undefined. Peter adds it in Vercel before
+   merge (same dance as GIPHY_API_KEY).
+2. PR from `feat/conversations-live`; Vercel preview. Check gate: tsc + full test suite green
+   + Vercel preview build (local `next build` may be blocked by C: disk pressure — disclose in
+   PR as with #127).
+3. Apply migration to prod over the cck_migrator SSH tunnel (`prisma migrate deploy`) — owner:
+   Peter + Claude together, BEFORE merge so deploy lands on a ready schema.
+4. Peter click-test on preview → merge (his click) → prod deploy.
+5. Run seed against prod over the same tunnel.
+6. Afternoon feature post goes out ONLY after Peter has submitted a real question end-to-end
    on prod.
 
 ## Out of scope (explicitly)
