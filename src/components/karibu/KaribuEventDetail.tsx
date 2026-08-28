@@ -22,6 +22,8 @@ import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
+import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
+import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
@@ -30,6 +32,7 @@ const TYPE_LABEL: Record<Event["type"], string> = {
   workshop: "Workshop",
   "career-talk": "Career talk",
   hackathon: "Hackathon",
+  conversations: "Conversations",
 };
 
 interface AgendaEntry {
@@ -47,6 +50,8 @@ interface KaribuEventDetailProps {
   photos: PhotoView[];
   twitterShareUrl: string;
   linkedInShareUrl: string;
+  /** Null when the event has no open EventQuestionSession — the whole Q&A section is skipped. */
+  openQuestionSession: OpenQuestionSessionView | null;
 }
 
 function parseDate(d: string): Date | null {
@@ -64,6 +69,7 @@ export function KaribuEventDetail({
   photos,
   twitterShareUrl,
   linkedInShareUrl,
+  openQuestionSession,
 }: KaribuEventDetailProps) {
   const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
@@ -243,6 +249,11 @@ export function KaribuEventDetail({
               </p>
               <KaribuDemoRequestForm eventSlug={event.slug} />
             </div>
+          )}
+
+          {/* Q&A — only when this event has an open EventQuestionSession */}
+          {openQuestionSession && (
+            <EventQaBlock eventSlug={event.slug} session={openQuestionSession} />
           )}
 
           {/* Share */}

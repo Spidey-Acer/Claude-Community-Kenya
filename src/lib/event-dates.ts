@@ -48,3 +48,17 @@ export function isEventPast(date: string | Date): boolean {
   if (Number.isNaN(day.getTime())) return false
   return day < startOfTodayEAT()
 }
+
+/**
+ * True when the event's stored day is today in Nairobi — used for the
+ * Conversations index "Live today" chip. Same UTC-midnight-of-stored-date
+ * convention as `isEventPast`, so the two stay consistent with each other:
+ * an event can never be both past and live-today.
+ */
+export function isEventToday(date: string | Date): boolean {
+  const day = typeof date === "string" ? new Date(`${date}T00:00:00Z`) : date
+  if (Number.isNaN(day.getTime())) return false
+  const start = startOfTodayEAT()
+  const nextDay = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+  return day >= start && day < nextDay
+}
