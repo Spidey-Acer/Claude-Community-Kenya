@@ -8,8 +8,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { Redis } from "@upstash/redis"
 import { Ratelimit } from "@upstash/ratelimit"
 
-const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL
-const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
+// The Vercel Marketplace "Upstash for Redis" integration injects KV_REST_API_*
+// names; a hand-configured Upstash database uses UPSTASH_REDIS_REST_*. Accept
+// either so provisioning through Vercel needs no manual alias vars.
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
 const NODE_ENV = process.env.NODE_ENV || "development"
 const IS_BUILD_PHASE = process.env.NEXT_PHASE === "phase-production-build"
 
@@ -22,7 +25,7 @@ if (UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN) {
   })
 } else if (NODE_ENV === "production" && !IS_BUILD_PHASE) {
   console.warn(
-    "WARNING: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set. " +
+    "WARNING: neither UPSTASH_REDIS_REST_URL/TOKEN nor KV_REST_API_URL/TOKEN are set. " +
       "Rate limiting will use in-memory fallback which does not work in distributed environments."
   )
 }
