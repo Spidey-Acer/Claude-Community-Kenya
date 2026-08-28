@@ -18,7 +18,7 @@ import { questionSubmissionSchema } from "@/lib/events/participation-schemas"
 import { hashSubmitterIp } from "@/lib/events/ip-hash"
 
 /** Combined daily cap per hashed IP, across questions + contributions. */
-const DAILY_SUBMISSION_CAP = 10
+const DAILY_SUBMISSION_CAP = 150 // shared NAT: one venue IP is a whole room
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 /**
@@ -107,8 +107,12 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 })
   }
 
+  // Newest-first: if two sessions are ever open at once, this must resolve
+  // to the same session queries.ts's getOpenQuestionSession shows on the
+  // public page, or a submission could land in a session nobody sees.
   const session = await prisma.eventQuestionSession.findFirst({
     where: { eventId: event.id, isOpen: true },
+    orderBy: { createdAt: "desc" },
     select: { id: true },
   })
   if (!session) {

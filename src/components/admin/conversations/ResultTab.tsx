@@ -32,6 +32,7 @@ export function ResultTab({
   const [pool, setPool] = useState<ApprovedContribution[]>([])
   const [winner, setWinner] = useState<ResultEntry>(EMPTY_ENTRY)
   const [runnersUp, setRunnersUp] = useState<ResultEntry[]>([])
+  const [runnerUpFieldErrors, setRunnerUpFieldErrors] = useState<Record<number, string>>({})
   const [note, setNote] = useState("")
   const [confirming, setConfirming] = useState(false)
   const [clearing, setClearing] = useState(false)
@@ -69,20 +70,59 @@ export function ResultTab({
 
   function updateRunnerUp(index: number, entry: ResultEntry) {
     setRunnersUp((prev) => prev.map((r, i) => (i === index ? entry : r)))
+    setRunnerUpFieldErrors((prev) => {
+      if (!(index in prev)) return prev
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
   }
 
   function removeRunnerUp(index: number) {
     setRunnersUp((prev) => prev.filter((_, i) => i !== index))
+    setRunnerUpFieldErrors((prev) => {
+      const next: Record<number, string> = {}
+      for (const [i, msg] of Object.entries(prev)) {
+        const n = Number(i)
+        if (n < index) next[n] = msg
+        else if (n > index) next[n - 1] = msg
+      }
+      return next
+    })
   }
 
   function publish() {
     setError(null)
+
+    // Half-filled runner-ups reach the server as a 400 today; catching them
+    // here names the specific missing field instead of a generic failure.
+    // Fully-blank entries (added via "Add runner-up", never touched) are
+    // dropped silently rather than blocked — they're not omissions.
+    const cleanedRunnersUp: ResultEntry[] = []
+    const fieldErrors: Record<number, string> = {}
+    runnersUp.forEach((entry, i) => {
+      const hasTitle = entry.title.trim() !== ""
+      const hasStatement = entry.statement.trim() !== ""
+      if (!hasTitle && !hasStatement) return
+      if (hasTitle !== hasStatement) {
+        fieldErrors[i] = hasTitle ? "Statement is required" : "Title is required"
+        return
+      }
+      cleanedRunnersUp.push(entry)
+    })
+    if (Object.keys(fieldErrors).length > 0) {
+      setRunnerUpFieldErrors(fieldErrors)
+      setError("Fix the runner-up fields below before publishing.")
+      return
+    }
+    setRunnerUpFieldErrors({})
+
     startTransition(async () => {
       try {
         const res = await fetch(`/api/admin/conversations/${eventId}/result`, {
           method: "PUT",
           headers: await csrfHeaders(),
-          body: JSON.stringify({ winner, runnersUp, note: note || undefined }),
+          body: JSON.stringify({ winner, runnersUp: cleanedRunnersUp, note: note || undefined }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed to publish result")
@@ -187,6 +227,7 @@ export function ResultTab({
               onChange={(e) => updateRunnerUp(i, e)}
               pool={pool}
               onPick={(id) => applyPick(entry, (e) => updateRunnerUp(i, e), id)}
+              error={runnerUpFieldErrors[i]}
             />
             <button
               onClick={() => removeRunnerUp(i)}
@@ -252,13 +293,14 @@ export function ResultTab({
 }
 
 function ResultEntryFields({
-  label, entry, onChange, pool, onPick,
+  label, entry, onChange, pool, onPick, error,
 }: {
   label: string
   entry: ResultEntry
   onChange: (entry: ResultEntry) => void
   pool: ApprovedContribution[]
   onPick: (contributionId: string) => void
+  error?: string
 }) {
   return (
     <div className="space-y-2 bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
@@ -293,6 +335,7 @@ function ResultEntryFields({
         maxLength={600}
         className="w-full bg-[#0d0d0d] border border-[#1e1e1e] rounded px-3 py-2 text-xs font-mono text-[#ccc] placeholder:text-[#333] focus:outline-none focus:border-[#00ff41]/50 resize-none"
       />
+      {error && <div className="text-[11px] font-mono text-[#ff3333]">{error}</div>}
     </div>
   )
 }

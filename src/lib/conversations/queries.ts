@@ -121,6 +121,12 @@ export interface OpenQuestionSessionView {
 // Defensive: these fields are admin-authored Json, not user input, but a
 // malformed row should degrade to an empty section rather than 500 the page.
 
+// decodeHtmlEntities below is applied to user-submitted text (contribution
+// bodies, submitter names). The stored value is entity-encoded, so decoding
+// it round-trips to live markup — safe only because every consumer here
+// renders through React text children (never dangerouslySetInnerHTML), which
+// escapes on render. A future consumer that injects this text as raw HTML
+// would reopen the XSS this encoding exists to close (sec-review finding 6).
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null
 }

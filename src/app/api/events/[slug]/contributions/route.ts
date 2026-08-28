@@ -17,7 +17,7 @@ import { hashSubmitterIp } from "@/lib/events/ip-hash"
 import type { SubmissionModerationStatus } from "@/generated/prisma/client"
 
 /** Combined daily cap per hashed IP, across questions + contributions. */
-const DAILY_SUBMISSION_CAP = 10
+const DAILY_SUBMISSION_CAP = 150 // shared NAT: one venue IP is a whole room
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 /** Public contributions GET never returns more than this many rows. */

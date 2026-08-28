@@ -4,12 +4,17 @@
 // See docs/superpowers/specs/2026-08-28-conversations-live-design.md.
 
 import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { withCsrfProtection } from "@/lib/csrf"
 import { moderationPatchSchema } from "@/lib/conversations/schemas"
 import type { SubmissionModerationStatus } from "@/generated/prisma/client"
+
+/** Mirrors the SubmissionModerationStatus enum — kept as a literal list here
+ * so an unrecognized `?status=` value 400s instead of reaching Prisma. */
+const moderationStatusSchema = z.enum(["PENDING", "APPROVED", "FEATURED", "REJECTED"])
 
 interface QueueRow {
   kind: "question" | "contribution"
@@ -32,7 +37,12 @@ export async function GET(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const { searchParams } = new URL(request.url)
-  const status = (searchParams.get("status") ?? "PENDING") as SubmissionModerationStatus
+  const statusParam = searchParams.get("status")
+  const statusResult = moderationStatusSchema.safeParse(statusParam ?? "PENDING")
+  if (!statusResult.success) {
+    return NextResponse.json({ success: false, error: "Invalid status" }, { status: 400 })
+  }
+  const status: SubmissionModerationStatus = statusResult.data
   const eventId = searchParams.get("eventId") ?? undefined
 
   const [questions, contributions, questionCounts, contributionCounts] = await Promise.all([
@@ -115,9 +125,12 @@ export async function PATCH(request: NextRequest) {
   }
   const { kind, id, status } = validation.data
 
+  // Select only what the client consumes (ModerationQueue.tsx's optimistic
+  // update reads res.ok and drops the row locally — it never reads
+  // response.data). Never ipHash: this row travels back to the browser.
   const updated = kind === "question"
-    ? await prisma.eventQuestion.update({ where: { id }, data: { status } }).catch(() => null)
-    : await prisma.eventContribution.update({ where: { id }, data: { status } }).catch(() => null)
+    ? await prisma.eventQuestion.update({ where: { id }, data: { status }, select: { id: true, status: true } }).catch(() => null)
+    : await prisma.eventContribution.update({ where: { id }, data: { status }, select: { id: true, status: true } }).catch(() => null)
 
   if (!updated) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
 

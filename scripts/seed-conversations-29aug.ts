@@ -8,8 +8,10 @@
  * Idempotent by lookup, never by guess: both events are found by exact title
  * match (per docs/superpowers/specs/2026-08-28-conversations-live-design.md
  * rollout note — they already exist as Event rows, this script never creates
- * an Event). Re-running after Saturday must not undo what happened at the
- * venue, so the update branches are narrow on purpose:
+ * an Event). The EventQuestionSession is matched by eventId alone, not
+ * title — a rename from the admin must not cause a re-run to create a
+ * second open session. Re-running after Saturday must not undo what
+ * happened at the venue, so the update branches are narrow on purpose:
  * - ConversationsPage update only touches content fields (hero/stats/table
  *   questions/seed problems) — never `contributionsOpen`, never `result`.
  *   Both are room decisions made from the phone at the venue.
@@ -302,8 +304,11 @@ async function main(): Promise<void> {
     throw new Error(`Event not found: "${IMPACT_LAB_EVENT_TITLE}" — refusing to create it.`)
   }
 
+  // Matched by eventId alone, never by title: if Peter renames the session
+  // from the admin before a re-run, matching on the old title would miss it
+  // and create a second open session for the same event.
   const existingSession = await prisma.eventQuestionSession.findFirst({
-    where: { eventId: impactLabEvent.id, title: QUESTION_SESSION_TITLE },
+    where: { eventId: impactLabEvent.id },
     select: { id: true },
   })
   if (existingSession) {
