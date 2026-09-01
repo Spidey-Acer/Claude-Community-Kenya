@@ -260,13 +260,20 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
         if (luma.drafts.length === 0) {
           throw new Error("No approved guests with an email found in this Luma export")
         }
-        const result = await apiSend<{ created: number; updated: number; failed: number }>(
-          "/api/admin/impact-lab/participants/import",
-          "POST",
-          { cohort, participants: luma.drafts }
-        )
+        const result = await apiSend<{
+          created: number
+          updated: number
+          unchanged: number
+          failed: number
+        }>("/api/admin/impact-lab/participants/import", "POST", {
+          cohort,
+          participants: luma.drafts,
+        })
+        // "left as-is" is the reassuring half of a re-import: it is the count
+        // of people whose own profile answers the guest list did not touch.
         setImportMsg(
-          `Luma export: ${result.created} added, ${result.updated} updated, ${result.failed} skipped` +
+          `Luma export: ${result.created} added, ${result.updated} filled in,` +
+            ` ${result.unchanged} left as-is, ${result.failed} skipped` +
             ` · ${luma.notApproved} not approved ignored` +
             (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : "")
         )

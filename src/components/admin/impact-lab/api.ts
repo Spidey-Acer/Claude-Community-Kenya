@@ -38,9 +38,37 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Read the envelope, tolerating a response that is not JSON at all.
+ *
+ * A serverless 500 or a gateway timeout returns an HTML error page or an empty
+ * body, and `res.json()` then throws "Unexpected end of JSON input" — which is
+ * what the caller surfaces, hiding the status code that would have explained
+ * the failure. Observed in prod on 2026-09-01 when two concurrent participant
+ * imports collided (P2002) and the organiser saw only the parse error. Parse
+ * defensively and fall back to the HTTP status.
+ */
+async function readEnvelope<T>(res: Response): Promise<ApiEnvelope<T>> {
+  const text = await res.text()
+  if (!text) {
+    return {
+      success: false,
+      error: `The server returned an empty response (HTTP ${res.status}). The request may have timed out.`,
+    }
+  }
+  try {
+    return JSON.parse(text) as ApiEnvelope<T>
+  } catch {
+    return {
+      success: false,
+      error: `The server returned an unexpected response (HTTP ${res.status}). Check the deployment logs.`,
+    }
+  }
+}
+
 export async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url)
-  const json: ApiEnvelope<T> = await res.json()
+  const json = await readEnvelope<T>(res)
   if (!res.ok || !json.success) {
     throw new ApiError(json.error || "Request failed", json.issues, json.code)
   }
@@ -57,7 +85,7 @@ export async function apiSend<T>(
     headers: await mutatingHeaders(),
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const json: ApiEnvelope<T> = await res.json()
+  const json = await readEnvelope<T>(res)
   if (!res.ok || !json.success) {
     throw new ApiError(json.error || "Request failed", json.issues, json.code)
   }
