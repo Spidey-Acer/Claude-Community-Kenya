@@ -121,12 +121,15 @@ export function mapLumaRows(headers: string[], rows: string[][]): LumaImportResu
       preferredTeammates: (get(q.teammates).match(EMAIL_PATTERN) ?? []).slice(0, MAX_TOKENS),
       blockedTeammates: [],
       // Organiser decision (2026-07-24): everyone approved registered for a
-      // team-formation event, so everyone is matchable and teammates may see
-      // each other's contact details. Pre-formed teams stay together via
-      // their declared teammate emails (the engine's keep-together groups),
-      // not by exclusion. Individuals can still opt out from their profile.
+      // team-formation event, so everyone is matchable. Pre-formed teams stay
+      // together via their declared teammate emails (the engine's
+      // keep-together groups), not by exclusion.
+      // Contact sharing is opt-in from the participant's own profile
+      // (schema default false) — the onboarding blast tells builders it is
+      // off unless they turn it on themselves, so a guest-list import must
+      // not flip it on for them.
       consentToMatch: true,
-      consentToShareContact: true,
+      consentToShareContact: false,
     })
   }
 

@@ -29,6 +29,17 @@ interface NotifyResult {
   cohortSize: number
 }
 
+/** Response shape from POST /api/admin/impact-lab/participants/import. */
+interface ImportResult {
+  created: number
+  updated: number
+  unchanged: number
+  failed: number
+  droppedCount: number
+  finalRunExists: boolean
+  warning?: string
+}
+
 /** Quote-aware CSV parser — good enough for Luma / Google Form exports. */
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
@@ -115,6 +126,11 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [dropMissing, setDropMissing] = useState(false)
+  const [pendingImport, setPendingImport] = useState<{
+    file: File
+    toDrop: { fullName: string; email: string }[]
+  } | null>(null)
   const [search, setSearch] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<EditFormState | null>(null)
@@ -244,90 +260,140 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
     }
   }
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  /** Parses a CSV into import-ready drafts, detecting Luma vs Export format. */
+  async function parseImportFile(file: File): Promise<{
+    drafts: Record<string, unknown>[]
+    summarize: (result: ImportResult) => string
+  }> {
+    // Luma exports lead with a UTF-8 BOM; strip it or the first header
+    // ("guest_id") never matches and format detection silently fails.
+    const rows = parseCsv((await file.text()).replace(/^\uFEFF/, ""))
+    if (rows.length < 2) throw new Error("CSV has no data rows")
+
+    if (isLumaExport(rows[0])) {
+      const luma = mapLumaRows(rows[0], rows.slice(1))
+      if (luma.drafts.length === 0) {
+        throw new Error("No approved guests with an email found in this Luma export")
+      }
+      return {
+        drafts: luma.drafts,
+        // "left as-is" is the reassuring half of a re-import: it is the count
+        // of people whose own profile answers the guest list did not touch.
+        summarize: (result) =>
+          `Luma export: ${result.created} added, ${result.updated} filled in,` +
+          ` ${result.unchanged} left as-is, ${result.failed} skipped` +
+          ` · ${luma.notApproved} not approved ignored` +
+          (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : ""),
+      }
+    }
+
+    const headers = rows[0].map((h) => h.trim().toLowerCase())
+    // Accept a few common header spellings so a raw Luma/Google Forms export
+    // doesn't silently import zero rows.
+    const ALIASES: Record<string, string[]> = {
+      fullname: ["fullname", "full name", "name"],
+      email: ["email", "e-mail", "email address"],
+    }
+    const idx = (name: string) => {
+      const candidates = ALIASES[name.toLowerCase()] ?? [name.toLowerCase()]
+      for (const c of candidates) {
+        const i = headers.indexOf(c)
+        if (i >= 0) return i
+      }
+      return -1
+    }
+    const drafts = rows.slice(1).map((r) => {
+      const get = (name: string) => (idx(name) >= 0 ? r[idx(name)] ?? "" : "")
+      return {
+        fullName: get("fullName"),
+        email: get("email"),
+        phone: get("phone") || null,
+        institution: get("institution") || null,
+        experienceLevel: (get("experienceLevel").toUpperCase() || "BEGINNER"),
+        primaryRole: get("primaryRole"),
+        secondaryRoles: splitMulti(get("secondaryRoles")),
+        technicalSkills: splitMulti(get("technicalSkills")),
+        interests: splitMulti(get("interests")),
+        availability: splitMulti(get("availability")),
+        preferredTeammates: splitMulti(get("preferredTeammates")),
+        blockedTeammates: splitMulti(get("blockedTeammates")),
+        consentToMatch: parseBool(get("consentToMatch")),
+        consentToShareContact: parseBool(get("consentToShareContact")),
+      }
+    })
+    return {
+      drafts,
+      summarize: (result) => `${result.created} added, ${result.updated} updated, ${result.failed} skipped.`,
+    }
+  }
+
+  /** Posts parsed drafts to the import API and reflects the outcome in the UI. */
+  async function submitImport(
+    drafts: Record<string, unknown>[],
+    summarize: (result: ImportResult) => string,
+    dropMissingFlag: boolean
+  ) {
     setBusy(true)
     setImportMsg(null)
     try {
-      // Luma exports lead with a UTF-8 BOM; strip it or the first header
-      // ("guest_id") never matches and format detection silently fails.
-      const rows = parseCsv((await file.text()).replace(/^\uFEFF/, ""))
-      if (rows.length < 2) throw new Error("CSV has no data rows")
-
-      if (isLumaExport(rows[0])) {
-        const luma = mapLumaRows(rows[0], rows.slice(1))
-        if (luma.drafts.length === 0) {
-          throw new Error("No approved guests with an email found in this Luma export")
-        }
-        const result = await apiSend<{
-          created: number
-          updated: number
-          unchanged: number
-          failed: number
-        }>("/api/admin/impact-lab/participants/import", "POST", {
-          cohort,
-          participants: luma.drafts,
-        })
-        // "left as-is" is the reassuring half of a re-import: it is the count
-        // of people whose own profile answers the guest list did not touch.
-        setImportMsg(
-          `Luma export: ${result.created} added, ${result.updated} filled in,` +
-            ` ${result.unchanged} left as-is, ${result.failed} skipped` +
-            ` · ${luma.notApproved} not approved ignored` +
-            (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : "")
-        )
-        await load()
-        return
-      }
-
-      const headers = rows[0].map((h) => h.trim().toLowerCase())
-      // Accept a few common header spellings so a raw Luma/Google Forms export
-      // doesn't silently import zero rows.
-      const ALIASES: Record<string, string[]> = {
-        fullname: ["fullname", "full name", "name"],
-        email: ["email", "e-mail", "email address"],
-      }
-      const idx = (name: string) => {
-        const candidates = ALIASES[name.toLowerCase()] ?? [name.toLowerCase()]
-        for (const c of candidates) {
-          const i = headers.indexOf(c)
-          if (i >= 0) return i
-        }
-        return -1
-      }
-      const drafts = rows.slice(1).map((r) => {
-        const get = (name: string) => (idx(name) >= 0 ? r[idx(name)] ?? "" : "")
-        return {
-          fullName: get("fullName"),
-          email: get("email"),
-          phone: get("phone") || null,
-          institution: get("institution") || null,
-          experienceLevel: (get("experienceLevel").toUpperCase() || "BEGINNER"),
-          primaryRole: get("primaryRole"),
-          secondaryRoles: splitMulti(get("secondaryRoles")),
-          technicalSkills: splitMulti(get("technicalSkills")),
-          interests: splitMulti(get("interests")),
-          availability: splitMulti(get("availability")),
-          preferredTeammates: splitMulti(get("preferredTeammates")),
-          blockedTeammates: splitMulti(get("blockedTeammates")),
-          consentToMatch: parseBool(get("consentToMatch")),
-          consentToShareContact: parseBool(get("consentToShareContact")),
-        }
+      const result = await apiSend<ImportResult>("/api/admin/impact-lab/participants/import", "POST", {
+        cohort,
+        participants: drafts,
+        dropMissing: dropMissingFlag,
       })
-      const result = await apiSend<{ created: number; updated: number; failed: number }>(
-        "/api/admin/impact-lab/participants/import",
-        "POST",
-        { cohort, participants: drafts }
-      )
-      setImportMsg(`${result.created} added, ${result.updated} updated, ${result.failed} skipped.`)
+      let msg = summarize(result)
+      if (result.droppedCount > 0) msg += ` · ${result.droppedCount} removed`
+      setImportMsg(msg)
+      if (result.warning) setError(result.warning)
       await load()
     } catch (err) {
       setImportMsg(err instanceof Error ? err.message : "Import failed")
     } finally {
       setBusy(false)
+      setPendingImport(null)
       if (fileRef.current) fileRef.current.value = ""
     }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportMsg(null)
+    setError(null)
+    try {
+      const { drafts, summarize } = await parseImportFile(file)
+
+      if (dropMissing) {
+        const fileEmails = new Set(
+          drafts
+            .map((d) => (typeof d.email === "string" ? d.email.trim().toLowerCase() : ""))
+            .filter(Boolean)
+        )
+        const toDrop = participants.filter(
+          (p) => !p.checkedInAt && !fileEmails.has(p.email.trim().toLowerCase())
+        )
+        if (toDrop.length > 0) {
+          setPendingImport({ file, toDrop: toDrop.map((p) => ({ fullName: p.fullName, email: p.email })) })
+          return
+        }
+      }
+
+      await submitImport(drafts, summarize, dropMissing)
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : "Import failed")
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  async function confirmPendingImport() {
+    if (!pendingImport) return
+    const { drafts, summarize } = await parseImportFile(pendingImport.file)
+    await submitImport(drafts, summarize, true)
+  }
+
+  function cancelPendingImport() {
+    setPendingImport(null)
+    if (fileRef.current) fileRef.current.value = ""
   }
 
   const consenting = participants.filter((p) => p.consentToMatch).length
@@ -374,6 +440,15 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
           >
             <Upload className="w-3 h-3" /> Import CSV
           </button>
+          <label className="flex items-center gap-1.5 px-2 text-[10px] font-mono text-[#888] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={dropMissing}
+              onChange={(e) => setDropMissing(e.target.checked)}
+              className="accent-[#00ff41]"
+            />
+            Remove people not in this file (cancellations)
+          </label>
           <a
             href={`/api/admin/impact-lab/participants/export?cohort=${cohort}`}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] transition-all"
@@ -415,6 +490,35 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
         waitlist/declined ignored) or the Export format (fullName, email,
         primaryRole, …); multi-value cells split on ; or ,.
       </p>
+      {pendingImport && (
+        <div className="p-3 bg-[#ffb000]/10 border border-[#ffb000]/30 rounded text-[11px] font-mono text-[#ffb000] space-y-2">
+          <p>
+            {pendingImport.toDrop.length} participant{pendingImport.toDrop.length === 1 ? "" : "s"} not in
+            this file will be removed:
+          </p>
+          <ul className="max-h-32 overflow-y-auto list-disc pl-4 text-[#888]">
+            {pendingImport.toDrop.map((p) => (
+              <li key={p.email}>{p.fullName} ({p.email})</li>
+            ))}
+          </ul>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={confirmPendingImport}
+              disabled={busy}
+              className="px-3 py-1.5 bg-[#ffb000]/10 hover:bg-[#ffb000]/20 border border-[#ffb000]/30 rounded text-[11px] font-mono text-[#ffb000] disabled:opacity-40"
+            >
+              Confirm import and remove {pendingImport.toDrop.length}
+            </button>
+            <button
+              onClick={cancelPendingImport}
+              disabled={busy}
+              className="px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] disabled:opacity-40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {importMsg && (
         <div className="p-2 bg-[#00d4ff]/10 border border-[#00d4ff]/30 rounded text-[11px] font-mono text-[#00d4ff]">{importMsg}</div>
       )}
