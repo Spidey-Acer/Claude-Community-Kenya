@@ -283,7 +283,13 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
           `Luma export: ${result.created} added, ${result.updated} filled in,` +
           ` ${result.unchanged} left as-is, ${result.failed} skipped` +
           ` · ${luma.notApproved} not approved ignored` +
-          (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : ""),
+          (luma.missingEmail ? ` · ${luma.missingEmail} approved without email skipped` : "") +
+          (luma.teammates.rowsWithTeam
+            ? ` · ${luma.teammates.resolved} teammate names matched, ${luma.teammates.unresolved.length} unmatched`
+            : "") +
+          (luma.consoleOrg.personalOnly + luma.consoleOrg.notYet
+            ? ` · ${luma.consoleOrg.personalOnly + luma.consoleOrg.notYet} need a Console org at the desk`
+            : ""),
       }
     }
 
