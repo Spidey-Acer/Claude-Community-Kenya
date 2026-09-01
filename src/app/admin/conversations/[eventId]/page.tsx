@@ -31,16 +31,41 @@ export default async function ConversationsManagePage({
 
   const { conversationsPage, questionSessions, ...eventFields } = event
 
+  // One groupBy per session rather than a single query across all sessions —
+  // the event has at most a handful of Q&A sessions, and this keeps the
+  // per-session counts trivially attributable without a manual reduce over a
+  // combined result set.
+  const countsBySession = await Promise.all(
+    questionSessions.map((s) =>
+      prisma.eventQuestion.groupBy({
+        by: ["status"],
+        where: { sessionId: s.id },
+        _count: { _all: true },
+      })
+    )
+  )
+
   // Dates serialize across the server/client boundary as plain strings here
   // rather than relying on RSC's Date passthrough — keeps the client
   // components' prop types simple (string, not Date | string).
-  const sessions = questionSessions.map((s) => ({
-    id: s.id,
-    title: s.title,
-    prompt: s.prompt,
-    isOpen: s.isOpen,
-    createdAt: s.createdAt.toISOString(),
-  }))
+  const sessions = questionSessions.map((s, i) => {
+    const grouped = countsBySession[i]
+    const countFor = (status: string) => grouped.find((g) => g.status === status)?._count._all ?? 0
+    return {
+      id: s.id,
+      title: s.title,
+      prompt: s.prompt,
+      isOpen: s.isOpen,
+      createdAt: s.createdAt.toISOString(),
+      // FEATURED counts as approved here — it's a subset the export's
+      // "approved" filter already folds in (APPROVED + FEATURED).
+      counts: {
+        pending: countFor("PENDING"),
+        approved: countFor("APPROVED") + countFor("FEATURED"),
+        rejected: countFor("REJECTED"),
+      },
+    }
+  })
   const page = conversationsPage
     ? {
         id: conversationsPage.id,

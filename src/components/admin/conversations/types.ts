@@ -49,4 +49,5 @@ export interface QuestionSessionData {
   prompt: string
   isOpen: boolean
   createdAt: string
+  counts: { pending: number; approved: number; rejected: number }
 }

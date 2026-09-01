@@ -11,6 +11,7 @@ export type AuditAction =
   | "APPROVE"
   | "REJECT"
   | "RECEIVE"
+  | "EXPORT"
   | "KARIBU_COMPLETED"
   | "KARIBU_SKIPPED"
   | "KARIBU_SKIP_NOOP"
