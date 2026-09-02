@@ -31,7 +31,7 @@ const RESULT_CAP = 10
  * their seat warm for when they do arrive.
  */
 export async function GET(request: NextRequest) {
-  const rl = await rateLimit(request, RateLimits.FORM)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many searches. Wait a moment." },

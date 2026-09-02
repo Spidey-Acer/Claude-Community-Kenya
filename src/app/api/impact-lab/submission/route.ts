@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest) {
 
   // FORM (10/min) rather than a daily cap: a submission is edited repeatedly
   // through the night by different teammates, not filed once.
-  const rl = await rateLimit(request, RateLimits.FORM)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many saves. Wait a moment and try again." },

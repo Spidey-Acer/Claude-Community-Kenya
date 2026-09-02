@@ -210,6 +210,10 @@ export const RateLimits = {
   // reason as LOGIN. Email verification is the abuse gate on the user table.
   SIGNUP: { maxRequests: 100, windowInSeconds: 3600 },
   FORM: { maxRequests: 10, windowInSeconds: 60 },
+  // Signed-in member actions during a live event (team search, roster, profile,
+  // submission): per-IP, and the room shares one IP, so size it for the room.
+  // ~4/min per person at 140 people; the session is the real identity gate.
+  MEMBER_ACTION: { maxRequests: 600, windowInSeconds: 60 },
   READ: { maxRequests: 100, windowInSeconds: 60 },
   // CCK-specific
   SPEAKER_APPLY: { maxRequests: 3, windowInSeconds: 86400 },  // 3/day
