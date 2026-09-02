@@ -7,6 +7,7 @@ import type {
   MemberProfileInput,
 } from "@/lib/impact-lab/member";
 import { TrackRadioGroup } from "./TrackRadioGroup";
+import { resolveOwnTrack } from "./useOwnTrack";
 
 /** The subset of an event's `Track` a member ever sees — the identity fields
  * plus the participant-facing guide copy rendered by `TrackGuide`. Mirrors
@@ -16,6 +17,9 @@ export interface MatchProfileTrack {
   key: string;
   label: string;
   description?: string;
+  /** Registration-answer tokens that mean this track. Needed so a saved
+   * `interests` value like "family-kids-community" still resolves here. */
+  aliases?: string[];
   /** English name/translation, shown under the Kiswahili label. */
   englishName?: string;
   /** Who this track helps, as a real role. */
@@ -74,11 +78,11 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
   const [secondaryRoles, setSecondaryRoles] = useState(profile.secondaryRoles.join(", "));
   const [technicalSkills, setTechnicalSkills] = useState(profile.technicalSkills.join(", "));
   const [interests, setInterests] = useState(profile.interests.join(", "));
-  // Only meaningful when `hasTracks` — "" means "Any track". Seeded from the
-  // saved interests when the first one happens to match a declared track key
-  // (e.g. an admin-set value, or re-opening the form after saving).
-  const [selectedTrack, setSelectedTrack] = useState(
-    tracks?.some((t) => t.key === profile.interests[0]) ? profile.interests[0] : ""
+  // Only meaningful when `hasTracks` — "" means "Any track". Seeded through
+  // the shared alias-aware resolver, so a registration answer ("farming")
+  // seeds the track it means (kilimo) rather than reading as "not chosen".
+  const [selectedTrack, setSelectedTrack] = useState(() =>
+    resolveOwnTrack(tracks ?? [], profile.interests)
   );
   const [availability, setAvailability] = useState(profile.availability.join(", "));
   const [projectIdeas, setProjectIdeas] = useState(profile.projectIdeas ?? "");

@@ -1,11 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveTrack, type Track } from "@/lib/impact-lab/tracks";
 import type { MatchProfileTrack } from "./MatchProfileForm";
 
 interface ProfileResponse {
   success?: boolean;
   profile?: { interests?: string[] };
+}
+
+/**
+ * Resolve a member's saved `interests` to one of the event's track keys, or
+ * "" when none of them names a track.
+ *
+ * Registration answers are alias tokens ("family-kids-community"), not track
+ * keys — comparing `interests[0]` to `track.key` misses most of the room. The
+ * shared `resolveTrack` slugifies and checks every interest against each
+ * track's key AND its aliases. `MatchProfileTrack` makes the guide fields
+ * optional (a track may predate them), so defaults are filled in before the
+ * cast — `resolveTrack` iterates `aliases` and would throw on undefined.
+ */
+export function resolveOwnTrack(
+  tracks: MatchProfileTrack[],
+  interests: string[]
+): string {
+  const complete: Track[] = tracks.map((track) => ({
+    ...track,
+    aliases: track.aliases ?? [],
+    rules: track.rules ?? [],
+  }));
+  return resolveTrack(complete, interests) ?? "";
 }
 
 /**
@@ -29,8 +53,7 @@ export function useOwnTrack(
       .then((res) => res.json() as Promise<ProfileResponse>)
       .then((json) => {
         if (!active) return;
-        const current = json.profile?.interests?.[0];
-        setTrackKey(tracks.some((t) => t.key === current) ? current! : "");
+        setTrackKey(resolveOwnTrack(tracks, json.profile?.interests ?? []));
       })
       .catch(() => {})
       .finally(() => {

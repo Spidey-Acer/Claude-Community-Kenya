@@ -293,8 +293,23 @@ export function ImpactLabClient({
       return (
         <div className="space-y-6">
           {cohortActive && <DeadlineCountdown cohort={cohort} />}
-          {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
+          {cohortActive && hasTracks && (
+            <TrackPicker
+              cohort={cohort}
+              tracks={tracks!}
+              team={{ trackKey: team.trackKey, table: team.table }}
+              // Refetch team + profile in place. Deliberately not
+              // setPhase("loading") — that would unmount TrackPicker and take
+              // the server's confirmation message away before it is read.
+              onTeamTrackChanged={() => setReloadKey((k) => k + 1)}
+            />
+          )}
+          {/* Remount on an actual track change so `useOwnTrack` re-fetches:
+              the hook loads once per mount, and a stale own-track against the
+              team's new one would show the mismatch warning to the very
+              person who just moved the team. */}
           <TeamReveal
+            key={team.trackKey ?? ""}
             team={team}
             cohortActive={cohortActive}
             cohort={cohort}
@@ -305,7 +320,16 @@ export function ImpactLabClient({
             onTeamChanged={() => setReloadKey((k) => k + 1)}
           />
           {hasTracks && (
-            <TrackGuide cohort={cohort} tracks={tracks!} teamTrackKey={team.trackKey} />
+            // Keyed for the same reason as TeamReveal above: the guide seeds
+            // which cards are open once, at mount. Without a remount a moved
+            // team gets its new track sorted first but collapsed, with the
+            // old one still expanded.
+            <TrackGuide
+              key={team.trackKey ?? ""}
+              cohort={cohort}
+              tracks={tracks!}
+              teamTrackKey={team.trackKey}
+            />
           )}
         </div>
       );
