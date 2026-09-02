@@ -3,8 +3,8 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
-import { runMatching } from "@/lib/matching"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { runMatchingByTrack } from "@/lib/matching"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -50,11 +50,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // The event owns its tracks — the caller's settings never carry them, so
+  // they're filled in here rather than trusted from the request body.
+  const event = await getEventByCohort(cohort)
+  settings = { ...settings, tracks: event?.tracks ?? [] }
+
   const participants = await prisma.impactLabParticipant.findMany({
     where: { cohort },
   })
 
-  const result = runMatching(participants.map(toMatchParticipant), settings)
+  const result = runMatchingByTrack(participants.map(toMatchParticipant), settings)
 
   const directory = participants.map((p) => ({
     id: p.id,

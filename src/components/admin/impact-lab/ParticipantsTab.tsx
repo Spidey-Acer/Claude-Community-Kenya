@@ -8,6 +8,12 @@ import type { ParticipantRow } from "./types"
 
 const EXPERIENCE = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const
 
+/** Mirrors src/lib/impact-lab/tracks.ts's `Track` for the admin edit form's select. */
+interface Track {
+  key: string
+  label: string
+}
+
 const LEVEL_COLOR: Record<string, string> = {
   BEGINNER: "#8a8a8a",
   INTERMEDIATE: "#00d4ff",
@@ -136,7 +142,25 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
   const [editForm, setEditForm] = useState<EditFormState | null>(null)
   const [notifying, setNotifying] = useState<EmailGroup | null>(null)
   const [notifyResult, setNotifyResult] = useState<NotifyResult | null>(null)
+  const [eventTracks, setEventTracks] = useState<Track[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // The event's declared tracks, so the edit form can offer a select instead
+  // of free-text interests — same source EventsTab's editor writes to.
+  useEffect(() => {
+    let active = true
+    apiGet<{ events: { cohort: string; tracks?: Track[] }[] }>("/api/admin/impact-lab/events")
+      .then((data) => {
+        if (!active) return
+        setEventTracks(data.events.find((e) => e.cohort === cohort)?.tracks ?? [])
+      })
+      .catch(() => {
+        if (active) setEventTracks([])
+      })
+    return () => {
+      active = false
+    }
+  }, [cohort])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -670,7 +694,23 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
                               </select>
                             </div>
                             <Input label="Skills (; or ,)" value={editForm.technicalSkills} onChange={(v) => setEditForm({ ...editForm, technicalSkills: v })} />
-                            <Input label="Interests (; or ,)" value={editForm.interests} onChange={(v) => setEditForm({ ...editForm, interests: v })} />
+                            {eventTracks.length > 0 ? (
+                              <div>
+                                <label className="block text-[10px] font-mono text-[#555] mb-1 uppercase">Track</label>
+                                <select
+                                  value={eventTracks.some((t) => t.key === editForm.interests) ? editForm.interests : ""}
+                                  onChange={(e) => setEditForm({ ...editForm, interests: e.target.value })}
+                                  className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0]"
+                                >
+                                  <option value="">Any track</option>
+                                  {eventTracks.map((t) => (
+                                    <option key={t.key} value={t.key}>{t.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <Input label="Interests (; or ,)" value={editForm.interests} onChange={(v) => setEditForm({ ...editForm, interests: v })} />
+                            )}
                             <Input label="Availability (; or ,)" value={editForm.availability} onChange={(v) => setEditForm({ ...editForm, availability: v })} />
                             <Input label="Preferred teammates (emails)" value={editForm.preferredTeammates} onChange={(v) => setEditForm({ ...editForm, preferredTeammates: v })} />
                             <div className="col-span-2">

@@ -95,7 +95,26 @@ meaningful match score and the admin dashboard should not imply otherwise.
      Set it to `true` when people register remotely, since without it someone
      can sign up as another registrant and read that person's team.
 
-7. **Set the judging rubric.** Rubrics are per-event — see
+7. **Define tracks, if the event has them.** Admin → Impact Lab → Events tab →
+   the "Tracks" button on the event's row. A track is a problem lane
+   (`key`, `label`, optional `description`, and `aliases` — the free-text
+   registration answers that mean this track, e.g. an alias of
+   `work-and-jobs` maps a Luma answer of "Work and Jobs" onto a track keyed
+   `jobs`). Skip this step entirely for an event with no tracks; matching
+   then runs exactly as before tracks existed.
+
+   With tracks defined, the member profile form (and the admin participant
+   edit form) replace the free-text "Interests" field with a track picker —
+   "Any track" or one of the declared tracks. On the Matching tab, "Group by
+   track" (on by default once tracks exist) partitions the pool before
+   matching so no team spans two tracks; team names get prefixed with the
+   track label ("Kazi 1", "Kazi 2", …) and each team card shows its track.
+   A participant who picks "Any" is placed wherever the matcher needs
+   another person, balanced across tracks. See
+   `src/lib/impact-lab/tracks.ts` and `src/lib/matching/index.ts`
+   (`runMatchingByTrack`) for the resolution and partitioning rules.
+
+8. **Set the judging rubric.** Rubrics are per-event — see
    `src/lib/impact-lab/judging-rubrics.ts` and doc 17 for the admin builder. Do
    not assume the Impact Lab rubric transfers: the Afretec panel supplied eight
    criteria with uneven maxima totalling 50 and points-based arithmetic, where
@@ -104,19 +123,19 @@ meaningful match score and the admin dashboard should not imply otherwise.
    rubric — so a new event without a rubric entry will be scored on the wrong
    criteria rather than erroring.
 
-8. **Check the event-specific copy.** The submission form carries the
+9. **Check the event-specific copy.** The submission form carries the
    assumptions of the event it was built for. For Afretec, the Claude-specific
    submission question was relabelled to ask about AI generally. Note that the
    *stored keys* stayed (`claudeUsage`, `scores.claude`) — only labels changed,
    because renaming keys orphans stored scores and breaks the export pipeline.
 
-9. **Smoke-test one real account end to end** before telling anyone to sign up:
-   log in as a seeded leader, see the team, save a submission, then score that
-   submission from `/judge` with the new code and confirm the score lands on
-   **this** cohort's leaderboard. That last check is the one that catches a
-   cohort-resolution mistake, and it is invisible from the participant side.
+10. **Smoke-test one real account end to end** before telling anyone to sign up:
+    log in as a seeded leader, see the team, save a submission, then score that
+    submission from `/judge` with the new code and confirm the score lands on
+    **this** cohort's leaderboard. That last check is the one that catches a
+    cohort-resolution mistake, and it is invisible from the participant side.
 
-10. **Confirm the previous cohort is unaffected.** It should be, automatically:
+11. **Confirm the previous cohort is unaffected.** It should be, automatically:
     its own status is whatever you last set it to (typically `CLOSED`), and
     launching the new event does not touch it.
 

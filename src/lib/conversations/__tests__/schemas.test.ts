@@ -98,6 +98,46 @@ describe("pageConfigUpdateSchema", () => {
   it("accepts an empty object (no-op update)", () => {
     expect(pageConfigUpdateSchema.safeParse({}).success).toBe(true)
   })
+
+  it("accepts a null reportSummary and reportUrl (clears both fields)", () => {
+    const result = pageConfigUpdateSchema.safeParse({ reportSummary: null, reportUrl: null })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.reportSummary).toBeNull()
+      expect(result.data.reportUrl).toBeNull()
+    }
+  })
+
+  it("preserves blank-line paragraph breaks in reportSummary", () => {
+    const result = pageConfigUpdateSchema.safeParse({
+      reportSummary: "First paragraph.\n\nSecond paragraph.",
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.reportSummary).toBe("First paragraph.\n\nSecond paragraph.")
+  })
+
+  it("rejects a reportSummary over 1200 chars", () => {
+    expect(pageConfigUpdateSchema.safeParse({ reportSummary: "x".repeat(1201) }).success).toBe(false)
+  })
+
+  it("accepts an https reportUrl", () => {
+    const result = pageConfigUpdateSchema.safeParse({ reportUrl: "https://example.com/report.pdf" })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.reportUrl).toBe("https://example.com/report.pdf")
+  })
+
+  it("rejects an http reportUrl", () => {
+    expect(pageConfigUpdateSchema.safeParse({ reportUrl: "http://example.com/report.pdf" }).success).toBe(false)
+  })
+
+  it("rejects a javascript: reportUrl", () => {
+    expect(pageConfigUpdateSchema.safeParse({ reportUrl: "javascript:alert(1)" }).success).toBe(false)
+  })
+
+  it("rejects a reportUrl over 500 chars", () => {
+    const url = "https://example.com/" + "x".repeat(490)
+    expect(pageConfigUpdateSchema.safeParse({ reportUrl: url }).success).toBe(false)
+  })
 })
 
 describe("attachPageSchema", () => {

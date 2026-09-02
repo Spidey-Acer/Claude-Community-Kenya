@@ -97,6 +97,8 @@ export interface ConversationsPageView {
   seedProblems: ConversationsSeedProblem[]
   contributionsOpen: boolean
   result: ConversationsResult | null
+  reportSummary: string | null
+  reportUrl: string | null
   /** Approved/featured contributions, grouped by tableQuestions[].key. */
   contributionsByQuestionKey: Record<string, ConversationsContributionView[]>
   /**
@@ -320,8 +322,44 @@ export async function getConversationsPageBySlug(
     seedProblems: parseSeedProblems(page.seedProblems),
     contributionsOpen: page.contributionsOpen,
     result,
+    reportSummary: page.reportSummary ? decodeHtmlEntities(page.reportSummary) : null,
+    reportUrl: page.reportUrl,
     contributionsByQuestionKey,
     impactLabLumaUrl,
+  }
+}
+
+export interface ConversationsReportView {
+  event: { title: string; slug: string }
+  reportSummary: string
+  reportUrl: string | null
+}
+
+/**
+ * The written report for a Conversations event, for the dashboard card on a
+ * linked Impact Lab event (ImpactLabEvent.conversationsEventId). Null when
+ * the event doesn't exist, has no ConversationsPage, or the page has neither
+ * a reportSummary nor a reportUrl set yet — the card has nothing to show
+ * either way, so the caller doesn't need to re-derive that check.
+ */
+export async function getConversationsReportForEvent(
+  eventId: string
+): Promise<ConversationsReportView | null> {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      title: true,
+      slug: true,
+      conversationsPage: { select: { reportSummary: true, reportUrl: true } },
+    },
+  })
+  const page = event?.conversationsPage
+  if (!event || !page || (!page.reportSummary && !page.reportUrl)) return null
+
+  return {
+    event: { title: decodeHtmlEntities(event.title), slug: event.slug },
+    reportSummary: page.reportSummary ? decodeHtmlEntities(page.reportSummary) : "",
+    reportUrl: page.reportUrl,
   }
 }
 

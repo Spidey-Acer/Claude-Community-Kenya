@@ -73,6 +73,8 @@ function ConfigForm({
   const [tableQuestions, setTableQuestions] = useState<TableQuestion[]>((page.tableQuestions as TableQuestion[]) ?? [])
   const [seedProblems, setSeedProblems] = useState<SeedProblem[]>((page.seedProblems as SeedProblem[]) ?? [])
   const [contributionsOpen, setContributionsOpen] = useState(page.contributionsOpen)
+  const [reportSummary, setReportSummary] = useState(page.reportSummary ?? "")
+  const [reportUrl, setReportUrl] = useState(page.reportUrl ?? "")
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -85,7 +87,17 @@ function ConfigForm({
         const res = await fetch(`/api/admin/conversations/${eventId}`, {
           method: "PUT",
           headers: await csrfHeaders(),
-          body: JSON.stringify({ heroHeadline, heroSubline, framingStats, tableQuestions, seedProblems, contributionsOpen }),
+          body: JSON.stringify({
+            heroHeadline,
+            heroSubline,
+            framingStats,
+            tableQuestions,
+            seedProblems,
+            contributionsOpen,
+            // Trimmed-empty means "clear the field" (null), not "store empty string".
+            reportSummary: reportSummary.trim() || null,
+            reportUrl: reportUrl.trim() || null,
+          }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed to save config")
@@ -125,6 +137,25 @@ function ConfigForm({
       <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4 space-y-3">
         <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Seed Problems</h2>
         <SeedProblemsEditor items={seedProblems} onChange={setSeedProblems} />
+      </div>
+
+      <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4 space-y-3">
+        <h2 className="text-[11px] font-mono font-semibold text-[#555] uppercase tracking-wider">Report</h2>
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[11px] font-mono text-[#555]">Report summary</label>
+            <span className="text-[10px] font-mono text-[#444]">{reportSummary.length}/1200</span>
+          </div>
+          <textarea
+            value={reportSummary}
+            onChange={(e) => setReportSummary(e.target.value)}
+            placeholder="Short written brief, paragraphs separated by a blank line…"
+            rows={5}
+            maxLength={1200}
+            className="w-full bg-[#111] border border-[#1e1e1e] rounded px-3 py-2 text-xs font-mono text-[#ccc] placeholder:text-[#444] focus:outline-none focus:border-[#00ff41]/50 resize-y"
+          />
+        </div>
+        <TextField label="Report URL (https only)" value={reportUrl} onChange={setReportUrl} maxLength={500} />
       </div>
 
       <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-4 flex items-center justify-between">

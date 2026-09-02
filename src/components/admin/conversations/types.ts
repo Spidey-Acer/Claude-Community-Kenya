@@ -41,6 +41,8 @@ export interface ConversationsPageData {
   seedProblems: unknown
   contributionsOpen: boolean
   result: ConversationsResult | null
+  reportSummary: string | null
+  reportUrl: string | null
 }
 
 export interface QuestionSessionData {

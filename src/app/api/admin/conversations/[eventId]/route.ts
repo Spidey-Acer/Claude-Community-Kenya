@@ -70,6 +70,8 @@ export async function PUT(
       ...(data.tableQuestions !== undefined && { tableQuestions: data.tableQuestions }),
       ...(data.seedProblems !== undefined && { seedProblems: data.seedProblems }),
       ...(data.contributionsOpen !== undefined && { contributionsOpen: data.contributionsOpen }),
+      ...(data.reportSummary !== undefined && { reportSummary: data.reportSummary }),
+      ...(data.reportUrl !== undefined && { reportUrl: data.reportUrl }),
     },
   })
 

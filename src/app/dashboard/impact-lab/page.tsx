@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { validCohort, pickMemberEvent } from "@/lib/impact-lab/event-lifecycle";
 import { openRegistrationEvent, resolveMemberEvents } from "@/lib/impact-lab/event-store";
+import { getConversationsReportForEvent } from "@/lib/conversations/queries";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
 
@@ -53,6 +54,9 @@ export default async function ImpactLabPage({
   // nothing more to add there.
   const inviteEvent =
     picked && openEvent && openEvent.cohort !== picked.cohort ? openEvent : null;
+  const conversationsReport = activeEvent?.conversationsEventId
+    ? await getConversationsReportForEvent(activeEvent.conversationsEventId)
+    : null;
 
   return (
     <main className="min-h-screen bg-bg-primary pt-24 pb-24">
@@ -128,9 +132,11 @@ export default async function ImpactLabPage({
             cohortActive={Boolean(cohortActive)}
             cohortLabel={activeEvent?.name ?? "Impact Lab"}
             cohort={activeEvent?.cohort}
+            tracks={activeEvent?.tracks ?? []}
             inviteEvent={
               inviteEvent ? { cohort: inviteEvent.cohort, name: inviteEvent.name } : null
             }
+            conversationsReport={conversationsReport}
           />
         )}
       </div>

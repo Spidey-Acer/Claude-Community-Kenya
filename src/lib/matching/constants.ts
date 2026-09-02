@@ -148,6 +148,8 @@ export const DEFAULT_SETTINGS: MatchSettings = {
   keepPreferredTogether: true,
   lockedTeams: [],
   weights: DEFAULT_WEIGHTS,
+  partitionByTrack: true,
+  tracks: [],
 }
 
 // ─── Penalties (points subtracted from a team's 0–100 score) ─────────────────

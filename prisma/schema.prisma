@@ -378,6 +378,10 @@ model Event {
   questionSessions     EventQuestionSession[]
   contributions        EventContribution[]
   conversationsPage    ConversationsPage?
+  /// Impact Lab events that link their matching pool's report back to this
+  /// Conversations event. onDelete: SetNull on the child side — deleting the
+  /// Conversations event un-links, it never takes the Impact Lab event with it.
+  impactLabEvents      ImpactLabEvent[]
 
   @@map("events")
 }
@@ -1168,13 +1172,24 @@ model ImpactLabEvent {
   formatNote  String  @db.Text
   groundRules String? @db.Text
 
+  /// [{key, label, description?, aliases: string[]}] — organiser-defined
+  /// tracks for this event. Null/[] means the event has no tracks, in which
+  /// case matching runs unpartitioned. See src/lib/impact-lab/tracks.ts.
+  tracks Json?
+
+  /// The Claude Conversations event whose written report this cohort's
+  /// members should see on their dashboard. Null = no linked report.
+  conversationsEventId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id])
+  organisation       Organisation @relation(fields: [organisationId], references: [id])
+  conversationsEvent Event?       @relation(fields: [conversationsEventId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
   @@index([status])
+  @@index([conversationsEventId])
   @@map("impact_lab_events")
 }
 
@@ -1259,6 +1274,13 @@ model ConversationsPage {
   contributionsOpen Boolean @default(true)
   /// null until the room decides; set from the phone at the venue.
   result        Json? // {winner: {title, statement}, runnersUp: [{title, statement}], note, publishedAt}
+  /// Plain-text written brief on the event, paragraphs separated by a blank
+  /// line, shown on the public page and on the dashboard of any Impact Lab
+  /// event linked to this one (ImpactLabEvent.conversationsEventId).
+  reportSummary String?  @db.Text
+  /// Link to the full report (PDF or page). https only — enforced in
+  /// src/lib/conversations/schemas.ts, not at the DB level.
+  reportUrl     String?  @db.VarChar(500)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

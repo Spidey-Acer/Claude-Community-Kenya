@@ -81,6 +81,8 @@ export default async function ConversationsManagePage({
           note?: string
           publishedAt: string
         } | null,
+        reportSummary: conversationsPage.reportSummary,
+        reportUrl: conversationsPage.reportUrl,
       }
     : null
 

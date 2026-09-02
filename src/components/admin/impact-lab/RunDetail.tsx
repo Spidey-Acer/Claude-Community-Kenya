@@ -88,6 +88,11 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
               <div className="text-xs font-mono text-[#e0e0e0]">
                 {team.name}
                 {team.locked && <span className="ml-2 text-[10px] text-[#ffb000]">[locked]</span>}
+                {team.trackKey && (
+                  <span className="ml-2 rounded border border-[#00d4ff]/30 px-1.5 py-0.5 text-[9px] text-[#00d4ff]">
+                    {team.trackKey}
+                  </span>
+                )}
               </div>
               <div className="text-xs font-mono font-bold text-[#00ff41]">
                 {team.score.total}<span className="text-[#444]">/100</span>

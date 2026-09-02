@@ -7,6 +7,14 @@ import type {
   MemberProfileInput,
 } from "@/lib/impact-lab/member";
 
+/** The subset of an event's `Track` a member ever sees. Mirrors
+ * src/lib/impact-lab/tracks.ts's `Track` structurally. */
+export interface MatchProfileTrack {
+  key: string;
+  label: string;
+  description?: string;
+}
+
 interface MatchProfileFormProps {
   profile: MemberProfile;
   onSaved: (profile: MemberProfile) => void;
@@ -24,6 +32,14 @@ interface MatchProfileFormProps {
    * currently open for registration, resolved server-side.
    */
   cohort?: string;
+  /**
+   * The active event's declared tracks. When non-empty, the free-text
+   * "Interests" field is replaced with an "Any track" + one-per-track select,
+   * and the choice is saved as `interests: [key]` (or `[]` for "Any") —
+   * matching resolves it back via resolveTrack. Undefined/[] keeps the
+   * original free-text field for events with no tracks.
+   */
+  tracks?: MatchProfileTrack[];
 }
 
 /** Same multi-value convention as the admin participants form: split on ; or , */
@@ -34,7 +50,8 @@ const inputClass =
   "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
-export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort }: MatchProfileFormProps) {
+export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tracks }: MatchProfileFormProps) {
+  const hasTracks = Boolean(tracks && tracks.length > 0);
   const [csrfToken, setCsrfToken] = useState("");
   const [fullName, setFullName] = useState(profile.fullName);
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel);
@@ -42,6 +59,12 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort }: 
   const [secondaryRoles, setSecondaryRoles] = useState(profile.secondaryRoles.join(", "));
   const [technicalSkills, setTechnicalSkills] = useState(profile.technicalSkills.join(", "));
   const [interests, setInterests] = useState(profile.interests.join(", "));
+  // Only meaningful when `hasTracks` — "" means "Any track". Seeded from the
+  // saved interests when the first one happens to match a declared track key
+  // (e.g. an admin-set value, or re-opening the form after saving).
+  const [selectedTrack, setSelectedTrack] = useState(
+    tracks?.some((t) => t.key === profile.interests[0]) ? profile.interests[0] : ""
+  );
   const [availability, setAvailability] = useState(profile.availability.join(", "));
   const [projectIdeas, setProjectIdeas] = useState(profile.projectIdeas ?? "");
   const [preferredTeammates, setPreferredTeammates] = useState(profile.preferredTeammates.join(", "));
@@ -73,7 +96,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort }: 
       primaryRole: primaryRole.trim(),
       secondaryRoles: splitMulti(secondaryRoles),
       technicalSkills: splitMulti(technicalSkills),
-      interests: splitMulti(interests),
+      interests: hasTracks ? (selectedTrack ? [selectedTrack] : []) : splitMulti(interests),
       availability: splitMulti(availability),
       projectIdeas: projectIdeas.trim() || null,
       preferredTeammates: splitMulti(preferredTeammates),
@@ -230,16 +253,39 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort }: 
         </div>
         <div>
           <label htmlFor="il-interests" className={labelClass}>
-            Interests (comma-separated)
+            {hasTracks ? "Track" : "Interests (comma-separated)"}
           </label>
-          <input
-            id="il-interests"
-            type="text"
-            value={interests}
-            onChange={(e) => setInterests(e.target.value)}
-            className={inputClass}
-            placeholder="e.g. agriculture, health, fintech"
-          />
+          {hasTracks ? (
+            <>
+              <select
+                id="il-interests"
+                value={selectedTrack}
+                onChange={(e) => setSelectedTrack(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Any track</option>
+                {tracks!.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              {selectedTrack && tracks!.find((t) => t.key === selectedTrack)?.description && (
+                <p className="mt-1 text-[11px] text-text-dim">
+                  {tracks!.find((t) => t.key === selectedTrack)?.description}
+                </p>
+              )}
+            </>
+          ) : (
+            <input
+              id="il-interests"
+              type="text"
+              value={interests}
+              onChange={(e) => setInterests(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. agriculture, health, fintech"
+            />
+          )}
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="il-projectIdeas" className={labelClass}>

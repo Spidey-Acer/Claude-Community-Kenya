@@ -90,6 +90,20 @@ export interface LockedTeam {
   memberEmails: string[]
 }
 
+/**
+ * An organiser-defined track (problem lane) a participant can declare. Plain
+ * interface, not the zod schema, so this module stays dependency-free — the
+ * zod validator and the resolver that reads a participant's raw `interests`
+ * against a track's `aliases` live in src/lib/impact-lab/tracks.ts, whose
+ * `trackSchema` output satisfies this shape.
+ */
+export interface Track {
+  key: string
+  label: string
+  description?: string
+  aliases: string[]
+}
+
 export interface MatchSettings {
   desiredTeamSize: number
   minTeamSize: number
@@ -110,6 +124,16 @@ export interface MatchSettings {
   keepPreferredTogether: boolean
   lockedTeams: LockedTeam[]
   weights: MatchWeights
+  /**
+   * When true and `tracks` is non-empty, matching partitions participants by
+   * declared track before running the algorithm per bucket — see
+   * `runMatchingByTrack` in index.ts and partition.ts. Ignored when `tracks`
+   * is empty, so old settings objects (no tracks defined) behave exactly as
+   * before this field existed.
+   */
+  partitionByTrack: boolean
+  /** The event's tracks, resolved by the caller (API route) from ImpactLabEvent. */
+  tracks: Track[]
 }
 
 // ─── Scores ──────────────────────────────────────────────────────────────────
@@ -152,6 +176,8 @@ export interface Team {
   memberIds: string[]
   locked: boolean
   score: ScoreBreakdown
+  /** Set only by runMatchingByTrack — the track this team was formed within. */
+  trackKey?: string
 }
 
 export interface MatchResult {

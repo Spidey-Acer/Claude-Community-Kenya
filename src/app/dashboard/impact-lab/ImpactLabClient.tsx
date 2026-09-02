@@ -18,9 +18,11 @@ import type {
   TeamRevealView,
 } from "@/lib/impact-lab/member";
 import { SOCIAL_LINKS } from "@/lib/constants";
-import { MatchProfileForm } from "./MatchProfileForm";
+import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
+import { ConversationsReportCard } from "./ConversationsReportCard";
+import type { ConversationsReportView } from "@/lib/conversations/queries";
 
 interface ProfileResponse {
   success?: boolean;
@@ -70,7 +72,9 @@ export function ImpactLabClient({
   cohortActive,
   cohortLabel,
   cohort,
+  tracks,
   inviteEvent,
+  conversationsReport,
 }: {
   sessionEmail: string;
   cohortActive: boolean;
@@ -81,6 +85,8 @@ export function ImpactLabClient({
    * Undefined when the caller has no resolvable event (nothing to scope to).
    */
   cohort?: string;
+  /** The active event's declared tracks, passed straight to MatchProfileForm. */
+  tracks?: MatchProfileTrack[];
   /**
    * A different event, currently open for registration, that the caller is
    * not yet a member of — set only when the caller already has an event of
@@ -89,6 +95,8 @@ export function ImpactLabClient({
    * place of it. Null when there's nothing more to invite the caller into.
    */
   inviteEvent?: InviteEvent | null;
+  /** The Claude Conversations report for this cohort's linked event, if any. */
+  conversationsReport?: ConversationsReportView | null;
 }) {
   const router = useRouter();
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
@@ -224,6 +232,7 @@ export function ImpactLabClient({
       <MatchProfileForm
         isNew
         cohort={cohort}
+        tracks={tracks}
         profile={{
           fullName: "",
           email: sessionEmail,
@@ -574,6 +583,7 @@ export function ImpactLabClient({
       <MatchProfileForm
         profile={profile}
         cohort={cohort}
+        tracks={tracks}
         onSaved={(saved) => {
           setProfile(saved);
           setEditing(false);
@@ -605,6 +615,7 @@ export function ImpactLabClient({
           </button>
         </section>
       )}
+      {conversationsReport && <ConversationsReportCard report={conversationsReport} />}
       {content}
     </>
   );

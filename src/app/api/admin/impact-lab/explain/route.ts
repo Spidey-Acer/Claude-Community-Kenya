@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { runMatching, normalizeParticipants } from "@/lib/matching"
+import { runMatchingByTrack, normalizeParticipants } from "@/lib/matching"
 import { explainWithAi } from "@/lib/matching/ai-explanations"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -61,11 +61,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid settings" }, { status: 400 })
   }
 
+  const event = await getEventByCohort(cohort)
+  settings = { ...settings, tracks: event?.tracks ?? [] }
+
   const participants = await prisma.impactLabParticipant.findMany({
     where: { cohort },
   })
   const mapped = participants.map(toMatchParticipant)
-  const result = runMatching(mapped, settings)
+  const result = runMatchingByTrack(mapped, settings)
 
   if (body.expectedSignature && resultSignature(result) !== body.expectedSignature) {
     return NextResponse.json(
