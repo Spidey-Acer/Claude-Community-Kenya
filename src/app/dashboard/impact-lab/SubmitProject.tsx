@@ -90,7 +90,7 @@ function timeLeft(closeAt: string | null): string | null {
 }
 
 const inputClass =
-  "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
+  "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
 export function SubmitProject({ cohort }: { cohort?: string }) {
@@ -262,7 +262,7 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
             className={inputClass}
           />
         )}
-        <p className="mt-1 font-mono text-[10px] text-text-dim">{helper}</p>
+        <p className="mt-1 font-mono text-[11px] text-text-dim">{helper}</p>
       </div>
     );
   };
@@ -293,7 +293,7 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
             </option>
           ))}
         </select>
-        <p className="mt-1 font-mono text-[10px] text-text-dim">
+        <p className="mt-1 font-mono text-[11px] text-text-dim">
           The track whose problem you built for.
         </p>
       </div>
@@ -411,7 +411,7 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded border border-green-primary/30 bg-green-primary/10 px-4 py-2 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-40"
+              className="inline-flex w-full min-h-11 items-center justify-center gap-2 rounded border border-green-primary/30 bg-green-primary/10 px-4 py-2 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-40 sm:w-auto"
             >
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

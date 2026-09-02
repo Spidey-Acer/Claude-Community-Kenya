@@ -127,7 +127,7 @@ export default function SignupPage() {
                     required
                     maxLength={60}
                     autoComplete="given-name"
-                    className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                    className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-base sm:text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
                     placeholder="Wanjiru"
                   />
                 </div>
@@ -146,7 +146,7 @@ export default function SignupPage() {
                     required
                     maxLength={60}
                     autoComplete="family-name"
-                    className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                    className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-base sm:text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
                     placeholder="Mwangi"
                   />
                 </div>
@@ -166,7 +166,7 @@ export default function SignupPage() {
                   type="email"
                   required
                   autoComplete="email"
-                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-base sm:text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
                   placeholder="you@email.com"
                 />
               </div>
@@ -187,7 +187,7 @@ export default function SignupPage() {
                   minLength={8}
                   maxLength={128}
                   autoComplete="new-password"
-                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
+                  className="w-full rounded-lg border border-[#2a2a28] bg-[#1e1e1d]/80 px-3.5 py-2.5 text-base sm:text-[14px] text-[#faf9f5] placeholder:text-[#7a7870] transition-colors focus:border-[#d97757]/60 focus:outline-none focus:ring-1 focus:ring-[#d97757]/30"
                   placeholder="At least 8 characters"
                 />
               </div>
@@ -295,7 +295,7 @@ export default function SignupPage() {
                   required
                   maxLength={60}
                   autoComplete="given-name"
-                  className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
+                  className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
                   placeholder="Wanjiru"
                 />
               </div>
@@ -314,7 +314,7 @@ export default function SignupPage() {
                   required
                   maxLength={60}
                   autoComplete="family-name"
-                  className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
+                  className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
                   placeholder="Mwangi"
                 />
               </div>
@@ -334,7 +334,7 @@ export default function SignupPage() {
                 type="email"
                 required
                 autoComplete="email"
-                className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
+                className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
                 placeholder="you@email.com"
               />
             </div>
@@ -355,7 +355,7 @@ export default function SignupPage() {
                 minLength={8}
                 maxLength={128}
                 autoComplete="new-password"
-                className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
+                className="w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-green-primary/50 focus:ring-1 focus:ring-green-primary/20 transition-colors"
                 placeholder="At least 8 characters"
               />
             </div>

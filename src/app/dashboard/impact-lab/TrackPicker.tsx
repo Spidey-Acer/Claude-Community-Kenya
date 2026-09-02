@@ -96,7 +96,7 @@ export function TrackPicker({
           type="button"
           onClick={handleSave}
           disabled={loading || saving}
-          className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-2 text-xs font-mono font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50"
+          className="inline-flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-2 text-xs font-mono font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50 sm:w-auto"
         >
           {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
           {saving ? "Saving…" : "Save"}

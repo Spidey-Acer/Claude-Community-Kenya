@@ -303,7 +303,7 @@ export function ImpactLabClient({
     if (!cohortActive) {
       return (
         <section
-          className="rounded-lg border border-border-default bg-bg-secondary p-6"
+          className="rounded-lg border border-border-default bg-bg-secondary p-4 sm:p-6"
           aria-label="Impact Lab archive"
         >
           <div className="flex flex-wrap items-start gap-4">
@@ -338,7 +338,7 @@ export function ImpactLabClient({
     if (phase === "not-registered") {
       return (
         <section
-          className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
+          className="rounded-lg border border-amber/30 bg-bg-secondary p-4 sm:p-6"
           aria-label="Registration not found"
         >
           <div className="flex flex-wrap items-start gap-4">
@@ -351,7 +351,7 @@ export function ImpactLabClient({
               </h2>
               <p className="mt-2 text-sm text-text-secondary leading-relaxed">
                 We couldn&apos;t find a registration under{" "}
-                <span className="font-mono text-text-primary">{sessionEmail}</span>{" "}
+                <span className="break-all font-mono text-text-primary">{sessionEmail}</span>{" "}
                 for <span className="text-text-primary">{cohortLabel}</span>. If
                 you are attending that event, register here using the same email
                 you gave the organisers — that address is what links this account
@@ -364,7 +364,7 @@ export function ImpactLabClient({
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => setRegistering(true)}
-                  className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors"
+                  className="inline-flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-green-primary hover:bg-green-primary/20 transition-colors sm:w-auto"
                 >
                   Register now
                 </button>
@@ -372,7 +372,7 @@ export function ImpactLabClient({
                   href={SOCIAL_LINKS.discord}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
                 >
                   Discord
                 </a>
@@ -380,7 +380,7 @@ export function ImpactLabClient({
                   href={SOCIAL_LINKS.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-1.5 text-xs font-mono text-text-secondary hover:border-green-primary/40 hover:text-green-primary transition-colors"
                 >
                   WhatsApp
                 </a>
@@ -399,7 +399,7 @@ export function ImpactLabClient({
         <div className="space-y-6">
           {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
           <section
-            className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
+            className="rounded-lg border border-amber/30 bg-bg-secondary p-4 sm:p-6"
             aria-label="Team status"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -469,7 +469,7 @@ export function ImpactLabClient({
       return (
         <div className="space-y-6">
           <section
-            className="rounded-lg border border-green-primary/20 bg-bg-secondary p-6"
+            className="rounded-lg border border-green-primary/20 bg-bg-secondary p-4 sm:p-6"
             aria-label="Profile status"
           >
             <div className="flex flex-wrap items-start gap-4">

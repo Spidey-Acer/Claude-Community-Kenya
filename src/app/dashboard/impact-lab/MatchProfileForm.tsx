@@ -48,8 +48,8 @@ const splitMulti = (v: string): string[] =>
   v.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
 
 const inputClass =
-  "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
-const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
+  "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
+const labelClass = "block text-xs font-mono text-text-dim mb-1.5";
 
 export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tracks }: MatchProfileFormProps) {
   const hasTracks = Boolean(tracks && tracks.length > 0);
@@ -394,7 +394,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap">
         <button
           type="submit"
           disabled={isPending || !csrfToken}
@@ -412,7 +412,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-2.5 text-xs font-mono text-text-secondary transition-colors hover:border-red/40 hover:text-red disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded border border-border-default bg-bg-card px-4 py-2.5 text-xs font-mono text-text-secondary transition-colors hover:border-red/40 hover:text-red disabled:opacity-50 sm:w-auto"
           >
             <X className="h-3 w-3" />
             Cancel
