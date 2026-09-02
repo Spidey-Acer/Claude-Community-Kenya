@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { FOCUS_RING, PRIMARY_BUTTON } from "./judge-ui";
 import { JudgeEventPicker } from "./JudgeEventPicker";
 
 /**
- * The code door. Once a judge is through, this stays mounted only to hold the
- * "not you?" escape hatch — the scoring screen owns everything else.
+ * The code door. Once a judge is through, this stays mounted only to own the
+ * session — the sign-out it hands down lives in the scoring screen's header,
+ * and the scoring screen owns everything else.
  */
 export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
   const [judge, setJudge] = useState<string | null>(initialJudge);
@@ -44,40 +46,22 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
     setCode("");
   }
 
+  // Once through the door the picker owns the whole screen, header included:
+  // its sticky header carries the judge's name and this sign-out, so a phone
+  // never has two stacked headers competing for the top of the viewport.
   if (judge) {
-    return (
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-green-primary">
-              Impact Lab · judging
-            </p>
-            <h1 className="mt-1 font-mono text-2xl font-bold text-text-primary">
-              Scoring as {judge}
-            </h1>
-          </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary hover:border-green-primary/40 hover:text-green-primary print:hidden"
-          >
-            Not you?
-          </button>
-        </header>
-        <JudgeEventPicker judgeName={judge} />
-      </div>
-    );
+    return <JudgeEventPicker judgeName={judge} onSignOut={() => void signOut()} />;
   }
 
   return (
-    <div className="mx-auto max-w-sm pt-10">
-      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-green-primary">
+    <div className="mx-auto max-w-sm px-4 py-12 sm:px-6">
+      <p className="font-mono text-xs uppercase tracking-[0.3em] text-green-primary">
         Impact Lab · AI Mashinani
       </p>
       <h1 className="mt-2 font-mono text-2xl font-bold text-text-primary">
         Judging
       </h1>
-      <p className="mt-2 text-sm text-text-secondary">
+      <p className="mt-2 text-[15px] text-text-secondary">
         Enter your name and the access code from the organisers.
       </p>
 
@@ -96,7 +80,7 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
             autoComplete="name"
             required
             aria-describedby="judge-name-hint"
-            className="mt-2 w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base text-text-primary focus:border-green-primary focus:outline-none"
+            className={`mt-2 w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base text-text-primary ${FOCUS_RING} focus:border-green-primary`}
           />
           {/* Identity is the slug of this name, so "Jane D." and "Jane Doe"
               are two different judges with two separate sets of scores. */}
@@ -119,12 +103,12 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
             inputMode="numeric"
             autoComplete="off"
             required
-            className="mt-2 w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base tracking-[0.4em] text-text-primary focus:border-green-primary focus:outline-none"
+            className={`mt-2 w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base tracking-[0.4em] text-text-primary ${FOCUS_RING} focus:border-green-primary`}
           />
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-[15px] text-red">
             {error}
           </p>
         )}
@@ -132,7 +116,7 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg border border-green-primary/40 bg-green-primary/10 px-4 py-3 font-mono text-sm uppercase tracking-wider text-green-primary hover:bg-green-primary/20 disabled:opacity-50"
+          className={PRIMARY_BUTTON}
         >
           {busy ? "Checking…" : "Start judging"}
         </button>

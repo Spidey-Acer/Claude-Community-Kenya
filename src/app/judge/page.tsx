@@ -19,7 +19,10 @@ export default async function JudgePage() {
   const session = await readJudgeSession();
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-10 sm:px-6">
+    // No padding here on purpose: the signed-in screen has a sticky header
+    // that has to sit flush against the top of the viewport, so each state
+    // below owns its own gutters.
+    <main className="min-h-screen bg-bg-primary">
       <JudgeGate initialJudge={session?.displayName ?? null} />
     </main>
   );

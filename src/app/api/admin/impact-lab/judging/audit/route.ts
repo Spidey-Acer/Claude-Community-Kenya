@@ -67,7 +67,10 @@ export async function GET(request: NextRequest) {
     select: { id: true, result: true },
   })
   if (!run) {
-    return NextResponse.json({ success: true, data: { judges: [], ...rubricMeta } })
+    return NextResponse.json({
+      success: true,
+      data: { judges: [], finalRunId: null, ...rubricMeta },
+    })
   }
 
   const [rows, submissions] = await Promise.all([
@@ -129,5 +132,10 @@ export async function GET(request: NextRequest) {
   }))
   judges.sort((a, b) => b.teamsScored - a.teamsScored || a.judgeName.localeCompare(b.judgeName))
 
-  return NextResponse.json({ success: true, data: { judges, ...rubricMeta } })
+  // The run id travels so an organiser action on a judge (removing their
+  // scores) can name the run it applies to without a second round trip.
+  return NextResponse.json({
+    success: true,
+    data: { judges, finalRunId: run.id, ...rubricMeta },
+  })
 }

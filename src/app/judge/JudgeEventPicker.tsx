@@ -8,6 +8,7 @@ import {
   type JudgeTab,
 } from "@/lib/impact-lab/judge-brief";
 import type { Track } from "@/lib/impact-lab/tracks";
+import { CHIP, CHIP_OFF, CHIP_ON, EYEBROW, GHOST_BUTTON } from "./judge-ui";
 import { JudgeBrief } from "./JudgeBrief";
 import { JudgeScoring } from "./JudgeScoring";
 import { PitchTimer } from "./PitchTimer";
@@ -50,7 +51,14 @@ const TABS: { key: JudgeTab; label: string }[] = [
   { key: "brief", label: "Brief" },
 ];
 
-export function JudgeEventPicker({ judgeName }: { judgeName: string }) {
+export function JudgeEventPicker({
+  judgeName,
+  onSignOut,
+}: {
+  judgeName: string;
+  /** Clears the judge session. Lives in the header, discreetly. */
+  onSignOut: () => void;
+}) {
   const [events, setEvents] = useState<JudgeEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<JudgeEvent | null>(null);
@@ -66,6 +74,10 @@ export function JudgeEventPicker({ judgeName }: { judgeName: string }) {
   // first report from the scoring screen. Stops a later report from yanking
   // the panel out from under someone mid-read.
   const tabSettled = useRef(false);
+  // Whether a team is open on the scoring screen. The pitch timer collapses to
+  // a slim strip while one is, so it and the scorecard's pinned action bar
+  // stack instead of overlapping.
+  const [teamOpen, setTeamOpen] = useState(false);
 
   /**
    * Decide the opening panel from the remembered choice and whether this judge
@@ -133,127 +145,162 @@ export function JudgeEventPicker({ judgeName }: { judgeName: string }) {
 
   if (error && !events) {
     return (
-      <div className="rounded-xl border border-red/30 bg-red/5 p-5">
-        <p className="text-sm text-red">{error}</p>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="mt-3 rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary"
-        >
-          Try again
-        </button>
-      </div>
+      <Shell judgeName={judgeName} onSignOut={onSignOut}>
+        <div className="rounded-lg border border-red/30 bg-red/5 p-5">
+          <p className="text-[15px] text-red">{error}</p>
+          <button type="button" onClick={() => void load()} className={`mt-3 ${GHOST_BUTTON}`}>
+            Try again
+          </button>
+        </div>
+      </Shell>
     );
   }
 
   if (!events) {
-    return <p className="text-sm text-text-dim">Loading events…</p>;
+    return (
+      <Shell judgeName={judgeName} onSignOut={onSignOut}>
+        <p className="text-[15px] text-text-dim">Loading events…</p>
+      </Shell>
+    );
   }
 
   if (events.length === 0) {
     return (
-      <p className="text-sm text-text-dim">
-        No events are open for judging right now.
-      </p>
+      <Shell judgeName={judgeName} onSignOut={onSignOut}>
+        <p className="text-[15px] text-text-dim">
+          No events are open for judging right now.
+        </p>
+      </Shell>
     );
   }
 
   if (!selected) {
     return (
-      <div className="space-y-3">
-        <p className="font-mono text-xs uppercase tracking-wider text-text-dim">
-          Which event are you judging, {judgeName}?
-        </p>
-        {events.map((event) => (
-          <button
-            key={event.cohort}
-            type="button"
-            onClick={() => setSelected(event)}
-            className="block w-full rounded-xl border border-border-default bg-bg-card px-4 py-4 text-left transition-colors hover:border-green-primary/40"
-          >
-            <span className="block font-mono text-sm text-text-primary">
-              {event.runName}
-            </span>
-            <span className="mt-1 block font-mono text-xs text-text-dim">
-              {event.teamCount} team{event.teamCount === 1 ? "" : "s"} ·{" "}
-              {event.rubricLabel} · out of {event.totalOutOf}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Shell judgeName={judgeName} onSignOut={onSignOut}>
+        <div className="space-y-3">
+          <p className={EYEBROW}>Which event are you judging?</p>
+          {events.map((event) => (
+            <button
+              key={event.cohort}
+              type="button"
+              onClick={() => setSelected(event)}
+              className="block w-full rounded-lg border border-border-default bg-bg-secondary px-4 py-4 text-left transition-colors hover:border-green-primary/40"
+            >
+              <span className="block font-mono text-[15px] text-text-primary">
+                {event.runName}
+              </span>
+              <span className="mt-1 block font-mono text-xs text-text-dim">
+                {event.teamCount} team{event.teamCount === 1 ? "" : "s"} ·{" "}
+                {event.rubricLabel} · out of {event.totalOutOf}
+              </span>
+            </button>
+          ))}
+        </div>
+      </Shell>
     );
   }
 
   return (
-    // pb-24 clears the fixed pitch timer pinned to the bottom of the viewport
-    // so it never covers the scorecard's own Save button.
-    <div className="pb-24">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-default bg-bg-card px-4 py-3">
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-text-dim">
-            Judging
-          </p>
-          <p className="truncate font-mono text-sm text-text-primary">
-            {selected.runName}
-          </p>
-          <p className="font-mono text-[11px] text-text-dim">
-            {selected.rubricLabel} · out of {selected.totalOutOf}
-          </p>
+    <Shell
+      judgeName={judgeName}
+      onSignOut={onSignOut}
+      tabs={
+        <div className="flex gap-2 print:hidden">
+          {TABS.map((entry) => (
+            <button
+              key={entry.key}
+              type="button"
+              onClick={() => chooseTab(entry.key)}
+              aria-pressed={tab === entry.key}
+              className={`${CHIP} flex-1 ${tab === entry.key ? CHIP_ON : CHIP_OFF}`}
+            >
+              {entry.label}
+            </button>
+          ))}
         </div>
+      }
+    >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="min-w-0 truncate font-mono text-xs uppercase tracking-wider text-text-dim">
+          {selected.runName} · {selected.rubricLabel} · out of {selected.totalOutOf}
+        </p>
         {/* Only worth offering when there is somewhere else to go — with one
             event open, switching would just reopen the same event. */}
         {events.length > 1 && (
-          <button
-            type="button"
-            onClick={switchEvent}
-            className="shrink-0 rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary hover:border-green-primary/40 hover:text-green-primary print:hidden"
-          >
+          <button type="button" onClick={switchEvent} className={`${GHOST_BUTTON} print:hidden`}>
             Switch event
           </button>
         )}
       </div>
 
-      {/* Not sticky: the scoring panel already pins its own search bar to the
-          top of the viewport, and two stacked sticky bars on a phone leave
-          almost no room for the team being scored. */}
-      <div className="mb-4 flex gap-2 print:hidden">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => chooseTab(t.key)}
-            aria-pressed={tab === t.key}
-            className={`min-h-11 flex-1 rounded-lg border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors ${
-              tab === t.key
-                ? "border-green-primary bg-green-primary/15 text-green-primary"
-                : "border-border-default bg-bg-card text-text-secondary"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {/* Both panels stay mounted and are toggled with `hidden`. Unmounting the
           scorecard to read the brief would throw away an unsaved sheet and
           refetch the teams — mid-demo, on a phone, that is the one thing this
-          screen must never do. */}
-      <div hidden={tab !== "brief"}>
-        <JudgeBrief
-          tracks={selected.tracks ?? []}
-          criteria={selected.criteria ?? []}
-        />
+          screen must never do. A hidden panel hides its own fixed children
+          too, so the scorecard's action bar cannot bleed onto the brief. */}
+      <div hidden={tab !== "brief"} className="pb-20">
+        <JudgeBrief tracks={selected.tracks ?? []} criteria={selected.criteria ?? []} />
       </div>
       <div hidden={tab !== "score"}>
         <JudgeScoring
           cohort={selected.cohort}
           onDirtyChange={setDirty}
           onScoredChange={settleTab}
+          onOpenTeamChange={setTeamOpen}
         />
       </div>
       <div className="print:hidden">
-        <PitchTimer cohort={selected.cohort} />
+        {/* Collapsed while a team is open, so the scorecard's action bar —
+            pinned directly above it — has a fixed height to sit on. */}
+        <PitchTimer cohort={selected.cohort} compact={tab === "score" && teamOpen} />
       </div>
+    </Shell>
+  );
+}
+
+/**
+ * The frame every judge screen sits in: who is signed in, the way out, and
+ * (once an event is chosen) the Score/Brief tabs — all sticky, because on a
+ * phone the alternative is scrolling back up past thirty-six teams to change
+ * panel.
+ */
+function Shell({
+  judgeName,
+  onSignOut,
+  tabs,
+  children,
+}: {
+  judgeName: string;
+  onSignOut: () => void;
+  /** The tab row. Absent before an event is chosen. */
+  tabs?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <header className="sticky top-0 z-30 border-b border-border-default bg-bg-primary/95 backdrop-blur print:static print:border-0">
+        <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-mono text-xs uppercase tracking-[0.3em] text-green-primary">
+                Impact Lab · judging
+              </p>
+              <p className="truncate font-mono text-base font-bold text-text-primary">
+                {judgeName}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className={`${GHOST_BUTTON} shrink-0 print:hidden`}
+            >
+              Sign out
+            </button>
+          </div>
+          {tabs ? <div className="py-2">{tabs}</div> : <div className="pb-3" />}
+        </div>
+      </header>
+      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">{children}</div>
     </div>
   );
 }

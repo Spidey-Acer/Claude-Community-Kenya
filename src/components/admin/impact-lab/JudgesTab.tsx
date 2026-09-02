@@ -10,6 +10,7 @@ import {
   Info,
   Loader2,
   Minus,
+  Trash2,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 
@@ -42,6 +43,12 @@ interface AuditData {
   judges: JudgeAudit[]
   totalOutOf: number
   criteria: AuditCriterion[]
+  /**
+   * The run every sheet below belongs to. Null before a run is marked final —
+   * in which case there are no judges either. Needed to name the run when
+   * removing a judge's scores.
+   */
+  finalRunId: string | null
 }
 
 interface PreviewRow {
@@ -78,6 +85,13 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Which judge the organiser has clicked "Remove scores" on, awaiting the
+  // inline confirm. One at a time: a confirm on every row at once is how the
+  // wrong one gets clicked.
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<PreviewData | null>(null)
@@ -120,6 +134,32 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   useEffect(() => {
     if (data && data.judges.length > 0) void runPreview()
   }, [data, runPreview])
+
+  /**
+   * Delete every score one judge recorded for this run, then reload.
+   *
+   * The one destructive action on this screen: it exists for test judges left
+   * in the average after a rehearsal, and it is irreversible, which is why it
+   * is behind an inline confirm that names the count and the judge.
+   */
+  async function removeScores(judge: JudgeAudit) {
+    if (!data?.finalRunId) return
+    setRemoving(judge.judgeEmail)
+    setRemoveError(null)
+    try {
+      await apiSend(
+        `/api/admin/impact-lab/judging?runId=${encodeURIComponent(data.finalRunId)}` +
+          `&judgeId=${encodeURIComponent(judge.judgeEmail)}`,
+        "DELETE"
+      )
+      setConfirming(null)
+      await load()
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e.message : "Failed to remove those scores")
+    } finally {
+      setRemoving(null)
+    }
+  }
 
   const toggleExcluded = (email: string) => {
     setExcluded((prev) => {
@@ -199,9 +239,13 @@ export function JudgesTab({ cohort }: { cohort: string }) {
               key={judge.judgeEmail}
               className="overflow-hidden rounded-lg border border-[#1e1e1e] bg-[#0d0d0d]"
             >
+              {/* The expand toggle and the remove control are siblings, not
+                  nested: a button inside a button is invalid HTML and the
+                  inner click would toggle the row as well as fire. */}
+              <div className="flex items-start gap-2 pr-3">
               <button
                 onClick={() => toggle(judge.judgeEmail)}
-                className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left hover:bg-[#111]"
+                className="flex flex-1 flex-wrap items-center justify-between gap-3 p-4 text-left hover:bg-[#111]"
               >
                 <div className="flex items-center gap-2">
                   {isOpen ? (
@@ -222,6 +266,49 @@ export function JudgesTab({ cohort }: { cohort: string }) {
                   </span>
                 </div>
               </button>
+                <button
+                  onClick={() =>
+                    setConfirming((prev) =>
+                      prev === judge.judgeEmail ? null : judge.judgeEmail
+                    )
+                  }
+                  disabled={!data.finalRunId}
+                  title="Remove this judge's scores"
+                  className="mt-4 flex shrink-0 items-center gap-1.5 rounded border border-[#1e1e1e] px-2.5 py-1.5 text-[11px] font-mono text-[#888] hover:border-[#ff3333]/40 hover:text-[#ff3333] disabled:opacity-40"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove scores
+                </button>
+              </div>
+
+              {confirming === judge.judgeEmail && (
+                <div className="border-t border-[#ff3333]/30 bg-[#ff3333]/5 p-4">
+                  <p className="text-[11px] font-mono text-[#ff3333]">
+                    Delete {judge.teamsScored} score
+                    {judge.teamsScored === 1 ? "" : "s"} by {judge.judgeName}? This
+                    cannot be undone.
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => void removeScores(judge)}
+                      disabled={removing === judge.judgeEmail}
+                      className="rounded border border-[#ff3333]/40 bg-[#ff3333]/10 px-3 py-1.5 text-[11px] font-mono text-[#ff3333] hover:bg-[#ff3333]/20 disabled:opacity-50"
+                    >
+                      {removing === judge.judgeEmail ? "Deleting…" : "Delete them"}
+                    </button>
+                    <button
+                      onClick={() => setConfirming(null)}
+                      className="rounded border border-[#1e1e1e] px-3 py-1.5 text-[11px] font-mono text-[#888] hover:bg-[#111]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {removeError && (
+                    <p role="alert" className="mt-2 text-[11px] font-mono text-[#ff3333]">
+                      {removeError}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {isOpen && (
                 <div className="overflow-x-auto border-t border-[#1e1e1e]">
