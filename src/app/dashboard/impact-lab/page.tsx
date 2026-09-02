@@ -59,7 +59,7 @@ export default async function ImpactLabPage({
     : null;
 
   return (
-    <main className="min-h-screen bg-bg-primary pt-24 pb-24">
+    <main className="min-h-[calc(100dvh-4rem)] bg-bg-primary pt-6 pb-16 sm:pt-12 sm:pb-24">
       <div className="mx-auto max-w-3xl px-4">
         <header className="mb-8 border-b border-border-default/60 pb-6">
           <Link

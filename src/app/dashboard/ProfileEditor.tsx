@@ -120,7 +120,7 @@ export function ProfileEditor({
         <div>
           <label
             htmlFor="profile-firstName"
-            className="block text-[11px] font-mono text-text-dim mb-1.5"
+            className="block text-xs font-mono text-text-dim mb-1.5"
           >
             First name
           </label>
@@ -131,13 +131,13 @@ export function ProfileEditor({
             maxLength={60}
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
+            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
           />
         </div>
         <div>
           <label
             htmlFor="profile-lastName"
-            className="block text-[11px] font-mono text-text-dim mb-1.5"
+            className="block text-xs font-mono text-text-dim mb-1.5"
           >
             Last name
           </label>
@@ -148,13 +148,13 @@ export function ProfileEditor({
             maxLength={60}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
+            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
           />
         </div>
         <div>
           <label
             htmlFor="profile-phone"
-            className="block text-[11px] font-mono text-text-dim mb-1.5"
+            className="block text-xs font-mono text-text-dim mb-1.5"
           >
             Phone (optional)
           </label>
@@ -164,14 +164,14 @@ export function ProfileEditor({
             maxLength={20}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
+            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
             placeholder="+254 7XX XXX XXX"
           />
         </div>
         <div>
           <label
             htmlFor="profile-imageUrl"
-            className="block text-[11px] font-mono text-text-dim mb-1.5"
+            className="block text-xs font-mono text-text-dim mb-1.5"
           >
             Avatar URL (optional)
           </label>
@@ -180,7 +180,7 @@ export function ProfileEditor({
             type="url"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
+            className="w-full bg-bg-card border border-border-default rounded px-3 py-2 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50"
             placeholder="https://..."
           />
         </div>

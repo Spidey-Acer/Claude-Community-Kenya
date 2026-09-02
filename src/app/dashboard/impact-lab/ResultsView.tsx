@@ -318,12 +318,12 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
                       <span className="inline-flex flex-wrap items-center gap-2">
                         {row.projectName}
                         {isSelf && (
-                          <span className="rounded border border-green-primary/40 bg-green-primary/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-green-primary">
+                          <span className="rounded border border-green-primary/40 bg-green-primary/10 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-green-primary">
                             you
                           </span>
                         )}
                         {row.basis === "submission" && (
-                          <span className="rounded border border-border-default bg-bg-card px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-dim">
+                          <span className="rounded border border-border-default bg-bg-card px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-text-dim">
                             Reviewed from submission
                           </span>
                         )}

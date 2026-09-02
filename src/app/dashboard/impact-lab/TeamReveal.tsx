@@ -137,7 +137,7 @@ export function TeamReveal({
     >
       <motion.section
         variants={item}
-        className="relative overflow-hidden rounded-lg border border-green-primary/30 bg-bg-secondary p-6"
+        className="relative overflow-hidden rounded-lg border border-green-primary/30 bg-bg-secondary p-4 sm:p-6"
         aria-label="Your team"
       >
         {!prefersReducedMotion && (
@@ -157,7 +157,7 @@ export function TeamReveal({
             <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
               {"// ./your-team"}
             </p>
-            <h2 className="flex flex-wrap items-center gap-2 font-mono text-2xl font-bold text-text-primary sm:text-3xl">
+            <h2 className="flex flex-wrap items-center gap-2 font-mono text-xl break-words font-bold text-text-primary sm:text-3xl">
               {team.teamName}
               {typeof team.table === "number" && (
                 <span className="rounded border border-amber/40 bg-amber/10 px-2.5 py-0.5 font-mono text-base uppercase tracking-wider text-amber">
@@ -201,7 +201,7 @@ export function TeamReveal({
                 type="button"
                 onClick={handleCheckIn}
                 disabled={checkingIn}
-                className="inline-flex items-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-1.5 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50"
+                className="inline-flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50 sm:w-auto"
               >
                 <UserCheck className="h-3.5 w-3.5" />
                 {checkingIn ? "Checking in…" : "I'm here — check in"}
@@ -231,7 +231,7 @@ export function TeamReveal({
             return (
             <li
               key={member.id}
-              className="flex flex-wrap items-center gap-3 rounded border border-border-default bg-bg-secondary px-4 py-3"
+              className="flex flex-col gap-2 rounded border border-border-default bg-bg-secondary px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
             >
               <span
                 aria-hidden="true"
@@ -243,28 +243,28 @@ export function TeamReveal({
                 {member.fullName}
               </span>
               {member.isSelf && (
-                <span className="rounded border border-green-primary/30 bg-green-primary/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-green-primary">
+                <span className="rounded border border-green-primary/30 bg-green-primary/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-green-primary">
                   you
                 </span>
               )}
               <span
-                className={`font-mono text-[10px] uppercase tracking-wider ${
+                className={`font-mono text-[11px] uppercase tracking-wider ${
                   memberCheckedIn ? "text-green-primary" : "text-text-dim"
                 }`}
               >
                 {memberCheckedIn ? "here" : "not yet here"}
               </span>
               {member.primaryRole && (
-                <span className="rounded border border-border-default bg-bg-card px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                <span className="rounded border border-border-default bg-bg-card px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-text-dim">
                   {member.primaryRole}
                 </span>
               )}
               {member.suggestedInternalRole && (
-                <span className="rounded border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-cyan">
+                <span className="rounded border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-cyan">
                   {member.suggestedInternalRole}
                 </span>
               )}
-              <span className="ml-auto">
+              <span className="sm:ml-auto">
                 {member.email ? (
                   <EmailAction email={member.email} />
                 ) : !member.isSelf ? (
@@ -392,10 +392,10 @@ function EmailAction({ email }: { email: string }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex min-w-0 items-center gap-1">
       <a
         href={`mailto:${email}`}
-        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-text-secondary hover:text-green-primary transition-colors"
+        className="inline-flex items-center gap-1.5 break-all font-mono text-[11px] text-text-secondary hover:text-green-primary transition-colors"
       >
         <Mail className="h-3 w-3" />
         {email}
@@ -404,7 +404,7 @@ function EmailAction({ email }: { email: string }) {
         type="button"
         onClick={handleCopy}
         aria-label={copied ? "Email copied" : `Copy ${email} to clipboard`}
-        className="rounded p-1 text-text-dim transition-colors hover:text-green-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-primary/60"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded p-2.5 text-text-dim transition-colors hover:text-green-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-primary/60"
       >
         {copied ? (
           <Check className="h-3 w-3 text-green-primary" />

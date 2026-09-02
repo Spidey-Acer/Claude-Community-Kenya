@@ -137,11 +137,11 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-bg-primary pt-24 pb-24">
+    <main className="min-h-[calc(100dvh-4rem)] bg-bg-primary pt-6 pb-16 sm:pt-12 sm:pb-24">
       <div className="mx-auto max-w-5xl px-4">
         {/* Header */}
         <header className="mb-10 flex flex-wrap items-start justify-between gap-4 border-b border-border-default/60 pb-8">
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-green-primary mb-2">
               $ whoami
             </p>
@@ -149,7 +149,8 @@ export default async function DashboardPage() {
               Welcome back, {user.firstName}.
             </h1>
             <p className="mt-2 font-mono text-sm text-text-dim">
-              {user.email} &middot; member since {formatJoinDate(user.createdAt)}
+              <span className="break-all">{user.email}</span> &middot; member since{" "}
+              {formatJoinDate(user.createdAt)}
               {role ? ` · ${role.toLowerCase().replace("_", " ")}` : ""}
             </p>
           </div>
@@ -157,7 +158,7 @@ export default async function DashboardPage() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="rounded border border-amber/40 bg-amber/10 px-4 py-2 text-xs font-mono font-semibold text-amber hover:bg-amber/20 transition-colors"
+                className="inline-flex min-h-11 items-center rounded border border-amber/40 bg-amber/10 px-4 py-2 text-xs font-mono font-semibold text-amber hover:bg-amber/20 transition-colors"
               >
                 $ cd /admin
               </Link>
@@ -189,7 +190,7 @@ export default async function DashboardPage() {
           <section className="mb-8" aria-label="Next event">
             <Link
               href={`/events/${nextEvent.slug}`}
-              className="group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-6 transition-all hover:border-green-primary/40"
+              className="group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-4 sm:p-6 transition-all hover:border-green-primary/40"
             >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10">
                 <Calendar className="h-6 w-6 text-green-primary" />
@@ -395,7 +396,7 @@ function ImpactLabCard({ status }: { status: ImpactLabStatus }) {
     return (
       <Link
         href="/dashboard/impact-lab"
-        className="group flex flex-wrap items-start gap-4 rounded-lg border border-border-default bg-bg-secondary p-6 transition-all hover:border-text-dim"
+        className="group flex flex-wrap items-start gap-4 rounded-lg border border-border-default bg-bg-secondary p-4 sm:p-6 transition-all hover:border-text-dim"
       >
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-border-default bg-bg-card">
           <FlaskConical className="h-6 w-6 text-text-dim" />
@@ -416,8 +417,8 @@ function ImpactLabCard({ status }: { status: ImpactLabStatus }) {
 
   const green = status === "revealed" || status === "waiting";
   const cardClass = green
-    ? "group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-6 transition-all hover:border-green-primary/40"
-    : "group flex flex-wrap items-start gap-4 rounded-lg border border-amber/20 bg-bg-secondary p-6 transition-all hover:border-amber/40";
+    ? "group flex flex-wrap items-start gap-4 rounded-lg border border-green-primary/20 bg-bg-secondary p-4 sm:p-6 transition-all hover:border-green-primary/40"
+    : "group flex flex-wrap items-start gap-4 rounded-lg border border-amber/20 bg-bg-secondary p-4 sm:p-6 transition-all hover:border-amber/40";
   const iconBoxClass = green
     ? "flex h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10"
     : "flex h-12 w-12 shrink-0 items-center justify-center rounded border border-amber/30 bg-amber/10";
@@ -469,11 +470,11 @@ function SubmissionRow({ type, title, status, createdAt, href }: SubmissionRowPr
   });
 
   const inner = (
-    <div className="flex flex-wrap items-center gap-3 rounded border border-border-default bg-bg-secondary px-4 py-3 transition-colors hover:border-border-hover">
+    <div className="flex flex-col items-start gap-2 rounded border border-border-default bg-bg-secondary px-4 py-3 transition-colors hover:border-border-hover sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
       <span className="rounded border border-border-default bg-bg-card px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim">
         {type}
       </span>
-      <span className="flex-1 truncate font-mono text-sm text-text-primary">{title}</span>
+      <span className="w-full font-mono text-sm text-text-primary sm:flex-1 sm:truncate">{title}</span>
       <span className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${statusColor}`}>
         {status.toLowerCase()}
       </span>

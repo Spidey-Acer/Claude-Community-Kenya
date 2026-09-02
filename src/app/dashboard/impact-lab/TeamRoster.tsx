@@ -218,7 +218,7 @@ export function TeamRoster({
                 onChange={(e) => runSearch(e.target.value)}
                 placeholder="Type at least two letters of their name"
                 autoComplete="off"
-                className="w-full rounded-lg border border-border-default bg-bg-primary py-2.5 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-dim focus:border-green-primary focus:outline-none"
+                className="w-full rounded-lg border border-border-default bg-bg-primary py-2.5 pl-9 pr-3 text-base sm:text-sm text-text-primary placeholder:text-text-dim focus:border-green-primary focus:outline-none"
               />
               {searching && (
                 <Loader2
