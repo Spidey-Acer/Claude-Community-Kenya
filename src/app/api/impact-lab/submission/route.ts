@@ -135,6 +135,9 @@ export async function GET(request: NextRequest) {
     eventName: memberEvent.name,
     eventCohort: memberEvent.cohort,
     closeAt: context.closeAt ? context.closeAt.toISOString() : null,
+    // The client counts down against this, not its own clock: phones at the
+    // venue are routinely minutes out and a wrong clock hides or invents time.
+    serverNow: new Date().toISOString(),
     submission: existing ? await toView(existing, memberEvent.cohort) : undefined,
     requirements: toRequirementsView(submissionRequirementsForCohort(memberEvent.cohort)),
     tracks: memberEvent.tracks,
