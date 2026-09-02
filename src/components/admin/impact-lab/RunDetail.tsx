@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
-import { apiGet } from "./api"
+import { apiGet, apiSend } from "./api"
 import type { MatchResult } from "./types"
 
 /** The subset of GET /runs/[id]'s response this view renders. */
@@ -31,13 +31,22 @@ interface RunDetailProps {
   runId: string
   /** Participant directory (id → name) for the run's cohort, loaded by the parent tab. */
   directory: Map<string, DirectoryEntry>
+  /** Notified after a successful move, so the parent's row summary (team/unassigned counts) can refresh. */
+  onChanged?: () => void
+}
+
+/** Response from the move branch of PATCH /api/admin/impact-lab/runs/[id]. */
+interface MoveResponse extends RunDetailData {
+  warning?: string
 }
 
 /** Expanded-row detail for a saved matching run: teams, members, scores, warnings. */
-export function RunDetail({ runId, directory }: RunDetailProps) {
+export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [detail, setDetail] = useState<RunDetailData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [moveWarning, setMoveWarning] = useState<string | null>(null)
+  const [movingId, setMovingId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -49,6 +58,25 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [runId])
+
+  /** Move a participant onto `toTeamId`, or unassign them when it's null. */
+  async function move(participantId: string, toTeamId: string | null) {
+    setMovingId(participantId)
+    setError(null)
+    setMoveWarning(null)
+    try {
+      const response = await apiSend<MoveResponse>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        move: { participantId, toTeamId },
+      })
+      setDetail(response)
+      setMoveWarning(response.warning ?? null)
+      onChanged?.()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to move participant")
+    } finally {
+      setMovingId(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -81,6 +109,12 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
         </div>
       )}
 
+      {moveWarning && (
+        <div className="p-2 bg-[#ffb000]/5 border border-[#ffb000]/20 rounded text-[11px] font-mono text-[#ffb000]">
+          ⚠ {moveWarning}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {result.teams.map((team) => (
           <div key={team.id} className="p-3 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg space-y-2">
@@ -101,8 +135,23 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
 
             <div className="space-y-1">
               {team.memberIds.map((id) => (
-                <div key={id} className="text-[11px] font-mono text-[#aaa]">
-                  {directory.get(id)?.fullName ?? id}
+                <div key={id} className="flex items-center justify-between gap-2 text-[11px] font-mono text-[#aaa]">
+                  <span className="truncate">{directory.get(id)?.fullName ?? id}</span>
+                  <select
+                    aria-label={`Move ${directory.get(id)?.fullName ?? id}`}
+                    value={team.id}
+                    disabled={movingId === id}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      move(id, value === "__unassign__" ? null : value)
+                    }}
+                    className="shrink-0 bg-[#111] border border-[#1e1e1e] rounded px-1 py-0.5 text-[10px] text-[#ccc]"
+                  >
+                    {result.teams.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                    <option value="__unassign__">Unassign</option>
+                  </select>
                 </div>
               ))}
             </div>
@@ -138,9 +187,27 @@ export function RunDetail({ runId, directory }: RunDetailProps) {
       </div>
 
       {result.unassignedIds.length > 0 && (
-        <div className="p-2 bg-[#0d0d0d] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888]">
-          <span className="text-[#555]">Unassigned:</span>{" "}
-          {result.unassignedIds.map((id) => directory.get(id)?.fullName ?? id).join(", ")}
+        <div className="p-2 bg-[#0d0d0d] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] space-y-1.5">
+          <span className="text-[#555]">Unassigned:</span>
+          {result.unassignedIds.map((id) => (
+            <div key={id} className="flex items-center justify-between gap-2">
+              <span className="truncate">{directory.get(id)?.fullName ?? id}</span>
+              <select
+                aria-label={`Add ${directory.get(id)?.fullName ?? id} to a team`}
+                value=""
+                disabled={movingId === id}
+                onChange={(e) => {
+                  if (e.target.value) move(id, e.target.value)
+                }}
+                className="shrink-0 bg-[#111] border border-[#1e1e1e] rounded px-1 py-0.5 text-[10px] text-[#ccc]"
+              >
+                <option value="" disabled>Add to…</option>
+                {result.teams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          ))}
         </div>
       )}
     </div>

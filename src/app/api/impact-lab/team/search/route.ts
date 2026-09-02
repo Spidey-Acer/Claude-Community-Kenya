@@ -25,7 +25,10 @@ const RESULT_CAP = 10
  * Returns names only, never emails or phone numbers — this is a lookup for
  * adding a teammate, not a directory of a hundred people's contact details.
  * `onTeam` tells the caller the person is currently placed elsewhere, so the
- * UI can say "this will move them" before anything happens.
+ * UI can say "this will move them" before anything happens. `checkedIn`
+ * lets the UI show who is actually in the room; checked-in hits sort first,
+ * but adding someone who hasn't checked in is never blocked — that keeps
+ * their seat warm for when they do arrive.
  */
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(request, RateLimits.FORM)
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   const people = await prisma.impactLabParticipant.findMany({
     where: { cohort: memberEvent.cohort, fullName: { contains: q, mode: "insensitive" } },
-    select: { id: true, fullName: true },
+    select: { id: true, fullName: true, checkedInAt: true },
     orderBy: { fullName: "asc" },
     take: RESULT_CAP,
   })
@@ -75,12 +78,18 @@ export async function GET(request: NextRequest) {
     for (const id of team.memberIds) teamNameById.set(id, team.name)
   }
 
-  const participantResults = people.map((p) => ({
-    id: p.id,
-    fullName: p.fullName,
-    onTeam: teamNameById.get(p.id) ?? null,
-    kind: "participant" as const,
-  }))
+  // Checked-in people first (stable sort keeps the existing name order within
+  // each group) — a leader scanning the list wants "who is actually here"
+  // before "who is registered but not yet arrived".
+  const participantResults = people
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      onTeam: teamNameById.get(p.id) ?? null,
+      checkedIn: Boolean(p.checkedInAt),
+      kind: "participant" as const,
+    }))
+    .sort((a, b) => Number(b.checkedIn) - Number(a.checkedIn))
 
   const accountResults =
     q.length >= ACCOUNT_MIN_QUERY_LENGTH
@@ -136,6 +145,8 @@ async function searchAccounts(q: string, alreadyFilled: number, cohort: string) 
     .map((u) => ({
       userId: u.id,
       fullName: `${u.firstName} ${u.lastName}`.trim(),
+      // No participant row exists yet, so there is nothing to have checked in.
+      checkedIn: false,
       kind: "account" as const,
     }))
 }

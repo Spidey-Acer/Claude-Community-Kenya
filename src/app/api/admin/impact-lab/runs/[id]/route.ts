@@ -4,6 +4,30 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
+import { extractFrozenTeams } from "@/lib/impact-lab/member"
+import { extractUnassignedIds, placeParticipant, readMaxTeamSize } from "@/lib/impact-lab/roster"
+import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
+
+const moveSchema = z.object({
+  participantId: z.string().min(1).max(64),
+  toTeamId: z.string().min(1).max(40).nullable(),
+})
+
+// participantsSnapshot is deliberately omitted — it holds every participant's
+// email + blockedTeammates (including non-consenting people) and is only
+// needed server-side for the final-teams export, never by the client.
+const RUN_SELECT = {
+  id: true,
+  cohort: true,
+  name: true,
+  notes: true,
+  isFinal: true,
+  settings: true,
+  result: true,
+  explanations: true,
+  createdById: true,
+  createdAt: true,
+} as const
 
 export async function GET(
   _request: NextRequest,
@@ -13,27 +37,88 @@ export async function GET(
   if (!check.authorized) return check.response
 
   const { id } = await params
-  // participantsSnapshot is deliberately omitted — it holds every participant's
-  // email + blockedTeammates (including non-consenting people) and is only
-  // needed server-side for the final-teams export, never by the client.
-  const run = await prisma.impactLabMatchRun.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      cohort: true,
-      name: true,
-      notes: true,
-      isFinal: true,
-      settings: true,
-      result: true,
-      explanations: true,
-      createdById: true,
-      createdAt: true,
-    },
-  })
+  const run = await prisma.impactLabMatchRun.findUnique({ where: { id }, select: RUN_SELECT })
   if (!run) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
 
   return NextResponse.json({ success: true, data: run })
+}
+
+/**
+ * Move (or unassign, or place a currently-unassigned participant onto) one
+ * participant within a run's roster, from the admin desk. Works on any run,
+ * not just the final one — an organiser fixing a draft run before it goes
+ * final needs this too, and `placeParticipant` already keeps `teams` and
+ * `unassignedIds` consistent regardless of `isFinal`.
+ */
+async function handleMove(
+  request: NextRequest,
+  runId: string,
+  cohort: string,
+  move: z.infer<typeof moveSchema>,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const { participantId, toTeamId } = move
+
+  const participant = await prisma.impactLabParticipant.findFirst({
+    where: { id: participantId, cohort },
+    select: { id: true },
+  })
+  if (!participant) {
+    return NextResponse.json({ success: false, error: "Participant not found" }, { status: 404 })
+  }
+
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+    if (toTeamId !== null && !teams.some((t) => t.id === toTeamId)) {
+      return { status: "unknown_team" as const }
+    }
+
+    const fromTeamId = teams.find((t) => t.memberIds.includes(participantId))?.id ?? null
+    const maxTeamSize = readMaxTeamSize(fresh?.settings)
+    const unassignedIds = extractUnassignedIds(fresh?.result)
+    const placement = placeParticipant({ teams, unassignedIds }, participantId, toTeamId, maxTeamSize)
+    if (placement.status === "too_large") return { status: "too_large" as const }
+
+    await writeRunResult(tx, runId, {
+      ...(fresh?.result as object),
+      teams: placement.state.teams,
+      unassignedIds: placement.state.unassignedIds,
+    })
+
+    return { status: "ok" as const, fromTeamId, warning: placement.warning }
+  })
+
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to edit" },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "unknown_team") {
+    return NextResponse.json(
+      { success: false, error: "That team does not belong to this run" },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "too_large") {
+    return NextResponse.json({ success: false, error: "That team is already full" }, { status: 400 })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { move: { participantId, fromTeamId: outcome.fromTeamId, toTeamId } },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: { ...updated, warning: outcome.warning } })
 }
 
 const explanationSchema = z.object({
@@ -63,6 +148,12 @@ const updateSchema = z.object({
   // is responsible for converting to an offset-bearing string (Z or numeric)
   // before it ever reaches this endpoint.
   submissionsCloseAt: z.string().datetime({ offset: true }).nullable().optional(),
+  // Move (or unassign, or place an unassigned participant) one participant
+  // within this run's roster from the admin desk. Handled as its own branch,
+  // separate from the rename/finalize fields above — a request combining a
+  // move with a rename would otherwise leave one half silently unapplied if
+  // the other failed partway, and the two are never edited together in the UI.
+  move: moveSchema.optional(),
 })
 
 /**
@@ -99,6 +190,10 @@ export async function PATCH(
 
   const existing = await prisma.impactLabMatchRun.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+
+  if (validation.data.move) {
+    return handleMove(request, id, existing.cohort, validation.data.move, check.user)
+  }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data
 
