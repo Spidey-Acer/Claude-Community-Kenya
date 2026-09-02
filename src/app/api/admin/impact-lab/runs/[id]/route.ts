@@ -13,6 +13,7 @@ import {
   placeParticipant,
   readMaxTeamSize,
   type Judge,
+  type JudgeSignInMode,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 
@@ -313,6 +314,47 @@ async function handleSetJudges(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * Switch a run between the two judge sign-in modes: "open" (a judge types
+ * their name) and "roster" (a judge picks themselves off the published panel).
+ *
+ * Mirrors `handleLockRoster`'s lock/read/write/audit shape — same run row,
+ * same lock, and like the roster lock it is a single stored flag rather than a
+ * schema column, because it landed with judging starting the same evening.
+ */
+async function handleSetJudgeSignIn(
+  request: NextRequest,
+  runId: string,
+  judgeSignIn: JudgeSignInMode,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    if (!fresh) return { status: "not_found" as const }
+
+    await writeRunResult(tx, runId, { ...(fresh.result as object), judgeSignIn })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "not_found") {
+    return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { judgeSignIn },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -361,6 +403,10 @@ const updateSchema = z.object({
   // same reason `move` is, and checked with `!== undefined` below because `[]`
   // is meaningful here: it clears the panel.
   judges: z.array(judgeSchema).max(JUDGE_LIST_MAX).optional(),
+  // How judges sign in for this run — see `handleSetJudgeSignIn`. Its own
+  // branch for the same reason `judges` is: the toggle saves on its own, never
+  // alongside a rename or the judge list.
+  judgeSignIn: z.enum(["open", "roster"]).optional(),
 })
 
 /**
@@ -412,6 +458,9 @@ export async function PATCH(
   }
   if (validation.data.judges !== undefined) {
     return handleSetJudges(request, id, validation.data.judges, check.user)
+  }
+  if (validation.data.judgeSignIn !== undefined) {
+    return handleSetJudgeSignIn(request, id, validation.data.judgeSignIn, check.user)
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

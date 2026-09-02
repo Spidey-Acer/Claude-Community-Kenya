@@ -416,3 +416,53 @@ export function judgeInitials(name: string): string {
     .join("")
   return letters.toUpperCase() || "?"
 }
+
+/**
+ * How judges get through the door for one run.
+ *
+ * "open" is the original behaviour: a judge types their name and the shared
+ * code, and their typed name becomes their identity. "roster" replaces the
+ * name field with the published panel list — a judge picks themselves, so a
+ * misspelling can no longer split one person's scorecards in two.
+ */
+export type JudgeSignInMode = "open" | "roster"
+
+/** Identity prefix for a judge who signed in by picking themselves. */
+export const ROSTER_IDENTITY_PREFIX = "roster:"
+
+/**
+ * `result.judgeSignIn` from a run's stored result JSON, defensively.
+ *
+ * Defaults to "open" for every run written before this existed and for any
+ * malformed value — roster mode must never be switched on for a panel nobody
+ * published, which would lock every judge out of a run mid-event.
+ */
+export function extractJudgeSignIn(result: unknown): JudgeSignInMode {
+  if (typeof result !== "object" || result === null) return "open"
+  return (result as { judgeSignIn?: unknown }).judgeSignIn === "roster" ? "roster" : "open"
+}
+
+/**
+ * The `ImpactLabScore.judgeEmail` value for a roster judge.
+ *
+ * The judge's id inside the run, prefixed — so it can collide neither with a
+ * signed-in staff member's email nor with an "open" judge's `name:` slug, and
+ * so a name edited in the admin panel afterwards does not orphan their scores.
+ */
+export function rosterIdentity(judgeId: string): string {
+  return `${ROSTER_IDENTITY_PREFIX}${judgeId}`
+}
+
+/**
+ * The roster name behind a score identity, or null when the identity is not a
+ * roster one (a typed name, or a staff email) or names a judge who has since
+ * been removed from the panel.
+ *
+ * Admin surfaces prefer this over the stored `judgeName`, so correcting a
+ * spelling in the judges panel corrects it on the leaderboard too.
+ */
+export function judgeNameForIdentity(identity: string, judges: Judge[]): string | null {
+  if (!identity.startsWith(ROSTER_IDENTITY_PREFIX)) return null
+  const id = identity.slice(ROSTER_IDENTITY_PREFIX.length)
+  return judges.find((judge) => judge.id === id)?.name ?? null
+}

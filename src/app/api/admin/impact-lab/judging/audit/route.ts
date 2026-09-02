@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
 import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { scoreTotal, totalOutOf } from "@/lib/impact-lab/judging"
+import { extractJudges, judgeNameForIdentity } from "@/lib/impact-lab/roster"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
 /**
@@ -97,12 +98,18 @@ export async function GET(request: NextRequest) {
   for (const team of teams) nameById.set(team.id, team.name)
   const projectById = new Map(submissions.map((s) => [s.teamId, s.projectName]))
 
+  // A judge who signed in off the roster is named by the panel, not by the
+  // name frozen onto their first score row — so correcting a spelling in the
+  // judges panel corrects it here too, and a roster judge never appears twice
+  // under two spellings. Typed-name and staff identities keep their stored name.
+  const panel = extractJudges(run.result)
+
   const byJudge = new Map<string, JudgeAudit>()
   for (const row of rows) {
     const sheet = asScoreSheet(row.scores)
     const entry = byJudge.get(row.judgeEmail) ?? {
       judgeEmail: row.judgeEmail,
-      judgeName: row.judgeName,
+      judgeName: judgeNameForIdentity(row.judgeEmail, panel) ?? row.judgeName,
       teamsScored: 0,
       mean: 0,
       firstScoredAt: row.createdAt.toISOString(),

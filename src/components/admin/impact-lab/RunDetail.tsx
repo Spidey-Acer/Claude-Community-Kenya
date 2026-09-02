@@ -4,7 +4,11 @@ import { useEffect, useState } from "react"
 import { ChevronDown, ChevronRight, Download, Loader2 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { buildFinalList, type FinalListTeamInput } from "@/lib/impact-lab/final-list"
-import { extractJoinRequests, extractJudges } from "@/lib/impact-lab/roster"
+import {
+  extractJoinRequests,
+  extractJudgeSignIn,
+  extractJudges,
+} from "@/lib/impact-lab/roster"
 import { RunJudgesPanel } from "./RunJudgesPanel"
 import type { MatchResult } from "./types"
 
@@ -493,8 +497,12 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
       <RunJudgesPanel
         runId={runId}
         initialJudges={judges}
+        initialSignIn={extractJudgeSignIn(detail.result)}
         onSaved={(next) =>
           setDetail((d) => (d ? { ...d, result: { ...d.result, judges: next } } : d))
+        }
+        onSignInSaved={(mode) =>
+          setDetail((d) => (d ? { ...d, result: { ...d.result, judgeSignIn: mode } } : d))
         }
       />
     </div>
