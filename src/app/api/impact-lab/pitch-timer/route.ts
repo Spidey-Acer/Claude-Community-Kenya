@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
   const caller = await resolveCaller()
   if (!caller.ok) return caller.response
 
-  const rl = await rateLimit(request, RateLimits.READ)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Wait a moment and try again." },
