@@ -26,6 +26,22 @@ export const trackSchema = z.object({
   description: z.string().trim().max(300).optional(),
   /** Registration-answer tokens that mean this track. Matched case-insensitively. */
   aliases: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
+
+  // ─── Participant-facing guide ──────────────────────────────────────────
+  // All optional so tracks stored before the guide existed still parse. The
+  // matching engine ignores every field below; they exist only to be read.
+  /** English name/translation of a Kiswahili-named track, e.g. "Education: the Grade 10 teacher". */
+  englishName: z.string().trim().max(80).optional(),
+  /** Who this track helps, named as a real role rather than a demographic. */
+  beneficiary: z.string().trim().max(200).optional(),
+  /** The problem statement, longer and more concrete than `description`. */
+  problem: z.string().trim().max(900).optional(),
+  /** Constraints every build in this track must satisfy. Fixed by organisers. */
+  rules: z.array(z.string().trim().min(1).max(240)).max(8).default([]),
+  /** What one working answer looks like — an illustration, not the required answer. */
+  build: z.string().trim().max(900).optional(),
+  /** The single question judges put to every team in this track. */
+  judgesAsk: z.string().trim().max(240).optional(),
 })
 
 // Compile-time check that the schema's output shape matches the engine's

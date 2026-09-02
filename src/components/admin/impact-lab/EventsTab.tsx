@@ -20,13 +20,29 @@ import { apiGet, apiSend } from "./api"
 type EventStatus = "DRAFT" | "LIVE" | "CLOSED" | "ARCHIVED"
 
 /** Mirrors src/lib/impact-lab/tracks.ts's `Track` — the client's own copy
- * so this file doesn't need to import the (server-flavoured) zod schema. */
+ * so this file doesn't need to import the (server-flavoured) zod schema.
+ * Everything below `aliases` is participant-facing guide copy the dashboard
+ * renders; matching ignores it. */
 interface Track {
   key: string
   label: string
   description?: string
   aliases: string[]
+  englishName?: string
+  beneficiary?: string
+  problem?: string
+  rules: string[]
+  build?: string
+  judgesAsk?: string
 }
+
+/**
+ * A track while it is being edited. `rulesText` is the raw textarea value,
+ * client-only: deriving `rules` on every keystroke would eat the newline the
+ * organiser just typed (a trailing empty line gets filtered away, so the
+ * caret can never reach the next row). The array is derived once, at save.
+ */
+type TrackDraft = Track & { rulesText: string }
 
 interface EventRow {
   id: string
@@ -49,7 +65,23 @@ interface EventRow {
 const splitAliases = (v: string): string[] =>
   v.split(/[;,]/).map((s) => s.trim().toLowerCase()).filter(Boolean)
 
-const EMPTY_TRACK: Track = { key: "", label: "", description: "", aliases: [] }
+/** One rule per line; blank lines and stray whitespace are dropped. */
+const splitRules = (v: string): string[] =>
+  v.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+
+const EMPTY_TRACK: TrackDraft = {
+  key: "",
+  label: "",
+  description: "",
+  aliases: [],
+  englishName: "",
+  beneficiary: "",
+  problem: "",
+  rules: [],
+  rulesText: "",
+  build: "",
+  judgesAsk: "",
+}
 
 interface OrganisationOption {
   id: string
@@ -117,7 +149,7 @@ export function EventsTab() {
   // Tracks editor: one cohort open at a time, edited as a local draft and
   // written back with a single PATCH on Save.
   const [editingTracksCohort, setEditingTracksCohort] = useState<string | null>(null)
-  const [trackDraft, setTrackDraft] = useState<Track[]>([])
+  const [trackDraft, setTrackDraft] = useState<TrackDraft[]>([])
   const [tracksSaving, setTracksSaving] = useState(false)
   const [tracksError, setTracksError] = useState<string | null>(null)
 
@@ -187,7 +219,11 @@ export function EventsTab() {
   const startEditTracks = (event: EventRow) => {
     setTracksError(null)
     setEditingTracksCohort(event.cohort)
-    setTrackDraft(event.tracks.length > 0 ? event.tracks.map((t) => ({ ...t })) : [{ ...EMPTY_TRACK }])
+    setTrackDraft(
+      event.tracks.length > 0
+        ? event.tracks.map((t) => ({ ...t, rulesText: (t.rules ?? []).join("\n") }))
+        : [{ ...EMPTY_TRACK }]
+    )
   }
 
   const cancelEditTracks = () => {
@@ -205,11 +241,20 @@ export function EventsTab() {
       // rather than sending an invalid key to the server.
       const tracks = trackDraft
         .filter((t) => t.key.trim() || t.label.trim())
+        // Built field by field rather than spread, so the client-only
+        // `rulesText` never reaches the server (trackSchema would reject it)
+        // and an emptied input is omitted instead of stored as "".
         .map((t) => ({
           key: t.key.trim(),
           label: t.label.trim(),
           ...(t.description?.trim() ? { description: t.description.trim() } : {}),
           aliases: t.aliases,
+          ...(t.englishName?.trim() ? { englishName: t.englishName.trim() } : {}),
+          ...(t.beneficiary?.trim() ? { beneficiary: t.beneficiary.trim() } : {}),
+          ...(t.problem?.trim() ? { problem: t.problem.trim() } : {}),
+          rules: splitRules(t.rulesText),
+          ...(t.build?.trim() ? { build: t.build.trim() } : {}),
+          ...(t.judgesAsk?.trim() ? { judgesAsk: t.judgesAsk.trim() } : {}),
         }))
       await apiSend("/api/admin/impact-lab/events", "PATCH", { cohort: editingTracksCohort, tracks })
       setEditingTracksCohort(null)
@@ -632,6 +677,90 @@ export function EventsTab() {
                                       next[i] = { ...track, description: e.target.value }
                                       setTrackDraft(next)
                                     }}
+                                    className={FIELD}
+                                  />
+                                </div>
+
+                                {/* Participant guide copy — rendered by
+                                    TrackGuide on the member dashboard. All
+                                    optional; an empty field is simply not
+                                    shown to participants. */}
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>English name</label>
+                                  <input
+                                    value={track.englishName ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, englishName: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="Education: the Grade 10 teacher"
+                                    className={FIELD}
+                                  />
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>Who it helps</label>
+                                  <input
+                                    value={track.beneficiary ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, beneficiary: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="A Grade 10 teacher marking 60 scripts a night"
+                                    className={FIELD}
+                                  />
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>The problem</label>
+                                  <textarea
+                                    rows={3}
+                                    value={track.problem ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, problem: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    className={`${FIELD} min-h-[80px]`}
+                                  />
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>Fixed rules (one per line, max 8)</label>
+                                  <textarea
+                                    rows={4}
+                                    value={track.rulesText}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, rulesText: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder={"Must work offline\nNo learner data leaves the device"}
+                                    className={`${FIELD} min-h-[80px]`}
+                                  />
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>One answer, not the answer</label>
+                                  <textarea
+                                    rows={3}
+                                    value={track.build ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, build: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    className={`${FIELD} min-h-[80px]`}
+                                  />
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>What the judges ask</label>
+                                  <input
+                                    value={track.judgesAsk ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, judgesAsk: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="Would a teacher use this on Monday?"
                                     className={FIELD}
                                   />
                                 </div>

@@ -4,8 +4,8 @@ import { DEFAULT_SETTINGS } from "../constants"
 import type { MatchParticipant, MatchSettings } from "../types"
 
 const TRACKS = [
-  { key: "jobs", label: "Kazi", aliases: [] },
-  { key: "health", label: "Afya", aliases: [] },
+  { key: "jobs", label: "Kazi", aliases: [], rules: [] },
+  { key: "health", label: "Afya", aliases: [], rules: [] },
 ]
 
 function participant(overrides: Partial<MatchParticipant> & { id: string }): MatchParticipant {

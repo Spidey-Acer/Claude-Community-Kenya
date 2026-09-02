@@ -8,12 +8,26 @@ import type {
 } from "@/lib/impact-lab/member";
 import { TrackRadioGroup } from "./TrackRadioGroup";
 
-/** The subset of an event's `Track` a member ever sees. Mirrors
- * src/lib/impact-lab/tracks.ts's `Track` structurally. */
+/** The subset of an event's `Track` a member ever sees — the identity fields
+ * plus the participant-facing guide copy rendered by `TrackGuide`. Mirrors
+ * src/lib/impact-lab/tracks.ts's `Track` structurally; every guide field is
+ * optional because a track may predate the guide or be half-written. */
 export interface MatchProfileTrack {
   key: string;
   label: string;
   description?: string;
+  /** English name/translation, shown under the Kiswahili label. */
+  englishName?: string;
+  /** Who this track helps, as a real role. */
+  beneficiary?: string;
+  /** The full problem statement. */
+  problem?: string;
+  /** Constraints fixed by the organisers. */
+  rules?: string[];
+  /** What one working answer looks like — an illustration, not the answer. */
+  build?: string;
+  /** The question judges put to every team in this track. */
+  judgesAsk?: string;
 }
 
 interface MatchProfileFormProps {
