@@ -377,10 +377,11 @@ export function TeamReveal({
             cohort={cohort}
             rosterLocked={team.rosterLocked}
             onChanged={() => {
-              // The roster lives in the server-rendered payload, so a change is
-              // only visible after a refetch — reload rather than patch local
-              // state, so everyone sees the same roster the server now holds.
-              router.refresh();
+              // Refetch rather than patch local state, so everyone sees the
+              // same roster and leader the server now holds. Falls back to a
+              // server re-render when no refetch was wired in.
+              if (onTeamChanged) onTeamChanged();
+              else router.refresh();
             }}
           />
 

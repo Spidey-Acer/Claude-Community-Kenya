@@ -7,11 +7,15 @@ import type { MatchProfileTrack } from "./MatchProfileForm";
 import { TrackRadioGroup } from "./TrackRadioGroup";
 import { useOwnTrack } from "./useOwnTrack";
 
-/** The caller's team, when one exists — enough to seed and label the control. */
+/** The caller's team, when one exists — enough to seed and gate the control. */
 interface PickerTeam {
   trackKey?: string | null;
-  /** Shown only to reassure that a track change does not move the team. */
+  /** Named in the helper line, to reassure that a track change is not a move. */
   table?: number | null;
+  /** The team leader's display name, or null when nobody has claimed the role. */
+  leaderName?: string | null;
+  /** True when the caller IS that leader — the only person the server accepts. */
+  iAmLeader?: boolean;
 }
 
 /**
@@ -23,7 +27,9 @@ interface PickerTeam {
  * - Team revealed (`team` present): moves the WHOLE team via
  *   POST /api/impact-lab/team/track. Changing only your own track once teams
  *   are out looked broken — the team card and the track guide both read the
- *   team's track, so nothing the member could see ever moved.
+ *   team's track, so nothing the member could see ever moved. Only the team
+ *   leader may do it, so for everybody else this renders as a read-only
+ *   statement of who to ask rather than a control that will be refused.
  *
  * The table never changes in either mode: people have already sat down.
  */
@@ -124,6 +130,16 @@ export function TrackPicker({
   // In team mode the current track comes from the already-loaded team prop,
   // so there is nothing to wait for and nothing to disable.
   const busy = saving || (!teamMode && loading);
+  // Only the leader may move the team. The server enforces this; disabling
+  // here stops the UI inviting an action it knows will be refused.
+  const canSave = !teamMode || Boolean(team?.iAmLeader);
+  const teamHelper = team?.iAmLeader
+    ? `This moves your whole team. ${
+        typeof team.table === "number" ? `Table ${team.table} stays` : "Your table stays"
+      } the same. Agree it with your teammates first.`
+    : team?.leaderName
+      ? `Only ${team.leaderName} can change the track.`
+      : "Claim team leader on the team card first, then change the track.";
 
   return (
     <section
@@ -142,12 +158,7 @@ export function TrackPicker({
           {!teamMode && loading ? "…" : currentLabel}
         </span>
       </p>
-      {teamMode && (
-        <p className="mb-3 text-sm text-text-secondary">
-          This moves your whole team. Your table stays the same. Agree it with
-          your teammates first.
-        </p>
-      )}
+      {teamMode && <p className="mb-3 text-sm text-text-secondary">{teamHelper}</p>}
       <div className="space-y-3">
         <TrackRadioGroup
           name="dashboard-track-picker"
@@ -158,12 +169,12 @@ export function TrackPicker({
             setSuccessMessage(null);
             setError(null);
           }}
-          disabled={busy}
+          disabled={busy || !canSave}
         />
         <button
           type="button"
           onClick={handleSave}
-          disabled={busy}
+          disabled={busy || !canSave}
           className="inline-flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-3 py-2 text-xs font-mono font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50 sm:w-auto"
         >
           {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}

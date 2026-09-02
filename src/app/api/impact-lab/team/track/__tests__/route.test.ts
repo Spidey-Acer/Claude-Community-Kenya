@@ -38,6 +38,9 @@ const mockTx = {
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     impactLabMatchRun: { findFirst: vi.fn() },
+    // Only the NOT_LEADER branch reads a participant outside the transaction,
+    // to name the leader in the refusal.
+    impactLabParticipant: { findUnique: vi.fn() },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(mockTx)),
   },
 }))
@@ -102,10 +105,12 @@ function givenRun(teams: unknown[], submissionsCloseAt: Date | null = null) {
   } as never)
 }
 
+// The caller leads this team — the route is leader-only.
 const myElimuTeam = team("team-1", ["me", "mate"], {
   name: "Elimu: Mwalimu wa Grade 10 7",
   trackKey: "elimu",
   table: 7,
+  leaderId: "me",
 })
 
 beforeEach(() => {
@@ -154,7 +159,14 @@ describe("POST /api/impact-lab/team/track", () => {
   })
 
   it("leaves a hand-renamed team's name alone while still moving its track", async () => {
-    givenRun([team("team-1", ["me"], { name: "The Nairobi Nine", trackKey: "elimu", table: 3 })])
+    givenRun([
+      team("team-1", ["me"], {
+        name: "The Nairobi Nine",
+        trackKey: "elimu",
+        table: 3,
+        leaderId: "me",
+      }),
+    ])
 
     const res = await POST(request({ trackKey: "kazi" }))
     const json = await res.json()
@@ -196,6 +208,33 @@ describe("POST /api/impact-lab/team/track", () => {
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
   })
 
+  it("refuses with 409 NO_LEADER when the team has not claimed a leader", async () => {
+    givenRun([team("team-1", ["me", "mate"], { trackKey: "elimu" })])
+
+    const res = await POST(request({ trackKey: "kazi" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(409)
+    expect(json.code).toBe("NO_LEADER")
+    expect(json.error).toBe("Claim team leader first, then change the track.")
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("refuses with 403 NOT_LEADER, naming the leader, when somebody else leads", async () => {
+    givenRun([team("team-1", ["me", "mate"], { trackKey: "elimu", leaderId: "mate" })])
+    vi.mocked(prisma.impactLabParticipant.findUnique).mockResolvedValue({
+      fullName: "Amina Otieno",
+    } as never)
+
+    const res = await POST(request({ trackKey: "kazi" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(json.code).toBe("NOT_LEADER")
+    expect(json.error).toContain("Amina Otieno")
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
   it("still allows the change when the roster is locked — the lock is about people, not tracks", async () => {
     vi.mocked(prisma.impactLabMatchRun.findFirst).mockResolvedValue({
       id: "run-1",
@@ -217,7 +256,13 @@ describe("POST /api/impact-lab/team/track", () => {
   })
 
   it("omits the table sentence for a run saved before tables existed", async () => {
-    givenRun([team("team-1", ["me"], { name: "Elimu: Mwalimu wa Grade 10 2", trackKey: "elimu" })])
+    givenRun([
+      team("team-1", ["me"], {
+        name: "Elimu: Mwalimu wa Grade 10 2",
+        trackKey: "elimu",
+        leaderId: "me",
+      }),
+    ])
 
     const res = await POST(request({ trackKey: "kazi" }))
     const json = await res.json()

@@ -79,6 +79,34 @@ export function extractRosterLocked(result: unknown): boolean {
   return (result as { rosterLocked?: unknown }).rosterLocked === true
 }
 
+/**
+ * A frozen team plus the optional self-declared leader. `leaderId` is an extra
+ * field the leader route writes onto the team object inside the run's result
+ * JSON — the engine's `Team` never declares it, and runs written before
+ * leaders existed simply have none.
+ */
+export type TeamWithLeader = Team & { leaderId?: string }
+
+/**
+ * Drop `leaderId` from any team whose leader is no longer one of its members.
+ *
+ * A leader who is dropped as a no-show, or who moves to another table, must
+ * not stay listed as that team's leader — the team would be stuck unable to
+ * claim a new one, and (since the leader owns the track change) unable to
+ * switch track. Enforcing "the leader is a member" rather than checking one
+ * departing id covers every removal path through `placeParticipant`: the
+ * member drop, the admin unassign, and the admin move to another team. A
+ * leader re-added to their own team keeps the role, because they end the
+ * operation in `memberIds`.
+ */
+export function clearOrphanedLeaders(teams: Team[]): Team[] {
+  return teams.map((team) => {
+    const { leaderId, ...rest } = team as TeamWithLeader
+    if (leaderId === undefined || team.memberIds.includes(leaderId)) return team
+    return rest
+  })
+}
+
 /** Remove `participantId` from every team's memberIds, other fields untouched. */
 function removeFromAllTeams(teams: Team[], participantId: string): Team[] {
   return teams.map((t) =>
@@ -102,6 +130,9 @@ function removeFromAllTeams(teams: Team[], participantId: string): Team[] {
  *
  * A no-op placement (already on the target team, nobody else moved) never
  * warns — resubmitting the same add is idempotent, not a fresh violation.
+ *
+ * Every successful placement also runs `clearOrphanedLeaders`, so a team never
+ * keeps a `leaderId` pointing at somebody who just left it.
  */
 export function placeParticipant(
   current: RosterState,
@@ -120,7 +151,7 @@ export function placeParticipant(
     return {
       status: "ok",
       state: {
-        teams: teamsWithoutThem,
+        teams: clearOrphanedLeaders(teamsWithoutThem),
         unassignedIds: [...unassignedWithoutThem, participantId],
       },
     }
@@ -143,7 +174,7 @@ export function placeParticipant(
 
   return {
     status: "ok",
-    state: { teams: nextTeams, unassignedIds: unassignedWithoutThem },
+    state: { teams: clearOrphanedLeaders(nextTeams), unassignedIds: unassignedWithoutThem },
     warning: !wasAlreadyOnTarget && nextSize > maxTeamSize ? TEAM_TOO_LARGE_WARNING : undefined,
   }
 }

@@ -290,6 +290,10 @@ export function ImpactLabClient({
 
     if (phase === "revealed" && team) {
       const hasTracks = Boolean(tracks && tracks.length > 0);
+      // The leader travels on the team payload as a flag per member, which is
+      // all the picker needs to decide between "you may move the team",
+      // "ask <name>" and "nobody has claimed this team yet".
+      const leader = team.members.find((m) => m.isLeader) ?? null;
       return (
         <div className="space-y-6">
           {cohortActive && <DeadlineCountdown cohort={cohort} />}
@@ -297,7 +301,12 @@ export function ImpactLabClient({
             <TrackPicker
               cohort={cohort}
               tracks={tracks!}
-              team={{ trackKey: team.trackKey, table: team.table }}
+              team={{
+                trackKey: team.trackKey,
+                table: team.table,
+                leaderName: leader?.fullName ?? null,
+                iAmLeader: leader?.isSelf ?? false,
+              }}
               // Refetch team + profile in place. Deliberately not
               // setPhase("loading") — that would unmount TrackPicker and take
               // the server's confirmation message away before it is read.

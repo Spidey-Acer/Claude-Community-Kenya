@@ -8,6 +8,7 @@ import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
+import { clearOrphanedLeaders, type TeamWithLeader } from "@/lib/impact-lab/roster"
 import { submissionWindow } from "@/lib/impact-lab/submission-state"
 import type { Team } from "@/lib/matching"
 
@@ -16,9 +17,12 @@ import type { Team } from "@/lib/matching"
  *
  * A member changing only their own `interests` left the team, the team card
  * and the track guide all still showing the old track — the change looked
- * broken because the thing everyone reads never moved. Any member may do
- * this (same posture as the self-service roster: the room is the truth, and
- * a team that has agreed to switch should not have to find an organiser).
+ * broken because the thing everyone reads never moved.
+ *
+ * Leader-only. What a team builds is one decision for the whole table, and
+ * unlike an add/drop (which the room can see and undo) a track switch rewrites
+ * the team's name and what the judges expect. The team names one person to
+ * own it; a team with no leader yet is told to claim one first.
  *
  * The table is deliberately untouched — people have already physically sat
  * down, and a track change is about what they are building, not where.
@@ -50,6 +54,10 @@ function renamedForTrack(
 type ChangeOutcome =
   | { status: "ok"; team: { id: string; name: string; trackKey: string; table: number | null } }
   | { status: "no_team" }
+  /** Nobody has claimed the team yet, so there is nobody entitled to decide. */
+  | { status: "no_leader" }
+  /** Somebody else leads this team; `leaderId` is theirs. */
+  | { status: "not_leader"; leaderId: string }
 
 function noTeam(): NextResponse {
   return NextResponse.json(
@@ -137,11 +145,22 @@ export async function POST(request: NextRequest) {
   // discard the first.
   const outcome = await withRunLock<ChangeOutcome>(run.id, async (tx) => {
     const fresh = await readLockedRun(tx, run.id)
-    const teams = extractFrozenTeams(fresh?.result)
-    if (!teams) return { status: "no_team" }
+    const stored = extractFrozenTeams(fresh?.result)
+    if (!stored) return { status: "no_team" }
 
-    const mine = teams.find((t) => t.memberIds.includes(memberEvent.participantId))
+    // A `leaderId` left behind by somebody who has since left the team reads
+    // as "claimed" here while the team card shows no leader — the team could
+    // neither claim nor change track. Same repair as the leader route.
+    const teams = clearOrphanedLeaders(stored)
+
+    const mine = teams.find((t) => t.memberIds.includes(memberEvent.participantId)) as
+      | TeamWithLeader
+      | undefined
     if (!mine) return { status: "no_team" }
+
+    const { leaderId } = mine
+    if (!leaderId) return { status: "no_leader" }
+    if (leaderId !== memberEvent.participantId) return { status: "not_leader", leaderId }
 
     const oldLabel = memberEvent.tracks.find((t) => t.key === mine.trackKey)?.label
     const moved: Team = {
@@ -175,6 +194,34 @@ export async function POST(request: NextRequest) {
   })
 
   if (outcome.status === "no_team") return noTeam()
+
+  if (outcome.status === "no_leader") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Claim team leader first, then change the track.",
+        code: "NO_LEADER",
+      },
+      { status: 409 }
+    )
+  }
+
+  if (outcome.status === "not_leader") {
+    const leader = await prisma.impactLabParticipant.findUnique({
+      where: { id: outcome.leaderId },
+      select: { fullName: true },
+    })
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Only the team leader can change the track. Ask ${
+          leader?.fullName ?? "your team leader"
+        } to do it or to hand over.`,
+        code: "NOT_LEADER",
+      },
+      { status: 403 }
+    )
+  }
 
   // No table on runs saved before tables existed — never say "Table null".
   const tableNote =

@@ -6,11 +6,13 @@ import { describe, it, expect } from "vitest"
 import {
   HARD_TEAM_SIZE_CAP,
   TEAM_TOO_LARGE_WARNING,
+  clearOrphanedLeaders,
   extractUnassignedIds,
   numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
   type RosterState,
+  type TeamWithLeader,
 } from "../roster"
 import type { Team } from "@/lib/matching"
 
@@ -18,6 +20,11 @@ const EMPTY_SCORE = { total: 80, dimensions: [], penalties: [], penaltyTotal: 0 
 
 function team(id: string, memberIds: string[], extra: Partial<Team> = {}): Team {
   return { id, name: `Team ${id}`, memberIds, locked: false, score: EMPTY_SCORE, ...extra }
+}
+
+/** A team whose leader is set — the extra field the leader route writes on. */
+function led(id: string, memberIds: string[], leaderId: string): TeamWithLeader {
+  return { ...team(id, memberIds), leaderId }
 }
 
 describe("placeParticipant — add to a team", () => {
@@ -176,5 +183,53 @@ describe("extractUnassignedIds", () => {
     expect(extractUnassignedIds({})).toEqual([])
     expect(extractUnassignedIds({ unassignedIds: "not-an-array" })).toEqual([])
     expect(extractUnassignedIds({ unassignedIds: ["a", 5, "b"] })).toEqual(["a", "b"])
+  })
+})
+
+describe("clearOrphanedLeaders", () => {
+  it("drops leaderId when the leader is no longer a member of that team", () => {
+    const teams = [led("team-1", ["b"], "a")]
+    expect(clearOrphanedLeaders(teams)[0]).not.toHaveProperty("leaderId")
+  })
+
+  it("keeps leaderId when the leader is still on the team", () => {
+    const teams = [led("team-1", ["a", "b"], "a")]
+    expect(clearOrphanedLeaders(teams)[0]).toHaveProperty("leaderId", "a")
+  })
+
+  it("leaves a team with no leader untouched", () => {
+    const teams = [team("team-1", ["a"])]
+    expect(clearOrphanedLeaders(teams)).toEqual(teams)
+  })
+})
+
+describe("placeParticipant — leadership follows the person", () => {
+  it("clears the leader when they are dropped to unassigned", () => {
+    const state: RosterState = {
+      teams: [led("team-1", ["a", "b"], "a")],
+      unassignedIds: [],
+    }
+    const outcome = placeParticipant(state, "a", null, 5)
+    expect(outcome.state.teams[0]).not.toHaveProperty("leaderId")
+    expect(outcome.state.unassignedIds).toEqual(["a"])
+  })
+
+  it("clears the old team's leader when they move to another team", () => {
+    const state: RosterState = {
+      teams: [led("team-1", ["a", "b"], "a"), team("team-2", ["c"])],
+      unassignedIds: [],
+    }
+    const outcome = placeParticipant(state, "a", "team-2", 5)
+    expect(outcome.state.teams.find((t) => t.id === "team-1")).not.toHaveProperty("leaderId")
+    expect(outcome.state.teams.find((t) => t.id === "team-2")?.memberIds).toEqual(["c", "a"])
+  })
+
+  it("keeps the role when a leader is re-added to their own team", () => {
+    const state: RosterState = {
+      teams: [led("team-1", ["a", "b"], "a")],
+      unassignedIds: [],
+    }
+    const outcome = placeParticipant(state, "a", "team-1", 5)
+    expect(outcome.state.teams[0]).toHaveProperty("leaderId", "a")
   })
 })
