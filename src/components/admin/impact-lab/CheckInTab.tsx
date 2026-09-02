@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Loader2, Search, UserCheck, UserX } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { TeamLookup } from "./TeamLookup"
 import type { ParticipantRow } from "./types"
 
 interface CheckInTabProps {
@@ -67,6 +68,8 @@ export function CheckInTab({ cohort }: CheckInTabProps) {
 
   return (
     <div className="space-y-4">
+      <TeamLookup cohort={cohort} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-mono text-[#555]">
           <span className="text-[#00ff41] font-semibold">{checkedInCount}</span> / {participants.length} checked in

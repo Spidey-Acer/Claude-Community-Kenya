@@ -8,6 +8,8 @@ import { csrfHeaders } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import { SubmitProject } from "./SubmitProject";
 import { TeamRoster } from "./TeamRoster";
+import type { MatchProfileTrack } from "./MatchProfileForm";
+import { useOwnTrack } from "./useOwnTrack";
 
 interface TeamResponse {
   success?: boolean;
@@ -26,15 +28,24 @@ export function TeamReveal({
   team,
   cohortActive = true,
   cohort,
+  tracks = [],
 }: {
   team: TeamRevealView;
   cohortActive?: boolean;
   /** The event this team belongs to — appended as `?cohort=` on every fetch. */
   cohort?: string;
+  /** The active event's declared tracks — used to label the team's track and
+   * detect a mismatch against the caller's own current choice. */
+  tracks?: MatchProfileTrack[];
 }) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
+  const { trackKey: ownTrackKey } = useOwnTrack(cohort, tracks);
+  const teamTrackLabel = tracks.find((t) => t.key === team.trackKey)?.label ?? null;
+  const ownTrackLabel = tracks.find((t) => t.key === ownTrackKey)?.label ?? "Any";
+  const trackMismatch =
+    tracks.length > 0 && team.trackKey && ownTrackKey !== (team.trackKey ?? "");
 
   // Seeded from the team payload (the caller is always one of the members),
   // then flipped locally the moment the check-in call succeeds — no reload
@@ -146,8 +157,13 @@ export function TeamReveal({
             <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
               {"// ./your-team"}
             </p>
-            <h2 className="font-mono text-2xl font-bold text-text-primary sm:text-3xl">
+            <h2 className="flex flex-wrap items-center gap-2 font-mono text-2xl font-bold text-text-primary sm:text-3xl">
               {team.teamName}
+              {teamTrackLabel && (
+                <span className="rounded border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-cyan">
+                  {teamTrackLabel}
+                </span>
+              )}
             </h2>
             <p className="mt-1 text-sm text-text-secondary">
               {team.members.length} members
@@ -155,6 +171,12 @@ export function TeamReveal({
                 ? " · see you at the hackathon."
                 : " · this is your record from the event."}
             </p>
+            {cohortActive && trackMismatch && (
+              <p className="mt-2 font-mono text-[11px] text-amber">
+                You chose {ownTrackLabel}; your team is in {teamTrackLabel}. Changes
+                apply at the next confirmation.
+              </p>
+            )}
           </div>
           <div className="shrink-0">
             {!cohortActive ? (

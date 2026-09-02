@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from "react"
 import { Loader2, Trash2, Download, CheckCircle2, ChevronRight, ChevronDown, Pencil, Save, X } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { RunDetail } from "./RunDetail"
+import { TeamLookup } from "./TeamLookup"
 import type { ParticipantRow, RunSummary } from "./types"
 
 interface RunsTabProps {
@@ -116,6 +117,8 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
 
   return (
     <div className="space-y-4">
+      <TeamLookup cohort={cohort} />
+
       {error && <div className="p-2 bg-[#ff3333]/10 border border-[#ff3333]/30 rounded text-[11px] font-mono text-[#ff3333]">{error}</div>}
       <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
         {loading ? (

@@ -20,6 +20,7 @@ import type {
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
+import { TrackPicker } from "./TrackPicker";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
 import { ConversationsReportCard } from "./ConversationsReportCard";
 import type { ConversationsReportView } from "@/lib/conversations/queries";
@@ -285,7 +286,13 @@ export function ImpactLabClient({
     }
 
     if (phase === "revealed" && team) {
-      return <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} />;
+      const hasTracks = Boolean(tracks && tracks.length > 0);
+      return (
+        <div className="space-y-6">
+          {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
+          <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} tracks={tracks} />
+        </div>
+      );
     }
 
     // ─── Closed cohort ─────────────────────────────────────────────────────
@@ -387,8 +394,10 @@ export function ImpactLabClient({
     if (!profile) return null;
 
     if (phase === "unassigned") {
+      const hasTracks = Boolean(tracks && tracks.length > 0);
       return (
         <div className="space-y-6">
+          {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
           <section
             className="rounded-lg border border-amber/30 bg-bg-secondary p-6"
             aria-label="Team status"
