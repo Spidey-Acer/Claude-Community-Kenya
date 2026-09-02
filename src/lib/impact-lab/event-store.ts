@@ -118,9 +118,20 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  *      lowercase slugs in the same namespace (`impact-lab-02`), so a match is
  *      the same event by any reasonable reading, and a collision between two
  *      unrelated things would need somebody to name them identically.
+ *   3. The one Impact Lab event that is LIVE, if there is exactly one. Real
+ *      slugs diverge — a public page at
+ *      `nairobi-claude-impact-lab-ai-mashinani-02-…` runs the cohort
+ *      `impact-lab-2026-09` — and the explicit link may point at a separate
+ *      morning session, so both links above can miss on the night itself.
+ *      Requiring exactly one LIVE event is what keeps this from guessing: with
+ *      two hackathons running there is no single right answer, and it declines
+ *      rather than attach the wrong panel to a page.
  *
- * Returns null when neither resolves, and pre-migration where the table does
- * not exist. Callers use it to decide whether a public page has a cohort worth
+ * The caller only asks for public events of type hackathon, which is why
+ * fallback 3 does not re-check the type it cannot see from here.
+ *
+ * Returns null when none resolves, and pre-migration where the table does not
+ * exist. Callers use it to decide whether a public page has a cohort worth
  * asking about at all.
  */
 export async function cohortForPublicEvent(
@@ -138,7 +149,16 @@ export async function cohortForPublicEvent(
       where: { cohort: eventSlug },
       select: { cohort: true },
     })
-    return bySlug?.cohort ?? null
+    if (bySlug) return bySlug.cohort
+
+    // `take: 2` is the whole question — one row means "the event running right
+    // now", two mean "ambiguous", and nothing beyond that changes the answer.
+    const live = await prisma.impactLabEvent.findMany({
+      where: { status: "LIVE" },
+      select: { cohort: true },
+      take: 2,
+    })
+    return live.length === 1 ? live[0].cohort : null
   } catch (error) {
     if (isMissingTable(error)) return null
     throw error
