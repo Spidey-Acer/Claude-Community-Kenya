@@ -156,6 +156,17 @@ export function JudgeScoring({
     onOpenTeamChange?.(openTeam !== null);
   }, [openTeam, onOpenTeamChange]);
 
+  // On a laptop the right-hand pane is the whole point of the layout; an
+  // empty pane reads as a broken page, so open the first team by default.
+  useEffect(() => {
+    if (!isDesktop || openTeam || !data || data.teams.length === 0) return;
+    const first = [...data.teams].sort(
+      (a, b) => (a.table ?? Number.MAX_SAFE_INTEGER) - (b.table ?? Number.MAX_SAFE_INTEGER)
+    )[0];
+    if (first) setOpenTeam(first.teamId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once per desktop mount
+  }, [isDesktop, data]);
+
   function setScore(teamId: string, criterionKey: string, value: number) {
     setSheets((prev) => ({
       ...prev,
@@ -310,7 +321,7 @@ export function JudgeScoring({
 
   return (
     <div className={openTeam ? "pb-44 lg:pb-0" : "pb-20 lg:pb-0"}>
-      <div className="lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[minmax(420px,5fr)_minmax(0,7fr)] lg:gap-8">
         <div className="lg:h-[calc(100vh-14rem)] lg:overflow-y-auto lg:pr-1">
           <div className="space-y-2 bg-bg-primary pb-3 lg:sticky lg:top-0 lg:z-10">
             <div className="flex items-baseline justify-between gap-3">
@@ -338,7 +349,7 @@ export function JudgeScoring({
             {/* Scrolls sideways rather than wrapping: with one chip per track
                 the row is wider than 360px, and a wrapping row pushes the
                 first team off a phone screen. */}
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
               {filters.map((entry) => (
                 <button
                   key={entry.key}
