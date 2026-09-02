@@ -50,11 +50,16 @@ export function TeamReveal({
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
-  const { trackKey: ownTrackKey } = useOwnTrack(cohort, tracks);
+  const { trackKey: ownTrackKey, loading: ownTrackLoading } = useOwnTrack(cohort, tracks);
   const teamTrackLabel = tracks.find((t) => t.key === team.trackKey)?.label ?? null;
   const ownTrackLabel = tracks.find((t) => t.key === ownTrackKey)?.label ?? "not chosen";
+  // Held back until the profile fetch settles: `ownTrackKey` is "" until then,
+  // which would flash the mismatch warning at everyone on every load.
   const trackMismatch =
-    tracks.length > 0 && team.trackKey && ownTrackKey !== (team.trackKey ?? "");
+    !ownTrackLoading &&
+    tracks.length > 0 &&
+    team.trackKey &&
+    ownTrackKey !== (team.trackKey ?? "");
 
   // Seeded from the team payload (the caller is always one of the members),
   // then flipped locally the moment the check-in call succeeds — no reload
@@ -187,8 +192,9 @@ export function TeamReveal({
             </p>
             {cohortActive && trackMismatch && (
               <p className="mt-2 font-mono text-[11px] text-amber">
-                You chose {ownTrackLabel}; your team is in {teamTrackLabel}. Changes
-                apply at the next confirmation.
+                You chose {ownTrackLabel}; your team is in {teamTrackLabel}. If
+                the whole team agreed to switch, change your team&apos;s track
+                above.
               </p>
             )}
           </div>
@@ -371,10 +377,11 @@ export function TeamReveal({
             cohort={cohort}
             rosterLocked={team.rosterLocked}
             onChanged={() => {
-              // The roster lives in the server-rendered payload, so a change is
-              // only visible after a refetch — reload rather than patch local
-              // state, so everyone sees the same roster the server now holds.
-              router.refresh();
+              // Refetch rather than patch local state, so everyone sees the
+              // same roster and leader the server now holds. Falls back to a
+              // server re-render when no refetch was wired in.
+              if (onTeamChanged) onTeamChanged();
+              else router.refresh();
             }}
           />
 
@@ -389,7 +396,7 @@ export function TeamReveal({
             }}
           />
 
-          <SubmitProject cohort={cohort} />
+          <SubmitProject cohort={cohort} teamTrackKey={team.trackKey} />
         </>
       )}
     </motion.div>

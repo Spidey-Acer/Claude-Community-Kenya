@@ -94,7 +94,18 @@ const inputClass =
   "w-full bg-bg-card border border-border-default rounded px-3 py-2.5 text-base sm:text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50";
 const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 
-export function SubmitProject({ cohort }: { cohort?: string }) {
+export function SubmitProject({
+  cohort,
+  teamTrackKey,
+}: {
+  cohort?: string;
+  /**
+   * The track the caller's team is in. Preselects the Track field on a
+   * submission nobody has filled in yet — the team's track is the answer
+   * in all but the rare case where they built for a different one.
+   */
+  teamTrackKey?: string | null;
+}) {
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [status, setStatus] = useState<Status | null>(null);
   const [eventCohort, setEventCohort] = useState<string | null>(null);
@@ -127,14 +138,17 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
       setCloseAt(json.closeAt ?? null);
       setRequirements(json.requirements ?? null);
       setTracks(json.tracks ?? []);
+      const nextForm = json.submission ? fromView(json.submission) : { ...EMPTY };
+      // Never overwrite a track a teammate already chose — only fill a blank.
+      if (!nextForm.track && teamTrackKey) nextForm.track = teamTrackKey;
+      setForm(nextForm);
       if (json.submission) {
-        setForm(fromView(json.submission));
         setLastEditedBy(json.submission.lastEditedByName);
       }
     } catch {
       setLoadError("Could not load your submission.");
     }
-  }, [cohortQuery]);
+  }, [cohortQuery, teamTrackKey]);
 
   useEffect(() => {
     void load();

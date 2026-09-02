@@ -46,6 +46,8 @@ export function TeamRoster({
   const [notice, setNotice] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Teammate selected in the hand-over control. "" until the leader picks. */
+  const [handoverTo, setHandoverTo] = useState("");
 
   async function runSearch(value: string) {
     setQuery(value);
@@ -109,12 +111,17 @@ export function TeamRoster({
   const memberIds = new Set(members.map((m) => m.id));
   const leader = members.find((m) => m.isLeader) ?? null;
   const iAmLeader = leader?.isSelf ?? false;
+  const teammates = members.filter((m) => !m.isSelf);
 
-  // Somebody has to be the one who presents and who organisers chase. Any
-  // member may claim it and a later claim replaces an earlier one — teams
-  // re-decide, and a first-come lock would leave a team stuck with whoever
-  // tapped fastest.
-  async function claimLeadership() {
+  /**
+   * Claim the leader role (no argument) or hand it to a teammate.
+   *
+   * Claimed once, then handed over: the leader presents, organisers chase
+   * them, and they own the team's track change. An open take-over let a
+   * second person seize a role somebody was already acting on, so the server
+   * refuses it and only the sitting leader can name a successor.
+   */
+  async function setLeader(participantId?: string) {
     setBusyId("leader");
     setError(null);
     setNotice(null);
@@ -122,13 +129,15 @@ export function TeamRoster({
       const res = await fetch(`/api/impact-lab/team/leader${cohortQuery}`, {
         method: "POST",
         headers: await csrfHeaders(),
+        ...(participantId ? { body: JSON.stringify({ participantId }) } : {}),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
         setError(json.error || "That did not work. Try again.");
         return;
       }
-      setNotice(json.message ?? "You are now the team leader.");
+      setNotice(json.message ?? "Team leader updated.");
+      setHandoverTo("");
       onChanged();
     } catch {
       setError("That did not work. Check your connection.");
@@ -181,19 +190,46 @@ export function TeamRoster({
         ) : (
           <span className="text-sm text-text-dim">Nobody yet</span>
         )}
-        {!iAmLeader && (
+        {/* Unclaimed: anyone may take it. Claimed by somebody else: no
+            control at all — the role only moves when its holder hands it
+            over, so a button here would only produce a refusal. */}
+        {!leader && (
           <button
             type="button"
-            onClick={claimLeadership}
+            onClick={() => setLeader()}
             disabled={busyId === "leader"}
             className="rounded-lg border border-border-default px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary disabled:opacity-50"
           >
-            {busyId === "leader"
-              ? "Saving…"
-              : leader
-                ? "Take over as leader"
-                : "I'll be team leader"}
+            {busyId === "leader" ? "Saving…" : "I'll be team leader"}
           </button>
+        )}
+        {iAmLeader && teammates.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="leader-handover" className="sr-only">
+              Hand leadership to a teammate
+            </label>
+            <select
+              id="leader-handover"
+              value={handoverTo}
+              onChange={(e) => setHandoverTo(e.target.value)}
+              className="rounded-lg border border-border-default bg-bg-primary px-2.5 py-1.5 font-mono text-xs text-text-primary focus:border-green-primary focus:outline-none"
+            >
+              <option value="">Hand over to…</option>
+              {teammates.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.fullName}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setLeader(handoverTo)}
+              disabled={!handoverTo || busyId === "leader"}
+              className="rounded-lg border border-border-default px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary disabled:opacity-50"
+            >
+              {busyId === "leader" ? "Saving…" : "Hand over"}
+            </button>
+          </div>
         )}
       </div>
 
