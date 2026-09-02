@@ -94,7 +94,7 @@ async function handlePost(request: NextRequest) {
   const caller = await resolveCaller()
   if (!caller.ok) return caller.response
 
-  const rl = await rateLimit(request, RateLimits.FORM)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Wait a moment." },
@@ -156,7 +156,7 @@ async function handleDelete(request: NextRequest) {
   const caller = await resolveCaller()
   if (!caller.ok) return caller.response
 
-  const rl = await rateLimit(request, RateLimits.FORM)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Wait a moment." },
