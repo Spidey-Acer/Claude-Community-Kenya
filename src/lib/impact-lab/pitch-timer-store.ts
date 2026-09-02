@@ -16,6 +16,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { extractOnStage, type OnStage } from "@/lib/impact-lab/roster"
 
 export const MIN_SECONDS = 30
 export const MAX_SECONDS = 3600
@@ -58,6 +59,32 @@ export async function loadPitchTimer(cohort: string): Promise<PitchTimerState | 
     }
   } catch (error) {
     console.error(`[pitch-timer-store] could not read the timer for ${cohort}`, error)
+    return null
+  }
+}
+
+/**
+ * The team the desk has put on stage for a cohort, or null when none is.
+ *
+ * Rides along with the timer read rather than getting its own endpoint: the
+ * judges' screens already poll the timer every 2s, and a second poll on the
+ * same cadence would double the request count on a venue's shared IP for a
+ * value that changes once per pitch.
+ *
+ * One indexed read (`cohort` + `isFinal`), selecting `result` only. Never
+ * throws, for the same reason `loadPitchTimer` never does: this sits on a 2s
+ * poll behind a live scorecard, and an unreadable run must not error it.
+ */
+export async function loadOnStage(cohort: string): Promise<OnStage | null> {
+  try {
+    const run = await prisma.impactLabMatchRun.findFirst({
+      where: { cohort, isFinal: true },
+      orderBy: { createdAt: "desc" },
+      select: { result: true },
+    })
+    return extractOnStage(run?.result)
+  } catch (error) {
+    console.error(`[pitch-timer-store] could not read the on-stage team for ${cohort}`, error)
     return null
   }
 }

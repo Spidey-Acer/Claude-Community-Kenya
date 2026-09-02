@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Copy, Lightbulb, Mail, PartyPopper, UserCheck, Users } from "lucide-react";
 import type { TeamRevealView } from "@/lib/impact-lab/member";
+import type { OnStage } from "@/lib/impact-lab/roster";
 import { csrfHeaders } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import { SubmitProject } from "./SubmitProject";
@@ -16,6 +17,8 @@ import { trackTone } from "@/lib/impact-lab/track-tone";
 interface TeamResponse {
   success?: boolean;
   team?: TeamRevealView;
+  /** The team the desk has on stage. Absent on an older response. */
+  onStage?: OnStage | null;
 }
 
 const TEAMMATE_POLL_INTERVAL_MS = 30_000;
@@ -31,10 +34,19 @@ export function TeamReveal({
   cohortActive = true,
   cohort,
   tracks = [],
+  onStage = null,
+  onOnStageChange,
   onTeamChanged,
 }: {
   team: TeamRevealView;
   cohortActive?: boolean;
+  /**
+   * The team the organisers' desk says is presenting right now, seeded by the
+   * parent from the page's first team fetch and refreshed by the poll below.
+   */
+  onStage?: OnStage | null;
+  /** Hands the poll's reading back up, so the parent's copy stays current. */
+  onOnStageChange?: (onStage: OnStage | null) => void;
   /** The event this team belongs to — appended as `?cohort=` on every fetch. */
   cohort?: string;
   /** The active event's declared tracks — used to label the team's track and
@@ -68,6 +80,13 @@ export function TeamReveal({
   const [checkedIn, setCheckedIn] = useState(
     () => team.members.find((m) => m.isSelf)?.checkedIn ?? false
   );
+  // Held in a ref so the parent passing an inline setter cannot restart the
+  // 30s interval below on every render.
+  const onStageChangeRef = useRef(onOnStageChange);
+  useEffect(() => {
+    onStageChangeRef.current = onOnStageChange;
+  }, [onOnStageChange]);
+
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
 
@@ -94,6 +113,9 @@ export function TeamReveal({
         .then((res) => (res.ok ? (res.json() as Promise<TeamResponse>) : null))
         .then((json) => {
           if (!json?.success || !json.team) return; // keep showing current data, retry next tick
+          // The stage rides on the response this poll already makes — no extra
+          // request for a value that changes once per pitch.
+          onStageChangeRef.current?.(json.onStage ?? null);
           setTeammateCheckedIn((prev) => {
             const next = { ...prev };
             for (const m of json.team!.members) {
@@ -155,6 +177,16 @@ export function TeamReveal({
         className="relative overflow-hidden rounded-lg border border-green-primary/30 bg-bg-secondary p-4 sm:p-6"
         aria-label="Your team"
       >
+        {/* The desk has put this team up. Full width and above everything else
+            on the card, because somebody reading this is about to stand up. */}
+        {onStage?.teamId === team.id && (
+          <p
+            role="status"
+            className="relative -mx-4 -mt-4 mb-4 bg-green-primary px-4 py-3 text-center font-mono text-sm font-bold uppercase tracking-wider text-bg-primary sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-6"
+          >
+            You&apos;re on stage now. Five minutes, live demo.
+          </p>
+        )}
         {!prefersReducedMotion && (
           <motion.div
             aria-hidden="true"

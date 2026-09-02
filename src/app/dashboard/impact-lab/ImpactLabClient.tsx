@@ -17,7 +17,7 @@ import type {
   MemberTeamStatus,
   TeamRevealView,
 } from "@/lib/impact-lab/member";
-import type { Judge } from "@/lib/impact-lab/roster";
+import type { Judge, OnStage } from "@/lib/impact-lab/roster";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { DeadlineCountdown } from "./DeadlineCountdown";
 import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
@@ -43,6 +43,8 @@ interface TeamResponse {
   team?: TeamRevealView;
   /** The published panel. Absent on an older response — degrades to no section. */
   judges?: Judge[];
+  /** The team the desk has on stage. Absent on an older response. */
+  onStage?: OnStage | null;
   error?: string;
 }
 
@@ -112,6 +114,10 @@ export function ImpactLabClient({
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
   const [judges, setJudges] = useState<Judge[]>([]);
+  // Seeded from the same payload the team card comes from, so the "you're on
+  // stage" banner is right on first paint instead of up to 30s late. Kept
+  // current after that by TeamReveal's existing poll.
+  const [onStage, setOnStage] = useState<OnStage | null>(null);
   const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
   // An object payload distinguishes registering into `inviteEvent` (from the
@@ -181,6 +187,7 @@ export function ImpactLabClient({
         // Set before the status branching below: the panel is event-wide and
         // travels on both the revealed and unassigned payloads.
         setJudges(teamJson.judges ?? []);
+        setOnStage(teamJson.onStage ?? null);
 
         if (teamJson.status === "revealed" && teamJson.team) {
           setTeam(teamJson.team);
@@ -329,6 +336,8 @@ export function ImpactLabClient({
           <TeamReveal
             key={team.trackKey ?? ""}
             team={team}
+            onStage={onStage}
+            onOnStageChange={setOnStage}
             cohortActive={cohortActive}
             cohort={cohort}
             tracks={tracks}

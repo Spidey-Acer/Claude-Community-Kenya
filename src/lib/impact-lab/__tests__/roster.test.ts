@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest"
 import {
   extractJudgeSignIn,
+  extractOnStage,
   extractJudges,
   judgeInitials,
   judgeNameForIdentity,
@@ -410,5 +411,34 @@ describe("renameTeamsByTable", () => {
       TRACKS
     ).teams
     expect(renameTeamsByTable(already, TRACKS).renamed).toBe(0)
+  })
+})
+
+describe("extractOnStage", () => {
+  const since = "2026-09-02T14:05:00.000Z"
+
+  it("reads a well-formed entry", () => {
+    expect(extractOnStage({ onStage: { teamId: "team-3", since } })).toEqual({
+      teamId: "team-3",
+      since,
+    })
+  })
+
+  it("returns null for a run written before on-stage existed", () => {
+    expect(extractOnStage({ teams: [], unassignedIds: [] })).toBeNull()
+  })
+
+  it("returns null for an explicitly cleared stage", () => {
+    expect(extractOnStage({ onStage: null })).toBeNull()
+  })
+
+  it("returns null rather than throwing on junk", () => {
+    expect(extractOnStage(null)).toBeNull()
+    expect(extractOnStage("on stage")).toBeNull()
+    expect(extractOnStage({ onStage: "team-3" })).toBeNull()
+    expect(extractOnStage({ onStage: { teamId: "team-3" } })).toBeNull()
+    expect(extractOnStage({ onStage: { since } })).toBeNull()
+    expect(extractOnStage({ onStage: { teamId: "", since } })).toBeNull()
+    expect(extractOnStage({ onStage: { teamId: "team-3", since: 0 } })).toBeNull()
   })
 })

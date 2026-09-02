@@ -17,6 +17,7 @@ interface WrittenResult {
   unassignedIds: string[]
   rosterLocked?: boolean
   judges?: { id: string; name: string; order: number }[]
+  onStage?: { teamId: string; since: string } | null
 }
 
 const mockTx = {
@@ -416,6 +417,77 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — judges", () => {
     mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce(null)
 
     const res = await PATCH(patchRequest({ judges: [judgeBody("j1", 1)] }), { params })
+
+    expect(res.status).toBe(404)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — onStage", () => {
+  it("puts a team on stage, stamping `since` server-side", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"]), team("team-2", ["p2"])], unassignedIds: [] },
+      settings: {},
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ onStage: { teamId: "team-2" } }), { params })
+
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.onStage?.teamId).toBe("team-2")
+    expect(Number.isNaN(Date.parse(written.onStage!.since))).toBe(false)
+    // The rest of the result JSON survives untouched.
+    expect(written.teams).toHaveLength(2)
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { onStage: { teamId: "team-2" } } })
+    )
+  })
+
+  it("clears the stage without needing readable teams", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { onStage: { teamId: "team-2", since: "2026-09-02T14:00:00.000Z" } },
+      settings: {},
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", result: { onStage: null } } as never)
+
+    const res = await PATCH(patchRequest({ onStage: { teamId: null } }), { params })
+
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.onStage).toBeNull()
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { onStage: { teamId: null } } })
+    )
+  })
+
+  it("400s on a team that does not belong to this run", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: {},
+    })
+
+    const res = await PATCH(patchRequest({ onStage: { teamId: "ghost" } }), { params })
+
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+    expect(logAudit).not.toHaveBeenCalled()
+  })
+
+  it("404s if the run is gone by the time the lock is acquired", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce(null)
+
+    const res = await PATCH(patchRequest({ onStage: { teamId: "team-1" } }), { params })
 
     expect(res.status).toBe(404)
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()

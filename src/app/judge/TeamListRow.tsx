@@ -2,7 +2,7 @@
 
 import type { JudgeTeamRow } from "@/lib/impact-lab/judge-team";
 import { trackTone } from "@/lib/impact-lab/track-tone";
-import { FOCUS_RING } from "./judge-ui";
+import { FOCUS_RING, ON_STAGE_PILL } from "./judge-ui";
 
 /**
  * One team in the run list.
@@ -15,6 +15,7 @@ import { FOCUS_RING } from "./judge-ui";
 export function TeamListRow({
   team,
   isSelected,
+  isOnStage,
   isDesktop,
   scoredTotal,
   totalOutOf,
@@ -22,6 +23,8 @@ export function TeamListRow({
 }: {
   team: JudgeTeamRow;
   isSelected: boolean;
+  /** True for the one team the desk has put on stage. */
+  isOnStage: boolean;
   /** On a phone the row expands in place; on a laptop it selects the pane. */
   isDesktop: boolean;
   /** This judge's own total, or null when they have not scored the team. */
@@ -50,6 +53,9 @@ export function TeamListRow({
             aria-hidden="true"
             className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`}
           />
+          {isOnStage && (
+            <span className={ON_STAGE_PILL}>ON STAGE</span>
+          )}
           {team.table !== null && (
             <span className="font-mono text-base font-bold text-text-primary">
               Table {team.table}

@@ -9,6 +9,7 @@ import { defaultAdminCohort } from "@/lib/impact-lab/event-store"
 import {
   DEFAULT_SECONDS,
   isValidSeconds,
+  loadOnStage,
   loadPitchTimer,
 } from "@/lib/impact-lab/pitch-timer-store"
 
@@ -57,7 +58,14 @@ async function resolveCaller(): Promise<
   return { ok: true, displayName: check.user.name }
 }
 
-/** GET — the timer currently running for a cohort, or null. */
+/**
+ * GET — the timer currently running for a cohort, or null, plus the team the
+ * desk has on stage.
+ *
+ * The two travel together because the judges' screens want both at the same
+ * 2s cadence and the alternative is a second poll — see `loadOnStage`. Both
+ * degrade to null independently rather than failing the response.
+ */
 export async function GET(request: NextRequest) {
   const caller = await resolveCaller()
   if (!caller.ok) return caller.response
@@ -71,9 +79,9 @@ export async function GET(request: NextRequest) {
   }
 
   const cohort = validCohort(request.nextUrl.searchParams.get("cohort")) ?? (await defaultAdminCohort())
-  const timer = await loadPitchTimer(cohort)
+  const [timer, onStage] = await Promise.all([loadPitchTimer(cohort), loadOnStage(cohort)])
 
-  return NextResponse.json({ success: true, timer }, { headers: rl.headers })
+  return NextResponse.json({ success: true, timer, onStage }, { headers: rl.headers })
 }
 
 /** POST — start or restart the countdown for a cohort. */

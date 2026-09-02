@@ -7,6 +7,7 @@ import {
   type JudgeBriefCriterion,
   type JudgeTab,
 } from "@/lib/impact-lab/judge-brief";
+import type { OnStage } from "@/lib/impact-lab/roster";
 import type { Track } from "@/lib/impact-lab/tracks";
 import { CHIP, CHIP_OFF, CHIP_ON, EYEBROW, GHOST_BUTTON } from "./judge-ui";
 import { JudgeBrief, type JudgePanelMember } from "./JudgeBrief";
@@ -79,6 +80,23 @@ export function JudgeEventPicker({
   // a slim strip while one is, so it and the scorecard's pinned action bar
   // stack instead of overlapping.
   const [teamOpen, setTeamOpen] = useState(false);
+  // The team the desk has on stage. Owned here rather than in `JudgeScoring`
+  // because the only 2s poll on this screen belongs to `PitchTimer`, and the
+  // two are siblings — see `PitchTimer`'s `onStageChange`.
+  const [onStage, setOnStage] = useState<OnStage | null>(null);
+
+  /**
+   * Take the poll's reading, keeping the previous object when nothing changed.
+   *
+   * The poll hands over a fresh object every 2s. Storing it unconditionally
+   * would re-render the whole scorecard — and re-fire its auto-open effect —
+   * twice a second for a value that changes once per pitch.
+   */
+  const handleOnStage = useCallback((next: OnStage | null) => {
+    setOnStage((prev) =>
+      prev?.teamId === next?.teamId && prev?.since === next?.since ? prev : next
+    );
+  }, []);
 
   /**
    * Decide the opening panel from the remembered choice and whether this judge
@@ -249,6 +267,7 @@ export function JudgeEventPicker({
       <div hidden={tab !== "score"}>
         <JudgeScoring
           cohort={selected.cohort}
+          onStage={onStage}
           onDirtyChange={setDirty}
           onScoredChange={settleTab}
           onOpenTeamChange={setTeamOpen}
@@ -257,7 +276,11 @@ export function JudgeEventPicker({
       <div className="print:hidden">
         {/* Collapsed while a team is open, so the scorecard's action bar —
             pinned directly above it — has a fixed height to sit on. */}
-        <PitchTimer cohort={selected.cohort} compact={tab === "score" && teamOpen} />
+        <PitchTimer
+          cohort={selected.cohort}
+          compact={tab === "score" && teamOpen}
+          onStageChange={handleOnStage}
+        />
       </div>
     </Shell>
   );
