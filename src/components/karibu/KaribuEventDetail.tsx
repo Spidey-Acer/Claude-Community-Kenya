@@ -237,8 +237,10 @@ export function KaribuEventDetail({
             </div>
           )}
 
-          {/* Demo request form — upcoming events only */}
-          {!isPast && (
+          {/* Demo request form: upcoming meetups and workshops only. A hackathon's
+              demos come from its heats and the logged-in dashboard submission,
+              and Conversations events have their own participation forms. */}
+          {!isPast && event.type !== "hackathon" && event.type !== "conversations" && (
             <div className="mt-9">
               <h2 className="mb-2 font-newsreader text-[24px] font-medium text-ink">
                 Request a demo slot

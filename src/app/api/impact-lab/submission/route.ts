@@ -7,10 +7,15 @@ import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
-  submissionInputSchema,
+  buildSubmissionSchema,
+  type SubmissionInput,
   type SubmissionView,
 } from "@/lib/impact-lab/submission-schema"
 import { findTeamFor, submissionWindow } from "@/lib/impact-lab/submission-state"
+import {
+  submissionRequirementsForCohort,
+  toRequirementsView,
+} from "@/lib/impact-lab/submission-requirements"
 import type { ImpactLabSubmission } from "@/generated/prisma/client"
 
 /**
@@ -131,6 +136,8 @@ export async function GET(request: NextRequest) {
     eventCohort: memberEvent.cohort,
     closeAt: context.closeAt ? context.closeAt.toISOString() : null,
     submission: existing ? await toView(existing, memberEvent.cohort) : undefined,
+    requirements: toRequirementsView(submissionRequirementsForCohort(memberEvent.cohort)),
+    tracks: memberEvent.tracks,
   })
 }
 
@@ -199,14 +206,19 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 })
   }
 
-  const parsed = submissionInputSchema.safeParse(body)
+  const requirements = submissionRequirementsForCohort(memberEvent.cohort)
+  const schema = buildSubmissionSchema(requirements)
+  const parsed = schema.safeParse(body)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
     const field = typeof issue?.path[0] === "string" ? issue.path[0] : ""
     // Name the field. "A link is required" over five link inputs tells a team
     // that something is wrong and nothing about what — at 2 AM that is the
-    // difference between fixing it and giving up.
-    const label = SUBMISSION_FIELD_LABELS[field]
+    // difference between fixing it and giving up. The cohort's own label (if
+    // any) wins over the generic one, since it carries the specific prompt
+    // ("This helps ___, who today struggles with ___...") the form showed.
+    const label =
+      requirements.labels[field as keyof SubmissionInput] ?? SUBMISSION_FIELD_LABELS[field]
     const message = issue?.message ?? "Invalid submission"
     return NextResponse.json(
       {

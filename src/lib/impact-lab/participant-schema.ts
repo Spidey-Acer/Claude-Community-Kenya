@@ -55,7 +55,54 @@ export const participantDraftSchema = z.object({
   consentToShareContact: z.boolean().default(false),
 })
 
-/** Same fields, all optional — for PATCH (edit) requests. */
-export const participantUpdateSchema = participantDraftSchema.partial()
+
+/**
+ * Update-only variants of the array fields: no `.default([])`, so a PATCH
+ * that omits a list leaves it untouched instead of emptying it.
+ */
+const updateTokenArray = z
+  .array(z.string().max(80))
+  .max(30)
+  .optional()
+  .transform((values) => (values ? values.map((v) => v.trim()).filter(Boolean) : undefined))
+
+const updateEmailArray = z
+  .array(z.string().max(254))
+  .max(30)
+  .optional()
+  .transform((values) =>
+    values ? values.map((v) => zodSanitizeEmail(v)).filter(Boolean) : undefined
+  )
+
+/**
+ * Same fields, all optional — for PATCH (edit) requests.
+ *
+ * Built from `.omit` + `.extend` rather than a plain `.partial()`: Zod's
+ * `.partial()` keeps a field's `.default(false)` behaviour, so a PATCH body
+ * that never mentions `consentToMatch`/`consentToShareContact` (e.g. "just
+ * change the track") parsed to `{ consentToMatch: false, consentToShareContact:
+ * false, ...track }` and the route wrote that straight into the update —
+ * silently revoking both consents on every unrelated edit. The two fields are
+ * redeclared as plain `.optional()` booleans with no default, so an absent
+ * key stays absent and the route's `data: validation.data` only ever touches
+ * the fields the caller actually sent.
+ */
+export const participantUpdateSchema = z.object({
+  fullName: participantDraftSchema.shape.fullName.optional(),
+  email: participantDraftSchema.shape.email.optional(),
+  phone: participantDraftSchema.shape.phone,
+  institution: participantDraftSchema.shape.institution,
+  experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
+  primaryRole: participantDraftSchema.shape.primaryRole.optional(),
+  secondaryRoles: updateTokenArray,
+  technicalSkills: updateTokenArray,
+  interests: updateTokenArray,
+  availability: updateTokenArray,
+  projectIdeas: participantDraftSchema.shape.projectIdeas,
+  preferredTeammates: updateEmailArray,
+  blockedTeammates: updateEmailArray,
+  consentToMatch: z.boolean().optional(),
+  consentToShareContact: z.boolean().optional(),
+})
 
 export type ParticipantDraft = z.infer<typeof participantDraftSchema>

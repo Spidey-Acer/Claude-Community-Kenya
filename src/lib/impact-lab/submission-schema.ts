@@ -20,6 +20,7 @@ import {
   zodSanitizeString,
   zodSanitizeUrl,
 } from "@/lib/input-sanitization"
+import type { SubmissionRequirements } from "./submission-requirements"
 
 // Raised mid-event: teams were hitting the ceiling while writing up what
 // works versus what is mocked, and a submission you cannot finish is worse
@@ -76,7 +77,8 @@ function requiredMultilineText(max: number) {
 }
 
 /**
- * The pitch deck is the only required field. Everything else is optional.
+ * By default, the pitch deck is the only required field. Everything else is
+ * optional.
  *
  * The original form required eight fields including a repository URL, which
  * fitted the Impact Lab: a Claude Code hackathon where every team shipped
@@ -90,6 +92,12 @@ function requiredMultilineText(max: number) {
  * required field that stops a team submitting at 2 AM costs more than a blank
  * one. A team is identified by its team name, which comes from the run rather
  * than from this form, so a sparse submission is still attributable.
+ *
+ * This is only the default posture, though — see `buildSubmissionSchema`.
+ * The 2 Sep 2026 cohort is the opposite case: a Claude Code hackathon where
+ * the demo is live and slides are optional, so seven other fields are
+ * required instead. `submission-requirements.ts` holds the per-cohort table;
+ * this file only knows how to turn that table into a schema.
  */
 
 /** Optional single-line text; absent or whitespace-only becomes "". */
@@ -128,23 +136,64 @@ const optionalUrlAsEmpty = z
   .refine((v) => v !== null, { message: "That link is not a valid http(s) URL" })
   .transform((v) => v ?? "")
 
-export const submissionInputSchema = z.object({
-  projectName: optionalText(200),
-  pitch: optionalText(500),
-  description: optionalMultilineText(MAX_LONG_TEXT),
-  worksVsMocked: optionalMultilineText(MAX_LONG_TEXT),
-  claudeUsage: optionalMultilineText(MAX_LONG_TEXT),
-  track: optionalText(200),
-  problemTackled: optionalText(1000),
-  repoUrl: optionalUrlAsEmpty,
-  demoUrl: optionalUrl,
-  videoUrl: optionalUrl,
-  /** The one required field — see the note above. */
-  slidesUrl: requiredUrl,
-  screenshotUrl: optionalUrl,
+/**
+ * Builds the submission schema for a cohort's requirements. Every field
+ * always sanitises the same way; `requirements.required` only decides
+ * whether the sanitised result may be empty.
+ *
+ * `repoUrl` keeps `optionalUrlAsEmpty`'s "" fallback (not `optionalUrl`'s
+ * null) when not required — see that helper's docstring on why the column
+ * cannot be nullable — and switches to `requiredUrl` when it is.
+ */
+export function buildSubmissionSchema(requirements: SubmissionRequirements) {
+  const isRequired = (field: keyof SubmissionInput) => requirements.required.has(field)
+
+  return z.object({
+    projectName: isRequired("projectName") ? requiredText(200) : optionalText(200),
+    pitch: isRequired("pitch") ? requiredText(500) : optionalText(500),
+    description: optionalMultilineText(MAX_LONG_TEXT),
+    worksVsMocked: isRequired("worksVsMocked")
+      ? requiredMultilineText(MAX_LONG_TEXT)
+      : optionalMultilineText(MAX_LONG_TEXT),
+    claudeUsage: isRequired("claudeUsage")
+      ? requiredMultilineText(MAX_LONG_TEXT)
+      : optionalMultilineText(MAX_LONG_TEXT),
+    track: isRequired("track") ? requiredText(200) : optionalText(200),
+    problemTackled: isRequired("problemTackled") ? requiredText(1000) : optionalText(1000),
+    repoUrl: isRequired("repoUrl") ? requiredUrl : optionalUrlAsEmpty,
+    demoUrl: isRequired("demoUrl") ? requiredUrl : optionalUrl,
+    videoUrl: isRequired("videoUrl") ? requiredUrl : optionalUrl,
+    slidesUrl: isRequired("slidesUrl") ? requiredUrl : optionalUrl,
+    screenshotUrl: isRequired("screenshotUrl") ? requiredUrl : optionalUrl,
+  })
+}
+
+/**
+ * The default profile's schema — every cohort not named in
+ * `submission-requirements.ts`. Kept as a standalone export so existing
+ * callers that don't resolve a cohort still compile; the member routes use
+ * `buildSubmissionSchema` with the caller's actual cohort instead.
+ */
+export const submissionInputSchema = buildSubmissionSchema({
+  required: new Set(["slidesUrl"]),
+  labels: {},
+  trackSelect: false,
 })
 
-export type SubmissionInput = z.infer<typeof submissionInputSchema>
+export type SubmissionInput = {
+  projectName: string
+  pitch: string
+  description: string
+  worksVsMocked: string
+  claudeUsage: string
+  track: string
+  problemTackled: string
+  repoUrl: string
+  demoUrl: string | null
+  videoUrl: string | null
+  slidesUrl: string | null
+  screenshotUrl: string | null
+}
 
 /** What the member GET returns — the form's fields plus who last touched it. */
 export interface SubmissionView {
