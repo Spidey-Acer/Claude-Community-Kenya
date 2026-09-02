@@ -297,10 +297,10 @@ export function ImpactLabClient({
             cohortActive={cohortActive}
             cohort={cohort}
             tracks={tracks}
-            onTeamChanged={() => {
-              setPhase("loading");
-              setReloadKey((k) => k + 1);
-            }}
+            // Refetch in place. Dropping to "loading" first would unmount the
+            // team card and replay its entrance animation on every accept —
+            // the phase is already "revealed" and the load below sets it again.
+            onTeamChanged={() => setReloadKey((k) => k + 1)}
           />
           {hasTracks && (
             <TrackGuide cohort={cohort} tracks={tracks!} teamTrackKey={team.trackKey} />

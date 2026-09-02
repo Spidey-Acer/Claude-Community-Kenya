@@ -127,7 +127,13 @@ export function JoinRequestCard({
   }
 
   const trackLabel = tracks.find((t) => t.key === myTrackKey)?.label ?? myTrackKey;
-  const canSend = Boolean(myTrackKey) && !busy;
+  // A missing track only blocks the ask when the event HAS tracks to pick
+  // from. An event running untracked never asked anybody to choose and its
+  // teams carry no track either, so the ask reaches all of them — telling
+  // that person to "pick your track above" would point at a control the
+  // dashboard never renders.
+  const needsTrack = tracks.length > 0 && !myTrackKey;
+  const canSend = !needsTrack && !busy;
 
   return (
     <section
@@ -150,9 +156,13 @@ export function JoinRequestCard({
           ) : myRequest ? (
             <div className="mt-2 space-y-3">
               <p className="break-words text-sm leading-relaxed text-text-secondary">
-                Your request is with every team in{" "}
-                <span className="text-text-primary">{trackLabel ?? "your track"}</span> that
-                still has room ({teamsWithRoom}{" "}
+                Your request is with every team{" "}
+                {trackLabel && (
+                  <>
+                    in <span className="text-text-primary">{trackLabel}</span>{" "}
+                  </>
+                )}
+                that still has room ({teamsWithRoom}{" "}
                 {teamsWithRoom === 1 ? "team" : "teams"}). You will see your team here when
                 one accepts.
               </p>
@@ -172,18 +182,22 @@ export function JoinRequestCard({
             </div>
           ) : (
             <div className="mt-2 space-y-3">
-              {myTrackKey ? (
-                <p className="break-words text-sm leading-relaxed text-text-secondary">
-                  Teams in{" "}
-                  <span className="text-text-primary">{trackLabel}</span> with fewer than
-                  five people will see your name and can take you on.
-                </p>
-              ) : (
+              {needsTrack ? (
                 <p
                   className="break-words rounded border border-amber/30 bg-amber/10 px-3 py-2 text-sm text-amber"
                   role="status"
                 >
                   Pick your track above first so the right teams see you
+                </p>
+              ) : (
+                <p className="break-words text-sm leading-relaxed text-text-secondary">
+                  Teams{" "}
+                  {trackLabel && (
+                    <>
+                      in <span className="text-text-primary">{trackLabel}</span>{" "}
+                    </>
+                  )}
+                  with fewer than five people will see your name and can take you on.
                 </p>
               )}
 
