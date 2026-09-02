@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { ChevronDown, ChevronRight, Download, Loader2 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { buildFinalList, type FinalListTeamInput } from "@/lib/impact-lab/final-list"
 import type { MatchResult } from "./types"
 
 /** The subset of GET /runs/[id]'s response this view renders. */
@@ -13,9 +14,11 @@ interface RunDetailData {
   explanations: { teamId: string; summary: string; source: "deterministic" | "ai" }[] | null
 }
 
-/** Minimal shape needed to resolve a member id to a display name. */
+/** Minimal shape needed to resolve a member id to a display name and check-in state. */
 interface DirectoryEntry {
   fullName: string
+  /** ISO timestamp, or null/absent if this participant hasn't checked in. */
+  checkedInAt?: string | null
 }
 
 const DIMENSION_LABEL: Record<string, string> = {
@@ -49,6 +52,11 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [movingId, setMovingId] = useState<string | null>(null)
   const [settingTableId, setSettingTableId] = useState<string | null>(null)
   const [numberingTables, setNumberingTables] = useState(false)
+  const [lockBusy, setLockBusy] = useState(false)
+  const [confirmingLock, setConfirmingLock] = useState(false)
+  // null until the organiser toggles it explicitly — until then, the panel's
+  // open state follows the lock (open once locked, closed otherwise).
+  const [finalListOpen, setFinalListOpen] = useState<boolean | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -112,6 +120,27 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
     }
   }
 
+  /**
+   * Lock (or unlock) the roster. Locking is the "Finalize teams" action —
+   * organiser move/unassign keeps working either way, only the member
+   * self-service add/drop route reads this flag.
+   */
+  async function setRosterLock(lockRoster: boolean) {
+    setLockBusy(true)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        lockRoster,
+      })
+      setDetail(response)
+      setConfirmingLock(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update the roster lock")
+    } finally {
+      setLockBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6 text-center bg-[#0a0a0a] border-t border-[#1e1e1e]">
@@ -135,8 +164,69 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
     (detail.explanations ?? []).map((e) => [e.teamId, e])
   )
 
+  const rosterLocked = result.rosterLocked === true
+  const finalListIsOpen = finalListOpen ?? rosterLocked
+
+  const trackLabelByKey = new Map(
+    (result.settingsUsed?.tracks ?? []).map((t) => [t.key, t.label])
+  )
+  const finalListTeams: FinalListTeamInput[] = result.teams.map((t) => ({
+    id: t.id,
+    name: t.name,
+    table: (t as { table?: number | null }).table ?? null,
+    trackKey: t.trackKey ?? null,
+    memberIds: t.memberIds,
+  }))
+  const finalListParticipants = Array.from(directory.entries()).map(([id, entry]) => ({
+    id,
+    fullName: entry.fullName,
+    checkedIn: Boolean(entry.checkedInAt),
+  }))
+  const finalList = buildFinalList(finalListTeams, finalListParticipants)
+
   return (
     <div className="p-4 space-y-3 bg-[#0a0a0a] border-t border-[#1e1e1e]">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-[#0d0d0d] border border-[#1e1e1e] rounded">
+        {rosterLocked ? (
+          <button
+            onClick={() => setRosterLock(false)}
+            disabled={lockBusy}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] disabled:opacity-40"
+          >
+            {lockBusy && <Loader2 className="w-3 h-3 animate-spin" />}
+            Teams locked · Unlock
+          </button>
+        ) : confirmingLock ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-mono text-[#ffb000]">
+              Lock the roster? Members lose add/drop; the desk can still move people.
+            </span>
+            <button
+              onClick={() => setRosterLock(true)}
+              disabled={lockBusy}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#ffb000]/10 hover:bg-[#ffb000]/20 border border-[#ffb000]/30 rounded text-[11px] font-mono text-[#ffb000] disabled:opacity-40"
+            >
+              {lockBusy && <Loader2 className="w-3 h-3 animate-spin" />}
+              Confirm lock
+            </button>
+            <button
+              onClick={() => setConfirmingLock(false)}
+              disabled={lockBusy}
+              className="px-2.5 py-1 text-[11px] font-mono text-[#888] hover:text-[#ccc]"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingLock(true)}
+            className="px-3 py-1.5 bg-[#ffb000]/10 hover:bg-[#ffb000]/20 border border-[#ffb000]/30 rounded text-[11px] font-mono font-semibold text-[#ffb000]"
+          >
+            Finalize teams
+          </button>
+        )}
+      </div>
+
       {result.warnings.length > 0 && (
         <div className="p-2 bg-[#ffb000]/5 border border-[#ffb000]/20 rounded text-[11px] font-mono text-[#ffb000] space-y-0.5">
           {result.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
@@ -279,6 +369,95 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
           ))}
         </div>
       )}
+
+      <section className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setFinalListOpen(!finalListIsOpen)}
+          aria-expanded={finalListIsOpen}
+          className="flex w-full items-center justify-between px-3 py-2 text-left"
+        >
+          <span className="font-mono text-[11px] uppercase tracking-wider text-[#888]">
+            Final list
+          </span>
+          {finalListIsOpen ? (
+            <ChevronDown className="w-3.5 h-3.5 text-[#555]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-[#555]" />
+          )}
+        </button>
+
+        {finalListIsOpen && (
+          <div className="border-t border-[#1e1e1e] p-3 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-mono text-[#888]">
+                {finalList.summary.teamCount} teams · {finalList.summary.placedCount} placed ·{" "}
+                {finalList.summary.checkedInCount} checked in ·{" "}
+                {finalList.summary.checkedInWithoutTeamCount} checked in without a team
+              </p>
+              <a
+                href={`/api/admin/impact-lab/runs/${runId}/export?view=final`}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[10px] font-mono text-[#00d4ff]/80 hover:text-[#00d4ff]"
+              >
+                <Download className="w-3 h-3" />
+                Download final list
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {finalList.teams.map((team) => (
+                <div key={team.id} className="p-2 bg-[#111] border border-[#1e1e1e] rounded space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-[#e0e0e0]">
+                    <span>{team.name}</span>
+                    {typeof team.table === "number" && (
+                      <span className="text-[#ffb000]">Table {team.table}</span>
+                    )}
+                    {team.trackKey && (
+                      <span className="text-[#00d4ff]">
+                        {trackLabelByKey.get(team.trackKey) ?? team.trackKey}
+                      </span>
+                    )}
+                  </div>
+                  <ul className="space-y-0.5">
+                    {team.members.map((m) => (
+                      <li key={m.id} className="flex items-center gap-1.5 text-[10px] font-mono text-[#aaa]">
+                        <span
+                          aria-hidden="true"
+                          className={`h-1.5 w-1.5 rounded-full ${m.checkedIn ? "bg-[#00ff41]" : "bg-[#444]"}`}
+                        />
+                        {m.fullName}
+                        <span className="text-[#555]">{m.checkedIn ? "in the room" : "not here"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-[#888]">
+                Checked in, no team ({finalList.checkedInNoTeam.length})
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {finalList.checkedInNoTeam.map((p) => (
+                  <li key={p.id} className="text-[10px] font-mono text-[#aaa]">{p.fullName}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-[#888]">
+                On a team, not checked in ({finalList.onTeamNotCheckedIn.length})
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {finalList.onTeamNotCheckedIn.map((p) => (
+                  <li key={p.id} className="text-[10px] font-mono text-[#aaa]">{p.fullName}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

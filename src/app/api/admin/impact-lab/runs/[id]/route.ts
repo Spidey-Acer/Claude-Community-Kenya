@@ -226,6 +226,45 @@ async function handleNumberTables(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * "Finalize teams": set (or clear) `result.rosterLocked`. Once locked, the
+ * member self-service roster (add/drop) refuses with 423 — see the `rosterLocked`
+ * gate in `POST/DELETE /api/impact-lab/team/roster`. Mirrors `handleMove`'s
+ * lock/read/write/audit shape — both edit the same run row under the same lock.
+ */
+async function handleLockRoster(
+  request: NextRequest,
+  runId: string,
+  lockRoster: boolean,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    if (!fresh) return { status: "not_found" as const }
+
+    await writeRunResult(tx, runId, { ...(fresh.result as object), rosterLocked: lockRoster })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "not_found") {
+    return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { lockRoster },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -265,6 +304,11 @@ const updateSchema = z.object({
   // Backfill missing table numbers across the whole run — see
   // `numberMissingTables`. Also its own branch, for the same reason.
   numberTables: z.literal(true).optional(),
+  // "Finalize teams" / "Unlock": set or clear `result.rosterLocked`. Its own
+  // branch for the same reason `move` is — never combined with rename/finalize
+  // in the UI, and a boolean (unlike `move`'s object) needs an explicit
+  // `!== undefined` check below since `false` is a meaningful value here.
+  lockRoster: z.boolean().optional(),
 })
 
 /**
@@ -310,6 +354,9 @@ export async function PATCH(
   }
   if (validation.data.numberTables) {
     return handleNumberTables(request, id, check.user)
+  }
+  if (validation.data.lockRoster !== undefined) {
+    return handleLockRoster(request, id, validation.data.lockRoster, check.user)
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

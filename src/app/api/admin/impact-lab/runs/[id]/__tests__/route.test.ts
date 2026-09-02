@@ -15,6 +15,7 @@ function team(id: string, memberIds: string[], extra: { table?: number | null } 
 interface WrittenResult {
   teams: { id: string; memberIds: string[] }[]
   unassignedIds: string[]
+  rosterLocked?: boolean
 }
 
 const mockTx = {
@@ -230,6 +231,61 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — number tables", () => {
     expect(written.teams.find((t) => t.id === "team-1")!.table).toBe(5)
     expect(written.teams.find((t) => t.id === "team-2")!.table).toBe(1)
     expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ changes: { numberTables: true } }))
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — lockRoster (Finalize teams)", () => {
+  it("locks the roster, writing rosterLocked: true into the run's result JSON", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never) // `existing`
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: {},
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", result: { rosterLocked: true } } as never) // final re-fetch
+
+    const res = await PATCH(patchRequest({ lockRoster: true }), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.rosterLocked).toBe(true)
+    expect(written.teams).toEqual([team("team-1", ["p1"])])
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { lockRoster: true } })
+    )
+  })
+
+  it("unlocks the roster — lockRoster: false is a meaningful value, not a no-op", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [], unassignedIds: [], rosterLocked: true },
+      settings: {},
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", result: { rosterLocked: false } } as never)
+
+    const res = await PATCH(patchRequest({ lockRoster: false }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.rosterLocked).toBe(false)
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { lockRoster: false } })
+    )
+  })
+
+  it("404s if the run is gone by the time the lock is acquired", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce(null)
+
+    const res = await PATCH(patchRequest({ lockRoster: true }), { params })
+    expect(res.status).toBe(404)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+    expect(logAudit).not.toHaveBeenCalled()
   })
 })
 
