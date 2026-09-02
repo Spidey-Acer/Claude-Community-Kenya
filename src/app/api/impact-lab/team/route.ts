@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
     summary: explanation.summary || null,
     strengths: withoutPercentages(explanation.strengths),
     projectDirection: explanation.suggestedProjectDirection ?? null,
+    trackKey: team.trackKey ?? null,
   }
 
   return NextResponse.json({

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
@@ -10,6 +11,30 @@ import {
   memberProfileSchema,
   toMemberProfile,
 } from "@/lib/impact-lab/member"
+
+/**
+ * Track-change-only update: a participant may swap their declared track from
+ * the dashboard at any time (including after teams are revealed), without
+ * resubmitting — or risking overwriting — the rest of their profile. A body
+ * whose only key is `interests` takes this branch instead of the full
+ * `memberProfileSchema`; anything else (extra keys, wrong type) falls through
+ * to the full-profile validation below, which will reject it normally.
+ */
+const trackOnlySchema = z.object({
+  interests: z
+    .array(z.string().max(80))
+    .max(30)
+    .transform((values) => values.map((v) => v.trim()).filter(Boolean)),
+})
+
+function isTrackOnlyPayload(body: unknown): body is { interests: unknown } {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    Object.keys(body).length === 1 &&
+    "interests" in body
+  )
+}
 
 /**
  * A member's own hackathon matching profile for their event, matched by
@@ -87,18 +112,32 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid request" }, { status: 400 })
   }
 
-  const parsed = memberProfileSchema.safeParse(body)
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    return NextResponse.json(
-      { success: false, error: issue?.message ?? "Invalid input" },
-      { status: 400 }
-    )
+  let data: Record<string, unknown>
+  if (isTrackOnlyPayload(body)) {
+    const parsedTrack = trackOnlySchema.safeParse(body)
+    if (!parsedTrack.success) {
+      const issue = parsedTrack.error.issues[0]
+      return NextResponse.json(
+        { success: false, error: issue?.message ?? "Invalid input" },
+        { status: 400 }
+      )
+    }
+    data = parsedTrack.data
+  } else {
+    const parsed = memberProfileSchema.safeParse(body)
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0]
+      return NextResponse.json(
+        { success: false, error: issue?.message ?? "Invalid input" },
+        { status: 400 }
+      )
+    }
+    data = parsed.data
   }
 
   const updated = await prisma.impactLabParticipant.update({
     where: { id: memberEvent.participantId },
-    data: parsed.data,
+    data,
   })
 
   return NextResponse.json({

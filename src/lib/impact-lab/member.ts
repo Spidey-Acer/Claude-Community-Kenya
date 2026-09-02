@@ -118,6 +118,8 @@ export interface TeamRevealView {
   summary: string | null
   strengths: string[]
   projectDirection: string | null
+  /** Set only for teams formed by runMatchingByTrack — the track key the team was matched within. */
+  trackKey: string | null
 }
 
 /**
