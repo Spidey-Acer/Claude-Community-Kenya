@@ -197,7 +197,11 @@ export const RateLimits = {
   // IP: 5/15min locked a workshop out of sign-in (incident 2026-09-02). 60/15min
   // still caps a brute-force at 4/min per IP; bcrypt does the rest.
   LOGIN: { maxRequests: 60, windowInSeconds: 900 },
-  PASSWORD_RESET: { maxRequests: 3, windowInSeconds: 3600 },
+  // Per-IP, room-sized for the same CGNAT reason as LOGIN: 3/hr per IP let
+  // three people in a 140-person room reset a password (incident 2026-09-02).
+  // Abuse is bounded per target email by PASSWORD_RESET_EMAIL instead.
+  PASSWORD_RESET: { maxRequests: 60, windowInSeconds: 3600 },
+  PASSWORD_RESET_EMAIL: { maxRequests: 3, windowInSeconds: 3600 },
   API_GENERAL: { maxRequests: 100, windowInSeconds: 3600 },
   ADMIN: { maxRequests: 30, windowInSeconds: 60 },
   STRICT: { maxRequests: 3, windowInSeconds: 3600 },
