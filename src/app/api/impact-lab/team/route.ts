@@ -8,6 +8,7 @@ import {
   type TeamMemberView,
   type TeamRevealView,
 } from "@/lib/impact-lab/member"
+import { extractRosterLocked } from "@/lib/impact-lab/roster"
 import {
   explainTeam,
   normalizeParticipants,
@@ -146,6 +147,7 @@ export async function GET(request: NextRequest) {
     projectDirection: explanation.suggestedProjectDirection ?? null,
     trackKey: team.trackKey ?? null,
     table: typeof team.table === "number" ? team.table : null,
+    rosterLocked: extractRosterLocked(run.result),
   }
 
   return NextResponse.json({

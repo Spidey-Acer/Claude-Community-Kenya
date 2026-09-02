@@ -171,6 +171,42 @@ describe("POST /api/impact-lab/team/roster — add", () => {
   })
 })
 
+describe("POST/DELETE /api/impact-lab/team/roster — locked roster", () => {
+  it("POST refuses with 423 once an organiser has finalized teams", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findFirst).mockResolvedValue({
+      id: "run-1",
+      result: {
+        teams: [team("team-1", ["me"]), team("team-2", ["target"])],
+        unassignedIds: [],
+        rosterLocked: true,
+      },
+    } as never)
+
+    const res = await POST(request("POST", { participantId: "target" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(423)
+    expect(json.success).toBe(false)
+    expect(json.error).toBe("Teams are locked. See the desk to change a team.")
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("DELETE refuses with 423 once an organiser has finalized teams", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findFirst).mockResolvedValue({
+      id: "run-1",
+      result: { teams: [team("team-1", ["me", "noshow"])], unassignedIds: [], rosterLocked: true },
+    } as never)
+
+    const res = await DELETE(request("DELETE", { participantId: "noshow" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(423)
+    expect(json.success).toBe(false)
+    expect(json.error).toBe("Teams are locked. See the desk to change a team.")
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
 describe("DELETE /api/impact-lab/team/roster — drop", () => {
   it("removes a no-show from the caller's team and lists them as unassigned", async () => {
     vi.mocked(prisma.impactLabMatchRun.findFirst).mockResolvedValue({

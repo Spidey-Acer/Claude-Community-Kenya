@@ -195,6 +195,14 @@ export interface MatchResult {
   /** Mean of team totals, [0, 100]. A single headline number for the run. */
   averageScore: number
   settingsUsed: MatchSettings
+  /**
+   * Set by the admin "Finalize teams" action (the `lockRoster` PATCH branch on
+   * the run route). Once true, the member self-service roster (add/drop) is
+   * refused with 423 — the floor is the truth, and only an organiser's admin
+   * move/unassign action can still change who's on which team. Absent (not
+   * false) on every run saved before this field existed.
+   */
+  rosterLocked?: boolean
 }
 
 // ─── Explanations ────────────────────────────────────────────────────────────

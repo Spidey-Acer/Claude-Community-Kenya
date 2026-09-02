@@ -7,7 +7,12 @@ import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
-import { extractUnassignedIds, placeParticipant, readMaxTeamSize } from "@/lib/impact-lab/roster"
+import {
+  extractRosterLocked,
+  extractUnassignedIds,
+  placeParticipant,
+  readMaxTeamSize,
+} from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 import type { Team } from "@/lib/matching"
 import type { Prisma } from "@/generated/prisma/client"
@@ -43,6 +48,8 @@ interface Resolved {
   teams: Team[]
   myTeamIndex: number
   meId: string
+  /** True once an organiser has run "Finalize teams" on this run. */
+  rosterLocked: boolean
 }
 
 async function resolveCaller(memberEvent: MemberEvent): Promise<Resolved | null> {
@@ -59,7 +66,13 @@ async function resolveCaller(memberEvent: MemberEvent): Promise<Resolved | null>
   const myTeamIndex = teams.findIndex((t) => t.memberIds.includes(memberEvent.participantId))
   if (myTeamIndex < 0) return null
 
-  return { runId: run.id, teams, myTeamIndex, meId: memberEvent.participantId }
+  return {
+    runId: run.id,
+    teams,
+    myTeamIndex,
+    meId: memberEvent.participantId,
+    rosterLocked: extractRosterLocked(run.result),
+  }
 }
 
 function noTeam(): NextResponse {
@@ -70,6 +83,22 @@ function noTeam(): NextResponse {
       code: "NO_TEAM",
     },
     { status: 403 }
+  )
+}
+
+/**
+ * 423 (Locked) once an organiser has run "Finalize teams" — the floor is the
+ * truth, and the member self-service roster stops moving. Admin move/unassign
+ * (a different route) still works; only this add/drop surface is refused.
+ */
+function rosterLockedResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Teams are locked. See the desk to change a team.",
+      code: "ROSTER_LOCKED",
+    },
+    { status: 423 }
   )
 }
 
@@ -243,6 +272,7 @@ export async function POST(request: NextRequest) {
 
   const me = await resolveCaller(memberEvent)
   if (!me) return noTeam()
+  if (me.rosterLocked) return rosterLockedResponse()
 
   const myTeamId = me.teams[me.myTeamIndex].id
   const resolveTarget =
@@ -309,6 +339,7 @@ export async function DELETE(request: NextRequest) {
 
   const me = await resolveCaller(memberEvent)
   if (!me) return noTeam()
+  if (me.rosterLocked) return rosterLockedResponse()
 
   // Removing yourself would drop you out of the only team you can still edit,
   // with no way back in. Moving tables is the other team adding you instead.

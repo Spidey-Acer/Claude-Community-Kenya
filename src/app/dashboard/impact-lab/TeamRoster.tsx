@@ -22,11 +22,18 @@ export function TeamRoster({
   members,
   onChanged,
   cohort,
+  rosterLocked = false,
 }: {
   members: TeamMemberView[];
   onChanged: () => void;
   /** The team's event — appended as `?cohort=` on every fetch. */
   cohort?: string;
+  /**
+   * True once an organiser has run "Finalize teams" for this run. Hides the
+   * add/drop controls below — the server refuses them with 423 regardless,
+   * this just stops the UI from inviting an action it will reject.
+   */
+  rosterLocked?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
@@ -142,15 +149,26 @@ export function TeamRoster({
             showed up.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary"
-          aria-expanded={open}
-        >
-          {open ? "Done" : "Edit team"}
-        </button>
+        {!rosterLocked && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-green-primary/40 hover:text-green-primary"
+            aria-expanded={open}
+          >
+            {open ? "Done" : "Edit team"}
+          </button>
+        )}
       </div>
+
+      {rosterLocked && (
+        <p
+          role="status"
+          className="mt-3 rounded-lg border border-amber/30 bg-amber/10 px-3 py-2 text-sm text-amber"
+        >
+          Teams are locked. See the desk to change a team.
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border-default pt-4">
         <span className="font-mono text-xs uppercase tracking-wider text-text-dim">
@@ -179,7 +197,7 @@ export function TeamRoster({
         )}
       </div>
 
-      {open && (
+      {open && !rosterLocked && (
         <div className="mt-5 space-y-5">
           <div>
             <label

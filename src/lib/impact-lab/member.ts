@@ -122,6 +122,13 @@ export interface TeamRevealView {
   trackKey: string | null
   /** The venue's physical table number, or null on runs saved before tables existed. */
   table: number | null
+  /**
+   * True once an organiser has run "Finalize teams" on this run. The roster
+   * self-service UI (`TeamRoster`) reads this to hide its add/drop controls —
+   * the server-side gate lives in `POST/DELETE /api/impact-lab/team/roster`,
+   * this is purely so the UI doesn't invite an action it will refuse.
+   */
+  rosterLocked: boolean
 }
 
 /**

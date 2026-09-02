@@ -69,6 +69,16 @@ export function extractUnassignedIds(result: unknown): string[] {
   return ids.filter((id): id is string => typeof id === "string")
 }
 
+/**
+ * `result.rosterLocked` from a run's stored result JSON, defensively. Defaults
+ * to false (unlocked) for legacy runs saved before "Finalize teams" existed —
+ * the feature must never retroactively lock a roster nobody asked to freeze.
+ */
+export function extractRosterLocked(result: unknown): boolean {
+  if (typeof result !== "object" || result === null) return false
+  return (result as { rosterLocked?: unknown }).rosterLocked === true
+}
+
 /** Remove `participantId` from every team's memberIds, other fields untouched. */
 function removeFromAllTeams(teams: Team[], participantId: string): Team[] {
   return teams.map((t) =>
