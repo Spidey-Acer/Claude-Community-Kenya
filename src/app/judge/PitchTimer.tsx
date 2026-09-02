@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { csrfHeaders } from "@/lib/csrf-client";
+import type { OnStage } from "@/lib/impact-lab/roster";
 import { FOCUS_RING, TIMER_COMPACT_HEIGHT } from "./judge-ui";
 
 interface TimerState {
@@ -74,10 +75,20 @@ function playEndSound(ctx: AudioContext | null) {
 export function PitchTimer({
   cohort,
   compact = false,
+  onStageChange,
 }: {
   cohort: string;
   /** Slim strip mode, used while a team is open on the scoring screen. */
   compact?: boolean;
+  /**
+   * The team the desk has on stage, as of the last poll. This component owns
+   * the only 2s poll on the judge screen, so the value rides along with the
+   * timer's response and is handed up rather than polled for a second time.
+   *
+   * Held in a ref below, so a parent passing an inline arrow cannot restart
+   * the poll on every render.
+   */
+  onStageChange?: (onStage: OnStage | null) => void;
 }) {
   const [timer, setTimer] = useState<TimerState | null>(null);
   const [offsetMs, setOffsetMs] = useState(0); // serverNow - Date.now(), from the last read
@@ -85,6 +96,14 @@ export function PitchTimer({
   const [announcement, setAnnouncement] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Kept in a ref rather than in `refresh`'s dependency list: the poll effect
+  // restarts whenever `refresh` changes identity, and a parent passing a fresh
+  // arrow each render would rebuild the 2s interval every render.
+  const onStageChangeRef = useRef(onStageChange);
+  useEffect(() => {
+    onStageChangeRef.current = onStageChange;
+  }, [onStageChange]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const endedForRef = useRef<string | null>(null); // startedAt already alerted for
@@ -133,6 +152,9 @@ export function PitchTimer({
         return next;
       });
       if (next) setOffsetMs(new Date(next.serverNow).getTime() - Date.now());
+      // `onStage` rides on this same response — see the route's GET. Absent
+      // from an older deployment's reply, which reads as "nobody is on stage".
+      onStageChangeRef.current?.((json.onStage as OnStage | null | undefined) ?? null);
     } catch {
       // A missed poll is silent — the next one tries again in 2s. Surfacing a
       // network blip as an on-screen error would be noisier than the miss.

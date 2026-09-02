@@ -54,3 +54,22 @@ export const GHOST_BUTTON = `${TAP} ${FOCUS_RING} rounded-lg border border-borde
  * collapses to `h-12`. Changing one without the other is how they overlap.
  */
 export const TIMER_COMPACT_HEIGHT = "h-12"
+
+/**
+ * The "ON STAGE" pill. Solid green on the page background rather than the
+ * usual tinted outline: every other chip on this screen is an outline, so a
+ * filled one is the only treatment that reads as "this one, right now" from
+ * across a room without adding a colour to the palette.
+ */
+export const ON_STAGE_PILL =
+  "bg-green-primary text-bg-primary font-mono text-[11px] px-2 py-0.5 rounded"
+
+/**
+ * The glow on the on-stage team's card.
+ *
+ * The shadow's colour is `--green-primary`'s default (#00ff41) written out,
+ * because a Tailwind arbitrary shadow cannot take an alpha off a CSS variable.
+ * If that token ever moves, this literal has to move with it.
+ */
+export const ON_STAGE_GLOW =
+  "ring-2 ring-green-primary/70 shadow-[0_0_24px_rgba(0,255,65,0.25)]"

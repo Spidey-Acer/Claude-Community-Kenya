@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { OnStagePanel } from "./OnStagePanel"
 
 interface AuditCriterion {
   key: string
@@ -170,8 +171,18 @@ export function JudgesTab({ cohort }: { cohort: string }) {
     })
   }
 
+  // The stage control sits above every branch below, including the loading and
+  // empty ones: the desk needs it from the first pitch, which is before any
+  // judge has saved a sheet and therefore before this tab has an audit to show.
+  const withStage = (body: React.ReactNode) => (
+    <div className="space-y-4">
+      <OnStagePanel cohort={cohort} />
+      {body}
+    </div>
+  )
+
   if (loading) {
-    return (
+    return withStage(
       <div className="p-8 text-center">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
       </div>
@@ -179,7 +190,7 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   }
 
   if (error || !data) {
-    return (
+    return withStage(
       <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
         {error ?? "No data"}
       </div>
@@ -187,7 +198,7 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   }
 
   if (data.judges.length === 0) {
-    return (
+    return withStage(
       <p className="p-8 text-center text-sm font-mono text-[#555]">
         No final run published yet — mark a run final to see judge activity.
       </p>
@@ -208,7 +219,7 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   const lowest = byMean[byMean.length - 1]
   const spread = Math.round((highest.mean - lowest.mean) * 10) / 10
 
-  return (
+  return withStage(
     <div className="space-y-4">
       {data.judges.length > 1 && (
         <div className="rounded-lg border border-[#ffb000]/40 bg-[#ffb000]/10 p-4">

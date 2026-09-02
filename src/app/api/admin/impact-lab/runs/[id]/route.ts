@@ -15,6 +15,7 @@ import {
   renameTeamsByTable,
   type Judge,
   type JudgeSignInMode,
+  type OnStage,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 import { getEventByCohort } from "@/lib/impact-lab/event-store"
@@ -27,6 +28,13 @@ const moveSchema = z.object({
 const tableSchema = z.object({
   teamId: z.string().min(1).max(40),
   table: z.number().int().min(1).max(200).nullable(),
+})
+
+// `teamId: null` clears the stage. Its own object (rather than a bare nullable
+// string) so `onStage` can be told apart from "field absent" in the same way
+// `move` and `table` are — see the branch comments on `updateSchema` below.
+const onStageSchema = z.object({
+  teamId: z.string().min(1).max(40).nullable(),
 })
 
 // participantsSnapshot is deliberately omitted — it holds every participant's
@@ -410,6 +418,76 @@ async function handleSetJudgeSignIn(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * "Put on stage" / "Clear": set (or clear) `result.onStage`, the one team the
+ * desk says is presenting right now. The judges' screens pin and glow that
+ * team, and the team's own dashboard shows a banner — see `extractOnStage`.
+ *
+ * Mirrors `handleSetTable`'s lock/read/write/audit shape for the set case: the
+ * team must exist in this run's frozen result, so a stale admin tab cannot put
+ * a team from a previous run on stage. Clearing skips that check entirely and
+ * mirrors `handleLockRoster` instead — "nobody is on stage" has to succeed even
+ * on a run whose teams JSON is malformed, because that is exactly the state an
+ * organiser would be trying to get out of.
+ *
+ * `since` is stamped server-side. A client clock at a hackathon is whatever the
+ * laptop last synced to, and this value is compared against nothing but itself.
+ */
+async function handleSetOnStage(
+  request: NextRequest,
+  runId: string,
+  teamId: string | null,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    if (!fresh) return { status: "not_found" as const }
+
+    if (teamId === null) {
+      await writeRunResult(tx, runId, { ...(fresh.result as object), onStage: null })
+      return { status: "ok" as const }
+    }
+
+    const teams = extractFrozenTeams(fresh.result)
+    if (!teams) return { status: "no_teams" as const }
+    if (!teams.some((team) => team.id === teamId)) return { status: "unknown_team" as const }
+
+    const onStage: OnStage = { teamId, since: new Date().toISOString() }
+    await writeRunResult(tx, runId, { ...(fresh.result as object), onStage })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "not_found") {
+    return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+  }
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to put on stage" },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "unknown_team") {
+    return NextResponse.json(
+      { success: false, error: "That team does not belong to this run" },
+      { status: 400 }
+    )
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { onStage: { teamId } },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -466,6 +544,10 @@ const updateSchema = z.object({
   // branch for the same reason `judges` is: the toggle saves on its own, never
   // alongside a rename or the judge list.
   judgeSignIn: z.enum(["open", "roster"]).optional(),
+  // The team presenting right now, or `{ teamId: null }` to clear the stage.
+  // Its own branch for the same reason `table` is: the desk sets it on its own
+  // during the demos, never alongside a rename or the judge list.
+  onStage: onStageSchema.optional(),
 })
 
 /**
@@ -523,6 +605,9 @@ export async function PATCH(
   }
   if (validation.data.judgeSignIn !== undefined) {
     return handleSetJudgeSignIn(request, id, validation.data.judgeSignIn, check.user)
+  }
+  if (validation.data.onStage !== undefined) {
+    return handleSetOnStage(request, id, validation.data.onStage.teamId, check.user)
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

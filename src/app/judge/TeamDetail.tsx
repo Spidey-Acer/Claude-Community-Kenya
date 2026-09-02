@@ -12,7 +12,16 @@ import {
 } from "@/lib/impact-lab/judging";
 import { trackTone } from "@/lib/impact-lab/track-tone";
 import { CriterionRadioGroup } from "./CriterionRadioGroup";
-import { BODY, CARD, CARD_PAD, EYEBROW, FOCUS_RING, PRIMARY_BUTTON, TAP } from "./judge-ui";
+import {
+  BODY,
+  CARD,
+  CARD_PAD,
+  EYEBROW,
+  FOCUS_RING,
+  ON_STAGE_PILL,
+  PRIMARY_BUTTON,
+  TAP,
+} from "./judge-ui";
 
 /**
  * Everything a judge needs about one team, on one surface: what the team
@@ -49,6 +58,7 @@ export interface AssistResult {
 export function TeamDetail({
   team,
   rubric,
+  isOnStage,
   sheet,
   feedback,
   savedAtLabel,
@@ -64,6 +74,8 @@ export function TeamDetail({
 }: {
   team: JudgeTeamRow;
   rubric: JudgingRubric;
+  /** True for the one team the desk has put on stage. */
+  isOnStage: boolean;
   sheet: ScoreSheet;
   feedback: string;
   /** Clock time of the last successful save, or null if never saved. */
@@ -87,7 +99,7 @@ export function TeamDetail({
 
   return (
     <div className="pb-4">
-      <TeamIdentity team={team} />
+      <TeamIdentity team={team} isOnStage={isOnStage} />
 
       {team.submission ? (
         <div className="mt-4 space-y-4">
@@ -188,9 +200,16 @@ export function TeamDetail({
 }
 
 /** Table, team name and track — the detail pane's own heading on a laptop. */
-function TeamIdentity({ team }: { team: JudgeTeamRow }) {
+function TeamIdentity({
+  team,
+  isOnStage,
+}: {
+  team: JudgeTeamRow;
+  isOnStage: boolean;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {isOnStage && <span className={ON_STAGE_PILL}>ON STAGE</span>}
       {team.table !== null && (
         <span className="font-mono text-base font-bold text-text-primary">
           Table {team.table}

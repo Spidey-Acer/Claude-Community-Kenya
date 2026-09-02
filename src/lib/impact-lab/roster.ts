@@ -515,3 +515,42 @@ export function judgeNameForIdentity(identity: string, judges: Judge[]): string 
   const id = identity.slice(ROSTER_IDENTITY_PREFIX.length)
   return judges.find((judge) => judge.id === id)?.name ?? null
 }
+
+// ─── On stage ────────────────────────────────────────────────────────────────
+
+/**
+ * Which team is presenting right now, as the organisers' desk set it.
+ *
+ * Stored inside the final run's `result` JSON under `onStage`, beside
+ * `rosterLocked`, `joinRequests` and `judges` — the same reasoning as those
+ * three: it landed with judging already running, and a schema migration is
+ * not something to attempt mid-event. Runs written before this existed simply
+ * have no `onStage` key, which reads as "nobody is on stage".
+ *
+ * `since` is when the desk put this team up, not when the pitch started. It
+ * exists so a screen can tell "the same team, still up" from "the desk put
+ * this team up again" without holding any other state.
+ */
+export interface OnStage {
+  teamId: string
+  /** ISO timestamp of the moment the desk selected this team. */
+  since: string
+}
+
+/**
+ * `result.onStage` from a run's stored result JSON, defensively.
+ *
+ * Missing, malformed or half-written degrades to null — every screen that
+ * reads this (the judges' scorecard, the member dashboard) worked before it
+ * existed and must keep working if the value is junk. A bad `onStage` must
+ * never be the reason a judge cannot score.
+ */
+export function extractOnStage(result: unknown): OnStage | null {
+  if (typeof result !== "object" || result === null) return null
+  const value = (result as { onStage?: unknown }).onStage
+  if (typeof value !== "object" || value === null) return null
+  const entry = value as Record<string, unknown>
+  if (typeof entry.teamId !== "string" || entry.teamId.length === 0) return null
+  if (typeof entry.since !== "string" || entry.since.length === 0) return null
+  return { teamId: entry.teamId, since: entry.since }
+}

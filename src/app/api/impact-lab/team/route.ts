@@ -8,7 +8,7 @@ import {
   type TeamMemberView,
   type TeamRevealView,
 } from "@/lib/impact-lab/member"
-import { extractJudges, extractRosterLocked } from "@/lib/impact-lab/roster"
+import { extractJudges, extractOnStage, extractRosterLocked } from "@/lib/impact-lab/roster"
 import {
   explainTeam,
   normalizeParticipants,
@@ -90,6 +90,10 @@ export async function GET(request: NextRequest) {
   // Judges are event-wide, not team-wide: somebody who was never placed on a
   // team still came to the event and still gets to read who is judging it.
   const judges = extractJudges(run.result)
+  // Event-wide, like `judges`: read once here and returned on every branch
+  // below that has a run, so the dashboard can show the "you're on stage"
+  // banner without a second request.
+  const onStage = extractOnStage(run.result)
 
   const team = teams.find((t) => t.memberIds.includes(memberEvent.participantId))
   if (!team) {
@@ -97,6 +101,7 @@ export async function GET(request: NextRequest) {
       success: true,
       status: "unassigned",
       judges,
+      onStage,
       eventName: memberEvent.name,
       eventCohort: memberEvent.cohort,
     })
@@ -145,6 +150,7 @@ export async function GET(request: NextRequest) {
   })
 
   const teamView: TeamRevealView = {
+    id: team.id,
     teamName: team.name,
     members: memberViews,
     summary: explanation.summary || null,
@@ -160,6 +166,7 @@ export async function GET(request: NextRequest) {
     status: "revealed",
     team: teamView,
     judges,
+    onStage,
     eventName: memberEvent.name,
     eventCohort: memberEvent.cohort,
   })

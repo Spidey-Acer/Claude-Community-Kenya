@@ -113,6 +113,12 @@ export interface TeamMemberView {
 
 /** A member's finalized team — no scores, no snapshot leakage. */
 export interface TeamRevealView {
+  /**
+   * The team's id inside the frozen run. Sent so the dashboard can tell
+   * whether THIS team is the one the desk put on stage — see `extractOnStage`.
+   * Opaque to the member: it names nobody and grants nothing.
+   */
+  id: string
   teamName: string
   members: TeamMemberView[]
   /** The saved (usually Claude-written) team writeup, addressed to the team. */

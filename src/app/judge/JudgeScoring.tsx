@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import {
   byTableNumber,
@@ -17,7 +17,16 @@ import {
   type ScoreSheet,
 } from "@/lib/impact-lab/judging";
 import { trackTone } from "@/lib/impact-lab/track-tone";
-import { CHIP, CHIP_OFF, CHIP_ON, EYEBROW, FOCUS_RING, GHOST_BUTTON } from "./judge-ui";
+import type { OnStage } from "@/lib/impact-lab/roster";
+import {
+  CHIP,
+  CHIP_OFF,
+  CHIP_ON,
+  EYEBROW,
+  FOCUS_RING,
+  GHOST_BUTTON,
+  ON_STAGE_GLOW,
+} from "./judge-ui";
 import { TeamDetail, type AssistResult } from "./TeamDetail";
 import { TeamListRow } from "./TeamListRow";
 import { useIsDesktop } from "./useIsDesktop";
@@ -60,11 +69,19 @@ interface Payload {
 
 export function JudgeScoring({
   cohort,
+  onStage,
   onDirtyChange,
   onScoredChange,
   onOpenTeamChange,
 }: {
   cohort: string;
+  /**
+   * The team the desk has put on stage, from the pitch timer's poll one
+   * level up. Pinned to the top of the list, glowing, and opened
+   * automatically — unless this judge has an unsaved edit, in which case
+   * nothing on screen moves.
+   */
+  onStage?: OnStage | null;
   /** Reports whether any team has scores edited since the last save, so an
    *  event switcher one level up can warn before discarding them. */
   onDirtyChange?: (dirty: boolean) => void;
@@ -94,6 +111,12 @@ export function JudgeScoring({
   const [filter, setFilter] = useState<JudgeListFilter>("all");
   const [assist, setAssist] = useState<Record<string, AssistResult>>({});
   const [assisting, setAssisting] = useState<string | null>(null);
+  // Shown instead of auto-opening when the judge has unsaved criteria — a
+  // half-filled sheet is worth more than the convenience of the jump.
+  const [stageNotice, setStageNotice] = useState<string | null>(null);
+  // The `since` of the last on-stage change this screen acted on, so the
+  // effect below fires once per announcement rather than once per poll.
+  const handledStageSince = useRef<string | null>(null);
 
   const isDesktop = useIsDesktop();
 
@@ -170,6 +193,42 @@ export function JudgeScoring({
     if (first) setOpenTeam(first.teamId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once per desktop mount
   }, [isDesktop, data]);
+
+  /**
+   * Follow the desk. When the on-stage team changes, open it — but only if
+   * this judge has nothing unsaved: opening another team scrolls a half-filled
+   * sheet off screen on a phone and replaces the pane on a laptop. When there
+   * are unsaved edits, say which table is up and leave the screen alone.
+   *
+   * Keyed on `since` rather than `teamId`, so the desk putting the same team
+   * back up counts as a fresh announcement.
+   */
+  useEffect(() => {
+    if (!data || !onStage) return;
+    if (handledStageSince.current === onStage.since) return;
+    // A team from another run, or one dropped since the poll — nothing to open.
+    const row = data.teams.find((team) => team.teamId === onStage.teamId);
+    if (!row) return;
+    handledStageSince.current = onStage.since;
+
+    if (anyDirty) {
+      setStageNotice(
+        row.table === null
+          ? `${row.teamName} is on stage`
+          : `Table ${row.table} is on stage`
+      );
+      return;
+    }
+    setStageNotice(null);
+    setOpenTeam(row.teamId);
+  }, [data, onStage, anyDirty]);
+
+  // The notice has nothing left to tell them once they are looking at the team
+  // that is up — or once the desk has cleared the stage, which would otherwise
+  // leave "Table N is on stage" on screen with nobody on it.
+  useEffect(() => {
+    if (!onStage || openTeam === onStage.teamId) setStageNotice(null);
+  }, [onStage, openTeam]);
 
   function setScore(teamId: string, criterionKey: string, value: number) {
     setSheets((prev) => ({
@@ -311,6 +370,16 @@ export function JudgeScoring({
       ? trackTone(key.slice(TRACK_FILTER_PREFIX.length)).pill
       : CHIP_ON;
 
+  // Pinned from the full roster, not from `visible`: the presenting team has
+  // to stay reachable while a "Not scored" filter or a search is active,
+  // which is exactly when it would otherwise drop out of the list.
+  const stageRow = onStage
+    ? data.teams.find((team) => team.teamId === onStage.teamId)
+    : undefined;
+  const ordered = stageRow
+    ? [stageRow, ...visible.filter((team) => team.teamId !== stageRow.teamId)]
+    : visible;
+
   const openRow = openTeam ? data.teams.find((t) => t.teamId === openTeam) : undefined;
 
   /** The open team's detail, wired to this component's state. Rendered once. */
@@ -318,6 +387,7 @@ export function JudgeScoring({
     <TeamDetail
       team={team}
       rubric={rubric}
+      isOnStage={onStage?.teamId === team.teamId}
       sheet={sheets[team.teamId] ?? {}}
       feedback={feedback[team.teamId] ?? ""}
       savedAtLabel={savedAt[team.teamId] ?? null}
@@ -342,8 +412,8 @@ export function JudgeScoring({
               <p className={EYEBROW}>
                 Scored {scoredCount} of {data.teams.length}
               </p>
-              {visible.length !== data.teams.length && (
-                <p className={EYEBROW}>{visible.length} shown</p>
+              {ordered.length !== data.teams.length && (
+                <p className={EYEBROW}>{ordered.length} shown</p>
               )}
             </div>
 
@@ -378,25 +448,36 @@ export function JudgeScoring({
             </div>
           </div>
 
-          {visible.length === 0 && (
+          {stageNotice && (
+            <p
+              role="status"
+              className="mb-2 rounded-lg border border-green-primary/40 bg-green-primary/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-green-primary"
+            >
+              {stageNotice} — your unsaved scores are still here.
+            </p>
+          )}
+
+          {ordered.length === 0 && (
             <p className="py-6 text-center text-[15px] text-text-dim">
               No team matches that.
             </p>
           )}
 
           <div className="space-y-2">
-            {visible.map((team) => {
+            {ordered.map((team) => {
               const isSelected = openTeam === team.teamId;
+              const isOnStage = onStage?.teamId === team.teamId;
               return (
                 <section
                   key={team.teamId}
                   className={`overflow-hidden rounded-lg border bg-bg-secondary ${
                     isSelected ? "border-green-primary/40" : "border-border-default"
-                  }`}
+                  } ${isOnStage ? ON_STAGE_GLOW : ""}`}
                 >
                   <TeamListRow
                     team={team}
                     isSelected={isSelected}
+                    isOnStage={isOnStage}
                     isDesktop={isDesktop}
                     scoredTotal={totalFor(team.teamId)}
                     totalOutOf={rubric.totalOutOf}
