@@ -7,6 +7,7 @@ import {
   extractJudges,
   judgeInitials,
   judgeSchema,
+  JUDGE_BIO_MAX,
   HARD_TEAM_SIZE_CAP,
   TEAM_TOO_LARGE_WARNING,
   clearOrphanedLeaders,
@@ -306,8 +307,8 @@ describe("judgeSchema", () => {
   })
 
   it("rejects an over-long bio and an unknown kind", () => {
-    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(701) })).success).toBe(false)
-    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(700) })).success).toBe(true)
+    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(JUDGE_BIO_MAX + 1) })).success).toBe(false)
+    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(JUDGE_BIO_MAX) })).success).toBe(true)
     expect(judgeSchema.safeParse(judge("a", 1, { kind: "chairperson" })).success).toBe(false)
   })
 

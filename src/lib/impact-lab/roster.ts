@@ -329,7 +329,10 @@ export interface Judge {
 export const JUDGE_NAME_MAX = 80
 export const JUDGE_TITLE_MAX = 120
 export const JUDGE_ORGANISATION_MAX = 120
-export const JUDGE_BIO_MAX = 700
+// 800, not the 700 first specified: a real judge's bio (PSK chairman, five
+// roles and three degrees) came in at 759 and a cap that rejects the actual
+// panel is the wrong cap.
+export const JUDGE_BIO_MAX = 800
 
 /** Most judges any one run may carry — a guard on the admin PATCH, not a rule. */
 export const JUDGE_LIST_MAX = 20

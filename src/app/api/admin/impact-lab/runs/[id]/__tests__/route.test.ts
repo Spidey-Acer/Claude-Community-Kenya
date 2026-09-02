@@ -62,6 +62,7 @@ vi.mock("@/lib/audit-log", () => ({
 
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit-log"
+import { JUDGE_BIO_MAX } from "@/lib/impact-lab/roster"
 import { PATCH } from "../route"
 
 function patchRequest(body: unknown): NextRequest {
@@ -401,7 +402,7 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — judges", () => {
       .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
 
     const res = await PATCH(
-      patchRequest({ judges: [judgeBody("j1", 1, { bio: "x".repeat(701) })] }),
+      patchRequest({ judges: [judgeBody("j1", 1, { bio: "x".repeat(JUDGE_BIO_MAX + 1) })] }),
       { params }
     )
 
