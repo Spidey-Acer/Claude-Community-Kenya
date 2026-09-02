@@ -66,11 +66,15 @@ function inMemoryRateLimit(
 ): RateLimitResult {
   const now = Date.now()
   const windowMs = config.windowInSeconds * 1000
-  const existing = requestCounts.get(identifier)
+  // Scope the bucket to the preset: two routes with different limits on the
+  // same IP must not share one counter, or the loosest route's traffic
+  // exhausts the strictest route's allowance (venue-IP judge sign-in, 2 Sep).
+  const bucket = `${identifier}:${config.maxRequests}-${config.windowInSeconds}`
+  const existing = requestCounts.get(bucket)
 
   if (!existing || now > existing.resetTime) {
     const resetTime = now + windowMs
-    requestCounts.set(identifier, { count: 1, resetTime })
+    requestCounts.set(bucket, { count: 1, resetTime })
     return {
       success: true,
       limit: config.maxRequests,
@@ -111,7 +115,9 @@ async function redisRateLimit(
         `${config.windowInSeconds}s`
       ),
       analytics: true,
-      prefix: "cck:rl",
+      // Per-preset prefix: Upstash keys by prefix + identifier + window, so
+      // presets sharing a window length would otherwise share one counter.
+      prefix: `cck:rl:${config.maxRequests}-${config.windowInSeconds}`,
     })
 
     const { success, remaining, limit, reset } =
