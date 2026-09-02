@@ -24,6 +24,7 @@ import {
   JUDGE_TITLE_MAX,
   type Judge,
   type JudgeKind,
+  type JudgeSignInMode,
 } from "@/lib/impact-lab/roster"
 
 const KINDS: JudgeKind[] = ["panel", "domain", "guest"]
@@ -38,8 +39,12 @@ interface RunJudgesPanelProps {
   runId: string
   /** The list as currently stored on the run, from the parent's loaded detail. */
   initialJudges: Judge[]
+  /** The sign-in mode as currently stored on the run. */
+  initialSignIn: JudgeSignInMode
   /** Called with the saved list, so the parent's copy of the run stays current. */
   onSaved: (judges: Judge[]) => void
+  /** Called with the saved mode, for the same reason. */
+  onSignInSaved: (mode: JudgeSignInMode) => void
 }
 
 /** A blank row, with an id the server will accept and the browser can key on. */
@@ -74,12 +79,38 @@ function forSave(draft: Judge[]): Judge[] {
   }))
 }
 
-export function RunJudgesPanel({ runId, initialJudges, onSaved }: RunJudgesPanelProps) {
+export function RunJudgesPanel({
+  runId,
+  initialJudges,
+  initialSignIn,
+  onSaved,
+  onSignInSaved,
+}: RunJudgesPanelProps) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<Judge[]>(initialJudges)
+  const [signIn, setSignIn] = useState<JudgeSignInMode>(initialSignIn)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+
+  /**
+   * The toggle saves on the spot rather than joining the judges draft: an
+   * organiser flipping it thirty seconds before judging must not have to
+   * remember to press "Save judges" as well, and the API takes the two as
+   * separate branches anyway.
+   */
+  async function saveSignIn(next: JudgeSignInMode) {
+    const previous = signIn
+    setSignIn(next)
+    setError(null)
+    try {
+      await apiSend(`/api/admin/impact-lab/runs/${runId}`, "PATCH", { judgeSignIn: next })
+      onSignInSaved(next)
+    } catch (e) {
+      setSignIn(previous)
+      setError(e instanceof Error ? e.message : "Failed to save the sign-in mode")
+    }
+  }
 
   /** Apply a partial edit to one row, leaving every other row untouched. */
   function update(index: number, patch: Partial<Judge>) {
@@ -155,6 +186,21 @@ export function RunJudgesPanel({ runId, initialJudges, onSaved }: RunJudgesPanel
             Shown to participants on their dashboard, on the public event page, and
             in the judges&rsquo; brief. Save writes the whole list.
           </p>
+
+          <label className="flex items-start gap-2 p-2.5 bg-[#111] border border-[#1e1e1e] rounded cursor-pointer">
+            <input
+              type="checkbox"
+              checked={signIn === "roster"}
+              onChange={(e) => void saveSignIn(e.target.checked ? "roster" : "open")}
+              className="mt-0.5 accent-[#00ff41]"
+            />
+            <span className="text-[11px] font-mono text-[#aaa]">
+              Judges pick themselves from this list; no free-text names
+              <span className="block text-[10px] text-[#666]">
+                Off: judges type their own name at the door, as before.
+              </span>
+            </span>
+          </label>
 
           {draft.map((judge, index) => (
             <div key={judge.id} className="p-3 bg-[#111] border border-[#1e1e1e] rounded space-y-2">

@@ -2,7 +2,8 @@
  * Judge access by shared code.
  *
  * Judges do not have accounts — there was no time to create them mid-event —
- * so a shared code plus a typed name is the entry path. This is deliberately
+ * so a shared code plus either a typed name or a pick from the published
+ * panel (see `JudgeSignInMode`) is the entry path. This is deliberately
  * weaker than the signed-in staff path, and the difference is contained:
  *
  * - A code-gated caller may ONLY read the judging payload and write their own
@@ -17,6 +18,8 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { cookies } from "next/headers"
+
+import { ROSTER_IDENTITY_PREFIX } from "./roster"
 
 export const JUDGE_COOKIE = "il_judge"
 
@@ -97,7 +100,10 @@ export async function readJudgeSession(): Promise<JudgeSession | null> {
     if (typeof parsed !== "object" || parsed === null) return null
     const { identity, displayName } = parsed as Record<string, unknown>
     if (typeof identity !== "string" || typeof displayName !== "string") return null
-    if (!identity.startsWith("name:")) return null
+    // Two identity namespaces are legitimate: `name:` for a typed name and
+    // `roster:` for a judge who picked themselves off the panel. Anything else
+    // is a hand-crafted cookie and is treated as no session at all.
+    if (!identity.startsWith("name:") && !identity.startsWith(ROSTER_IDENTITY_PREFIX)) return null
     return { identity, displayName }
   } catch {
     return null

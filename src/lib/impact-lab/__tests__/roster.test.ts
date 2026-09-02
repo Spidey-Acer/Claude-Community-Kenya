@@ -4,8 +4,11 @@
 
 import { describe, it, expect } from "vitest"
 import {
+  extractJudgeSignIn,
   extractJudges,
   judgeInitials,
+  judgeNameForIdentity,
+  rosterIdentity,
   judgeSchema,
   JUDGE_BIO_MAX,
   HARD_TEAM_SIZE_CAP,
@@ -333,5 +336,37 @@ describe("judgeInitials", () => {
     expect(judgeInitials("")).toBe("?")
     expect(judgeInitials("   ")).toBe("?")
     expect(judgeInitials("!!!")).toBe("?")
+  })
+})
+
+describe("extractJudgeSignIn", () => {
+  it("defaults to open for a run with no sign-in mode stored", () => {
+    expect(extractJudgeSignIn({ teams: [] })).toBe("open")
+    expect(extractJudgeSignIn(null)).toBe("open")
+  })
+
+  it("defaults to open for a malformed value rather than locking judges out", () => {
+    expect(extractJudgeSignIn({ judgeSignIn: "ROSTER" })).toBe("open")
+    expect(extractJudgeSignIn({ judgeSignIn: true })).toBe("open")
+  })
+
+  it("reads roster mode when it is set", () => {
+    expect(extractJudgeSignIn({ judgeSignIn: "roster" })).toBe("roster")
+  })
+})
+
+describe("judgeNameForIdentity", () => {
+  const panel = [
+    { id: "j1", name: "Favor Ruhiu", title: "Engineer", bio: "", kind: "panel" as const, order: 1 },
+  ]
+
+  it("resolves a roster identity to the current panel name", () => {
+    expect(judgeNameForIdentity(rosterIdentity("j1"), panel)).toBe("Favor Ruhiu")
+  })
+
+  it("returns null for a typed-name identity, a staff email, or a dropped judge", () => {
+    expect(judgeNameForIdentity("name:favor-ruhiu", panel)).toBeNull()
+    expect(judgeNameForIdentity("admin@example.com", panel)).toBeNull()
+    expect(judgeNameForIdentity(rosterIdentity("gone"), panel)).toBeNull()
   })
 })
