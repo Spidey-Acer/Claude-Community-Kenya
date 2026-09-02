@@ -7,8 +7,8 @@ import { csrfHeaders } from "@/lib/csrf-client";
 import type { TeamMemberView } from "@/lib/impact-lab/member";
 
 type SearchHit =
-  | { kind: "participant"; id: string; fullName: string; onTeam: string | null }
-  | { kind: "account"; userId: string; fullName: string };
+  | { kind: "participant"; id: string; fullName: string; onTeam: string | null; checkedIn: boolean }
+  | { kind: "account"; userId: string; fullName: string; checkedIn: boolean };
 
 /**
  * Roster self-service for a team.
@@ -37,6 +37,7 @@ export function TeamRoster({
   const [searching, setSearching] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function runSearch(value: string) {
@@ -74,6 +75,7 @@ export function TeamRoster({
     setBusyId(busyKey);
     setError(null);
     setNotice(null);
+    setWarning(null);
     try {
       const res = await fetch(`/api/impact-lab/team/roster${cohortQuery}`, {
         method,
@@ -86,6 +88,7 @@ export function TeamRoster({
         return;
       }
       setNotice(json.message ?? "Team updated.");
+      setWarning(json.warning ?? null);
       setQuery("");
       setHits([]);
       onChanged();
@@ -220,8 +223,17 @@ export function TeamRoster({
                       className="flex items-center justify-between gap-3 bg-bg-primary px-3 py-2.5"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-sm text-text-primary">
+                        <span className="flex items-center gap-1.5 truncate text-sm text-text-primary">
                           {hit.fullName}
+                          <span
+                            className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${
+                              hit.checkedIn
+                                ? "bg-green-primary/10 text-green-primary"
+                                : "bg-bg-primary text-text-dim"
+                            }`}
+                          >
+                            {hit.checkedIn ? "in the room" : "not checked in"}
+                          </span>
                         </span>
                         {hit.kind === "participant" && hit.onTeam && !already && (
                           <span className="block text-xs text-amber">
@@ -267,6 +279,9 @@ export function TeamRoster({
                 Nobody registered matches that name.
               </p>
             )}
+            <p className="mt-2 text-xs text-text-dim">
+              Adding someone who has not checked in keeps their seat for them.
+            </p>
           </div>
 
           <div>
@@ -308,6 +323,11 @@ export function TeamRoster({
           {notice && (
             <p role="status" className="text-sm text-green-primary">
               {notice}
+            </p>
+          )}
+          {warning && (
+            <p role="status" className="text-sm text-amber">
+              {warning}
             </p>
           )}
           {error && (

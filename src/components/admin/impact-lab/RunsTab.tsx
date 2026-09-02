@@ -232,7 +232,11 @@ export function RunsTab({ cohort, refreshKey }: RunsTabProps) {
                     {isExpanded && (
                       <tr>
                         <td colSpan={6} className="p-0">
-                          <RunDetail runId={run.id} directory={directory ?? new Map()} />
+                          <RunDetail
+                            runId={run.id}
+                            directory={directory ?? new Map()}
+                            onChanged={load}
+                          />
                         </td>
                       </tr>
                     )}

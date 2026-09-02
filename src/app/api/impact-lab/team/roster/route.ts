@@ -7,6 +7,8 @@ import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
+import { extractUnassignedIds, placeParticipant, readMaxTeamSize } from "@/lib/impact-lab/roster"
+import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 import type { Team } from "@/lib/matching"
 import type { Prisma } from "@/generated/prisma/client"
 
@@ -72,30 +74,37 @@ function noTeam(): NextResponse {
 }
 
 /**
- * Persist an edited team list. Takes a row lock first: two teammates editing at
- * the same moment would otherwise read the same JSON, and the second write
- * would silently discard the first person's change.
+ * Unassign a participant from the caller's team — the DELETE (drop a no-show)
+ * path. Goes through `placeParticipant` with `toTeamId: null` so a dropped
+ * participant lands in `unassignedIds`, the same "on no team" representation
+ * the admin move endpoint (and its "add an unassigned participant" affordance)
+ * reads — a no-show removed here is visible there without a second field to
+ * keep in sync.
  */
-async function writeTeams(runId: string, mutate: (teams: Team[]) => Team[] | null) {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT id FROM impact_lab_match_runs WHERE id = ${runId} FOR UPDATE`
-
-    const fresh = await tx.impactLabMatchRun.findUnique({
-      where: { id: runId },
-      select: { result: true },
-    })
+async function dropFromTeam(
+  runId: string,
+  myTeamId: string,
+  participantId: string
+): Promise<"ok" | "no_team"> {
+  return withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
     const teams = extractFrozenTeams(fresh?.result)
-    if (!teams) return null
+    if (!teams) return "no_team"
 
-    const next = mutate(teams)
-    if (!next) return null
+    const mine = teams.find((t) => t.id === myTeamId)
+    if (!mine) return "no_team"
+    if (!mine.memberIds.includes(participantId)) return "ok" // already gone — idempotent
 
-    const result = { ...(fresh?.result as object), teams: next }
-    await tx.impactLabMatchRun.update({
-      where: { id: runId },
-      data: { result: JSON.parse(JSON.stringify(result)) },
+    const maxTeamSize = readMaxTeamSize(fresh?.settings)
+    const unassignedIds = extractUnassignedIds(fresh?.result)
+    const placement = placeParticipant({ teams, unassignedIds }, participantId, null, maxTeamSize)
+
+    await writeRunResult(tx, runId, {
+      ...(fresh?.result as object),
+      teams: placement.state.teams,
+      unassignedIds: placement.state.unassignedIds,
     })
-    return next
+    return "ok"
   })
 }
 
@@ -155,50 +164,47 @@ function resolveOrCreateParticipant(userId: string, cohort: string): TargetResol
 }
 
 type AddOutcome =
-  | { status: "ok"; target: Target }
+  | { status: "ok"; target: Target; warning?: string }
   | { status: "target_not_found" }
   | { status: "no_team" }
+  | { status: "too_large" }
 
 /**
  * Resolve the target and persist the edited team list in one transaction —
  * see `resolveOrCreateParticipant` for why resolution has to happen inside
- * the same lock as the write.
+ * the same lock as the write. Placement runs through `placeParticipant`, so
+ * an add also clears the target out of `unassignedIds` and is subject to the
+ * same size rules the admin move endpoint enforces.
  */
 async function addToTeam(
   runId: string,
   myTeamId: string,
   resolveTarget: TargetResolver
 ): Promise<AddOutcome> {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT id FROM impact_lab_match_runs WHERE id = ${runId} FOR UPDATE`
-
+  return withRunLock(runId, async (tx) => {
     const target = await resolveTarget(tx)
     if (!target) return { status: "target_not_found" }
 
-    const fresh = await tx.impactLabMatchRun.findUnique({
-      where: { id: runId },
-      select: { result: true },
-    })
+    const fresh = await readLockedRun(tx, runId)
     const teams = extractFrozenTeams(fresh?.result)
     if (!teams) return { status: "no_team" }
 
     const mine = teams.find((t) => t.id === myTeamId)
     if (!mine) return { status: "no_team" }
 
-    if (!mine.memberIds.includes(target.id)) {
-      const next = teams.map((t) =>
-        t.id === myTeamId
-          ? { ...t, memberIds: [...t.memberIds, target.id] }
-          : { ...t, memberIds: t.memberIds.filter((id) => id !== target.id) }
-      )
-      const result = { ...(fresh?.result as object), teams: next }
-      await tx.impactLabMatchRun.update({
-        where: { id: runId },
-        data: { result: JSON.parse(JSON.stringify(result)) },
-      })
-    } // else already here — idempotent, nothing to write
+    const maxTeamSize = readMaxTeamSize(fresh?.settings)
+    const unassignedIds = extractUnassignedIds(fresh?.result)
+    const placement = placeParticipant({ teams, unassignedIds }, target.id, myTeamId, maxTeamSize)
 
-    return { status: "ok", target }
+    if (placement.status === "too_large") return { status: "too_large" }
+
+    await writeRunResult(tx, runId, {
+      ...(fresh?.result as object),
+      teams: placement.state.teams,
+      unassignedIds: placement.state.unassignedIds,
+    })
+
+    return { status: "ok", target, warning: placement.warning }
   })
 }
 
@@ -254,10 +260,17 @@ export async function POST(request: NextRequest) {
         : "That account could not be found."
     return NextResponse.json({ success: false, error }, { status: 404 })
   }
+  if (outcome.status === "too_large") {
+    return NextResponse.json(
+      { success: false, error: "That team is already full." },
+      { status: 400 }
+    )
+  }
 
   return NextResponse.json({
     success: true,
     message: `${outcome.target.fullName} is now on your team.`,
+    warning: outcome.warning,
   })
 }
 
@@ -313,22 +326,8 @@ export async function DELETE(request: NextRequest) {
 
   const myTeamId = me.teams[me.myTeamIndex].id
 
-  const next = await writeTeams(me.runId, (teams) => {
-    const mine = teams.find((t) => t.id === myTeamId)
-    if (!mine) return null
-    if (!mine.memberIds.includes(parsed.data.participantId)) return teams
-
-    return teams.map((t) =>
-      t.id === myTeamId
-        ? {
-            ...t,
-            memberIds: t.memberIds.filter((id) => id !== parsed.data.participantId),
-          }
-        : t
-    )
-  })
-
-  if (!next) return noTeam()
+  const outcome = await dropFromTeam(me.runId, myTeamId, parsed.data.participantId)
+  if (outcome === "no_team") return noTeam()
 
   return NextResponse.json({ success: true, message: "Removed from your team." })
 }
