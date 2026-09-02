@@ -102,6 +102,14 @@ export interface Track {
   label: string
   description?: string
   aliases: string[]
+  /** Participant-facing guide copy. The engine reads none of it — see
+   * tracks.ts's `trackSchema` for what each field means. */
+  englishName?: string
+  beneficiary?: string
+  problem?: string
+  rules: string[]
+  build?: string
+  judgesAsk?: string
 }
 
 export interface MatchSettings {

@@ -21,6 +21,7 @@ import { SOCIAL_LINKS } from "@/lib/constants";
 import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
 import { TrackPicker } from "./TrackPicker";
+import { TrackGuide } from "./TrackGuide";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
 import { ConversationsReportCard } from "./ConversationsReportCard";
 import type { ConversationsReportView } from "@/lib/conversations/queries";
@@ -291,6 +292,9 @@ export function ImpactLabClient({
         <div className="space-y-6">
           {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
           <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} tracks={tracks} />
+          {hasTracks && (
+            <TrackGuide cohort={cohort} tracks={tracks!} teamTrackKey={team.trackKey} />
+          )}
         </div>
       );
     }
@@ -457,6 +461,8 @@ export function ImpactLabClient({
               </p>
             )}
           </section>
+
+          {hasTracks && <TrackGuide cohort={cohort} tracks={tracks!} />}
         </div>
       );
     }
@@ -488,6 +494,8 @@ export function ImpactLabClient({
               </div>
             </div>
           </section>
+
+          {tracks && tracks.length > 0 && <TrackGuide cohort={cohort} tracks={tracks} />}
 
           <section
             aria-label="What happens next"

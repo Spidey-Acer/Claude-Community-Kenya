@@ -48,10 +48,19 @@ export function TrackRadioGroup({
               className="sr-only"
             />
             <span className="font-mono text-sm font-bold text-text-primary">{track.label}</span>
-            {track.description && (
-              <span className="mt-0.5 text-[11px] leading-snug text-text-dim">
-                {track.description}
+            {/* The English gloss is the more useful second line for a reader
+                who doesn't speak Kiswahili, so it wins over the description
+                when both exist. Tracks with no gloss keep the description. */}
+            {track.englishName ? (
+              <span className="mt-0.5 text-xs leading-snug text-text-secondary">
+                {track.englishName}
               </span>
+            ) : (
+              track.description && (
+                <span className="mt-0.5 text-[11px] leading-snug text-text-dim">
+                  {track.description}
+                </span>
+              )
             )}
           </label>
         );

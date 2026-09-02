@@ -38,8 +38,8 @@ describe("runMatching — table numbering", () => {
 
 describe("runMatchingByTrack — table numbering", () => {
   const TRACKS = [
-    { key: "jobs", label: "Kazi", aliases: [] },
-    { key: "health", label: "Afya", aliases: [] },
+    { key: "jobs", label: "Kazi", aliases: [], rules: [] },
+    { key: "health", label: "Afya", aliases: [], rules: [] },
   ]
   const SETTINGS: MatchSettings = {
     ...DEFAULT_SETTINGS,
