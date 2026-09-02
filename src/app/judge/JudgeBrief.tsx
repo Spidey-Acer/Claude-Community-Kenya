@@ -71,14 +71,27 @@ const PANEL_RULES: string[] = [
   "The panel's decision is final and the reasons stay in the room.",
 ];
 
+/** One judge as the brief lists them — who they are, not their published bio. */
+export interface JudgePanelMember {
+  name: string;
+  title: string;
+}
+
 export function JudgeBrief({
   tracks,
   criteria,
+  judges,
 }: {
   /** The event's declared tracks. Empty is normal for an event without them. */
   tracks: Track[];
   /** The live rubric, as the judge-events endpoint sent it. */
   criteria: JudgeBriefCriterion[];
+  /**
+   * The rest of the panel, from the same run the participants' list is read
+   * from. Empty until an organiser publishes it, in which case the panel
+   * rules stand alone exactly as they did before.
+   */
+  judges: JudgePanelMember[];
 }) {
   return (
     <div className="space-y-8 pb-4">
@@ -184,6 +197,21 @@ export function JudgeBrief({
 
       <Section title="Panel rules" eyebrow="// ./panel">
         <Bullets items={PANEL_RULES} />
+        {judges.length > 0 && (
+          <div className="mt-5">
+            <p className={`${EYEBROW} mb-2`}>{"// ./who-else-is-judging"}</p>
+            <ul className="space-y-2">
+              {judges.map((judge) => (
+                <li key={`${judge.name}-${judge.title}`} className="flex flex-col gap-0.5">
+                  <span className="font-mono text-sm text-text-primary break-words">
+                    {judge.name}
+                  </span>
+                  <span className={BODY}>{judge.title}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Section>
 
       <Section title="Take it with you" eyebrow="// ./downloads">

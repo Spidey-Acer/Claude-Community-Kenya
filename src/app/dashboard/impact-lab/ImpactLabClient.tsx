@@ -17,6 +17,7 @@ import type {
   MemberTeamStatus,
   TeamRevealView,
 } from "@/lib/impact-lab/member";
+import type { Judge } from "@/lib/impact-lab/roster";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { DeadlineCountdown } from "./DeadlineCountdown";
 import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
@@ -24,6 +25,7 @@ import { TeamReveal } from "./TeamReveal";
 import { TrackPicker } from "./TrackPicker";
 import { TrackGuide } from "./TrackGuide";
 import { JoinRequestCard } from "./JoinRequestCard";
+import { JudgesPanel } from "./JudgesPanel";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
 import { ConversationsReportCard } from "./ConversationsReportCard";
 import type { ConversationsReportView } from "@/lib/conversations/queries";
@@ -39,6 +41,8 @@ interface TeamResponse {
   success?: boolean;
   status?: MemberTeamStatus;
   team?: TeamRevealView;
+  /** The published panel. Absent on an older response — degrades to no section. */
+  judges?: Judge[];
   error?: string;
 }
 
@@ -107,6 +111,7 @@ export function ImpactLabClient({
   const [phase, setPhase] = useState<Phase>("loading");
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [team, setTeam] = useState<TeamRevealView | null>(null);
+  const [judges, setJudges] = useState<Judge[]>([]);
   const [results, setResults] = useState<ResultsViewProps | null>(null);
   const [editing, setEditing] = useState(false);
   // An object payload distinguishes registering into `inviteEvent` (from the
@@ -172,6 +177,10 @@ export function ImpactLabClient({
           setPhase("results");
           return;
         }
+
+        // Set before the status branching below: the panel is event-wide and
+        // travels on both the revealed and unassigned payloads.
+        setJudges(teamJson.judges ?? []);
 
         if (teamJson.status === "revealed" && teamJson.team) {
           setTeam(teamJson.team);
@@ -328,6 +337,7 @@ export function ImpactLabClient({
             // the phase is already "revealed" and the load below sets it again.
             onTeamChanged={() => setReloadKey((k) => k + 1)}
           />
+          <JudgesPanel judges={judges} />
           {hasTracks && (
             // Keyed for the same reason as TeamReveal above: the guide seeds
             // which cards are open once, at mount. Without a remount a moved
@@ -502,6 +512,8 @@ export function ImpactLabClient({
               }}
             />
           )}
+
+          <JudgesPanel judges={judges} />
 
           <section
             className="rounded-lg border border-border-default bg-bg-secondary p-5"

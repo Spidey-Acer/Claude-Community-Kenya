@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { ChevronDown, ChevronRight, Download, Loader2 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { buildFinalList, type FinalListTeamInput } from "@/lib/impact-lab/final-list"
-import { extractJoinRequests } from "@/lib/impact-lab/roster"
+import { extractJoinRequests, extractJudges } from "@/lib/impact-lab/roster"
+import { RunJudgesPanel } from "./RunJudgesPanel"
 import type { MatchResult } from "./types"
 
 /** The subset of GET /runs/[id]'s response this view renders. */
@@ -188,6 +189,9 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   // which predates no schema for it — read tolerantly, never typed onto
   // MatchResult, so an older run simply shows zero.
   const openJoinRequests = extractJoinRequests(result).filter((r) => r.status === "open")
+  // Same story as the join requests: stored on the result JSON, read tolerantly,
+  // never typed onto MatchResult. A run with no panel yet simply shows none.
+  const judges = extractJudges(result)
 
   return (
     <div className="p-4 space-y-3 bg-[#0a0a0a] border-t border-[#1e1e1e]">
@@ -485,6 +489,14 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
           </div>
         )}
       </section>
+
+      <RunJudgesPanel
+        runId={runId}
+        initialJudges={judges}
+        onSaved={(next) =>
+          setDetail((d) => (d ? { ...d, result: { ...d.result, judges: next } } : d))
+        }
+      />
     </div>
   )
 }

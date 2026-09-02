@@ -103,6 +103,48 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
   }
 }
 
+/**
+ * The Impact Lab cohort behind a row in the public `Event` table, or null.
+ *
+ * There is no foreign key from a public event to a cohort, so this tries the
+ * two links that do exist, in order of how explicit they are:
+ *
+ *   1. `ImpactLabEvent.conversationsEventId` pointing back at this event row.
+ *      Explicit, set by an organiser in admin, and the stronger signal — but
+ *      that column was added to attach a Conversations write-up to a cohort's
+ *      dashboard, so at an event with a separate morning session it may well
+ *      point at a different row than the hackathon's own.
+ *   2. The event's slug read as a cohort slug. Both are hand-authored
+ *      lowercase slugs in the same namespace (`impact-lab-02`), so a match is
+ *      the same event by any reasonable reading, and a collision between two
+ *      unrelated things would need somebody to name them identically.
+ *
+ * Returns null when neither resolves, and pre-migration where the table does
+ * not exist. Callers use it to decide whether a public page has a cohort worth
+ * asking about at all.
+ */
+export async function cohortForPublicEvent(
+  eventId: string,
+  eventSlug: string
+): Promise<string | null> {
+  try {
+    const linked = await prisma.impactLabEvent.findFirst({
+      where: { conversationsEventId: eventId },
+      select: { cohort: true },
+    })
+    if (linked) return linked.cohort
+
+    const bySlug = await prisma.impactLabEvent.findUnique({
+      where: { cohort: eventSlug },
+      select: { cohort: true },
+    })
+    return bySlug?.cohort ?? null
+  } catch (error) {
+    if (isMissingTable(error)) return null
+    throw error
+  }
+}
+
 /** Every event, newest first; [] pre-migration. */
 export async function listEvents(): Promise<EventRecord[]> {
   try {
