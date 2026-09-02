@@ -64,11 +64,19 @@ function gridColsClass(criterion: JudgingCriterion): string {
 export function JudgeScoring({
   cohort,
   onDirtyChange,
+  onScoredChange,
 }: {
   cohort: string;
   /** Reports whether any open team has scores edited since the last save, so
    *  an event switcher one level up can warn before discarding them. */
   onDirtyChange?: (dirty: boolean) => void;
+  /**
+   * Reports whether this judge has any score at all for this event — saved
+   * earlier or entered just now. Called only once the teams have loaded, so a
+   * caller can tell "no scores" from "not known yet" and does not act on the
+   * empty state this component holds before its fetch resolves.
+   */
+  onScoredChange?: (hasScored: boolean) => void;
 }) {
   const [data, setData] = useState<Payload | null>(null);
   const [openTeam, setOpenTeam] = useState<string | null>(null);
@@ -127,6 +135,18 @@ export function JudgeScoring({
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
+
+  const hasScored = Object.values(sheets).some(
+    (sheet) => Object.keys(sheet ?? {}).length > 0
+  );
+
+  // Gated on `data`: before the fetch resolves every sheet is empty, and
+  // reporting that as "has not scored" would be a claim this component cannot
+  // yet make.
+  useEffect(() => {
+    if (!data) return;
+    onScoredChange?.(hasScored);
+  }, [data, hasScored, onScoredChange]);
 
   function setScore(teamId: string, key: string, value: number) {
     setSheets((prev) => ({ ...prev, [teamId]: { ...prev[teamId], [key]: value } }));

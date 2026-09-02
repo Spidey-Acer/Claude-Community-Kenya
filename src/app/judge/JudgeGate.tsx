@@ -59,7 +59,7 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
           <button
             type="button"
             onClick={signOut}
-            className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary hover:border-green-primary/40 hover:text-green-primary"
+            className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary hover:border-green-primary/40 hover:text-green-primary print:hidden"
           >
             Not you?
           </button>
