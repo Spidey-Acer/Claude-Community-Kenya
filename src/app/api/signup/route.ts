@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  // Stricter limit than the form preset — signup abuse can poison the user table.
-  const rateLimitResult = await rateLimit(request, RateLimits.AUTH)
+  // Room-sized per-IP cap (see RateLimits.SIGNUP); email verification gates abuse.
+  const rateLimitResult = await rateLimit(request, RateLimits.SIGNUP)
   if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: "Too many signup attempts. Please try again later." },

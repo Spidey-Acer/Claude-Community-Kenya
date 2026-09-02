@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const rl = await rateLimit(request, RateLimits.AUTH)
+  const rl = await rateLimit(request, RateLimits.SIGNUP)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Please try again later." },
