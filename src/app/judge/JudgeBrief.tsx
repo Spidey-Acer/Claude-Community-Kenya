@@ -28,16 +28,12 @@ import { BODY, CARD, CARD_PAD, EYEBROW, GHOST_BUTTON, TAP } from "./judge-ui";
 /** Tonight's run of show, from the organiser. */
 const TONIGHT: { time: string; what: string }[] = [
   {
-    time: "4:00",
-    what: "Submissions locked. Every team's written submission is on your scoring screen from then.",
-  },
-  {
     time: "4:45",
     what: "Judges' call at the judges' table. Briefing, recusals, demo order. Calibration: ten minutes on one July clip.",
   },
   {
     time: "5:00",
-    what: "Presentations start. Five minutes per team, live demo only. Backup video plays only if the live demo dies in the first minute.",
+    what: "Submissions lock and presentations start. Every team's written submission is on your scoring screen. Five minutes per team, live demo only. Backup video plays only if the live demo dies in the first minute.",
   },
   {
     time: "After the last demo",

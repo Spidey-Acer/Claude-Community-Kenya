@@ -353,7 +353,7 @@ export function SubmitProject({
 
         {eventCohort === SCOPE_FREEZE_COHORT && (
           <p className="mb-4 rounded border border-amber/30 bg-amber/10 px-3 py-2 font-mono text-[11px] text-amber">
-            Scope freeze 3:30. Save early, edit until then.
+            Submissions lock at 5:00 and presentations start then. Save early, edit until 5:00.
           </p>
         )}
 
