@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useState } from "react"
-import { AlertTriangle, Loader2, Plus } from "lucide-react"
+import { AlertTriangle, Loader2, Plus, Trash2, X } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 
 /**
@@ -19,6 +19,15 @@ import { apiGet, apiSend } from "./api"
 
 type EventStatus = "DRAFT" | "LIVE" | "CLOSED" | "ARCHIVED"
 
+/** Mirrors src/lib/impact-lab/tracks.ts's `Track` — the client's own copy
+ * so this file doesn't need to import the (server-flavoured) zod schema. */
+interface Track {
+  key: string
+  label: string
+  description?: string
+  aliases: string[]
+}
+
 interface EventRow {
   id: string
   organisationId: string
@@ -32,8 +41,15 @@ interface EventRow {
   location: string
   formatNote: string
   groundRules: string | null
+  tracks: Track[]
+  conversationsEventId: string | null
   createdAt: string
 }
+
+const splitAliases = (v: string): string[] =>
+  v.split(/[;,]/).map((s) => s.trim().toLowerCase()).filter(Boolean)
+
+const EMPTY_TRACK: Track = { key: "", label: "", description: "", aliases: [] }
 
 interface OrganisationOption {
   id: string
@@ -41,9 +57,16 @@ interface OrganisationOption {
   name: string
 }
 
+interface ConversationsEventOption {
+  id: string
+  title: string
+  slug: string
+}
+
 interface EventsData {
   events: EventRow[]
   organisations: OrganisationOption[]
+  conversationsEvents: ConversationsEventOption[]
 }
 
 const STATUS_COLOR: Record<EventStatus, string> = {
@@ -89,6 +112,14 @@ export function EventsTab() {
 
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
+  const [linking, setLinking] = useState<string | null>(null)
+
+  // Tracks editor: one cohort open at a time, edited as a local draft and
+  // written back with a single PATCH on Save.
+  const [editingTracksCohort, setEditingTracksCohort] = useState<string | null>(null)
+  const [trackDraft, setTrackDraft] = useState<Track[]>([])
+  const [tracksSaving, setTracksSaving] = useState(false)
+  const [tracksError, setTracksError] = useState<string | null>(null)
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -129,6 +160,65 @@ export function EventsTab() {
       }))
     } finally {
       setTransitioning(null)
+    }
+  }
+
+  const linkConversationsEvent = async (cohort: string, conversationsEventId: string | null) => {
+    setLinking(cohort)
+    setRowErrors((prev) => {
+      if (!(cohort in prev)) return prev
+      const next = { ...prev }
+      delete next[cohort]
+      return next
+    })
+    try {
+      await apiSend("/api/admin/impact-lab/events", "PATCH", { cohort, conversationsEventId })
+      await load()
+    } catch (e) {
+      setRowErrors((prev) => ({
+        ...prev,
+        [cohort]: e instanceof Error ? e.message : "Could not link the report",
+      }))
+    } finally {
+      setLinking(null)
+    }
+  }
+
+  const startEditTracks = (event: EventRow) => {
+    setTracksError(null)
+    setEditingTracksCohort(event.cohort)
+    setTrackDraft(event.tracks.length > 0 ? event.tracks.map((t) => ({ ...t })) : [{ ...EMPTY_TRACK }])
+  }
+
+  const cancelEditTracks = () => {
+    setEditingTracksCohort(null)
+    setTrackDraft([])
+    setTracksError(null)
+  }
+
+  const saveTracks = async () => {
+    if (!editingTracksCohort) return
+    setTracksSaving(true)
+    setTracksError(null)
+    try {
+      // Drop fully-blank rows (an organiser who added a row and abandoned it)
+      // rather than sending an invalid key to the server.
+      const tracks = trackDraft
+        .filter((t) => t.key.trim() || t.label.trim())
+        .map((t) => ({
+          key: t.key.trim(),
+          label: t.label.trim(),
+          ...(t.description?.trim() ? { description: t.description.trim() } : {}),
+          aliases: t.aliases,
+        }))
+      await apiSend("/api/admin/impact-lab/events", "PATCH", { cohort: editingTracksCohort, tracks })
+      setEditingTracksCohort(null)
+      setTrackDraft([])
+      await load()
+    } catch (e) {
+      setTracksError(e instanceof Error ? e.message : "Failed to save tracks")
+    } finally {
+      setTracksSaving(false)
     }
   }
 
@@ -377,7 +467,7 @@ export function EventsTab() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#1e1e1e]">
-                  {["Name", "Organisation", "Cohort", "Status", "Created", ""].map((h) => (
+                  {["Name", "Organisation", "Cohort", "Status", "Tracks", "Report", "Created", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-[10px] font-mono font-semibold uppercase tracking-wider text-[#555]"
@@ -407,6 +497,36 @@ export function EventsTab() {
                           {event.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() =>
+                            editingTracksCohort === event.cohort
+                              ? cancelEditTracks()
+                              : startEditTracks(event)
+                          }
+                          className="rounded border border-[#1e1e1e] px-2 py-1 text-[10px] font-mono text-[#888] hover:border-[#ffb000]/40 hover:text-[#ffb000]"
+                        >
+                          {event.tracks.length > 0 ? `${event.tracks.length} track${event.tracks.length === 1 ? "" : "s"}` : "None"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          aria-label={`Linked Conversations event for ${event.name}`}
+                          value={event.conversationsEventId ?? ""}
+                          onChange={(e) =>
+                            void linkConversationsEvent(event.cohort, e.target.value || null)
+                          }
+                          disabled={linking === event.cohort}
+                          className="w-full max-w-[180px] rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono text-[#888] focus:border-[#00ff41]/50 focus:outline-none disabled:opacity-40"
+                        >
+                          <option value="">None</option>
+                          {data.conversationsEvents.map((ce) => (
+                            <option key={ce.id} value={ce.id}>
+                              {ce.title}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-[11px] font-mono text-[#666]">
                         {new Date(event.createdAt).toLocaleDateString("en-KE", { dateStyle: "medium" })}
                       </td>
@@ -431,7 +551,7 @@ export function EventsTab() {
                     </tr>
                     {rowErrors[event.cohort] && (
                       <tr className="bg-[#0a0a0a]">
-                        <td colSpan={6} className="px-4 py-2">
+                        <td colSpan={8} className="px-4 py-2">
                           <p
                             role="alert"
                             className="flex items-start gap-2 text-[11px] font-mono text-[#ff3333]"
@@ -439,6 +559,115 @@ export function EventsTab() {
                             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                             {rowErrors[event.cohort]}
                           </p>
+                        </td>
+                      </tr>
+                    )}
+                    {editingTracksCohort === event.cohort && (
+                      <tr className="bg-[#0a0a0a]">
+                        <td colSpan={8} className="px-4 py-4">
+                          <div className="space-y-3">
+                            <p className={LEGEND}>
+                              Tracks for {event.name} — participants pick one at registration;
+                              matching keeps every team within a single track.
+                            </p>
+                            {trackDraft.map((track, i) => (
+                              <div
+                                key={i}
+                                className="grid grid-cols-1 gap-2 rounded border border-[#1e1e1e] p-3 sm:grid-cols-[1fr_1fr_2fr_auto]"
+                              >
+                                <div className="space-y-1">
+                                  <label className={LEGEND}>Key</label>
+                                  <input
+                                    value={track.key}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, key: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="jobs"
+                                    className={FIELD}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className={LEGEND}>Label</label>
+                                  <input
+                                    value={track.label}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, label: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="Work & Jobs"
+                                    className={FIELD}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className={LEGEND}>Aliases (registration answers, ; or ,)</label>
+                                  <input
+                                    value={track.aliases.join(", ")}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, aliases: splitAliases(e.target.value) }
+                                      setTrackDraft(next)
+                                    }}
+                                    placeholder="work-and-jobs, employment"
+                                    className={FIELD}
+                                  />
+                                </div>
+                                <div className="flex items-end justify-end">
+                                  <button
+                                    onClick={() => setTrackDraft(trackDraft.filter((_, j) => j !== i))}
+                                    aria-label={`Remove track ${track.label || i + 1}`}
+                                    className="rounded border border-[#1e1e1e] p-2 text-[#ff3333]/70 hover:text-[#ff3333]"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <div className="space-y-1 sm:col-span-3">
+                                  <label className={LEGEND}>Description (optional)</label>
+                                  <input
+                                    value={track.description ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...trackDraft]
+                                      next[i] = { ...track, description: e.target.value }
+                                      setTrackDraft(next)
+                                    }}
+                                    className={FIELD}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+
+                            {tracksError && (
+                              <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
+                                {tracksError}
+                              </p>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setTrackDraft([...trackDraft, { ...EMPTY_TRACK }])}
+                                className="flex items-center gap-1.5 rounded border border-[#1e1e1e] px-3 py-1.5 text-[11px] font-mono text-[#888] hover:border-[#00ff41]/40 hover:text-[#00ff41]"
+                              >
+                                <Plus className="h-3 w-3" /> Add track
+                              </button>
+                              <button
+                                onClick={() => void saveTracks()}
+                                disabled={tracksSaving}
+                                className="flex items-center gap-1.5 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-1.5 text-[11px] font-mono text-[#00ff41] hover:bg-[#00ff41]/20 disabled:opacity-40"
+                              >
+                                {tracksSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                                Save tracks
+                              </button>
+                              <button
+                                onClick={cancelEditTracks}
+                                disabled={tracksSaving}
+                                className="flex items-center gap-1.5 rounded border border-[#1e1e1e] px-3 py-1.5 text-[11px] font-mono text-[#666] hover:text-[#e0e0e0] disabled:opacity-40"
+                              >
+                                <X className="h-3 w-3" /> Cancel
+                              </button>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}

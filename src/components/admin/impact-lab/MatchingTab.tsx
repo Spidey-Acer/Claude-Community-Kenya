@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { ChevronRight, Loader2, Play, RotateCcw, Sparkles, Save } from "lucide-react"
-import { apiSend } from "./api"
+import { apiGet, apiSend } from "./api"
 import type { DirectoryParticipant, MatchResponse, TeamExplanation } from "./types"
 // Import path is the constants module directly (not the "@/lib/matching" barrel)
 // so the client bundle gets only the constant objects, not the engine code.
@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
   distributeAdvancedParticipants: ENGINE_DEFAULTS.distributeAdvancedParticipants,
   allowUnassignedParticipants: ENGINE_DEFAULTS.allowUnassignedParticipants,
   keepPreferredTogether: ENGINE_DEFAULTS.keepPreferredTogether,
+  partitionByTrack: ENGINE_DEFAULTS.partitionByTrack,
   weights: ENGINE_DEFAULTS.weights,
 }
 
@@ -80,6 +81,27 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
   /** Run created automatically at generate time; explanations get patched onto it. */
   const [autoSavedRunId, setAutoSavedRunId] = useState<string | null>(null)
   const [autoSaveNote, setAutoSaveNote] = useState<string | null>(null)
+  // Whether this cohort's event has any tracks defined — drives the "Group
+  // by track" toggle. Fetched from the same events list the Events tab uses;
+  // an event with no tracks means the toggle is shown but disabled, since
+  // there's nothing to partition by.
+  const [hasTracks, setHasTracks] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    apiGet<{ events: { cohort: string; tracks?: unknown }[] }>("/api/admin/impact-lab/events")
+      .then((data) => {
+        if (!active) return
+        const event = data.events.find((e) => e.cohort === cohort)
+        setHasTracks(Array.isArray(event?.tracks) && event.tracks.length > 0)
+      })
+      .catch(() => {
+        if (active) setHasTracks(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [cohort])
 
   // localStorage is read after mount — reading it during render would make the
   // server and client HTML disagree and trigger a hydration error.
@@ -215,6 +237,17 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
             onChange={(v) => setSettings({ ...settings, keepPreferredTogether: v })}
             helper="People who named each other on the Luma form are placed as one unit"
           />
+          <Toggle
+            label="Group by track"
+            checked={settings.partitionByTrack}
+            disabled={!hasTracks}
+            onChange={(v) => setSettings({ ...settings, partitionByTrack: v })}
+            helper={
+              hasTracks
+                ? "No team spans two tracks — define tracks in the Events tab"
+                : "This event has no tracks defined (Events tab) — matching runs unpartitioned"
+            }
+          />
         </div>
 
         <div className="pt-1 border-t border-[#1e1e1e]">
@@ -329,7 +362,15 @@ export function MatchingTab({ cohort, onSaved }: MatchingTabProps) {
               return (
                 <div key={team.id} className="p-4 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-mono text-[#e0e0e0]">{team.name}{team.locked && <span className="ml-2 text-[10px] text-[#ffb000]">[locked]</span>}</div>
+                    <div className="text-sm font-mono text-[#e0e0e0]">
+                      {team.name}
+                      {team.locked && <span className="ml-2 text-[10px] text-[#ffb000]">[locked]</span>}
+                      {team.trackKey && (
+                        <span className="ml-2 rounded border border-[#00d4ff]/30 px-1.5 py-0.5 text-[9px] text-[#00d4ff]">
+                          {team.trackKey}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm font-mono font-bold text-[#00ff41]">{team.score.total}<span className="text-[#444] text-xs">/100</span></div>
                   </div>
 
@@ -396,11 +437,31 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
   )
 }
 
-function Toggle({ label, checked, onChange, helper }: { label: string; checked: boolean; onChange: (v: boolean) => void; helper?: string }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+  helper,
+  disabled,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+  helper?: string
+  disabled?: boolean
+}) {
   return (
-    <label className="flex flex-col gap-0.5 max-w-[220px]">
-      <span className="flex items-center gap-2 text-[11px] font-mono text-[#888] cursor-pointer">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-[#00ff41]" />
+    <label className={`flex flex-col gap-0.5 max-w-[220px] ${disabled ? "opacity-40" : ""}`}>
+      <span
+        className={`flex items-center gap-2 text-[11px] font-mono text-[#888] ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="accent-[#00ff41]"
+        />
         {label}
       </span>
       {helper && <span className="text-[10px] font-mono text-[#555] pl-5">{helper}</span>}

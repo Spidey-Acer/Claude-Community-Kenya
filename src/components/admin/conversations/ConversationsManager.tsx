@@ -66,7 +66,7 @@ export function ConversationsManager({
           </div>
         )
       )}
-      {tab === "qa" && <QaTab eventId={event.id} initialSessions={initialSessions} />}
+      {tab === "qa" && <QaTab eventId={event.id} eventSlug={event.slug} initialSessions={initialSessions} />}
     </div>
   )
 }

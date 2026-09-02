@@ -16,6 +16,10 @@ const importSchema = z.object({
   cohort: z.string().max(60).optional(),
   // Raw rows — validated individually so one bad row doesn't fail the batch.
   participants: z.array(z.unknown()).max(500),
+  // Cancellation prune: when true, participants in this cohort whose email is
+  // absent from the file AND who never checked in are deleted. Off by
+  // default — merge-only stays the safe default from PR #138.
+  dropMissing: z.boolean().optional().default(false),
 })
 
 /**
@@ -126,6 +130,13 @@ function mergePatch(row: MergeRow, draft: ParticipantDraft): Record<string, unkn
  * individually (per-row failures are reported, not fatal), deduped by email, and
  * written in a single findMany + $transaction so the whole import is one
  * round-trip pair regardless of size.
+ *
+ * Optional prune (`dropMissing: true`): after the merge, any participant in
+ * this cohort whose email is not present in the uploaded file AND who has
+ * never checked in is deleted — this is how an organiser removes a
+ * cancellation from a re-imported guest list. Checked-in participants are
+ * never dropped, no matter what the file says, and a file that validated to
+ * zero rows can never trigger a prune (refused with 400 first).
  */
 export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
@@ -177,7 +188,18 @@ export async function POST(request: NextRequest) {
     draftsByEmail.set(validation.data.email, validation.data)
   })
 
+  const { dropMissing } = parsed.data
   const drafts = [...draftsByEmail.values()]
+
+  // Refuse before touching the database: an empty/bad file combined with the
+  // prune flag would otherwise wipe out the whole cohort.
+  if (dropMissing && drafts.length === 0) {
+    return NextResponse.json(
+      { success: false, error: "Refusing to drop everyone: the file had no valid rows" },
+      { status: 400 }
+    )
+  }
+
   const existing = await prisma.impactLabParticipant.findMany({
     where: { cohort, email: { in: drafts.map((d) => d.email) } },
     select: MERGE_SELECT,
@@ -187,6 +209,7 @@ export async function POST(request: NextRequest) {
   let created = 0
   let updated = 0
   let unchanged = 0
+  let dropped: { fullName: string; email: string }[] = []
   // Prisma's default 5s transaction timeout is too tight for a full-cohort
   // import through PgBouncer (120 rows took ~5.2s in prod — P2028 rollback).
   // maxDuration above is 60s; give the transaction most of that budget. The
@@ -208,9 +231,34 @@ export async function POST(request: NextRequest) {
           created++
         }
       }
+
+      if (dropMissing) {
+        const fileEmails = [...draftsByEmail.keys()]
+        const toDrop = await tx.impactLabParticipant.findMany({
+          where: {
+            cohort,
+            email: { notIn: fileEmails },
+            checkedInAt: null,
+          },
+          select: { id: true, fullName: true, email: true },
+        })
+        if (toDrop.length > 0) {
+          await tx.impactLabParticipant.deleteMany({
+            where: { id: { in: toDrop.map((r) => r.id) } },
+          })
+          dropped = toDrop.map(({ fullName, email }) => ({ fullName, email }))
+        }
+      }
     },
     { timeout: 55_000, maxWait: 10_000 }
   )
+
+  const finalRunExists =
+    (await prisma.impactLabMatchRun.count({ where: { cohort, isFinal: true } })) > 0
+  const warning =
+    finalRunExists && dropped.length > 0
+      ? "Teams were already finalised; dropped people may still appear in the published teams. Re-run matching."
+      : undefined
 
   await logAudit({
     userId: check.user.id,
@@ -219,12 +267,22 @@ export async function POST(request: NextRequest) {
     action: "CREATE",
     entity: "ImpactLabParticipant",
     entityId: cohort,
-    changes: { imported: created, updated, unchanged, failed: errors.length },
+    changes: { imported: created, updated, unchanged, failed: errors.length, dropped: dropped.length },
     ...getRequestMetadata(request),
   })
 
   return NextResponse.json({
     success: true,
-    data: { created, updated, unchanged, failed: errors.length, errors },
+    data: {
+      created,
+      updated,
+      unchanged,
+      failed: errors.length,
+      errors,
+      dropped,
+      droppedCount: dropped.length,
+      finalRunExists,
+      ...(warning ? { warning } : {}),
+    },
   })
 }

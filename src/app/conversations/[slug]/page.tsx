@@ -9,6 +9,7 @@ import { ContributionColumns } from "@/components/karibu/conversations/Contribut
 import { ContributionForm } from "@/components/karibu/conversations/ContributionForm";
 import { SeedDrawer } from "@/components/karibu/conversations/SeedDrawer";
 import { ResultBanner } from "@/components/karibu/conversations/ResultBanner";
+import { ReportSection } from "@/components/karibu/conversations/ReportSection";
 
 // Rendered on every request, not ISR. The root layout reads cookies (a dynamic
 // API) on every page; routes prerendered at build discover that and become
@@ -71,6 +72,8 @@ export default async function ConversationsEventPage({
       />
 
       {page.result && <ResultBanner result={page.result} ctaUrl={page.impactLabLumaUrl} />}
+
+      <ReportSection reportSummary={page.reportSummary} reportUrl={page.reportUrl} />
 
       <ConversationsHero
         heroHeadline={page.heroHeadline}

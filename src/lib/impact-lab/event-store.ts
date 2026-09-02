@@ -16,6 +16,7 @@ import {
   validCohort,
   type EventStatusValue,
 } from "./event-lifecycle"
+import { parseTracks, type Track } from "./tracks"
 
 export interface EventRecord {
   id: string
@@ -30,6 +31,10 @@ export interface EventRecord {
   location: string
   formatNote: string
   groundRules: string | null
+  /** [] when the event has no tracks — matching then runs unpartitioned. */
+  tracks: Track[]
+  /** Event whose Conversations report this cohort's members should see, if any. */
+  conversationsEventId: string | null
   createdAt: Date
 }
 
@@ -58,6 +63,8 @@ const EVENT_SELECT = {
   location: true,
   formatNote: true,
   groundRules: true,
+  tracks: true,
+  conversationsEventId: true,
   createdAt: true,
   organisation: { select: { name: true } },
 } as const
@@ -74,13 +81,15 @@ type EventRow = {
   location: string
   formatNote: string
   groundRules: string | null
+  tracks: unknown
+  conversationsEventId: string | null
   createdAt: Date
   organisation: { name: string }
 }
 
 function toRecord(row: EventRow): EventRecord {
-  const { organisation, ...rest } = row
-  return { ...rest, organisationName: organisation.name }
+  const { organisation, tracks, ...rest } = row
+  return { ...rest, organisationName: organisation.name, tracks: parseTracks(tracks) }
 }
 
 /** The event owning a cohort slug, or null (unknown cohort OR pre-migration). */
@@ -168,6 +177,8 @@ export async function resolveMemberEvents(email: string): Promise<MemberEvent[]>
             location: "",
             formatNote: "",
             groundRules: null,
+            tracks: [],
+            conversationsEventId: null,
             createdAt: new Date(0),
             participantId: fallback.id,
           },

@@ -131,7 +131,7 @@ export const DEFAULT_WEIGHTS: MatchWeights = {
   participantPreferences: 0.8,
 }
 
-export const DEFAULT_DESIRED_TEAM_SIZE = 4
+export const DEFAULT_DESIRED_TEAM_SIZE = 5
 export const DEFAULT_MIN_TEAM_SIZE = 3
 export const DEFAULT_MAX_TEAM_SIZE = 5
 
@@ -148,6 +148,8 @@ export const DEFAULT_SETTINGS: MatchSettings = {
   keepPreferredTogether: true,
   lockedTeams: [],
   weights: DEFAULT_WEIGHTS,
+  partitionByTrack: true,
+  tracks: [],
 }
 
 // ─── Penalties (points subtracted from a team's 0–100 score) ─────────────────

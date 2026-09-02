@@ -6,6 +6,7 @@
 
 import { z } from "zod"
 import { DEFAULT_SETTINGS, DEFAULT_WEIGHTS, type MatchSettings } from "@/lib/matching"
+import { trackSchema } from "./tracks"
 
 const weightsSchema = z
   .object({
@@ -37,6 +38,8 @@ export const settingsSchema = z
     keepPreferredTogether: z.boolean(),
     lockedTeams: z.array(lockedTeamSchema),
     weights: weightsSchema,
+    partitionByTrack: z.boolean(),
+    tracks: z.array(trackSchema).max(12),
   })
   .partial()
 
@@ -53,6 +56,7 @@ export function resolveSettings(input: unknown): MatchSettings {
     numberOfTeams: parsed.numberOfTeams ?? null,
     lockedTeams: parsed.lockedTeams ?? DEFAULT_SETTINGS.lockedTeams,
     weights: { ...DEFAULT_WEIGHTS, ...(parsed.weights ?? {}) },
+    tracks: parsed.tracks ?? DEFAULT_SETTINGS.tracks,
   }
   // Cross-field check zod can't express when a bound is omitted: an inverted
   // range silently produces garbage teams, so reject it here (routes → 400).

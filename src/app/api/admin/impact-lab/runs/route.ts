@@ -4,8 +4,8 @@ import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { runMatching, type MatchResult } from "@/lib/matching"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { runMatchingByTrack, type MatchResult } from "@/lib/matching"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { resultSignature } from "@/lib/impact-lab/signature"
@@ -41,6 +41,9 @@ const teamSchema = z.object({
   memberIds: z.array(z.string().max(40)).min(1).max(20),
   locked: z.boolean(),
   score: scoreSchema,
+  // Set only when the run partitioned by track — preserved so a frozen,
+  // reviewed result keeps the pill the Matching tab showed for it.
+  trackKey: z.string().max(40).optional(),
 })
 const resultSchema = z.object({
   teams: z.array(teamSchema).max(200),
@@ -183,6 +186,8 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ success: false, error: "Invalid settings" }, { status: 400 })
   }
+  const event = await getEventByCohort(cohort)
+  settings = { ...settings, tracks: event?.tracks ?? [] }
 
   const participants = await prisma.impactLabParticipant.findMany({ where: { cohort } })
   const mapped = participants.map(toMatchParticipant)
@@ -203,7 +208,7 @@ export async function POST(request: NextRequest) {
     result = validation.data.result as MatchResult
   } else {
     // Legacy path (older clients): recompute and refuse on signature drift.
-    result = runMatching(mapped, settings)
+    result = runMatchingByTrack(mapped, settings)
     if (
       validation.data.expectedSignature &&
       resultSignature(result) !== validation.data.expectedSignature

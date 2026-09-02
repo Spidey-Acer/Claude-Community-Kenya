@@ -13,6 +13,7 @@ import {
   type EventRecord,
 } from "@/lib/impact-lab/event-store"
 import { checkEventAccess } from "@/lib/impact-lab/event-access"
+import { trackSchema } from "@/lib/impact-lab/tracks"
 
 /**
  * Event CRUD for the admin dashboard. Creating an event needs the platform
@@ -63,6 +64,7 @@ const createSchema = z.strictObject({
   location: z.string().trim().min(1).max(200),
   formatNote: z.string().trim().min(1).max(2000),
   groundRules: z.string().trim().max(20_000).optional(),
+  tracks: z.array(trackSchema).max(12).optional(),
 })
 
 const patchSchema = z.strictObject({
@@ -75,22 +77,34 @@ const patchSchema = z.strictObject({
   location: z.string().trim().min(1).max(200).optional(),
   formatNote: z.string().trim().min(1).max(2000).optional(),
   groundRules: z.string().trim().max(20_000).optional(),
+  tracks: z.array(trackSchema).max(12).optional(),
+  /** null clears the link; the Conversations event to surface this cohort's
+   * members' dashboard report from. Validated to actually have a page below. */
+  conversationsEventId: z.string().min(1).nullable().optional(),
 })
 
-/** GET — every event plus the organisations available to assign one to. */
+/** GET — every event plus the organisations available to assign one to, and
+ * the events that have a Conversations page available to link. */
 export async function GET() {
   const check = await checkApiPermission("impact-lab", "view")
   if (!check.authorized) return check.response
 
-  const [events, organisations] = await Promise.all([
+  const [events, organisations, conversationsEvents] = await Promise.all([
     listEvents(),
     prisma.organisation
       .findMany({ select: { id: true, slug: true, name: true }, orderBy: { name: "asc" } })
       .catch(() => []),
+    prisma.event
+      .findMany({
+        where: { conversationsPage: { isNot: null } },
+        select: { id: true, title: true, slug: true },
+        orderBy: { date: "desc" },
+      })
+      .catch(() => []),
   ])
   return NextResponse.json({
     success: true,
-    data: { events: events.map(serialize), organisations },
+    data: { events: events.map(serialize), organisations, conversationsEvents },
   })
 }
 
@@ -145,7 +159,7 @@ async function handlePost(request: NextRequest) {
     )
   }
 
-  const { organisationId, name, titleLead, titleAccent, dates, location, formatNote, groundRules } =
+  const { organisationId, name, titleLead, titleAccent, dates, location, formatNote, groundRules, tracks } =
     parsed.data
 
   try {
@@ -161,6 +175,7 @@ async function handlePost(request: NextRequest) {
         location,
         formatNote,
         groundRules: groundRules ?? null,
+        tracks: tracks ?? undefined,
       },
     })
   } catch (error) {
@@ -240,7 +255,7 @@ async function handlePatch(request: NextRequest) {
     )
   }
 
-  const { status, name, titleLead, titleAccent, dates, location, formatNote, groundRules } =
+  const { status, name, titleLead, titleAccent, dates, location, formatNote, groundRules, tracks, conversationsEventId } =
     parsed.data
 
   if (status && status !== access.event.status) {
@@ -250,9 +265,27 @@ async function handlePatch(request: NextRequest) {
     }
   }
 
+  // The client sends an id off a select populated from the same
+  // conversationsPage-not-null query the GET route runs, but that list can go
+  // stale between load and save — re-check server-side rather than trust it.
+  if (conversationsEventId) {
+    const hasPage = await prisma.conversationsPage.findUnique({
+      where: { eventId: conversationsEventId },
+      select: { id: true },
+    })
+    if (!hasPage) {
+      return NextResponse.json(
+        { success: false, error: "That event has no Conversations page to link." },
+        { status: 400 }
+      )
+    }
+  }
+
   // Passing `undefined` for an untouched field is deliberate, not an
   // omission — Prisma drops undefined properties from the update, so this
   // reads as "only the fields the caller sent" without a manual filter.
+  // `conversationsEventId` is the exception: `null` must reach Prisma to
+  // clear the link, so it is spread only when the caller actually sent it.
   await prisma.impactLabEvent.update({
     where: { cohort },
     data: {
@@ -264,6 +297,8 @@ async function handlePatch(request: NextRequest) {
       location,
       formatNote,
       groundRules,
+      tracks,
+      ...(conversationsEventId !== undefined && { conversationsEventId }),
     },
   })
 
@@ -286,6 +321,8 @@ async function handlePatch(request: NextRequest) {
         location,
         formatNote,
         groundRules,
+        tracks,
+        conversationsEventId,
       })
         .filter(([, v]) => v !== undefined)
         .map(([k]) => k),

@@ -41,6 +41,8 @@ export interface ConversationsPageData {
   seedProblems: unknown
   contributionsOpen: boolean
   result: ConversationsResult | null
+  reportSummary: string | null
+  reportUrl: string | null
 }
 
 export interface QuestionSessionData {
@@ -49,4 +51,5 @@ export interface QuestionSessionData {
   prompt: string
   isOpen: boolean
   createdAt: string
+  counts: { pending: number; approved: number; rejected: number }
 }

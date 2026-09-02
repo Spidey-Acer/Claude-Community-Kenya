@@ -5,8 +5,18 @@
 // See docs/superpowers/specs/2026-08-28-conversations-live-design.md.
 
 import { z } from "zod"
-import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
+import { zodSanitizeString, zodSanitizeMultilineText, sanitizeUrl } from "@/lib/input-sanitization"
 import { MAX_RESULT_RUNNERS_UP } from "./constants"
+
+/** ConversationsPage.reportSummary cap — a brief, not the full report. */
+const MAX_REPORT_SUMMARY_LENGTH = 1200
+
+/** https-only: an http or javascript: URL sanitizes to "" and fails .refine. */
+const reportUrlSchema = z
+  .string()
+  .max(500)
+  .transform((v) => sanitizeUrl(v, ["https:"]))
+  .refine((v) => v !== "", "Report URL must be a valid https:// link")
 
 export const framingStatSchema = z.object({
   line: z.string().min(1).max(300).transform(zodSanitizeString),
@@ -59,6 +69,14 @@ export const pageConfigUpdateSchema = z.object({
   tableQuestions: z.array(tableQuestionSchema).min(1).optional(),
   seedProblems: z.array(seedProblemSchema).optional(),
   contributionsOpen: z.boolean().optional(),
+  /** null clears the field; undefined leaves it untouched (route spreads on `!== undefined`). */
+  reportSummary: z
+    .string()
+    .max(MAX_REPORT_SUMMARY_LENGTH)
+    .transform((v) => zodSanitizeMultilineText(MAX_REPORT_SUMMARY_LENGTH)(v))
+    .nullable()
+    .optional(),
+  reportUrl: reportUrlSchema.nullable().optional(),
 })
 export type PageConfigUpdate = z.infer<typeof pageConfigUpdateSchema>
 

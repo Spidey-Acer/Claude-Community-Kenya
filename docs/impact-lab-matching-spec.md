@@ -80,7 +80,7 @@ Modules: `types.ts`, `normalization.ts`, `constraints.ts`, `scoring.ts`, `algori
 
 - **Determinism is a hard requirement:** no `Math.random`, no `Date.now` inside the engine;
   all iteration orders sorted (by id as final tiebreaker). Same input → identical output.
-- Settings type: desiredTeamSize (default 4), minTeamSize 3, maxTeamSize 5, numberOfTeams?,
+- Settings type: desiredTeamSize (default 5), minTeamSize 3, maxTeamSize 5, numberOfTeams?,
   allowUnassignedParticipants, requireBuilder, requirePresenter, preventBeginnerOnlyTeams,
   distributeAdvancedParticipants, lockedTeams?, and weights for: roleCoverage (2),
   skillBalance (1.5), experienceBalance (1.4), interestAlignment (1), availabilityOverlap (1),

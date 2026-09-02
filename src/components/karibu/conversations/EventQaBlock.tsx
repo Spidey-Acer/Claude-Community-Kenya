@@ -102,8 +102,9 @@ export function EventQaBlock({ eventSlug, session }: EventQaBlockProps) {
             Asante &mdash; your question is in review
           </h3>
           <p className="mx-auto max-w-md px-4 font-inter text-sm text-ink-soft">
-            Approved questions go into the live session pool. We don&apos;t
-            publish a public list &mdash; they&apos;re for the room, not a wall.
+            Approved questions go into the live session pool and may be read
+            from the stage during the session. We don&apos;t publish a public
+            list &mdash; they&apos;re for the room, not a wall.
           </p>
         </div>
       ) : (
