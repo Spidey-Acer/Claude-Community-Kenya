@@ -15,6 +15,7 @@ import type { ImpactLabParticipant } from "@/generated/prisma/client"
 import type { Team } from "@/lib/matching"
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification"
 import { participantDraftSchema } from "./participant-schema"
+import type { JoinRequestStatus } from "./roster"
 
 // ─── Member-editable profile ─────────────────────────────────────────────────
 
@@ -149,6 +150,56 @@ export function extractFrozenTeams(result: unknown): Team[] | null {
     }
   }
   return teams as Team[]
+}
+
+// ─── Join request views ──────────────────────────────────────────────────────
+
+/**
+ * A join request as shown to the person who raised it. Deliberately thinner
+ * than the stored entry: `decidedBy` is another participant's id and has no
+ * business on the asker's screen.
+ */
+export interface JoinRequestView {
+  id: string
+  trackKey: string | null
+  note: string | null
+  createdAt: string
+  status: JoinRequestStatus
+}
+
+/** One pending ask, as a team with room sees it in its inbox. */
+export interface JoinRequestInboxItem {
+  id: string
+  participant: {
+    id: string
+    fullName: string
+    experienceLevel: ImpactLabParticipant["experienceLevel"]
+    primaryRole: string
+    technicalSkills: string[]
+  }
+  note: string | null
+  createdAt: string
+  /** Whether they've confirmed they're in the room — same source as team search. */
+  checkedIn: boolean
+}
+
+/** GET /api/impact-lab/team/join-request for a caller who IS on a team. */
+export interface JoinRequestInboxView {
+  onTeam: true
+  /** Empty once the team is at `maxTeamSize` — the array is always present. */
+  requests: JoinRequestInboxItem[]
+  myTeamSize: number
+  maxTeamSize: number
+}
+
+/** GET /api/impact-lab/team/join-request for a caller who is NOT on a team. */
+export interface JoinRequestMineView {
+  onTeam: false
+  myRequest: JoinRequestView | null
+  /** The caller's resolved track; null means "pick a track first". */
+  myTrackKey: string | null
+  /** How many teams in their track still have room, i.e. who will see the ask. */
+  teamsWithRoom: number
 }
 
 // ─── Access gate ─────────────────────────────────────────────────────────────

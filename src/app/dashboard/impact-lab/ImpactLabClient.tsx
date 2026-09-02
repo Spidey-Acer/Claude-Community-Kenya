@@ -22,6 +22,7 @@ import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
 import { TrackPicker } from "./TrackPicker";
 import { TrackGuide } from "./TrackGuide";
+import { JoinRequestCard } from "./JoinRequestCard";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
 import { ConversationsReportCard } from "./ConversationsReportCard";
 import type { ConversationsReportView } from "@/lib/conversations/queries";
@@ -291,7 +292,16 @@ export function ImpactLabClient({
       return (
         <div className="space-y-6">
           {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
-          <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} tracks={tracks} />
+          <TeamReveal
+            team={team}
+            cohortActive={cohortActive}
+            cohort={cohort}
+            tracks={tracks}
+            onTeamChanged={() => {
+              setPhase("loading");
+              setReloadKey((k) => k + 1);
+            }}
+          />
           {hasTracks && (
             <TrackGuide cohort={cohort} tracks={tracks!} teamTrackKey={team.trackKey} />
           )}
@@ -440,6 +450,22 @@ export function ImpactLabClient({
               </div>
             </div>
           </section>
+
+          {/* Finding an organiser in a loud room is not a plan. This lets the
+              person raise one ask that every team in their track with room can
+              see and accept — the only self-service way onto a team once the
+              roster is locked. `onPlaced` re-runs the load above, which flips
+              this whole branch to the team reveal. */}
+          {cohortActive && (
+            <JoinRequestCard
+              cohort={cohort}
+              tracks={tracks}
+              onPlaced={() => {
+                setPhase("loading");
+                setReloadKey((k) => k + 1);
+              }}
+            />
+          )}
 
           <section
             className="rounded-lg border border-border-default bg-bg-secondary p-5"

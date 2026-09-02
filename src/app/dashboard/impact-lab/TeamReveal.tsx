@@ -8,6 +8,7 @@ import { csrfHeaders } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import { SubmitProject } from "./SubmitProject";
 import { TeamRoster } from "./TeamRoster";
+import { JoinRequestsInbox } from "./JoinRequestsInbox";
 import type { MatchProfileTrack } from "./MatchProfileForm";
 import { useOwnTrack } from "./useOwnTrack";
 
@@ -29,6 +30,7 @@ export function TeamReveal({
   cohortActive = true,
   cohort,
   tracks = [],
+  onTeamChanged,
 }: {
   team: TeamRevealView;
   cohortActive?: boolean;
@@ -37,6 +39,13 @@ export function TeamReveal({
   /** The active event's declared tracks — used to label the team's track and
    * detect a mismatch against the caller's own current choice. */
   tracks?: MatchProfileTrack[];
+  /**
+   * Ask the parent to re-fetch `team`. `router.refresh()` alone cannot do it:
+   * this team comes from a client-side GET /api/impact-lab/team, not from the
+   * server-rendered payload, so re-running the server component leaves the
+   * roster on screen exactly as it was.
+   */
+  onTeamChanged?: () => void;
 }) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
@@ -365,6 +374,17 @@ export function TeamReveal({
               // The roster lives in the server-rendered payload, so a change is
               // only visible after a refetch — reload rather than patch local
               // state, so everyone sees the same roster the server now holds.
+              router.refresh();
+            }}
+          />
+
+          {/* Rendered next to the roster rather than inside it: this is people
+              from outside the team asking in, not an edit to who is already
+              here, and it must keep showing while the roster itself is locked. */}
+          <JoinRequestsInbox
+            cohort={cohort}
+            onAccepted={() => {
+              onTeamChanged?.();
               router.refresh();
             }}
           />
