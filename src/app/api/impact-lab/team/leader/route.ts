@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const rl = await rateLimit(request, RateLimits.FORM)
+  const rl = await rateLimit(request, RateLimits.MEMBER_ACTION)
   if (!rl.success) {
     return NextResponse.json(
       { success: false, error: "Too many changes. Wait a moment and try again." },
