@@ -14,6 +14,7 @@ import { csrfHeaders } from "@/lib/csrf-client";
 import type { SubmissionInput, SubmissionView } from "@/lib/impact-lab/submission-schema";
 import type { SubmissionRequirementsView } from "@/lib/impact-lab/submission-requirements";
 import type { Track } from "@/lib/impact-lab/tracks";
+import { SUBMISSIONS_CLOSED_EVENT } from "./DeadlineCountdown";
 
 type Status = "no_team" | "open" | "closed";
 
@@ -137,6 +138,16 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // The countdown card announces the moment the window shuts. Re-reading the
+  // submission here flips this form to its read-only view on the spot, so a
+  // team still typing at 16:00 sees the door close instead of discovering it
+  // on a rejected save.
+  useEffect(() => {
+    const onClosed = () => void load();
+    window.addEventListener(SUBMISSIONS_CLOSED_EVENT, onClosed);
+    return () => window.removeEventListener(SUBMISSIONS_CLOSED_EVENT, onClosed);
   }, [load]);
 
   async function save(event: React.FormEvent) {

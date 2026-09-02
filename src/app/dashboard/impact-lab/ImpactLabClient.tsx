@@ -18,6 +18,7 @@ import type {
   TeamRevealView,
 } from "@/lib/impact-lab/member";
 import { SOCIAL_LINKS } from "@/lib/constants";
+import { DeadlineCountdown } from "./DeadlineCountdown";
 import { MatchProfileForm, type MatchProfileTrack } from "./MatchProfileForm";
 import { TeamReveal } from "./TeamReveal";
 import { TrackPicker } from "./TrackPicker";
@@ -290,6 +291,7 @@ export function ImpactLabClient({
       const hasTracks = Boolean(tracks && tracks.length > 0);
       return (
         <div className="space-y-6">
+          {cohortActive && <DeadlineCountdown cohort={cohort} />}
           {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
           <TeamReveal team={team} cohortActive={cohortActive} cohort={cohort} tracks={tracks} />
           {hasTracks && (
@@ -401,6 +403,7 @@ export function ImpactLabClient({
       const hasTracks = Boolean(tracks && tracks.length > 0);
       return (
         <div className="space-y-6">
+          {cohortActive && <DeadlineCountdown cohort={cohort} />}
           {cohortActive && hasTracks && <TrackPicker cohort={cohort} tracks={tracks!} />}
           <section
             className="rounded-lg border border-amber/30 bg-bg-secondary p-4 sm:p-6"
