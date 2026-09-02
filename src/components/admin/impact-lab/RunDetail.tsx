@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ChevronDown, ChevronRight, Download, Loader2 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
 import { buildFinalList, type FinalListTeamInput } from "@/lib/impact-lab/final-list"
+import { extractJoinRequests } from "@/lib/impact-lab/roster"
 import type { MatchResult } from "./types"
 
 /** The subset of GET /runs/[id]'s response this view renders. */
@@ -183,6 +184,10 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
     checkedIn: Boolean(entry.checkedInAt),
   }))
   const finalList = buildFinalList(finalListTeams, finalListParticipants)
+  // Stored on the run's result JSON by the member "ask to join a team" route,
+  // which predates no schema for it — read tolerantly, never typed onto
+  // MatchResult, so an older run simply shows zero.
+  const openJoinRequests = extractJoinRequests(result).filter((r) => r.status === "open")
 
   return (
     <div className="p-4 space-y-3 bg-[#0a0a0a] border-t border-[#1e1e1e]">
@@ -441,6 +446,28 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
               <ul className="mt-1 space-y-0.5">
                 {finalList.checkedInNoTeam.map((p) => (
                   <li key={p.id} className="text-[10px] font-mono text-[#aaa]">{p.fullName}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Read-only. Accepting is the teams' job (the member dashboard
+                does it); organisers just need to see who is still asking so
+                they can walk the floor and place anyone nobody picked up. */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-[#888]">
+                Open join requests: {openJoinRequests.length}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {openJoinRequests.map((r) => (
+                  <li key={r.id} className="text-[10px] font-mono text-[#aaa]">
+                    {directory.get(r.participantId)?.fullName ?? r.participantId}
+                    {r.trackKey && (
+                      <span className="text-[#555]">
+                        {" "}
+                        · {trackLabelByKey.get(r.trackKey) ?? r.trackKey}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ul>
             </div>

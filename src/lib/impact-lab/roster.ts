@@ -169,3 +169,87 @@ export function numberMissingTables(teams: Team[]): Team[] {
   }
   return teams.map((t) => (typeof t.table === "number" ? t : { ...t, table: nextUnused() }))
 }
+
+// ─── Join requests ───────────────────────────────────────────────────────────
+
+/**
+ * Lifecycle of one "please put me on a team" ask.
+ *
+ * `withdrawn` is kept rather than deleted so a participant who withdraws and
+ * asks again reuses one entry, and so an organiser reading the run JSON can
+ * still see that the ask happened.
+ */
+export type JoinRequestStatus = "open" | "accepted" | "withdrawn"
+
+/**
+ * A participant with no team asking to be taken on by one.
+ *
+ * Stored inside the final run's `result` JSON under `joinRequests`, the same
+ * place `rosterLocked` and each team's `leaderId` live — the event is running
+ * and a schema migration is not something to attempt mid-hackathon. Everything
+ * that reads a run already tolerates unknown keys in `result`, so runs written
+ * before this existed simply have no requests.
+ */
+export interface JoinRequest {
+  id: string
+  participantId: string
+  /** The asker's resolved track, or null when they haven't declared one. */
+  trackKey: string | null
+  /** One optional line about what they can build. */
+  note?: string
+  createdAt: string
+  status: JoinRequestStatus
+  /** Set on acceptance — the team that took them. */
+  teamId?: string
+  /** Participant id of the teammate who accepted. */
+  decidedBy?: string
+  decidedAt?: string
+}
+
+/** Longest note a request may carry — one line, not a cover letter. */
+export const JOIN_REQUEST_NOTE_MAX = 200
+
+const JOIN_REQUEST_STATUSES: readonly string[] = ["open", "accepted", "withdrawn"]
+
+/** Type guard for one stored entry — anything malformed is dropped, not thrown on. */
+function isJoinRequest(value: unknown): value is JoinRequest {
+  if (typeof value !== "object" || value === null) return false
+  const entry = value as Record<string, unknown>
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.participantId === "string" &&
+    (entry.trackKey === null || typeof entry.trackKey === "string") &&
+    typeof entry.createdAt === "string" &&
+    typeof entry.status === "string" &&
+    JOIN_REQUEST_STATUSES.includes(entry.status)
+  )
+}
+
+/**
+ * `result.joinRequests` from a run's stored result JSON, defensively. Missing
+ * or malformed degrades to `[]` — a broken entry must never take down the
+ * team card that renders alongside it. Individual bad entries are skipped
+ * rather than failing the whole list.
+ */
+export function extractJoinRequests(result: unknown): JoinRequest[] {
+  if (typeof result !== "object" || result === null) return []
+  const requests = (result as { joinRequests?: unknown }).joinRequests
+  if (!Array.isArray(requests)) return []
+  return requests.filter(isJoinRequest)
+}
+
+/**
+ * Should a team see this request? A request from somebody who declared a
+ * track is only shown to teams building in that track — the point is a
+ * teammate who fits, not a room-wide broadcast. A request with no declared
+ * track goes to every team, since nothing narrows it.
+ *
+ * Read the other way round (from the asker's side) the same predicate says
+ * which teams their ask reached, so the two counts can never disagree.
+ */
+export function joinRequestReachesTeam(
+  requestTrackKey: string | null,
+  teamTrackKey: string | null
+): boolean {
+  return requestTrackKey === null || requestTrackKey === teamTrackKey
+}
