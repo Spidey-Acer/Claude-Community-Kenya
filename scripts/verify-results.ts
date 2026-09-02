@@ -32,6 +32,7 @@ const standing = (teamId: string, average: number): TeamStanding => ({
   average,
   judgeCount: 2,
   criterionAverages: { impact: 4, demo: 4, claude: 4, clarity: 4, presentation: 4 },
+  criterionJudgeCounts: { impact: 2, demo: 2, claude: 2, clarity: 2, presentation: 2 },
 })
 
 // Mirrors production: the announced winners do not top the score table.
@@ -233,6 +234,109 @@ const payloadOutsideRanking = memberJson.replace(rankingJson, "")
 assert(
   !payloadOutsideRanking.includes("t-whatsy"),
   "no other team's id appears anywhere outside the public ranking list — the assertion that would catch a leaked perTeam map"
+)
+
+// ─── Publishing with unscored teams ──────────────────────────────────────────
+// The finals ran in heats and the panel reached 15 of 36 tables. Refusing to
+// publish leaves the scored teams with nothing too, so unscored teams publish
+// as participants: no rank, no card, listed separately, and told so in words.
+
+console.log("\nUnscored participants")
+const withUnscored = buildSnapshot({
+  publishedAt: "2026-09-02T13:30:00.000Z",
+  announcedTeamIds: ["t-scored-a"],
+  standings: [standing("t-scored-a", 82.0), standing("t-scored-b", 71.4)],
+  teams: new Map([
+    ["t-scored-a", { projectName: "Alpha", track: "Afya (Health)" }],
+    ["t-scored-b", { projectName: "Beta", track: "Kilimo (Agriculture)" }],
+    ["t-unscored", { projectName: "Gamma", track: "Kilimo (Agriculture)" }],
+  ]),
+  writeupOnly: new Set(),
+  range: new Map(),
+  unrankedTeamIds: ["t-unscored"],
+})
+
+assert(
+  withUnscored.ranking.length === 2 &&
+    !withUnscored.ranking.some((r) => r.teamId === "t-unscored"),
+  "an unscored team never enters the ranking — a rank nobody assigned is not a result"
+)
+assert(
+  withUnscored.perTeam["t-unscored"] === undefined,
+  "an unscored team gets no private card, so no zeroed criterion averages exist to leak"
+)
+assert(
+  withUnscored.unranked?.length === 1 &&
+    withUnscored.unranked[0].teamId === "t-unscored" &&
+    withUnscored.unranked[0].projectName === "Gamma" &&
+    withUnscored.unranked[0].track === "Kilimo (Agriculture)",
+  "the unscored team is listed under unranked with its project name and track"
+)
+assert(
+  !withUnscored.trackWinners.some((w) => w.teamId === "t-unscored"),
+  "an unscored team cannot win a track"
+)
+assert(
+  JSON.stringify(buildSnapshot({
+    publishedAt: "2026-09-02T13:30:00.000Z",
+    announcedTeamIds: ["t-scored-a"],
+    standings: [standing("t-scored-a", 82.0), standing("t-scored-b", 71.4)],
+    teams: new Map([
+      ["t-scored-a", { projectName: "Alpha", track: "Afya (Health)" }],
+      ["t-scored-b", { projectName: "Beta", track: "Kilimo (Agriculture)" }],
+      ["t-unscored", { projectName: "Gamma", track: "Kilimo (Agriculture)" }],
+    ]),
+    writeupOnly: new Set(),
+    range: new Map(),
+    unrankedTeamIds: ["t-unscored"],
+  })) === JSON.stringify(withUnscored),
+  "a snapshot with unranked teams still rebuilds byte-identically"
+)
+
+// A team cannot hold a rank AND be reported as unscored. The publish route
+// filters announced winners out of the unranked list; the builder filters
+// again rather than trusting it.
+const bothWays = buildSnapshot({
+  publishedAt: "2026-09-02T13:30:00.000Z",
+  announcedTeamIds: ["t-scored-a"],
+  standings: [standing("t-scored-a", 82.0)],
+  teams: new Map([["t-scored-a", { projectName: "Alpha", track: "Afya (Health)" }]]),
+  writeupOnly: new Set(),
+  range: new Map(),
+  unrankedTeamIds: ["t-scored-a"],
+})
+assert(
+  bothWays.unranked?.length === 0,
+  "a team already in the ranking is dropped from unranked rather than appearing twice"
+)
+
+assert(
+  snap.unranked?.length === 0,
+  "publishing without unscored teams produces an empty unranked list, not a missing one"
+)
+
+console.log("\nUnscored member payload")
+const unscoredPayload = buildMemberPayload(withUnscored, "t-unscored")
+assert(
+  "yourTeam" in unscoredPayload && unscoredPayload.yourTeam?.projectName === "Gamma",
+  "a member of an unscored team still gets a yourTeam block — silence is the failure this fixes"
+)
+assert(
+  unscoredPayload.yourTeam?.card === undefined && unscoredPayload.yourTeam?.unranked === true,
+  "that block carries no card and is flagged unranked, so the view says 'not scored' instead of showing zeros"
+)
+assert(
+  unscoredPayload.results?.unranked.length === 1,
+  "the results payload carries the unranked list so a member surface can render it"
+)
+assert(
+  !JSON.stringify(unscoredPayload).includes("criterionAverages"),
+  "an unscored team's payload carries no criterion averages at all"
+)
+const scoredPayload = buildMemberPayload(withUnscored, "t-scored-b")
+assert(
+  scoredPayload.yourTeam?.card !== undefined && scoredPayload.yourTeam?.unranked === undefined,
+  "a scored team's payload is unchanged by the unranked list existing"
 )
 
 console.log(

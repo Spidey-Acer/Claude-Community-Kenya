@@ -5,7 +5,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, type ResultsInput } from "@/lib/impact-lab/results"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
@@ -27,11 +27,24 @@ const bodySchema = z.object({
   cohort: z.string().max(60).optional(),
   announcedTeamIds: z.array(z.string().min(1).max(64)).max(20),
   confirm: z.string(),
+  /**
+   * Publish even though some submitted teams were never scored.
+   *
+   * Defaults to false, which keeps the original refusal: a team that
+   * submitted and was judged by nobody must not be published as a silent
+   * blank. But heats do not always cover the field — when only some teams
+   * reached a judge, refusing to publish at all tells the scored teams
+   * nothing either. With this set, the unscored teams are published as
+   * participants: excluded from the ranking, the standings and every winner
+   * list, and listed separately so their own results card can say plainly
+   * that they were not scored.
+   */
+  allowUnscored: z.boolean().optional().default(false),
 })
 
 /** What the transaction decided — translated into a response after it commits. */
 type PublishOutcome =
-  | { ok: true; publishedAt: string; recipients: number }
+  | { ok: true; publishedAt: string; recipients: number; unranked: number }
   | { ok: false; status: number; error: string; code?: string }
 
 /**
@@ -131,6 +144,11 @@ export async function POST(request: NextRequest) {
   }
   const runId = existing.id
 
+  // Loaded BEFORE the transaction: `getEventByCohort` uses the module-level
+  // Prisma client, and calling it from inside the `$transaction` callback
+  // would take a second connection while this one holds a row lock.
+  const event = await getEventByCohort(cohort)
+
   const outcome = await prisma.$transaction(async (tx): Promise<PublishOutcome> => {
     // 1. Lock the run row so a second click cannot race this one.
     await tx.$queryRaw`SELECT id FROM impact_lab_match_runs WHERE id = ${runId} FOR UPDATE`
@@ -162,18 +180,20 @@ export async function POST(request: NextRequest) {
     // everything else needed to build a ResultsInput. Shared with the
     // preview-email route so the two never read the run differently.
     const { input: inputBase, teams, teamIds, submittedTeamIds, scoredTeamIds, displayName } =
-      await buildResultsInputFromRun(tx, runId, run.result, rubric)
+      await buildResultsInputFromRun(tx, runId, run.result, rubric, event?.tracks ?? [])
 
-    // 3. Every submitted team must have at least one score — this is what stops
-    // the four unscored teams being published as blanks.
-    const unscored = [...submittedTeamIds]
-      .filter((id) => !scoredTeamIds.has(id))
-      .map((id) => displayName(id))
-    if (unscored.length > 0) {
+    // 3. Submitted but unscored teams. By default this is a refusal — it is
+    // what stops a team nobody judged being published as a blank. With
+    // `allowUnscored` the organiser has decided the opposite: publish them as
+    // participants rather than hold the whole result back.
+    const unscoredIds = [...submittedTeamIds].filter((id) => !scoredTeamIds.has(id))
+    if (unscoredIds.length > 0 && !parsed.data.allowUnscored) {
       return {
         ok: false,
         status: 409,
-        error: `These teams submitted but have no score: ${unscored.join(", ")}`,
+        error: `These teams submitted but have no score: ${unscoredIds
+          .map((id) => displayName(id))
+          .join(", ")}`,
         code: "UNSCORED_TEAMS",
       }
     }
@@ -212,16 +232,32 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. The rest of the ResultsInput the pure snapshot builder needs.
+    //
+    // An announced winner is excluded from `unranked` even if it has no score
+    // row: the panel called it in the room, so it holds a rank, and a team
+    // cannot be both ranked and "not scored" in the same snapshot.
+    const announced = new Set(parsed.data.announcedTeamIds)
+    const unrankedTeamIds = unscoredIds.filter((id) => !announced.has(id)).sort()
+
     const publishedAt = new Date()
     const input: ResultsInput = {
       ...inputBase,
       publishedAt: publishedAt.toISOString(),
       announcedTeamIds: parsed.data.announcedTeamIds,
+      unrankedTeamIds,
     }
     const snapshot = buildSnapshot(input)
 
-    // Recipients: participants on a team that has a submission — the 93.
-    const submittedTeams = teams.filter((t) => submittedTeamIds.has(t.id))
+    // Recipients: participants on a team that has a submission AND a place in
+    // the ranking — the results email is built from a card (rank, criterion
+    // averages, score range) that an unranked team does not have, so queuing
+    // its members would only produce "no matching team" failures at send
+    // time. They read "not scored in the finals" on their dashboard card
+    // instead.
+    const unrankedSet = new Set(unrankedTeamIds)
+    const submittedTeams = teams.filter(
+      (t) => submittedTeamIds.has(t.id) && !unrankedSet.has(t.id)
+    )
     const recipientIds = new Set<string>()
     for (const team of submittedTeams) {
       for (const memberId of team.memberIds) recipientIds.add(memberId)
@@ -253,7 +289,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return { ok: true, publishedAt: publishedAt.toISOString(), recipients: participants.length }
+    return {
+      ok: true,
+      publishedAt: publishedAt.toISOString(),
+      recipients: participants.length,
+      unranked: unrankedTeamIds.length,
+    }
   })
 
   if (!outcome.ok) {
@@ -273,12 +314,20 @@ export async function POST(request: NextRequest) {
     changes: {
       announcedTeamIds: parsed.data.announcedTeamIds,
       recipients: outcome.recipients,
+      // A one-way door taken with unscored teams in it is exactly the
+      // decision an audit trail has to be able to answer for afterwards.
+      allowUnscored: parsed.data.allowUnscored,
+      unrankedTeams: outcome.unranked,
     },
     ...getRequestMetadata(request),
   })
 
   return NextResponse.json({
     success: true,
-    data: { publishedAt: outcome.publishedAt, recipients: outcome.recipients },
+    data: {
+      publishedAt: outcome.publishedAt,
+      recipients: outcome.recipients,
+      unranked: outcome.unranked,
+    },
   })
 }

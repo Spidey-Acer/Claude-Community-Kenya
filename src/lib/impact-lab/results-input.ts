@@ -13,10 +13,18 @@
 
 import type { Prisma } from "@/generated/prisma/client"
 import { extractFrozenTeams } from "./member"
-import { scoreTotal, standings, trackOf, type JudgeScore, type JudgingRubric, type ScoreSheet } from "./judging"
+import {
+  resolveTeamTrack,
+  scoreTotal,
+  standings,
+  trackLabelIndex,
+  type JudgeScore,
+  type JudgingRubric,
+  type ScoreSheet,
+} from "./judging"
 import type { ResultsInput, TeamFeedback } from "./results"
 import { presentableJudgeNote, publishableReview } from "./reviews"
-import type { Team } from "@/lib/matching"
+import type { Team, Track } from "@/lib/matching"
 
 /** Accepts either the top-level Prisma client or a `$transaction` callback's `tx`. */
 type Db = Prisma.TransactionClient
@@ -44,12 +52,20 @@ export interface RunResultsData {
  * `rubric` must be the cohort's own — resolved via `resolveRubric(cohort)` by
  * the caller, never defaulted here. Every total and standing below is scored
  * against it, and this cohort's rubric may not be Impact Lab's.
+ *
+ * `tracks` is the event's own track list (already parsed by
+ * `getEventByCohort`). It is a caller argument rather than a lookup here
+ * because this function may run inside a `$transaction`, and reaching for the
+ * module-level Prisma client mid-transaction opens a second connection. Pass
+ * `[]` for an event with no tracks — team track labels then fall back to the
+ * frozen `track` field and the team name, exactly as before.
  */
 export async function buildResultsInputFromRun(
   db: Db,
   runId: string,
   runResult: unknown,
-  rubric: JudgingRubric
+  rubric: JudgingRubric,
+  tracks: readonly Track[]
 ): Promise<RunResultsData> {
   const teams = extractFrozenTeams(runResult) ?? []
   const nameById = new Map(teams.map((t) => [t.id, t.name]))
@@ -94,20 +110,21 @@ export async function buildResultsInputFromRun(
     range.set(teamId, { low: Math.min(...totals), high: Math.max(...totals) })
   }
 
-  // An organiser-assigned track (frozen into the run's `result` JSON, e.g.
-  // backfilled from a registration file) wins over parsing the team name —
-  // teams were matched into a track before building, so the name alone can
-  // say the wrong thing. The submission form's own free-text track field is
-  // deliberately not consulted here: it is the team's self-report, not the
-  // organiser's assignment.
+  // How the team was actually matched (`trackKey`) wins over an organiser's
+  // frozen label, which in turn wins over parsing the team name — see
+  // `resolveTeamTrack`. Parsing the name last matters: the matcher names teams
+  // "${label} ${n}", which has no track to parse out, so name-first put every
+  // team in "Unassigned" and produced a single track winner for the event.
+  // The submission form's own free-text track field is deliberately not
+  // consulted: it is the team's self-report, not the organiser's assignment.
+  const labelByKey = trackLabelIndex(tracks)
   const teamById = new Map(teams.map((t) => [t.id, t as Team & { track?: string }]))
   const teamsMeta = new Map<string, { projectName: string; track: string }>()
   for (const submission of submissions) {
     const team = teamById.get(submission.teamId)
-    const teamName = team?.name ?? ""
     teamsMeta.set(submission.teamId, {
       projectName: submission.projectName,
-      track: team?.track?.trim() || trackOf(teamName),
+      track: resolveTeamTrack(team ?? { name: "" }, labelByKey),
     })
   }
 

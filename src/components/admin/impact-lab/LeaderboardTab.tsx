@@ -13,6 +13,8 @@ import {
 interface LeaderboardTeam {
   teamId: string
   teamName: string
+  /** Resolved by the judging route from the team's `trackKey`, not parsed here. */
+  track: string
   memberCount: number
   submission: { projectName: string } | null
 }
@@ -98,9 +100,13 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
 
   const nameByTeam = new Map(data.teams.map((t) => [t.teamId, t]))
   const teamNameById = new Map(data.teams.map((t) => [t.teamId, t.teamName]))
+  // Tracks come from the server, resolved from how the matcher partitioned
+  // each team. Letting trackWinners parse the team name instead collapsed
+  // every matcher-built team into one "Unassigned" track with one winner.
+  const trackById = new Map(data.teams.map((t) => [t.teamId, t.track]))
   const scoredIds = new Set(data.standings.map((s) => s.teamId))
   const unscored = data.teams.filter((t) => !scoredIds.has(t.teamId))
-  const { winners, champion } = trackWinners(data.standings, teamNameById)
+  const { winners, champion } = trackWinners(data.standings, teamNameById, trackById)
 
   return (
     <div className="space-y-4">
@@ -191,7 +197,7 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                   "Project",
                   "Judges",
                   "Average",
-                  ...rubric.criteria.map((c: JudgingCriterion) => c.label),
+                  ...rubric.criteria.map((c: JudgingCriterion) => `${c.label} (judges)`),
                 ].map(
                   (h) => (
                     <th
@@ -222,11 +228,27 @@ export function LeaderboardTab({ cohort }: { cohort: string }) {
                     <td className="px-4 py-3 text-[11px] font-mono font-semibold text-[#00ff41]">
                       {s.average}
                     </td>
-                    {rubric.criteria.map((c: JudgingCriterion) => (
-                      <td key={c.key} className="px-4 py-3 text-[11px] font-mono text-[#888]">
-                        {s.criterionAverages[c.key] ?? 0}
-                      </td>
-                    ))}
+                    {/* Mean, then how many judges reached that criterion.
+                        The count is what distinguishes "the panel agreed this
+                        was weak" from "one judge of four got that far" — the
+                        averages are per-criterion, so a criterion nobody
+                        scored shows an em dash rather than a zero that reads
+                        as an earned mark. */}
+                    {rubric.criteria.map((c: JudgingCriterion) => {
+                      const judges = s.criterionJudgeCounts?.[c.key] ?? 0
+                      return (
+                        <td key={c.key} className="whitespace-nowrap px-4 py-3 text-[11px] font-mono text-[#888]">
+                          {judges === 0 ? (
+                            <span className="text-[#555]">—</span>
+                          ) : (
+                            <>
+                              {s.criterionAverages[c.key] ?? 0}
+                              <span className="ml-1 text-[#555]">({judges})</span>
+                            </>
+                          )}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}

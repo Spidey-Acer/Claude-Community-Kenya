@@ -95,8 +95,14 @@ export function JudgeGate({ initialJudge }: { initialJudge: string | null }) {
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
             required
+            aria-describedby="judge-name-hint"
             className="mt-2 w-full rounded-lg border border-border-default bg-bg-card px-3 py-3 text-base text-text-primary focus:border-green-primary focus:outline-none"
           />
+          {/* Identity is the slug of this name, so "Jane D." and "Jane Doe"
+              are two different judges with two separate sets of scores. */}
+          <p id="judge-name-hint" className="mt-2 text-xs text-text-dim">
+            Type your name exactly the same way every time you sign in.
+          </p>
         </div>
         <div>
           <label

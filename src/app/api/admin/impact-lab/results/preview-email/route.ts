@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkApiPermission } from "@/lib/rbac"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
   // this cohort must score this preview the same way it scores the live
   // judging screen and the eventual publish.
   const rubric = await resolveRubric(cohort)
+  // The event's tracks, so a team's track label comes from the track it was
+  // matched into rather than from parsing its name (see `resolveTeamTrack`).
+  const event = await getEventByCohort(cohort)
   const teamId = (request.nextUrl.searchParams.get("teamId") ?? "").trim()
   if (teamId === "" || teamId.length > 64) {
     return NextResponse.json(
@@ -117,7 +120,7 @@ export async function GET(request: NextRequest) {
     recipientCount = team.memberIds.length
   } else {
     const { input: inputBase, teams, submittedTeamIds, scoredTeamIds } =
-      await buildResultsInputFromRun(prisma, run.id, run.result, rubric)
+      await buildResultsInputFromRun(prisma, run.id, run.result, rubric, event?.tracks ?? [])
 
     const team = teams.find((t) => t.id === teamId)
     if (!team) {
