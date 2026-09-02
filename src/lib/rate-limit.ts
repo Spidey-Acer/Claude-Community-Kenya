@@ -193,12 +193,18 @@ export function withRateLimit(
 
 export const RateLimits = {
   CONTACT: { maxRequests: 5, windowInSeconds: 3600 },
-  LOGIN: { maxRequests: 5, windowInSeconds: 900 },
+  // Per-IP, and venue WiFi / Kenyan carrier CGNAT put a whole room behind one
+  // IP: 5/15min locked a workshop out of sign-in (incident 2026-09-02). 60/15min
+  // still caps a brute-force at 4/min per IP; bcrypt does the rest.
+  LOGIN: { maxRequests: 60, windowInSeconds: 900 },
   PASSWORD_RESET: { maxRequests: 3, windowInSeconds: 3600 },
   API_GENERAL: { maxRequests: 100, windowInSeconds: 3600 },
   ADMIN: { maxRequests: 30, windowInSeconds: 60 },
   STRICT: { maxRequests: 3, windowInSeconds: 3600 },
   AUTH: { maxRequests: 5, windowInSeconds: 60 },
+  // Signup + email verification: room-sized per-IP cap for the same CGNAT
+  // reason as LOGIN. Email verification is the abuse gate on the user table.
+  SIGNUP: { maxRequests: 100, windowInSeconds: 3600 },
   FORM: { maxRequests: 10, windowInSeconds: 60 },
   READ: { maxRequests: 100, windowInSeconds: 60 },
   // CCK-specific
