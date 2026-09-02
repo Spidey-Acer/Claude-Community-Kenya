@@ -7,6 +7,7 @@ import {
   HARD_TEAM_SIZE_CAP,
   TEAM_TOO_LARGE_WARNING,
   extractUnassignedIds,
+  numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
   type RosterState,
@@ -136,6 +137,32 @@ describe("readMaxTeamSize", () => {
     expect(readMaxTeamSize({})).toBe(5)
     expect(readMaxTeamSize({ maxTeamSize: "six" })).toBe(5)
     expect(readMaxTeamSize({ maxTeamSize: -1 })).toBe(5)
+  })
+})
+
+describe("numberMissingTables", () => {
+  it("fills in table numbers for teams that have none, in order, starting at 1", () => {
+    const teams = [team("team-1", ["a"]), team("team-2", ["b"]), team("team-3", ["c"])]
+    const result = numberMissingTables(teams)
+    expect(result.map((t) => t.table)).toEqual([1, 2, 3])
+  })
+
+  it("leaves already-numbered teams untouched", () => {
+    const teams = [
+      team("team-1", ["a"], { table: 5 }),
+      team("team-2", ["b"]),
+      team("team-3", ["c"], { table: 2 }),
+    ]
+    const result = numberMissingTables(teams)
+    expect(result.find((t) => t.id === "team-1")!.table).toBe(5)
+    expect(result.find((t) => t.id === "team-3")!.table).toBe(2)
+    // The unnumbered team gets the smallest number not already in use (1, not 3).
+    expect(result.find((t) => t.id === "team-2")!.table).toBe(1)
+  })
+
+  it("is a no-op when every team already has a table", () => {
+    const teams = [team("team-1", ["a"], { table: 1 }), team("team-2", ["b"], { table: 2 })]
+    expect(numberMissingTables(teams)).toEqual(teams)
   })
 })
 

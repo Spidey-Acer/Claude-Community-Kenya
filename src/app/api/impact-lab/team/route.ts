@@ -145,6 +145,7 @@ export async function GET(request: NextRequest) {
     strengths: withoutPercentages(explanation.strengths),
     projectDirection: explanation.suggestedProjectDirection ?? null,
     trackKey: team.trackKey ?? null,
+    table: typeof team.table === "number" ? team.table : null,
   }
 
   return NextResponse.json({

@@ -11,6 +11,7 @@ export interface LookupTeam {
   name: string
   memberIds: string[]
   trackKey?: string
+  table?: number | null
 }
 
 /** Minimal participant shape the lookup needs. */
@@ -27,6 +28,8 @@ export interface TeamLookupMatch {
   /** Null when the participant isn't placed on any team in this run. */
   teamName: string | null
   trackKey: string | null
+  /** The team's venue table number, or null when unplaced or unnumbered. */
+  table: number | null
   /** Other members of the same team, by display name. Empty when `onTeam` is false. */
   teammates: string[]
   onTeam: boolean
@@ -71,6 +74,7 @@ export function findTeamMatches(
           email: p.email,
           teamName: null,
           trackKey: null,
+          table: null,
           teammates: [],
           onTeam: false,
         }
@@ -84,6 +88,7 @@ export function findTeamMatches(
         email: p.email,
         teamName: team.name,
         trackKey: team.trackKey ?? null,
+        table: typeof team.table === "number" ? team.table : null,
         teammates,
         onTeam: true,
       }

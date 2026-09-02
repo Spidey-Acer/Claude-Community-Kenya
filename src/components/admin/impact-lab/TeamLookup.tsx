@@ -129,7 +129,7 @@ export function TeamLookup({ cohort }: TeamLookupProps) {
                   {m.onTeam ? (
                     <>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00ff41]/10 border border-[#00ff41]/30 text-[#00ff41]">
-                        {m.teamName}
+                        {m.table != null ? `Table ${m.table} · ${m.teamName}` : m.teamName}
                       </span>
                       {m.trackKey && (
                         <span className="rounded border border-[#00d4ff]/30 px-1.5 py-0.5 text-[9px] font-mono text-[#00d4ff]">

@@ -46,12 +46,21 @@ import type {
 /**
  * Run the matcher end-to-end. The pairwise-swap optimizer is wired in here
  * (optimization.ts) so callers get an optimized result by default.
+ *
+ * Teams are numbered 1..N in output order as `table` — the venue's physical
+ * table number, editable afterward from the admin run route.
  */
 export function runMatching(
   participants: MatchParticipant[],
   settings: MatchSettings
 ): MatchResult {
-  return assign(participants, settings, optimizeAssignment)
+  const result = assign(participants, settings, optimizeAssignment)
+  return { ...result, teams: numberTables(result.teams) }
+}
+
+/** Number a list of teams 1..N in order, for the venue's physical tables. */
+function numberTables(teams: Team[]): Team[] {
+  return teams.map((team, index) => ({ ...team, table: index + 1 }))
 }
 
 /**
@@ -198,6 +207,10 @@ export function runMatchingByTrack(
         id: `team-${teams.length + 1}`,
         name: `${track.label} ${index + 1}`,
         trackKey: track.key,
+        // Overrides the per-bucket 1..N from runMatching above with a single
+        // 1..N sequence across the whole merged run, so tables don't restart
+        // at 1 for every track.
+        table: teams.length + 1,
       })
     })
     unassignedIds.push(...bucketResult.unassignedIds)

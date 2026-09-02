@@ -6,6 +6,7 @@ import type {
   MemberProfile,
   MemberProfileInput,
 } from "@/lib/impact-lab/member";
+import { TrackRadioGroup } from "./TrackRadioGroup";
 
 /** The subset of an event's `Track` a member ever sees. Mirrors
  * src/lib/impact-lab/tracks.ts's `Track` structurally. */
@@ -87,6 +88,11 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
 
     if (!fullName.trim() || !primaryRole.trim()) {
       setError("Full name and primary role are required.");
+      return;
+    }
+
+    if (hasTracks && !selectedTrack) {
+      setError("Pick a track before saving.");
       return;
     }
 
@@ -251,40 +257,31 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
             placeholder="e.g. TypeScript, Python, Figma"
           />
         </div>
-        <div>
-          <label htmlFor="il-interests" className={labelClass}>
-            {hasTracks ? "Track" : "Interests (comma-separated)"}
-          </label>
+        <div className={hasTracks ? "sm:col-span-2" : undefined}>
           {hasTracks ? (
             <>
-              <select
-                id="il-interests"
+              <span className={labelClass}>Track</span>
+              <TrackRadioGroup
+                name="match-profile-track"
+                tracks={tracks!}
                 value={selectedTrack}
-                onChange={(e) => setSelectedTrack(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Any track</option>
-                {tracks!.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-              {selectedTrack && tracks!.find((t) => t.key === selectedTrack)?.description && (
-                <p className="mt-1 text-[11px] text-text-dim">
-                  {tracks!.find((t) => t.key === selectedTrack)?.description}
-                </p>
-              )}
+                onChange={setSelectedTrack}
+              />
             </>
           ) : (
-            <input
-              id="il-interests"
-              type="text"
-              value={interests}
-              onChange={(e) => setInterests(e.target.value)}
-              className={inputClass}
-              placeholder="e.g. agriculture, health, fintech"
-            />
+            <>
+              <label htmlFor="il-interests" className={labelClass}>
+                Interests (comma-separated)
+              </label>
+              <input
+                id="il-interests"
+                type="text"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                className={inputClass}
+                placeholder="e.g. agriculture, health, fintech"
+              />
+            </>
           )}
         </div>
         <div className="sm:col-span-2">

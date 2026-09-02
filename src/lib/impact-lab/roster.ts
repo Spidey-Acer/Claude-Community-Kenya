@@ -137,3 +137,25 @@ export function placeParticipant(
     warning: !wasAlreadyOnTarget && nextSize > maxTeamSize ? TEAM_TOO_LARGE_WARNING : undefined,
   }
 }
+
+/**
+ * Fill in `table` for teams that don't have one, leaving already-numbered
+ * teams untouched. Used by the admin "Number tables 1..N" action to backfill
+ * a run that predates table numbers, or one an organiser edited by hand.
+ *
+ * Each unnumbered team gets the smallest table number, starting at 1, not
+ * already used by any team in the run — so re-running this after a manual
+ * edit never collides with a number an organiser already set.
+ */
+export function numberMissingTables(teams: Team[]): Team[] {
+  const used = new Set(
+    teams.map((t) => t.table).filter((n): n is number => typeof n === "number")
+  )
+  let next = 1
+  const nextUnused = (): number => {
+    while (used.has(next)) next++
+    used.add(next)
+    return next
+  }
+  return teams.map((t) => (typeof t.table === "number" ? t : { ...t, table: nextUnused() }))
+}

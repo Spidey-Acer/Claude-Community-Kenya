@@ -47,6 +47,8 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [error, setError] = useState<string | null>(null)
   const [moveWarning, setMoveWarning] = useState<string | null>(null)
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [settingTableId, setSettingTableId] = useState<string | null>(null)
+  const [numberingTables, setNumberingTables] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -75,6 +77,38 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
       setError(e instanceof Error ? e.message : "Failed to move participant")
     } finally {
       setMovingId(null)
+    }
+  }
+
+  /** Set (or clear, on empty input) one team's table number. */
+  async function setTable(teamId: string, table: number | null) {
+    setSettingTableId(teamId)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        table: { teamId, table },
+      })
+      setDetail(response)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to set table number")
+    } finally {
+      setSettingTableId(null)
+    }
+  }
+
+  /** Backfill table numbers for any team in this run that doesn't have one. */
+  async function numberTables() {
+    setNumberingTables(true)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        numberTables: true,
+      })
+      setDetail(response)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to number tables")
+    } finally {
+      setNumberingTables(false)
     }
   }
 
@@ -115,6 +149,17 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
         </div>
       )}
 
+      <div className="flex justify-end">
+        <button
+          onClick={numberTables}
+          disabled={numberingTables}
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[10px] font-mono text-[#888] disabled:opacity-40"
+        >
+          {numberingTables ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+          Number tables 1..N
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {result.teams.map((team) => (
           <div key={team.id} className="p-3 bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg space-y-2">
@@ -131,6 +176,30 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
               <div className="text-xs font-mono font-bold text-[#00ff41]">
                 {team.score.total}<span className="text-[#444]">/100</span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-mono text-[#888]">
+              {typeof team.table === "number" && <span className="text-[#ffb000]">Table {team.table}</span>}
+              <label htmlFor={`table-${team.id}`} className="sr-only">
+                {`Set table number for ${team.name}`}
+              </label>
+              <input
+                id={`table-${team.id}`}
+                type="number"
+                min={1}
+                max={200}
+                placeholder="Table #"
+                defaultValue={team.table ?? ""}
+                disabled={settingTableId === team.id}
+                onBlur={(e) => {
+                  const raw = e.target.value.trim()
+                  const value = raw === "" ? null : Number(raw)
+                  if (value !== null && (!Number.isInteger(value) || value < 1 || value > 200)) return
+                  if (value === (team.table ?? null)) return
+                  setTable(team.id, value)
+                }}
+                className="w-16 bg-[#111] border border-[#1e1e1e] rounded px-1.5 py-0.5 text-[#ccc]"
+              />
             </div>
 
             <div className="space-y-1">

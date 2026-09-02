@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useSkin } from "@/contexts/SkinContext";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "./ChatPanel";
@@ -9,10 +10,18 @@ import { MessageCircle } from "lucide-react";
 
 const WIDGET_OPEN_KEY = "cck-chat-open";
 
+/** Routes whose primary action sits where this FAB would otherwise land on a
+ * phone — the "Create account" button on /signup at 390px, "Sign in" on
+ * /login, and the various save/submit buttons scattered through /dashboard.
+ * Desktop has room for both, so this only hides the bubble under `sm:`. */
+const FAB_HIDDEN_ON_MOBILE_PREFIXES = ["/login", "/signup", "/dashboard"];
+
 export function ChatWidget() {
   const { skin, isLoaded } = useSkin();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const isDev = skin === "dev";
+  const hideOnMobile = FAB_HIDDEN_ON_MOBILE_PREFIXES.some((p) => pathname.startsWith(p));
 
   // Restore open state from localStorage
   useEffect(() => {
@@ -36,7 +45,12 @@ export function ChatWidget() {
   if (!isLoaded) return null;
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-4">
+    <div
+      className={cn(
+        "fixed bottom-20 right-4 z-50 flex-col items-end gap-3 md:bottom-4",
+        hideOnMobile ? "hidden sm:flex" : "flex"
+      )}
+    >
       <AnimatePresence>
         {isOpen && (
           <motion.div
