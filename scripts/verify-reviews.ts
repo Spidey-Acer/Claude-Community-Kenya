@@ -130,6 +130,7 @@ const standing = (teamId: string, average: number): TeamStanding => ({
   average,
   judgeCount: 2,
   criterionAverages: { impact: 4, demo: 4, claude: 4, clarity: 4, presentation: 4 },
+  criterionJudgeCounts: { impact: 2, demo: 2, claude: 2, clarity: 2, presentation: 2 },
 })
 const input: ResultsInput = {
   publishedAt: "2026-07-27T09:00:00.000Z",

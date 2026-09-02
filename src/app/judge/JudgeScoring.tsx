@@ -12,13 +12,62 @@ import {
 interface TeamRow {
   teamId: string;
   teamName: string;
+  /** The venue's physical table. Null on runs saved before tables existed. */
+  table: number | null;
+  /** The track this team was matched into, already resolved to its label. */
+  track: string;
   memberCount: number;
   submission: {
     projectName: string;
     pitch: string;
     repoUrl: string;
     demoUrl: string | null;
+    /** Who the project helps and with what — the team's own words. */
+    problemTackled: string;
+    /** What is really built versus what is stubbed for the demo. */
+    worksVsMocked: string;
+    /** Where Claude sits in the product, as opposed to in the build process. */
+    claudeUsage: string;
   } | null;
+}
+
+/**
+ * The three written answers, in the order a judge reads them at a table:
+ * who it is for, what is actually real, and where the AI sits. Declared once
+ * rather than repeated inline so the labels cannot drift from the fields.
+ */
+const WRITTEN_ANSWERS: {
+  key: "problemTackled" | "worksVsMocked" | "claudeUsage";
+  heading: string;
+}[] = [
+  { key: "problemTackled", heading: "Who it helps" },
+  { key: "worksVsMocked", heading: "What works vs mocked" },
+  { key: "claudeUsage", heading: "Where Claude sits" },
+];
+
+/**
+ * A judge is told "table 12" over a microphone, so the search box has to
+ * accept that as readily as a project name. Matches a bare number and the
+ * word "table" in front of one; anything else is treated as free text.
+ */
+function tableNumberIn(query: string): number | null {
+  const match = /^(?:table\s*)?(\d{1,4})$/.exec(query);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Table order, with unnumbered teams last.
+ *
+ * A judge works the room in table order; any other order makes them scan the
+ * whole list for the table they were just sent to. Teams with no table (older
+ * runs) keep their original relative order at the bottom rather than being
+ * scattered through the numbered ones.
+ */
+function byTableNumber(a: TeamRow, b: TeamRow): number {
+  if (a.table === b.table) return 0;
+  if (a.table === null) return 1;
+  if (b.table === null) return -1;
+  return a.table - b.table;
 }
 
 interface AssistResult {
@@ -253,17 +302,23 @@ export function JudgeScoring({
   );
 
   const needle = query.trim().toLowerCase();
-  const visible = data.teams.filter((team) => {
-    if (filter === "scored" && !scoredIds.has(team.teamId)) return false;
-    if (filter === "unscored" && scoredIds.has(team.teamId)) return false;
-    if (!needle) return true;
-    // Judges are told "table 12" over a microphone, so the table number in the
-    // team name has to match as readily as the project title.
-    return (
-      team.teamName.toLowerCase().includes(needle) ||
-      (team.submission?.projectName ?? "").toLowerCase().includes(needle)
-    );
-  });
+  const wantedTable = tableNumberIn(needle);
+  // Sorted on a copy: `data.teams` is state and must not be reordered in place.
+  const visible = [...data.teams]
+    .filter((team) => {
+      if (filter === "scored" && !scoredIds.has(team.teamId)) return false;
+      if (filter === "unscored" && scoredIds.has(team.teamId)) return false;
+      if (!needle) return true;
+      // "12" and "table 12" find table 12. The number still falls through to
+      // the text match as well, so a project called "Shamba 12" is findable.
+      if (wantedTable !== null && team.table === wantedTable) return true;
+      return (
+        team.teamName.toLowerCase().includes(needle) ||
+        team.track.toLowerCase().includes(needle) ||
+        (team.submission?.projectName ?? "").toLowerCase().includes(needle)
+      );
+    })
+    .sort(byTableNumber);
 
   const FILTERS: { key: "all" | "unscored" | "scored"; label: string }[] = [
     { key: "all", label: `All ${data.teams.length}` },
@@ -331,11 +386,21 @@ export function JudgeScoring({
               className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
             >
               <span className="min-w-0">
-                <span className="block truncate font-mono text-sm text-text-primary">
-                  {team.teamName}
+                <span className="flex flex-wrap items-center gap-2">
+                  {team.table !== null && (
+                    <span className="font-mono text-base font-bold text-text-primary">
+                      Table {team.table}
+                    </span>
+                  )}
+                  <span className="truncate rounded-full border border-border-default px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                    {team.track}
+                  </span>
                 </span>
-                <span className="block truncate text-xs text-text-dim">
+                <span className="mt-1 block truncate text-sm text-text-primary">
                   {team.submission?.projectName ?? "No submission yet"}
+                </span>
+                <span className="block truncate font-mono text-[11px] text-text-dim">
+                  {team.teamName}
                 </span>
               </span>
               <span className="shrink-0 text-right">
@@ -359,7 +424,28 @@ export function JudgeScoring({
                     <p className="text-sm text-text-secondary">
                       {team.submission.pitch}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-3 font-mono text-xs">
+
+                    {/* The team's own written answers, above the criteria: a
+                        judge who reads them before scoring asks better
+                        questions than one who scores first and reads after. */}
+                    <div className="mt-4 space-y-3">
+                      {WRITTEN_ANSWERS.map((answer) => {
+                        const text = team.submission?.[answer.key]?.trim();
+                        if (!text) return null;
+                        return (
+                          <div key={answer.key}>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-text-dim">
+                              {answer.heading}
+                            </p>
+                            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-text-secondary">
+                              {text}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-3 font-mono text-xs">
                       <a
                         href={team.submission.repoUrl}
                         target="_blank"

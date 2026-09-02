@@ -17,6 +17,8 @@ import {
   isComplete,
   standings,
   trackOf,
+  trackLabelIndex,
+  resolveTeamTrack,
   trackWinners,
   totalOutOf,
   maxPoints,
@@ -141,6 +143,66 @@ assert(
   "per-criterion averages report the raw 1-5 value for the breakdown"
 )
 
+// ─── Criterion-wise aggregation ──────────────────────────────────────────────
+// Judges leave sheets half-filled: they are pulled to the next table before
+// finishing. Averaging whole totals made every criterion a judge did NOT reach
+// count as a zero for that judge, so the more partial sheets a team collected
+// the lower it scored — an artefact of judge logistics, not of the work.
+// Criterion-wise averaging asks only the judges who scored a criterion what it
+// was worth.
+
+const partialPanel = standings([
+  { judgeEmail: "a@x.io", teamId: "t-partial", sheet: sheetOf(5) },
+  { judgeEmail: "b@x.io", teamId: "t-partial", sheet: { impact: 5 } },
+])[0]
+assert(
+  partialPanel.average === 100,
+  "a judge who scored only one criterion does not drag the mean (100, not the 62.5 a mean-of-totals gave)"
+)
+assert(
+  partialPanel.judgeCount === 2,
+  "judgeCount still counts every judge who opened a sheet, partial or not"
+)
+assert(
+  partialPanel.criterionJudgeCounts.impact === 2 &&
+    partialPanel.criterionJudgeCounts.demo === 1,
+  "criterionJudgeCounts reports per criterion how many judges actually scored it"
+)
+
+const unreached = standings([
+  { judgeEmail: "a@x.io", teamId: "t-unreached", sheet: { impact: 5, demo: 5 } },
+])[0]
+assert(
+  unreached.criterionJudgeCounts.presentation === 0,
+  "a criterion nobody scored reports a count of zero rather than being absent"
+)
+assert(
+  unreached.average === weightedTotal({ impact: 5, demo: 5 }),
+  "a criterion nobody scored contributes 0 — the same as an unfilled criterion on one sheet"
+)
+
+// Disagreeing judges must average, not be replaced by whoever scored last.
+const disagreeing = standings([
+  { judgeEmail: "a@x.io", teamId: "t-split", sheet: { impact: 5 } },
+  { judgeEmail: "b@x.io", teamId: "t-split", sheet: { impact: 1 } },
+])[0]
+assert(
+  disagreeing.average === weightedTotal({ impact: 3 }) && disagreeing.average === 12.5,
+  "two judges disagreeing on one criterion average to its midpoint (5 and 1 => 3 => 12.5 of impact's 25)"
+)
+
+// Rounding happens once, at the end. Means of 4 and 5 give 4.5, which is not
+// representable on the 1-5 scale — weighting the rounded 4.5 must still be
+// exact rather than snapped to a whole score first.
+const halfStep = standings([
+  { judgeEmail: "a@x.io", teamId: "t-half", sheet: sheetOf(4) },
+  { judgeEmail: "b@x.io", teamId: "t-half", sheet: sheetOf(5) },
+])[0]
+assert(
+  halfStep.average === 87.5,
+  "fractional criterion means weight exactly (all 4s and all 5s => 87.5, not 88 or 87)"
+)
+
 console.log("\nTracks and winners")
 assert(
   trackOf("Table 12 — Kilimo (Agriculture)") === "Kilimo (Agriculture)",
@@ -148,6 +210,42 @@ assert(
 )
 assert(trackOf("Table 4") === "Unassigned", "a name with no track is Unassigned, not a crash")
 assert(trackOf("") === "Unassigned", "an empty name is Unassigned")
+
+// The matcher does not name teams "Table N — Track". It names them
+// "${track.label} ${n}", which has no dash to split on, so trackOf() alone put
+// every matcher-built team in "Unassigned" and produced one track winner
+// instead of one per track.
+const LABELS = trackLabelIndex([
+  { key: "elimu", label: "Elimu: Mwalimu wa Grade 10" },
+  { key: "kilimo", label: "Kilimo (Agriculture)" },
+])
+assert(
+  trackOf("Elimu: Mwalimu wa Grade 10 7") === "Unassigned",
+  "a matcher-shaped team name carries no parseable track — the bug this fix exists for"
+)
+assert(
+  resolveTeamTrack({ name: "Elimu: Mwalimu wa Grade 10 7", trackKey: "elimu" }, LABELS) ===
+    "Elimu: Mwalimu wa Grade 10",
+  "trackKey resolves to the event's own label for a matcher-shaped team"
+)
+assert(
+  resolveTeamTrack({ name: "Team 3", trackKey: "not-an-event-track" }, LABELS) ===
+    "not-an-event-track",
+  "an unknown key groups by the key itself rather than collapsing into Unassigned"
+)
+assert(
+  resolveTeamTrack({ name: "Team 3", track: "Afya (Health)" }, LABELS) === "Afya (Health)",
+  "an organiser-assigned track label is used when there is no trackKey"
+)
+assert(
+  resolveTeamTrack({ name: "Table 12 — Kilimo (Agriculture)" }, LABELS) ===
+    "Kilimo (Agriculture)",
+  "a legacy hand-imported name still falls back to parsing the name"
+)
+assert(
+  resolveTeamTrack({ name: "Table 4", trackKey: "  ", track: null }, LABELS) === "Unassigned",
+  "a blank trackKey does not win over the fallbacks"
+)
 
 const names = new Map([
   ["t-afya-1", "Table 1 — Afya (Health)"],
@@ -175,6 +273,39 @@ assert(
 assert(
   trackWinners([], new Map()).champion === null,
   "no scores means no champion, rather than a phantom winner"
+)
+
+// The same three teams named the way the matcher names them: without the
+// trackById map they all collapse into one track, with it they do not.
+const matcherNames = new Map([
+  ["m-1", "Afya: Mhudumu wa Afya 1"],
+  ["m-2", "Afya: Mhudumu wa Afya 2"],
+  ["m-3", "Kilimo: Mkulima 1"],
+])
+const matcherStandings = standings([
+  { judgeEmail: "a@x.io", teamId: "m-1", sheet: sheetOf(3) },
+  { judgeEmail: "a@x.io", teamId: "m-2", sheet: sheetOf(5) },
+  { judgeEmail: "a@x.io", teamId: "m-3", sheet: sheetOf(4) },
+])
+assert(
+  trackWinners(matcherStandings, matcherNames).winners.length === 1,
+  "without resolved tracks, matcher-named teams collapse into a single Unassigned winner"
+)
+const matcherTracks = new Map([
+  ["m-1", "Afya (Health)"],
+  ["m-2", "Afya (Health)"],
+  ["m-3", "Kilimo (Agriculture)"],
+])
+const resolvedWinners = trackWinners(matcherStandings, matcherNames, matcherTracks)
+assert(
+  resolvedWinners.winners.length === 2 &&
+    resolvedWinners.winners.find((w) => w.track === "Afya (Health)")?.teamId === "m-2" &&
+    resolvedWinners.winners.find((w) => w.track === "Kilimo (Agriculture)")?.teamId === "m-3",
+  "with resolved tracks each track gets its own winner"
+)
+assert(
+  resolvedWinners.champion?.teamId === "m-2",
+  "the champion is still the best across the resolved tracks"
 )
 
 // ─── Per-event rubrics ───────────────────────────────────────────────────────

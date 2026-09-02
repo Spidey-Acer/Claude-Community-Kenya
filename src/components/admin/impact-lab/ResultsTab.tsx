@@ -15,7 +15,7 @@ import {
   Trophy,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
-import { trackOf, type SerializedRubric, type TeamStanding } from "@/lib/impact-lab/judging"
+import type { SerializedRubric, TeamStanding } from "@/lib/impact-lab/judging"
 import { buildRanking, buildTrackWinners, toPublicRanking, type ResultsInput } from "@/lib/impact-lab/results"
 
 interface AwaitingTeam {
@@ -328,6 +328,8 @@ function AwaitingScoreSection({ cohort }: { cohort: string }) {
 interface PublishTeam {
   teamId: string
   teamName: string
+  /** Resolved by the judging route from the team's `trackKey`, not parsed here. */
+  track: string
   memberCount: number
   submission: { projectName: string } | null
 }
@@ -347,6 +349,8 @@ interface PublishStatus {
 interface PublishResponse {
   publishedAt: string
   recipients: number
+  /** How many teams were published as unscored participants. */
+  unranked: number
 }
 
 const EMPTY_RESULTS_INPUT_EXTRAS = {
@@ -390,6 +394,9 @@ function PublishPanel({
   const [confirmText, setConfirmText] = useState("")
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  // Off by default: publishing a team nobody judged is a deliberate choice,
+  // never something an organiser drifts into by not reading the warning.
+  const [allowUnscored, setAllowUnscored] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -429,9 +436,15 @@ function PublishPanel({
     () => submittedTeams.filter((t) => scoredTeamIds.has(t.teamId)),
     [submittedTeams, scoredTeamIds]
   )
+  // Unscored teams get a dashboard card, not an email: the results email is
+  // built from a rank and a scorecard they do not have. Mirrors the filter the
+  // publish route applies server-side.
   const recipientCount = useMemo(
-    () => submittedTeams.reduce((sum, t) => sum + t.memberCount, 0),
-    [submittedTeams]
+    () =>
+      submittedTeams
+        .filter((t) => !allowUnscored || scoredTeamIds.has(t.teamId))
+        .reduce((sum, t) => sum + t.memberCount, 0),
+    [submittedTeams, scoredTeamIds, allowUnscored]
   )
   const announcedTeamIds = useMemo(
     () => [firstPlace, secondPlace, thirdPlace].filter((id) => id !== ""),
@@ -443,7 +456,10 @@ function PublishPanel({
     const teamsMeta = new Map<string, { projectName: string; track: string }>()
     for (const t of submittedTeams) {
       if (!t.submission) continue
-      teamsMeta.set(t.teamId, { projectName: t.submission.projectName, track: trackOf(t.teamName) })
+      // The track comes from the server, resolved from how the matcher
+      // partitioned the team. Parsing the team name here put every team in
+      // "Unassigned" and previewed a single track winner for the whole event.
+      teamsMeta.set(t.teamId, { projectName: t.submission.projectName, track: t.track })
     }
     const input: ResultsInput = {
       ...EMPTY_RESULTS_INPUT_EXTRAS,
@@ -470,7 +486,7 @@ function PublishPanel({
       const result = await apiSend<PublishResponse>(
         "/api/admin/impact-lab/results/publish",
         "POST",
-        { cohort, announcedTeamIds, confirm: confirmText }
+        { cohort, announcedTeamIds, confirm: confirmText, allowUnscored }
       )
       setPublishStatus({ published: true, publishedAt: result.publishedAt, recipients: result.recipients })
     } catch (e) {
@@ -526,11 +542,13 @@ function PublishPanel({
     )
   }
 
+  const unscoredNames = unscoredSubmitted
+    .map((t) => t.submission?.projectName ?? t.teamName)
+    .join(", ")
+
   const disabledReason =
-    unscoredSubmitted.length > 0
-      ? `Every submitted team needs a score first: ${unscoredSubmitted
-          .map((t) => t.submission?.projectName ?? t.teamName)
-          .join(", ")}`
+    unscoredSubmitted.length > 0 && !allowUnscored
+      ? `Every submitted team needs a score first: ${unscoredNames}`
       : confirmText !== "PUBLISH"
         ? 'Type PUBLISH to confirm.'
         : null
@@ -560,11 +578,38 @@ function PublishPanel({
       {unscoredSubmitted.length > 0 && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-3 text-[11px] font-mono text-[#ff3333]"
+          className={`flex items-start gap-2 rounded border p-3 text-[11px] font-mono ${
+            allowUnscored
+              ? "border-[#ffb000]/30 bg-[#ffb000]/10 text-[#ffb000]"
+              : "border-[#ff3333]/30 bg-[#ff3333]/10 text-[#ff3333]"
+          }`}
         >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{disabledReason}</span>
+          <span>
+            {allowUnscored
+              ? `${unscoredSubmitted.length} submitted team${
+                  unscoredSubmitted.length === 1 ? "" : "s"
+                } will be published as participants with no rank and no results email: ${unscoredNames}`
+              : `Every submitted team needs a score first: ${unscoredNames}`}
+          </span>
         </div>
+      )}
+
+      {unscoredSubmitted.length > 0 && (
+        <label className="flex items-start gap-2 text-[11px] font-mono text-[#888]">
+          <input
+            type="checkbox"
+            checked={allowUnscored}
+            onChange={(e) => setAllowUnscored(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#ffb000]"
+          />
+          <span>
+            Publish with unscored teams as participants ({unscoredSubmitted.length}{" "}
+            team{unscoredSubmitted.length === 1 ? "" : "s"}). They are left out of the
+            ranking and every winner list, and their members see &ldquo;not scored in the
+            finals&rdquo; on their own card instead of nothing.
+          </span>
+        </label>
       )}
 
       <div className="grid gap-3 sm:grid-cols-3">

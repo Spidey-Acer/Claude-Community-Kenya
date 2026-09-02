@@ -61,6 +61,20 @@ export interface ResultsTrackWinner {
   basis: "announced" | "score" | "organiser"
 }
 
+/**
+ * A team that submitted, took part, and was never scored.
+ *
+ * Kept apart from `ranking` rather than appended to the bottom of it: a rank
+ * implies the panel placed the team, and placing a team nobody watched below
+ * every team they did watch is a claim about its work that nobody made. These
+ * teams participated, and that is the whole of what the snapshot asserts.
+ */
+export interface UnrankedTeam {
+  teamId: string
+  projectName: string
+  track: string
+}
+
 /** Served only to members of that team. */
 export interface TeamCard {
   rank: number
@@ -78,6 +92,14 @@ export interface ResultsSnapshot {
   trackWinners: ResultsTrackWinner[]
   ranking: RankedTeam[]
   perTeam: Record<string, TeamCard>
+  /**
+   * Teams published as participants because nobody scored them.
+   *
+   * Optional because snapshots published before this existed do not carry it.
+   * Every reader must default it to `[]` rather than assume it is present — a
+   * stored snapshot is never recomputed, so the old shape is permanent.
+   */
+  unranked?: UnrankedTeam[]
 }
 
 export interface ResultsInput {
@@ -90,6 +112,16 @@ export interface ResultsInput {
   writeupOnly: Set<string>
   /** Lowest and highest weighted total across that team's judges. */
   range: Map<string, { low: number; high: number }>
+  /**
+   * Teams that submitted but were never scored, to publish as participants.
+   *
+   * Optional so every existing caller keeps its behaviour: omitted means the
+   * snapshot has no unranked section at all, which is what publishing without
+   * `allowUnscored` produces. The caller is responsible for keeping these
+   * disjoint from `announcedTeamIds` — a team cannot hold a rank and be
+   * unscored in the same snapshot.
+   */
+  unrankedTeamIds?: string[]
 }
 
 const UNKNOWN_TRACK = "Unassigned"
@@ -226,11 +258,21 @@ export interface MemberResultsPayload {
     overall: AnnouncedWinner[]
     trackWinners: ResultsTrackWinner[]
     ranking: PublicRankedTeam[]
+    /** Teams that took part but were never scored. Empty on most snapshots. */
+    unranked: UnrankedTeam[]
   }
   yourTeam?: {
     teamId: string
     projectName: string
-    card: TeamCard
+    /**
+     * Absent exactly when this team is in `unranked` — it took part and no
+     * judge ever scored it, so there is no rank, no criterion average and no
+     * range to show. The view says so in words instead of rendering zeros
+     * that would read as an earned result.
+     */
+    card?: TeamCard
+    /** True when this team took part but was not scored in the finals. */
+    unranked?: true
     /** Present only when a judge left a note on this team. */
     judgeNotes?: TeamJudgeNote[]
     /** Present only when the organiser has approved this team's review. */
@@ -250,9 +292,13 @@ export interface MemberResultsPayload {
  * `viewerTeamId` is the caller's own team, or `null` when it could not be
  * resolved (not registered, not on a team in the frozen run, or a stale id).
  * `yourTeam` is omitted from the returned object entirely in that case, and
- * also when the resolved team has no card or no ranking row — never set to
- * `null` or an empty object, so `"yourTeam" in payload` is the true test of
- * whether a card was attached.
+ * also when the resolved team has neither a card nor a place in `unranked` —
+ * never set to `null` or an empty object, so `"yourTeam" in payload` is the
+ * true test of whether anything was attached.
+ *
+ * A team in `unranked` gets a `yourTeam` WITHOUT a card. That is the one case
+ * where a ranking row is not required: the team took part, nobody scored it,
+ * and telling its members nothing at all is worse than telling them that.
  */
 export function buildMemberPayload(
   snapshot: ResultsSnapshot,
@@ -272,12 +318,16 @@ export function buildMemberPayload(
       overall: snapshot.overall,
       trackWinners: snapshot.trackWinners,
       ranking: toPublicRanking(snapshot.ranking),
+      unranked: snapshot.unranked ?? [],
     },
   }
 
   const card = viewerTeamId ? snapshot.perTeam[viewerTeamId] : undefined
   const rankingRow = viewerTeamId
     ? snapshot.ranking.find((r) => r.teamId === viewerTeamId)
+    : undefined
+  const unrankedRow = viewerTeamId
+    ? (snapshot.unranked ?? []).find((r) => r.teamId === viewerTeamId)
     : undefined
 
   if (viewerTeamId && card && rankingRow) {
@@ -286,6 +336,19 @@ export function buildMemberPayload(
       projectName: rankingRow.projectName,
       card,
     }
+  } else if (viewerTeamId && unrankedRow) {
+    payload.yourTeam = {
+      teamId: viewerTeamId,
+      projectName: unrankedRow.projectName,
+      unranked: true,
+    }
+  }
+
+  // Judge notes and the community review ride on whichever branch attached a
+  // team. An unscored team can still have been written to — a judge may have
+  // left a note without completing a sheet — and withholding those words is
+  // exactly the silence this branch exists to end.
+  if (payload.yourTeam) {
     if (feedback && feedback.judgeNotes.length > 0) {
       payload.yourTeam.judgeNotes = feedback.judgeNotes
     }
@@ -334,6 +397,21 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
     }
   }
 
+  // Ranked teams cannot also be unranked. The publish route already excludes
+  // announced winners, but a ranking row can arrive from a standings row too,
+  // so the snapshot filters again rather than trusting its caller.
+  const rankedIds = new Set(ranking.map((row) => row.teamId))
+  const unranked: UnrankedTeam[] = (input.unrankedTeamIds ?? [])
+    .filter((teamId) => !rankedIds.has(teamId))
+    .map((teamId) => {
+      const meta = metaOf(input, teamId)
+      return {
+        teamId,
+        projectName: meta.projectName,
+        track: meta.track || trackOf(meta.projectName),
+      }
+    })
+
   return {
     publishedAt: input.publishedAt,
     overall: input.announcedTeamIds.map((teamId, i) => ({
@@ -344,5 +422,6 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
     trackWinners: buildTrackWinners(ranking),
     ranking,
     perTeam,
+    unranked,
   }
 }

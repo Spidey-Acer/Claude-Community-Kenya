@@ -9,6 +9,7 @@ import type {
   ResultsTrackWinner,
   TeamCard,
   TeamReviewPayload,
+  UnrankedTeam,
 } from "@/lib/impact-lab/results";
 import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
 import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
@@ -19,11 +20,24 @@ export interface ResultsViewProps {
     overall: AnnouncedWinner[];
     trackWinners: ResultsTrackWinner[];
     ranking: PublicRankedTeam[];
+    /**
+     * Teams that took part and were never scored. Absent on snapshots
+     * published before the finals ran in heats, so always read through `?? []`.
+     */
+    unranked?: UnrankedTeam[];
   };
   yourTeam?: {
     teamId: string;
     projectName: string;
-    card: TeamCard;
+    /**
+     * Absent exactly when this team is in `results.unranked`: it took part,
+     * no judge scored it, and there is no rank or criterion average to show.
+     * The section says that in words rather than rendering zeros, which would
+     * read as a result the team earned.
+     */
+    card?: TeamCard;
+    /** True when this team took part but was not scored in the finals. */
+    unranked?: true;
     judgeNotes?: TeamJudgeNote[];
     review?: TeamReviewPayload;
   };
@@ -80,8 +94,12 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
       };
 
   const [champion, ...runnersUp] = results.overall;
+  // An unscored team has no ranking row, so its track has to come from the
+  // unranked list instead — otherwise its own card would omit the track it
+  // spent the day building in.
   const yourTrack = yourTeam
-    ? results.ranking.find((r) => r.teamId === yourTeam.teamId)?.track
+    ? (results.ranking.find((r) => r.teamId === yourTeam.teamId)?.track ??
+      (results.unranked ?? []).find((r) => r.teamId === yourTeam.teamId)?.track)
     : undefined;
 
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[rubric.criteria.length] ?? rubric.criteria.length} criteria`;
@@ -184,12 +202,21 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
               {yourTeam.projectName}
             </h2>
             <span className="font-mono text-xs text-text-dim">
-              {ordinal(yourTeam.card.rank)} overall
+              {yourTeam.card ? `${ordinal(yourTeam.card.rank)} overall` : "Took part"}
               {yourTrack ? ` · ${yourTrack}` : ""}
             </span>
           </div>
 
-          {yourTeam.card.basis === "submission" && (
+          {!yourTeam.card && (
+            <p className="mt-3 rounded border border-border-default bg-bg-card p-3 text-sm leading-relaxed text-text-secondary">
+              Your team was not scored in the finals. The panel judged in
+              heats and did not reach every table, so there is no rank or
+              scorecard for your project — not a low one. Your submission
+              stands as part of the event.
+            </p>
+          )}
+
+          {yourTeam.card && yourTeam.card.basis === "submission" && (
             <p className="mt-3 rounded border border-border-default bg-bg-card p-3 text-xs leading-relaxed text-text-secondary">
               Your project was reviewed from your written submission against{" "}
               {criteriaPhrase}. A live demo was not part of that review, which
@@ -197,9 +224,10 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
             </p>
           )}
 
-          <div className="mt-5 space-y-3">
+          {yourTeam.card && (
+            <div className="mt-5 space-y-3">
             {rubric.criteria.map((criterion) => {
-              const value = yourTeam.card.criterionAverages[criterion.key] ?? 0;
+              const value = yourTeam.card?.criterionAverages[criterion.key] ?? 0;
               const span = criterion.max - criterion.min;
               const pct =
                 span === 0
@@ -231,14 +259,17 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
                 </div>
               );
             })}
-          </div>
-
-          {yourTeam.card.low !== null && yourTeam.card.high !== null && (
-            <p className="mt-4 font-mono text-[11px] text-text-dim">
-              Score range across judges: {yourTeam.card.low.toFixed(1)}–
-              {yourTeam.card.high.toFixed(1)} / {rubric.totalOutOf}
-            </p>
+            </div>
           )}
+
+          {yourTeam.card &&
+            yourTeam.card.low !== null &&
+            yourTeam.card.high !== null && (
+              <p className="mt-4 font-mono text-[11px] text-text-dim">
+                Score range across judges: {yourTeam.card.low.toFixed(1)}–
+                {yourTeam.card.high.toFixed(1)} / {rubric.totalOutOf}
+              </p>
+            )}
 
           {/* Written feedback. Two streams with two provenances, kept visibly
               apart: a judge's own note is quoted under that judge's name; the

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { toCsv } from "@/lib/impact-lab/csv"
 import {
+  resolveTeamTrack,
   standings,
   totalOutOf,
-  trackOf,
+  trackLabelIndex,
   trackWinners,
   type JudgingRubric,
   type ScoreSheet,
@@ -57,6 +58,9 @@ export async function GET(request: NextRequest) {
 
   const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
   const rubric = await resolveRubric(cohort)
+  // The event's tracks: without them every matcher-built team exports as
+  // "Unassigned" and the track-winner column names a single winner.
+  const event = await getEventByCohort(cohort)
   const headers = headersFor(rubric)
 
   const run = await prisma.impactLabMatchRun.findFirst({
@@ -109,7 +113,9 @@ export async function GET(request: NextRequest) {
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
 
   const nameById = new Map(teams.map((t) => [t.id, t.name]))
-  const { winners, champion } = trackWinners(table, nameById)
+  const labelByKey = trackLabelIndex(event?.tracks ?? [])
+  const trackById = new Map(teams.map((t) => [t.id, resolveTeamTrack(t, labelByKey)]))
+  const { winners, champion } = trackWinners(table, nameById, trackById)
   const trackWinnerIds = new Set(winners.map((w) => w.teamId))
 
   const rows = teams
@@ -119,7 +125,7 @@ export async function GET(request: NextRequest) {
         average: standing?.average ?? 0,
         cells: [
           t.name,
-          trackOf(t.name),
+          trackById.get(t.id) ?? "Unassigned",
           projectByTeam.get(t.id) ?? "",
           standing?.judgeCount ?? 0,
           standing?.average ?? 0,

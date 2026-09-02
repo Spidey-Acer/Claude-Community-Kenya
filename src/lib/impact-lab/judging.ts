@@ -119,11 +119,25 @@ export interface JudgeScore {
 
 export interface TeamStanding {
   teamId: string
-  /** Mean of each judge's total, in the rubric's units. */
+  /**
+   * The team's aggregate, in the rubric's units.
+   *
+   * Built criterion by criterion — each criterion is averaged across the
+   * judges who actually scored it, and the rubric's weighting is applied to
+   * those means — NOT by averaging whole judge totals. See `standings` for
+   * why the difference matters.
+   */
   average: number
+  /** How many judges recorded any sheet at all for this team. */
   judgeCount: number
   /** Per-criterion mean of the raw scores, for the breakdown view. */
   criterionAverages: Record<string, number>
+  /**
+   * How many judges scored each criterion. Always has an entry for every
+   * criterion in the rubric, `0` for one nobody reached — that zero is what
+   * tells an organiser a criterion's mean is missing rather than low.
+   */
+  criterionJudgeCounts: Record<string, number>
 }
 
 /**
@@ -133,6 +147,18 @@ export interface TeamStanding {
  * not beaten by an identical team seen by four. Ordering is by average
  * descending, then teamId, so the result is deterministic — a tie must not
  * reorder itself between two loads of the leaderboard.
+ *
+ * The averaging is CRITERION-WISE, not total-wise: each criterion is meaned
+ * across the judges who scored that criterion, and the rubric's weighting is
+ * applied to those means. Averaging whole totals instead makes a judge who
+ * filled in two criteria of five contribute an implicit zero for the other
+ * three, which drags a team's mean down by an amount that has nothing to do
+ * with its work. Half-filled sheets are the norm at a live event — a judge is
+ * pulled to the next table mid-scorecard — so the difference decides winners.
+ *
+ * A criterion no judge scored contributes 0 (it is simply absent from the
+ * mean sheet), which is the same as the old behaviour and the same as an
+ * unfilled criterion on a single sheet.
  */
 export function standings(
   scores: JudgeScore[],
@@ -147,24 +173,36 @@ export function standings(
 
   const rows: TeamStanding[] = []
   for (const [teamId, sheets] of byTeam) {
-    const totals = sheets.map((s) => scoreTotal(s.sheet, rubric))
-    const average = totals.reduce((a, b) => a + b, 0) / (totals.length || 1)
-
+    // The mean sheet: one entry per criterion at least one judge scored, at
+    // the unrounded mean of their raw values. Scoring it through `scoreTotal`
+    // — rather than re-deriving the weighting here — keeps a single
+    // implementation of "what is a sheet worth" for both rubric modes.
+    const meanSheet: ScoreSheet = {}
     const criterionAverages: Record<string, number> = {}
+    const criterionJudgeCounts: Record<string, number> = {}
+
     for (const criterion of rubric.criteria) {
       const values = sheets
         .map((s) => s.sheet[criterion.key])
         .filter((v): v is number => typeof v === "number" && !Number.isNaN(v))
-      criterionAverages[criterion.key] = values.length
-        ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
-        : 0
+      criterionJudgeCounts[criterion.key] = values.length
+      if (values.length === 0) {
+        criterionAverages[criterion.key] = 0
+        continue
+      }
+      const mean = values.reduce((a, b) => a + b, 0) / values.length
+      meanSheet[criterion.key] = mean
+      criterionAverages[criterion.key] = Math.round(mean * 10) / 10
     }
 
     rows.push({
       teamId,
-      average: Math.round(average * 10) / 10,
+      // Rounded once, at the end, from the unrounded means — rounding each
+      // criterion first and weighting the rounded values would drift.
+      average: scoreTotal(meanSheet, rubric),
       judgeCount: sheets.length,
       criterionAverages,
+      criterionJudgeCounts,
     })
   }
 
@@ -172,18 +210,69 @@ export function standings(
 }
 
 /**
- * The track a team belongs to, read from its name.
+ * The track a team belongs to, read from its name — the LAST-RESORT fallback.
  *
- * Teams carry their track in the name they were assigned at the door — e.g.
- * "Table 12 — Kilimo (Agriculture)". There is no track column because there is
- * no team table at all, so the name is the only place it lives. Anything
- * unparseable becomes "Unassigned" rather than throwing: a malformed name must
- * not be able to hide a team from the track winners at 5 AM.
+ * Hand-imported and legacy teams were named "Table 12 — Kilimo (Agriculture)",
+ * with the track after the dash, and for those this is the only place the
+ * track lives. Teams the matcher builds do NOT look like that: it names them
+ * "${track.label} ${n}" (e.g. "Elimu: Mwalimu wa Grade 10 7") and records the
+ * track properly in `Team.trackKey`. Parsing such a name yields nothing, so
+ * every matcher-built team would land in "Unassigned" and collapse the track
+ * winners into one. Prefer `resolveTeamTrack` — it reads `trackKey` first and
+ * only falls back here.
+ *
+ * Anything unparseable becomes "Unassigned" rather than throwing: a malformed
+ * name must not be able to hide a team from the track winners at 5 AM.
  */
 export function trackOf(teamName: string): string {
   const dash = teamName.split(/[—–-]/)
   const tail = dash.length > 1 ? dash.slice(1).join("-").trim() : ""
   return tail || "Unassigned"
+}
+
+/** The minimum a team has to carry for its track to be resolvable. */
+export interface TrackedTeam {
+  name: string
+  /** Written by `runMatchingByTrack` — the authoritative track for a matched team. */
+  trackKey?: string | null
+  /** An organiser-assigned track label frozen into the run JSON, if any. */
+  track?: string | null
+}
+
+/**
+ * Track key → human label, from an event's parsed `tracks`.
+ *
+ * Structurally typed rather than importing `Track`, so this module stays
+ * dependency-free and the verification scripts can import it without pulling
+ * in the event schema.
+ */
+export function trackLabelIndex(
+  tracks: readonly { key: string; label: string }[]
+): Map<string, string> {
+  return new Map(tracks.map((t) => [t.key, t.label]))
+}
+
+/**
+ * The track label to show and group a team by.
+ *
+ * Order of preference, strongest evidence first:
+ *
+ * 1. `trackKey` — what the matcher actually partitioned the team into,
+ *    resolved to the event's own label. An unknown key degrades to the key
+ *    itself, which is still a stable grouping, unlike "Unassigned".
+ * 2. `track` — an organiser's label frozen into the run JSON (e.g.
+ *    backfilled from a registration file).
+ * 3. `trackOf(name)` — the legacy "Table 12 — Track" naming.
+ */
+export function resolveTeamTrack(
+  team: TrackedTeam,
+  labelByKey: Map<string, string>
+): string {
+  const key = team.trackKey?.trim()
+  if (key) return labelByKey.get(key) ?? key
+  const assigned = team.track?.trim()
+  if (assigned) return assigned
+  return trackOf(team.name)
 }
 
 export interface TrackWinner {
@@ -204,14 +293,21 @@ export interface TrackWinner {
  */
 export function trackWinners(
   table: TeamStanding[],
-  nameById: Map<string, string>
+  nameById: Map<string, string>,
+  /**
+   * teamId → resolved track label, built with `resolveTeamTrack` by a caller
+   * that has the frozen teams and the event's tracks. Omitted only by callers
+   * with nothing but names to go on, which fall back to parsing the name and
+   * therefore see every matcher-built team as "Unassigned".
+   */
+  trackById?: Map<string, string>
 ): { winners: TrackWinner[]; champion: TrackWinner | null } {
   const best = new Map<string, TrackWinner>()
 
   for (const row of table) {
     if (row.judgeCount === 0) continue
     const teamName = nameById.get(row.teamId) ?? row.teamId
-    const track = trackOf(teamName)
+    const track = trackById?.get(row.teamId) ?? trackOf(teamName)
     const candidate: TrackWinner = {
       track,
       teamId: row.teamId,

@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
+  resolveTeamTrack,
   scoreTotal,
   standings,
   totalOutOf,
+  trackLabelIndex,
   type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
@@ -136,6 +138,9 @@ export async function GET(request: NextRequest) {
   // this cohort overrides the code constant, and this response is where the
   // judging screen gets the criteria it renders. Falls back to the constant.
   const rubric = await resolveRubric(cohort)
+  // The event's own tracks, so each team's row can be labelled with the track
+  // it was matched into rather than a guess parsed from its name.
+  const event = await getEventByCohort(cohort)
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
@@ -161,9 +166,22 @@ export async function GET(request: NextRequest) {
   const teams = extractFrozenTeams(run.result) ?? []
 
   const [submissions, allScores] = await Promise.all([
+    // The three written answers travel with the pitch: a judge standing at a
+    // table needs who the project helps, what is real versus mocked, and
+    // where Claude actually sits, and asking each team to repeat that out
+    // loud costs minutes per table that the schedule does not have.
     prisma.impactLabSubmission.findMany({
       where: { runId: run.id },
-      select: { teamId: true, projectName: true, pitch: true, repoUrl: true, demoUrl: true },
+      select: {
+        teamId: true,
+        projectName: true,
+        pitch: true,
+        repoUrl: true,
+        demoUrl: true,
+        problemTackled: true,
+        worksVsMocked: true,
+        claudeUsage: true,
+      },
     }),
     prisma.impactLabScore.findMany({
       where: { runId: run.id },
@@ -194,6 +212,11 @@ export async function GET(request: NextRequest) {
     rubric
   )
 
+  // Track labels come from the event, keyed off how the matcher actually
+  // partitioned each team — see `resolveTeamTrack`. Parsing the team name
+  // instead puts every matcher-built team in "Unassigned".
+  const labelByKey = trackLabelIndex(event?.tracks ?? [])
+
   return NextResponse.json({
     success: true,
     data: {
@@ -201,6 +224,12 @@ export async function GET(request: NextRequest) {
       teams: teams.map((t) => ({
         teamId: t.id,
         teamName: t.name,
+        // The venue's physical table. This is how a judge is directed to a
+        // team over a microphone, so it leads the row on the scoring screen.
+        // Null on runs saved before tables existed — render nothing, never
+        // "Table undefined".
+        table: t.table ?? null,
+        track: resolveTeamTrack(t, labelByKey),
         memberCount: t.memberIds.length,
         submission: submissionByTeam.get(t.id) ?? null,
       })),
