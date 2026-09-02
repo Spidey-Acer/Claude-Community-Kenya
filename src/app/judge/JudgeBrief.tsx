@@ -6,14 +6,15 @@ import {
   type JudgeBriefCriterion,
 } from "@/lib/impact-lab/judge-brief";
 import type { Track } from "@/lib/impact-lab/tracks";
+import { BODY, CARD, CARD_PAD, EYEBROW, GHOST_BUTTON, TAP } from "./judge-ui";
 
 /**
  * Everything a judge needs that is not the scorecard, on the same screen as
  * the scorecard.
  *
- * Judges arrive at 3:45 and start scoring at 4:30 from a phone, standing up.
- * A briefing sheet that lives in a PDF, a WhatsApp message or the organiser's
- * head is a sheet nobody re-reads at 4:52 when a team says something odd — so
+ * Judges take their briefing at 4:45 and start scoring at 5:00 from a phone,
+ * standing up. A briefing sheet that lives in a PDF, a WhatsApp message or the
+ * organiser's head is a sheet nobody re-reads at 5:12 when a team says something odd — so
  * tonight's flow, the rubric, the fixed track rules, the guardrail fails and
  * the panel rules live here, one tap from the team being scored.
  *
@@ -24,34 +25,25 @@ import type { Track } from "@/lib/impact-lab/tracks";
  * show, not a configurable property of the system.
  */
 
-/** Eyebrow style shared by every section header. Matches the participant guide. */
-const EYEBROW = "font-mono text-[11px] uppercase tracking-wider text-text-dim";
-/** Body copy: slightly larger on phones, which is where this is read. */
-const BODY = "text-[15px] sm:text-sm leading-relaxed text-text-secondary break-words";
-
 /** Tonight's run of show, from the organiser. */
 const TONIGHT: { time: string; what: string }[] = [
   {
-    time: "3:45",
-    what: "Judges' call at the judges' table: briefing, recusals, demo order. Heats begin at the tables.",
-  },
-  {
     time: "4:00",
-    what: "Submission form locks. Calibration: ten minutes on one July clip, panel judges only.",
+    what: "Submissions locked. Every team's written submission is on your scoring screen from then.",
   },
   {
-    time: "About 4:25",
-    what: "Finalist list on screen. Domain judges join for a two-minute scope brief.",
+    time: "4:45",
+    what: "Judges' call at the judges' table. Briefing, recusals, demo order. Calibration: ten minutes on one July clip.",
   },
   {
-    time: "About 4:30 onward",
-    what: "Finals. Fifteen teams, five minutes each, live demo only, no fixed end time.",
+    time: "5:00",
+    what: "Presentations start. Five minutes per team, live demo only. Backup video plays only if the live demo dies in the first minute.",
   },
   {
     time: "After the last demo",
     what: "Scores lock. The panel settles track winners and the champion.",
   },
-  { time: "Then", what: "Awards: track winners, then the champion." },
+  { time: "Then", what: "Awards. Track winners, then the champion." },
 ];
 
 /** What a total means, so two judges reading the same demo land in the same band. */
@@ -77,8 +69,9 @@ const GUARDRAIL_FAILS: string[] = [
 
 /** How the panel runs itself. */
 const PANEL_RULES: string[] = [
-  "Recusal: if you have a stake in a team, say so at 3:45 and skip that team.",
+  "Recusal: if you have a stake in a team, say so at the 4:45 judges' call and skip that team.",
   "Domain judges score only Impact and Beneficiary clarity.",
+  "Anthropic's visiting team, Samari Gilbert, Courtney O'Donnell and Jack Stump, judge alongside the local panel; the same rubric applies to everyone.",
   "The panel's decision is final and the reasons stay in the room.",
 ];
 
@@ -97,7 +90,7 @@ export function JudgeBrief({
         <ol className="space-y-3">
           {TONIGHT.map((slot) => (
             <li key={slot.time} className="flex flex-col gap-0.5">
-              <span className="font-mono text-xs uppercase tracking-wider text-green-primary">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-green-primary">
                 {slot.time}
               </span>
               <span className={BODY}>{slot.what}</span>
@@ -136,7 +129,7 @@ export function JudgeBrief({
             {criteria.map((criterion) => (
               <li
                 key={criterion.key}
-                className="rounded-lg border border-border-default bg-bg-secondary p-4 sm:p-5"
+                className={`${CARD} ${CARD_PAD}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="font-mono text-sm font-bold text-text-primary break-words">
@@ -203,14 +196,14 @@ export function JudgeBrief({
             href="/judges/impact-lab-02-judges-guide.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-11 items-center justify-center rounded-lg border border-green-primary/40 bg-green-primary/10 px-4 py-3 text-center font-mono text-sm uppercase tracking-wider text-green-primary hover:bg-green-primary/20"
+            className={`flex ${TAP} items-center justify-center rounded-lg border border-green-primary/40 bg-green-primary/10 px-4 py-3 text-center font-mono text-sm uppercase tracking-wider text-green-primary hover:bg-green-primary/20`}
           >
             Download the judges&rsquo; guide (PDF)
           </a>
           <button
             type="button"
             onClick={() => window.print()}
-            className="min-h-11 rounded-lg border border-border-default px-4 py-3 font-mono text-sm uppercase tracking-wider text-text-secondary hover:border-green-primary/40 hover:text-green-primary"
+            className={`${GHOST_BUTTON} px-4 py-3 text-sm`}
           >
             Print this page
           </button>
@@ -271,7 +264,7 @@ function TrackCard({ track }: { track: Track }) {
   const problem = track.problem?.trim() || track.description?.trim() || "";
 
   return (
-    <details className="group rounded-lg border border-border-default bg-bg-secondary">
+    <details className={`group ${CARD}`}>
       <summary className="flex min-h-11 cursor-pointer list-none items-start gap-3 p-4 marker:content-none sm:p-5">
         <ChevronDown
           aria-hidden="true"

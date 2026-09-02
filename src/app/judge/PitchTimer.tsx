@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { csrfHeaders } from "@/lib/csrf-client";
+import { FOCUS_RING, TIMER_COMPACT_HEIGHT } from "./judge-ui";
 
 interface TimerState {
   startedAt: string;
@@ -63,9 +64,21 @@ function playEndSound(ctx: AudioContext | null) {
  *
  * Fixed rather than sticky-in-flow so it never reflows or covers the
  * scorecard's own controls — the page adds bottom padding to clear it
- * instead (see JudgeGate.tsx).
+ * instead (see JudgeScoring.tsx).
+ *
+ * `compact` collapses it to a 48px strip while a team is being scored. The
+ * scorecard's action bar is pinned directly above it at `bottom-12`, so the
+ * two agree on that height rather than overlapping — see `TIMER_COMPACT_HEIGHT`
+ * in judge-ui.ts.
  */
-export function PitchTimer({ cohort }: { cohort: string }) {
+export function PitchTimer({
+  cohort,
+  compact = false,
+}: {
+  cohort: string;
+  /** Slim strip mode, used while a team is open on the scoring screen. */
+  compact?: boolean;
+}) {
   const [timer, setTimer] = useState<TimerState | null>(null);
   const [offsetMs, setOffsetMs] = useState(0); // serverNow - Date.now(), from the last read
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -227,16 +240,24 @@ export function PitchTimer({ cohort }: { cohort: string }) {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-30 border-t bg-bg-primary/95 px-4 py-2 backdrop-blur ${
-        isOver ? "border-red/50 bg-red/5" : "border-border-default"
-      }`}
+      className={`fixed inset-x-0 bottom-0 z-30 border-t bg-bg-primary/95 px-4 backdrop-blur ${
+        compact ? `${TIMER_COMPACT_HEIGHT} flex items-center py-0` : "py-2"
+      } ${isOver ? "border-red/50 bg-red/5" : "border-border-default"}`}
     >
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-mono text-[10px] uppercase tracking-wider text-text-dim">
-            Pitch timer{timer ? ` · started by ${timer.startedBy}` : ""}
-          </p>
-          <p className={`font-mono text-2xl font-bold tabular-nums ${colorClass}`}>
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          {/* Dropped in the slim strip: with a team open, the 48px of height
+              belongs to the number, not to a label the judge has already read. */}
+          {!compact && (
+            <p className="truncate font-mono text-xs uppercase tracking-wider text-text-dim">
+              Pitch timer{timer ? ` · started by ${timer.startedBy}` : ""}
+            </p>
+          )}
+          <p
+            className={`font-mono font-bold tabular-nums ${
+              compact ? "text-lg" : "text-2xl"
+            } ${colorClass}`}
+          >
             {remainingSeconds === null
               ? "No timer"
               : isOver
@@ -249,7 +270,7 @@ export function PitchTimer({ cohort }: { cohort: string }) {
             type="button"
             onClick={() => void start()}
             disabled={busy}
-            className="rounded-lg border border-green-primary/40 bg-green-primary/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50"
+            className={`min-h-11 ${FOCUS_RING} rounded-lg border border-green-primary/40 bg-green-primary/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50`}
           >
             {timer ? "Restart 5:00" : "Start 5:00"}
           </button>
@@ -258,15 +279,15 @@ export function PitchTimer({ cohort }: { cohort: string }) {
               type="button"
               onClick={() => void stop()}
               disabled={busy}
-              className="rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-red/40 hover:text-red disabled:opacity-50"
+              className={`min-h-11 ${FOCUS_RING} rounded-lg border border-border-default px-3 py-2 font-mono text-xs uppercase tracking-wider text-text-secondary transition-colors hover:border-red/40 hover:text-red disabled:opacity-50`}
             >
               Stop
             </button>
           )}
         </div>
       </div>
-      {error && (
-        <p role="alert" className="mx-auto mt-1 max-w-3xl text-[11px] text-red">
+      {error && !compact && (
+        <p role="alert" className="mx-auto mt-1 max-w-6xl text-xs text-red">
           {error}
         </p>
       )}

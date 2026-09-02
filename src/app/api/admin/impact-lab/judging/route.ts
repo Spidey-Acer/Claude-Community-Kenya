@@ -3,9 +3,16 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
+import { getRequestMetadata, logAudit } from "@/lib/audit-log"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
 import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
+import type {
+  JudgeSubmissionView,
+  JudgeTeamMember,
+  JudgeTeamRow,
+} from "@/lib/impact-lab/judge-team"
+import type { TeamWithLeader } from "@/lib/impact-lab/roster"
 import {
   resolveTeamTrack,
   scoreTotal,
@@ -36,17 +43,37 @@ import { resolveRubric } from "@/lib/impact-lab/rubric-store"
  * the judging payload and writes score rows, and nothing else in the admin
  * surface. A code-gated identity is always prefixed `name:`, so it can never
  * collide with a real account's email in the unique constraint.
+ *
+ * `isStaff` is decided by the RBAC check ALONE, never by which branch matched.
+ * An organiser who signed into the judge screen to test it is carrying both a
+ * judge cookie and a staff session, and treating them as a bare judge would
+ * strip the standings out of the response the admin leaderboard reads.
  */
 async function resolveJudge(): Promise<
-  | { ok: true; identity: string; displayName: string }
+  | { ok: true; identity: string; displayName: string; isStaff: boolean }
   | { ok: false; response: NextResponse }
 > {
-  const judge = await readJudgeSession()
-  if (judge) return { ok: true, identity: judge.identity, displayName: judge.displayName }
-
   const check = await checkApiPermission("impact-lab", "view")
+
+  const judge = await readJudgeSession()
+  if (judge) {
+    return {
+      ok: true,
+      // The cookie wins on identity: scores written from the judge screen
+      // belong to the name typed there, not to the account behind it.
+      identity: judge.identity,
+      displayName: judge.displayName,
+      isStaff: check.authorized,
+    }
+  }
+
   if (!check.authorized) return { ok: false, response: check.response }
-  return { ok: true, identity: check.user.email, displayName: check.user.name }
+  return {
+    ok: true,
+    identity: check.user.email,
+    displayName: check.user.name,
+    isStaff: true,
+  }
 }
 
 /**
@@ -156,85 +183,165 @@ export async function GET(request: NextRequest) {
       data: {
         teams: [],
         mine: {},
-        standings: [],
+        // Staff only, for shape parity with the populated response below.
+        ...(judge.isStaff ? { standings: [] } : {}),
         finalRunId: null,
         rubric: serializeRubric(rubric),
       },
     })
   }
 
-  const teams = extractFrozenTeams(run.result) ?? []
+  // Cast: `leaderId` is written onto the frozen team by the roster routes and
+  // is not part of the matcher's own `Team`. See roster.ts for why it lives
+  // there rather than in the matching types.
+  const teams = (extractFrozenTeams(run.result) ?? []) as TeamWithLeader[]
 
-  const [submissions, allScores] = await Promise.all([
-    // The three written answers travel with the pitch: a judge standing at a
-    // table needs who the project helps, what is real versus mocked, and
-    // where Claude actually sits, and asking each team to repeat that out
-    // loud costs minutes per table that the schedule does not have.
+  // A judge sees only their own sheets. Another judge's numbers would anchor
+  // them, so those rows are never fetched on the judge branch at all — the
+  // aggregate is a staff surface and is read only when staff asked for it.
+  const scoreWhere = judge.isStaff
+    ? { runId: run.id }
+    : { runId: run.id, judgeEmail: judge.identity }
+
+  const memberIds = [...new Set(teams.flatMap((t) => t.memberIds))]
+
+  const [submissions, scoreRows, participants] = await Promise.all([
+    // The whole written submission travels with the team: a judge standing at
+    // a table needs who the project helps, what is real versus mocked, where
+    // Claude actually sits, and the links to open — asking each team to repeat
+    // that out loud costs minutes per table that the schedule does not have.
     prisma.impactLabSubmission.findMany({
       where: { runId: run.id },
       select: {
         teamId: true,
         projectName: true,
         pitch: true,
-        repoUrl: true,
-        demoUrl: true,
         problemTackled: true,
         worksVsMocked: true,
         claudeUsage: true,
+        repoUrl: true,
+        demoUrl: true,
+        videoUrl: true,
+        screenshotUrl: true,
+        slidesUrl: true,
+        createdAt: true,
       },
     }),
     prisma.impactLabScore.findMany({
-      where: { runId: run.id },
-      select: { teamId: true, judgeEmail: true, judgeName: true, scores: true, feedback: true },
+      where: scoreWhere,
+      select: {
+        teamId: true,
+        judgeEmail: true,
+        judgeName: true,
+        scores: true,
+        feedback: true,
+        updatedAt: true,
+      },
     }),
+    // One query for every member of every team, not one per team: this runs on
+    // a phone over conference wifi, and thirty-six round trips is the
+    // difference between a screen that loads and one a judge gives up on.
+    memberIds.length === 0
+      ? Promise.resolve([])
+      : prisma.impactLabParticipant.findMany({
+          where: { id: { in: memberIds } },
+          select: { id: true, fullName: true, primaryRole: true },
+        }),
   ])
 
   const submissionByTeam = new Map(submissions.map((s) => [s.teamId, s]))
+  const participantById = new Map(participants.map((p) => [p.id, p]))
 
-  // A judge sees their own sheet to edit it, and the aggregate — but never
-  // another judge's individual scores, which would anchor them.
-  const mine: Record<string, { scores: ScoreSheet; feedback: string | null }> = {}
-  for (const row of allScores) {
-    if (row.judgeEmail === judge.identity) {
-      mine[row.teamId] = {
-        scores: (row.scores ?? {}) as ScoreSheet,
-        feedback: row.feedback,
-      }
+  const mine: Record<
+    string,
+    { scores: ScoreSheet; feedback: string | null; savedAt: string }
+  > = {}
+  for (const row of scoreRows) {
+    if (row.judgeEmail !== judge.identity) continue
+    mine[row.teamId] = {
+      scores: (row.scores ?? {}) as ScoreSheet,
+      feedback: row.feedback,
+      // Lets the screen show "Saved 17:04" for a sheet recorded before this
+      // page load, instead of a bare "Saved" that could be an hour old.
+      savedAt: row.updatedAt.toISOString(),
     }
   }
-
-  const table = standings(
-    allScores.map((s) => ({
-      judgeEmail: s.judgeEmail,
-      teamId: s.teamId,
-      sheet: (s.scores ?? {}) as ScoreSheet,
-    })),
-    rubric
-  )
 
   // Track labels come from the event, keyed off how the matcher actually
   // partitioned each team — see `resolveTeamTrack`. Parsing the team name
   // instead puts every matcher-built team in "Unassigned".
   const labelByKey = trackLabelIndex(event?.tracks ?? [])
 
+  const rows: JudgeTeamRow[] = teams.map((team) => {
+    const trackLabel = resolveTeamTrack(team, labelByKey)
+    const members: JudgeTeamMember[] = team.memberIds
+      .map((id) => participantById.get(id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+      .map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        primaryRole: p.primaryRole,
+        isLeader: p.id === team.leaderId,
+      }))
+    const submission = submissionByTeam.get(team.id)
+
+    return {
+      teamId: team.id,
+      teamName: team.name,
+      // The venue's physical table. This is how a judge is directed to a team
+      // over a microphone, so it leads the row on the scoring screen. Null on
+      // runs saved before tables existed — render nothing, never
+      // "Table undefined".
+      table: team.table ?? null,
+      track: trackLabel,
+      trackKey: team.trackKey ?? null,
+      trackLabel,
+      // From the frozen run, not from `members`: a participant row deleted
+      // after the freeze must not silently shrink the team.
+      memberCount: team.memberIds.length,
+      members,
+      leaderName: members.find((m) => m.isLeader)?.fullName ?? null,
+      submission: submission
+        ? ({
+            projectName: submission.projectName,
+            pitch: submission.pitch,
+            problemTackled: submission.problemTackled,
+            worksVsMocked: submission.worksVsMocked,
+            claudeUsage: submission.claudeUsage,
+            repoUrl: submission.repoUrl,
+            demoUrl: submission.demoUrl,
+            videoUrl: submission.videoUrl,
+            screenshotUrl: submission.screenshotUrl,
+            slidesUrl: submission.slidesUrl,
+            // The schema has no `submittedAt`; the row is created by the
+            // submission POST, so its creation IS the submission time.
+            submittedAt: submission.createdAt.toISOString(),
+          } satisfies JudgeSubmissionView)
+        : null,
+    }
+  })
+
   return NextResponse.json({
     success: true,
     data: {
       finalRunId: run.id,
-      teams: teams.map((t) => ({
-        teamId: t.id,
-        teamName: t.name,
-        // The venue's physical table. This is how a judge is directed to a
-        // team over a microphone, so it leads the row on the scoring screen.
-        // Null on runs saved before tables existed — render nothing, never
-        // "Table undefined".
-        table: t.table ?? null,
-        track: resolveTeamTrack(t, labelByKey),
-        memberCount: t.memberIds.length,
-        submission: submissionByTeam.get(t.id) ?? null,
-      })),
+      teams: rows,
       mine,
-      standings: table,
+      // Staff only. The live standings on a judge's phone are exactly the
+      // anchoring the independent-scorecard design exists to prevent, and the
+      // judge screen has never rendered them.
+      ...(judge.isStaff
+        ? {
+            standings: standings(
+              scoreRows.map((s) => ({
+                judgeEmail: s.judgeEmail,
+                teamId: s.teamId,
+                sheet: (s.scores ?? {}) as ScoreSheet,
+              })),
+              rubric
+            ),
+          }
+        : {}),
       rubric: serializeRubric(rubric),
     },
   })
@@ -348,5 +455,94 @@ export async function POST(request: NextRequest) {
       // play: 38 is strong out of 50 and mediocre out of 100.
       totalOutOf: totalOutOf(rubric),
     },
+  })
+}
+
+/**
+ * DELETE — remove every score one judge recorded for one run.
+ *
+ * Exists because the panel is rehearsed with test judges before the real ones
+ * sign in, and a test judge's sheets sit in the same average as everybody
+ * else's. There is no UI to edit somebody else's scorecard and there should
+ * not be: the only safe operation on another judge's scores is removing all of
+ * them, which is visible in the audit log and obvious in the leaderboard.
+ *
+ * Admin-gated on `delete`, which MODERATOR (the role judges hold) does not
+ * have — so a code-gated judge cannot reach this, and `resolveJudge` is
+ * deliberately NOT used here.
+ *
+ * `judgeId` is the stored judge identity: `name:<slug>` for a code-gated judge
+ * and the account email for a signed-in one. That is the value the audit
+ * endpoint returns as `judgeEmail`, which is what the admin UI passes back.
+ */
+export async function DELETE(request: NextRequest) {
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
+  const check = await checkApiPermission("impact-lab", "delete")
+  if (!check.authorized) return check.response
+
+  const params = z
+    .object({ runId: z.string().min(1).max(64), judgeId: z.string().min(1).max(320) })
+    .safeParse({
+      runId: request.nextUrl.searchParams.get("runId")?.trim() ?? "",
+      judgeId: request.nextUrl.searchParams.get("judgeId")?.trim() ?? "",
+    })
+  if (!params.success) {
+    return NextResponse.json(
+      { success: false, error: "Both runId and judgeId are required." },
+      { status: 400 }
+    )
+  }
+
+  const run = await prisma.impactLabMatchRun.findUnique({
+    where: { id: params.data.runId },
+    select: { id: true, cohort: true, judgingClosedAt: true },
+  })
+  if (!run) {
+    return NextResponse.json(
+      { success: false, error: "No such run." },
+      { status: 404 }
+    )
+  }
+
+  // Same guard as the write path. Deleting scores after results are published
+  // would change a published result with nothing on screen to say so.
+  if (run.judgingClosedAt) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Judging is closed — results have been published.",
+        code: "JUDGING_CLOSED",
+      },
+      { status: 409 }
+    )
+  }
+
+  const { count } = await prisma.impactLabScore.deleteMany({
+    where: { runId: run.id, judgeEmail: params.data.judgeId },
+  })
+
+  if (count === 0) {
+    return NextResponse.json(
+      { success: false, error: "That judge has no scores on this run." },
+      { status: 404 }
+    )
+  }
+
+  await logAudit({
+    userId: check.user.id,
+    userName: check.user.name,
+    userEmail: check.user.email,
+    action: "DELETE",
+    entity: "ImpactLabScore",
+    entityId: run.id,
+    changes: { judgeId: params.data.judgeId, deleted: count, cohort: run.cohort },
+    ...getRequestMetadata(request),
+  })
+
+  return NextResponse.json({
+    success: true,
+    data: { deleted: count, judgeId: params.data.judgeId },
   })
 }
