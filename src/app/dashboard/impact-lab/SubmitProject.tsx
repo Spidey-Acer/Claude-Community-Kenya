@@ -11,16 +11,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Send, CheckCircle } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf-client";
-import type { SubmissionView } from "@/lib/impact-lab/submission-schema";
+import type { SubmissionInput, SubmissionView } from "@/lib/impact-lab/submission-schema";
+import type { SubmissionRequirementsView } from "@/lib/impact-lab/submission-requirements";
+import type { Track } from "@/lib/impact-lab/tracks";
 
 type Status = "no_team" | "open" | "closed";
+
+/** The cohort whose scope freezes mid-event — shown as a note under the form. */
+const SCOPE_FREEZE_COHORT = "impact-lab-2026-09";
 
 interface GetResponse {
   success: boolean;
   status?: Status;
   teamName?: string;
+  eventCohort?: string;
   closeAt?: string | null;
   submission?: SubmissionView;
+  requirements?: SubmissionRequirementsView;
+  tracks?: Track[];
   error?: string;
 }
 
@@ -88,8 +96,11 @@ const labelClass = "block text-[11px] font-mono text-text-dim mb-1.5";
 export function SubmitProject({ cohort }: { cohort?: string }) {
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [status, setStatus] = useState<Status | null>(null);
+  const [eventCohort, setEventCohort] = useState<string | null>(null);
   const [closeAt, setCloseAt] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [requirements, setRequirements] = useState<SubmissionRequirementsView | null>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [lastEditedBy, setLastEditedBy] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -111,7 +122,10 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
         return;
       }
       setStatus(json.status ?? "no_team");
+      setEventCohort(json.eventCohort ?? null);
       setCloseAt(json.closeAt ?? null);
+      setRequirements(json.requirements ?? null);
+      setTracks(json.tracks ?? []);
       if (json.submission) {
         setForm(fromView(json.submission));
         setLastEditedBy(json.submission.lastEditedByName);
@@ -204,38 +218,87 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
     setSaved(false);
   }
 
+  // The cohort's own label overrides the generic default; the required set
+  // decides the asterisk and the `required` attribute. Both come from the
+  // same GET response the form already loaded, so there is no separate
+  // per-cohort table to keep in sync client-side.
+  const isRequired = (key: keyof FormState) =>
+    requirements?.required.includes(key as keyof SubmissionInput) ?? false;
+  const labelFor = (key: keyof FormState, fallback: string) =>
+    requirements?.labels[key as keyof SubmissionInput] ?? fallback;
+
   const field = (
     key: keyof FormState,
-    label: string,
+    defaultLabel: string,
     helper: string,
     multiline = false
-  ) => (
-    <div>
-      <label className={labelClass} htmlFor={`sub-${key}`}>
-        {label}
-      </label>
-      {multiline ? (
-        <textarea
-          id={`sub-${key}`}
-          rows={3}
-          value={form[key]}
+  ) => {
+    const required = isRequired(key);
+    const label = labelFor(key, defaultLabel);
+    return (
+      <div>
+        <label className={labelClass} htmlFor={`sub-${key}`}>
+          {label}
+          {required && <span className="text-red"> *</span>}
+        </label>
+        {multiline ? (
+          <textarea
+            id={`sub-${key}`}
+            rows={3}
+            value={form[key]}
+            disabled={readOnly}
+            required={required}
+            onChange={(e) => updateField(key, e.target.value)}
+            className={inputClass}
+          />
+        ) : (
+          <input
+            id={`sub-${key}`}
+            type="text"
+            value={form[key]}
+            disabled={readOnly}
+            required={required}
+            onChange={(e) => updateField(key, e.target.value)}
+            className={inputClass}
+          />
+        )}
+        <p className="mt-1 font-mono text-[10px] text-text-dim">{helper}</p>
+      </div>
+    );
+  };
+
+  /** The track field renders as a select when the cohort declares tracks;
+   *  the stored value is always the track key, never its display label. */
+  const trackField = () => {
+    const required = isRequired("track");
+    const label = labelFor("track", "Track");
+    return (
+      <div>
+        <label className={labelClass} htmlFor="sub-track">
+          {label}
+          {required && <span className="text-red"> *</span>}
+        </label>
+        <select
+          id="sub-track"
+          value={form.track}
           disabled={readOnly}
-          onChange={(e) => updateField(key, e.target.value)}
+          required={required}
+          onChange={(e) => updateField("track", e.target.value)}
           className={inputClass}
-        />
-      ) : (
-        <input
-          id={`sub-${key}`}
-          type="text"
-          value={form[key]}
-          disabled={readOnly}
-          onChange={(e) => updateField(key, e.target.value)}
-          className={inputClass}
-        />
-      )}
-      <p className="mt-1 font-mono text-[10px] text-text-dim">{helper}</p>
-    </div>
-  );
+        >
+          <option value="">Select a track…</option>
+          {tracks.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 font-mono text-[10px] text-text-dim">
+          The track whose problem you built for.
+        </p>
+      </div>
+    );
+  };
 
   return (
     <section aria-label="Submit your project" className="mt-10">
@@ -263,21 +326,29 @@ export function SubmitProject({ cohort }: { cohort?: string }) {
           </p>
         )}
 
+        {eventCohort === SCOPE_FREEZE_COHORT && (
+          <p className="mb-4 rounded border border-amber/30 bg-amber/10 px-3 py-2 font-mono text-[11px] text-amber">
+            Scope freeze 3:30. Save early, edit until then.
+          </p>
+        )}
+
         <form onSubmit={save} className="space-y-4">
           {field(
             "slidesUrl",
-            "Pitch deck link *",
-            "The only thing you must provide. Google Slides, Canva, Drive, PDF — any link judges can open."
+            "Pitch deck link",
+            "Google Slides, Canva, Drive, PDF — any link judges can open."
           )}
 
           <p className="pt-2 font-mono text-xs text-text-dim">
-            Everything below is optional. Fill in what helps a judge; leave the
-            rest.
+            Fields marked * are required for this event. Fill in the rest
+            where it helps a judge.
           </p>
 
           {field("projectName", "Project name", "What are you calling it?")}
           {field("pitch", "One-line pitch", "One sentence a judge can repeat.")}
-          {field("track", "Track", "The track whose problem you built for.")}
+          {requirements?.trackSelect
+            ? trackField()
+            : field("track", "Track", "The track whose problem you built for.")}
           {field("problemTackled", "Problem tackled", "The specific problem, in your words.")}
           {field("description", "What it does", "What a judge sees when they open it.", true)}
           {field(

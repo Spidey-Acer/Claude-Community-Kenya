@@ -499,8 +499,8 @@ export function ImpactLabClient({
               <li className="flex items-start gap-2.5">
                 <span className="mt-0.5 font-mono text-xs text-green-primary">2.</span>
                 <span>
-                  Teams are finalized and revealed here on 25–26 July, during
-                  AI Mashinani itself — not before.
+                  Teams are finalised by the organisers and revealed here on
+                  the day.
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
