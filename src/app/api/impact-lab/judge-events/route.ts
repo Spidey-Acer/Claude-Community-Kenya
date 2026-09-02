@@ -7,6 +7,7 @@ import { listEvents } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { totalOutOf } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
+import type { Track } from "@/lib/impact-lab/tracks"
 
 /**
  * The events a judge may score right now.
@@ -18,9 +19,16 @@ import { resolveRubric } from "@/lib/impact-lab/rubric-store"
  * there are two.
  *
  * Deliberately narrow. It returns the name of a final run, how many teams are
- * in it, and which rubric applies — nothing about participants, submissions, or
- * anyone's scores. A code-gated judge must not be able to reach further than
- * the judging screen already lets them.
+ * in it, which rubric applies, and the organiser-published brief material —
+ * nothing about participants, submissions, or anyone's scores. A code-gated
+ * judge must not be able to reach further than the judging screen already lets
+ * them.
+ *
+ * `tracks` and `criteria` are that brief material: the tracks and the rubric an
+ * organiser publishes to the whole room before the event. They are config, not
+ * anybody's data, and the in-app judges' brief reads its rubric table and track
+ * cards straight off them so a judge is never scoring against one rubric while
+ * reading another.
  */
 
 interface JudgeEvent {
@@ -31,6 +39,20 @@ interface JudgeEvent {
   rubricLabel: string
   totalOutOf: number
   /**
+   * The event's declared tracks, in the order the organisers wrote them. `[]`
+   * for an event with no tracks, and pre-migration where there is no tenancy
+   * row to read them from — the brief renders without a tracks section rather
+   * than blocking on it.
+   */
+  tracks: Track[]
+  /**
+   * The rubric a judge is about to score on, reduced to what the brief needs
+   * to display it. Scoring itself still reads the full rubric from the judging
+   * endpoint; this is the read-only version, so the brief cannot drift from the
+   * scorecard.
+   */
+  criteria: JudgeCriterion[]
+  /**
    * Always true in this response — closed events are filtered out, because the
    * judging POST refuses writes once `judgingClosedAt` is set and offering one
    * would only send a judge into an error. Kept in the payload because the
@@ -38,6 +60,16 @@ interface JudgeEvent {
    * from the data rather than infer it from the absence of a flag.
    */
   judgingOpen: boolean
+}
+
+/** One rubric row as the brief shows it: what it is called and what it is worth. */
+interface JudgeCriterion {
+  key: string
+  label: string
+  /** Points at full marks — the weight column in the brief's rubric table. */
+  weight: number
+  /** The rubric's own one-line description. May be empty; the client has a fallback. */
+  guidance: string
 }
 
 export async function GET(request: NextRequest) {
@@ -115,6 +147,13 @@ export async function GET(request: NextRequest) {
         teamCount: extractFrozenTeams(run.result)?.length ?? 0,
         rubricLabel: rubric.label,
         totalOutOf: totalOutOf(rubric),
+        tracks: eventByCohort.get(run.cohort)?.tracks ?? [],
+        criteria: rubric.criteria.map((c) => ({
+          key: c.key,
+          label: c.label,
+          weight: c.weight,
+          guidance: c.guidance,
+        })),
         judgingOpen: true,
       }
     })
