@@ -7,9 +7,12 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   extractUnassignedIds,
+  judgeSchema,
+  JUDGE_LIST_MAX,
   numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
+  type Judge,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 
@@ -265,6 +268,51 @@ async function handleLockRoster(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * Replace the run's published judge panel. The array is the whole list — the
+ * admin form edits a local draft and saves it in one write, so there is no
+ * per-judge add/remove endpoint to keep consistent with it, and an empty array
+ * is a deliberate "clear the panel" rather than a no-op.
+ *
+ * Mirrors `handleLockRoster`'s lock/read/write/audit shape. Unlike `handleMove`
+ * it does not require frozen teams: judges are event metadata, and an organiser
+ * may well enter the panel before the final run's roster is settled.
+ */
+async function handleSetJudges(
+  request: NextRequest,
+  runId: string,
+  judges: Judge[],
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    if (!fresh) return { status: "not_found" as const }
+
+    await writeRunResult(tx, runId, { ...(fresh.result as object), judges })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "not_found") {
+    return NextResponse.json({ success: false, error: "Not found" }, { status: 404 })
+  }
+
+  // Names only in the audit trail: the bios are long, already public, and
+  // logging them in full would bury every other change on the run.
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { judges: judges.map((judge) => judge.name) },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -309,6 +357,10 @@ const updateSchema = z.object({
   // in the UI, and a boolean (unlike `move`'s object) needs an explicit
   // `!== undefined` check below since `false` is a meaningful value here.
   lockRoster: z.boolean().optional(),
+  // The published judge panel, as a whole-list replace. Its own branch for the
+  // same reason `move` is, and checked with `!== undefined` below because `[]`
+  // is meaningful here: it clears the panel.
+  judges: z.array(judgeSchema).max(JUDGE_LIST_MAX).optional(),
 })
 
 /**
@@ -357,6 +409,9 @@ export async function PATCH(
   }
   if (validation.data.lockRoster !== undefined) {
     return handleLockRoster(request, id, validation.data.lockRoster, check.user)
+  }
+  if (validation.data.judges !== undefined) {
+    return handleSetJudges(request, id, validation.data.judges, check.user)
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

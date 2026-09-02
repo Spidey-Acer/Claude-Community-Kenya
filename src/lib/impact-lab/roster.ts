@@ -12,6 +12,8 @@
  * No Prisma, no Next — callers own reading/writing the run row and locking.
  */
 
+import { z } from "zod"
+
 import { DEFAULT_MAX_TEAM_SIZE, type Team } from "@/lib/matching"
 
 /** The two fields of a run's `result` JSON that a roster edit can change. */
@@ -283,4 +285,131 @@ export function joinRequestReachesTeam(
   teamTrackKey: string | null
 ): boolean {
   return requestTrackKey === null || requestTrackKey === teamTrackKey
+}
+
+// ─── Judges ──────────────────────────────────────────────────────────────────
+
+/**
+ * Which seat a judge holds on the panel.
+ *
+ * `panel` scores every criterion, `domain` scores only Impact and Beneficiary
+ * clarity (see the judges' brief), and `guest` is somebody in the room whose
+ * name belongs on the published list without a scorecard attached.
+ */
+export type JudgeKind = "panel" | "domain" | "guest"
+
+/**
+ * One judge, as published to participants and to the public.
+ *
+ * Stored inside the final run's `result` JSON under `judges`, beside
+ * `rosterLocked` and `joinRequests` — the same reasoning as `JoinRequest`:
+ * this landed mid-event and a schema migration is not something to attempt
+ * with judging starting the same afternoon. Everything that reads a run
+ * tolerates unknown keys in `result`, so runs written before this existed
+ * simply have no judges.
+ *
+ * Nothing here is private: name, title, organisation and bio are exactly what
+ * an organiser would read out when introducing the panel, which is why the
+ * public endpoint can return the whole record unfiltered.
+ */
+export interface Judge {
+  id: string
+  name: string
+  title: string
+  organisation?: string
+  bio: string
+  kind: JudgeKind
+  /** Display position, ascending. Renderers sort on it; ties keep input order. */
+  order: number
+  /** Absolute https URL to a headshot. Absent means render initials instead. */
+  photoUrl?: string
+}
+
+/** Field ceilings, shared by the zod schema and the admin form's inputs. */
+export const JUDGE_NAME_MAX = 80
+export const JUDGE_TITLE_MAX = 120
+export const JUDGE_ORGANISATION_MAX = 120
+export const JUDGE_BIO_MAX = 700
+
+/** Most judges any one run may carry — a guard on the admin PATCH, not a rule. */
+export const JUDGE_LIST_MAX = 20
+
+/** How each `kind` is labelled wherever a judge card shows a pill. */
+export const JUDGE_KIND_LABEL: Record<JudgeKind, string> = {
+  panel: "Panel",
+  domain: "Domain judge",
+  guest: "Guest judge",
+}
+
+/**
+ * Validation for one judge as the admin PATCH accepts it.
+ *
+ * `photoUrl` is restricted to https rather than any URL: these render inside
+ * an `<img>` on a public page, and an http src would be a mixed-content block
+ * in every browser — better a 400 at the admin desk than a broken avatar the
+ * organiser only notices from the audience.
+ */
+export const judgeSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(JUDGE_NAME_MAX),
+  title: z.string().min(1).max(JUDGE_TITLE_MAX),
+  organisation: z.string().max(JUDGE_ORGANISATION_MAX).optional(),
+  bio: z.string().max(JUDGE_BIO_MAX),
+  kind: z.enum(["panel", "domain", "guest"]),
+  order: z.number().int().min(0).max(999),
+  photoUrl: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith("https://"), { message: "Photo URL must be https" })
+    .optional(),
+})
+
+const JUDGE_KINDS: readonly string[] = ["panel", "domain", "guest"]
+
+/** Type guard for one stored entry — anything malformed is dropped, not thrown on. */
+function isJudge(value: unknown): value is Judge {
+  if (typeof value !== "object" || value === null) return false
+  const entry = value as Record<string, unknown>
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.name === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.bio === "string" &&
+    typeof entry.kind === "string" &&
+    JUDGE_KINDS.includes(entry.kind) &&
+    typeof entry.order === "number" &&
+    Number.isFinite(entry.order)
+  )
+}
+
+/**
+ * `result.judges` from a run's stored result JSON, defensively, sorted by
+ * `order` ascending.
+ *
+ * Missing or malformed degrades to `[]` — the judges section is an addition to
+ * three screens that all worked without it, and none of them may break because
+ * one bio has a bad shape. Individual bad entries are skipped rather than
+ * failing the whole list. Sorting here rather than in each renderer is what
+ * keeps the dashboard, the public page and the judges' brief from disagreeing
+ * about the order of the panel.
+ */
+export function extractJudges(result: unknown): Judge[] {
+  if (typeof result !== "object" || result === null) return []
+  const judges = (result as { judges?: unknown }).judges
+  if (!Array.isArray(judges)) return []
+  return judges.filter(isJudge).sort((a, b) => a.order - b.order)
+}
+
+/**
+ * Up to two initials for a judge with no photo. Falls back to "?" for a name
+ * that is only punctuation or whitespace, so an avatar circle is never empty.
+ */
+export function judgeInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  const letters = words
+    .map((word) => word[0])
+    .filter((char) => /\p{L}/u.test(char))
+    .slice(0, 2)
+    .join("")
+  return letters.toUpperCase() || "?"
 }

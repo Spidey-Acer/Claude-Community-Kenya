@@ -9,7 +9,7 @@ import {
 } from "@/lib/impact-lab/judge-brief";
 import type { Track } from "@/lib/impact-lab/tracks";
 import { CHIP, CHIP_OFF, CHIP_ON, EYEBROW, GHOST_BUTTON } from "./judge-ui";
-import { JudgeBrief } from "./JudgeBrief";
+import { JudgeBrief, type JudgePanelMember } from "./JudgeBrief";
 import { JudgeScoring } from "./JudgeScoring";
 import { PitchTimer } from "./PitchTimer";
 
@@ -27,6 +27,7 @@ interface JudgeEvent {
    */
   tracks?: Track[];
   criteria?: JudgeBriefCriterion[];
+  judges?: JudgePanelMember[];
   judgingOpen: boolean;
 }
 
@@ -239,7 +240,11 @@ export function JudgeEventPicker({
           screen must never do. A hidden panel hides its own fixed children
           too, so the scorecard's action bar cannot bleed onto the brief. */}
       <div hidden={tab !== "brief"} className="pb-20">
-        <JudgeBrief tracks={selected.tracks ?? []} criteria={selected.criteria ?? []} />
+        <JudgeBrief
+          tracks={selected.tracks ?? []}
+          criteria={selected.criteria ?? []}
+          judges={selected.judges ?? []}
+        />
       </div>
       <div hidden={tab !== "score"}>
         <JudgeScoring

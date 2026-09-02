@@ -4,6 +4,9 @@
 
 import { describe, it, expect } from "vitest"
 import {
+  extractJudges,
+  judgeInitials,
+  judgeSchema,
   HARD_TEAM_SIZE_CAP,
   TEAM_TOO_LARGE_WARNING,
   clearOrphanedLeaders,
@@ -231,5 +234,103 @@ describe("placeParticipant — leadership follows the person", () => {
     }
     const outcome = placeParticipant(state, "a", "team-1", 5)
     expect(outcome.state.teams[0]).toHaveProperty("leaderId", "a")
+  })
+})
+
+// ─── Judges ──────────────────────────────────────────────────────────────────
+
+/** A well-formed stored judge. `over` replaces fields for the malformed cases. */
+function judge(id: string, order: number, over: Record<string, unknown> = {}) {
+  return {
+    id,
+    name: `Judge ${id}`,
+    title: "Title",
+    bio: "Bio",
+    kind: "panel",
+    order,
+    ...over,
+  }
+}
+
+describe("extractJudges", () => {
+  it("returns [] for a run with no judges key, and for a non-array one", () => {
+    expect(extractJudges({ teams: [] })).toEqual([])
+    expect(extractJudges({ judges: "nope" })).toEqual([])
+    expect(extractJudges(null)).toEqual([])
+    expect(extractJudges(undefined)).toEqual([])
+  })
+
+  it("sorts by order, not by stored position", () => {
+    const result = { judges: [judge("c", 3), judge("a", 1), judge("b", 2)] }
+    expect(extractJudges(result).map((j) => j.id)).toEqual(["a", "b", "c"])
+  })
+
+  it("drops a malformed entry and keeps the rest", () => {
+    const result = {
+      judges: [
+        judge("ok", 1),
+        judge("bad-kind", 2, { kind: "chairperson" }),
+        judge("no-name", 3, { name: 42 }),
+        judge("no-order", 4, { order: "first" }),
+        null,
+        "a string",
+        judge("also-ok", 5),
+      ],
+    }
+    expect(extractJudges(result).map((j) => j.id)).toEqual(["ok", "also-ok"])
+  })
+
+  it("keeps the optional organisation and photoUrl when present", () => {
+    const result = {
+      judges: [judge("a", 1, { organisation: "Acme", photoUrl: "https://x.test/a.jpg" })],
+    }
+    expect(extractJudges(result)[0].organisation).toBe("Acme")
+    expect(extractJudges(result)[0].photoUrl).toBe("https://x.test/a.jpg")
+  })
+
+  it("reads judges written beside rosterLocked and joinRequests", () => {
+    const result = { teams: [], rosterLocked: true, joinRequests: [], judges: [judge("a", 1)] }
+    expect(extractJudges(result)).toHaveLength(1)
+  })
+})
+
+describe("judgeSchema", () => {
+  it("accepts a judge with only the required fields", () => {
+    expect(judgeSchema.safeParse(judge("a", 1)).success).toBe(true)
+  })
+
+  it("rejects an http photo URL, and anything that is not a URL", () => {
+    expect(judgeSchema.safeParse(judge("a", 1, { photoUrl: "http://x.test/a.jpg" })).success).toBe(false)
+    expect(judgeSchema.safeParse(judge("a", 1, { photoUrl: "not a url" })).success).toBe(false)
+    expect(judgeSchema.safeParse(judge("a", 1, { photoUrl: "https://x.test/a.jpg" })).success).toBe(true)
+  })
+
+  it("rejects an over-long bio and an unknown kind", () => {
+    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(701) })).success).toBe(false)
+    expect(judgeSchema.safeParse(judge("a", 1, { bio: "x".repeat(700) })).success).toBe(true)
+    expect(judgeSchema.safeParse(judge("a", 1, { kind: "chairperson" })).success).toBe(false)
+  })
+
+  it("rejects an empty name or title", () => {
+    expect(judgeSchema.safeParse(judge("a", 1, { name: "" })).success).toBe(false)
+    expect(judgeSchema.safeParse(judge("a", 1, { title: "" })).success).toBe(false)
+  })
+})
+
+describe("judgeInitials", () => {
+  it("takes the first letter of the first two words", () => {
+    expect(judgeInitials("Courtney O'Donnell")).toBe("CO")
+    expect(judgeInitials("Samari Gilbert")).toBe("SG")
+  })
+
+  it("handles a single name and extra whitespace", () => {
+    expect(judgeInitials("Darlington")).toBe("D")
+    expect(judgeInitials("  Jack   Stump  ")).toBe("JS")
+  })
+
+  it("falls back to ? rather than an empty circle", () => {
+    expect(judgeInitials("")).toBe("?")
+    expect(judgeInitials("   ")).toBe("?")
+    expect(judgeInitials("!!!")).toBe("?")
   })
 })

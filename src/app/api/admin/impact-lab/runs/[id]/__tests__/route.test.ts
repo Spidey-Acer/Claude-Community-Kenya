@@ -16,6 +16,7 @@ interface WrittenResult {
   teams: { id: string; memberIds: string[] }[]
   unassignedIds: string[]
   rosterLocked?: boolean
+  judges?: { id: string; name: string; order: number }[]
 }
 
 const mockTx = {
@@ -314,6 +315,108 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — error cases", () => {
       { params }
     )
     expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — judges", () => {
+  /** A valid judge as the admin form sends one. */
+  function judgeBody(id: string, order: number, over: Record<string, unknown> = {}) {
+    return { id, name: `Judge ${id}`, title: "Title", bio: "Bio", kind: "panel", order, ...over }
+  }
+
+  /** `existing` lookup, the locked read, then the post-write re-fetch. */
+  function mockRunWith(result: unknown) {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({ result, settings: {} })
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", result } as never)
+  }
+
+  it("writes the list and leaves teams, unassignedIds and rosterLocked intact", async () => {
+    mockRunWith({
+      teams: [team("team-1", ["p1"])],
+      unassignedIds: ["p9"],
+      rosterLocked: true,
+    })
+
+    const res = await PATCH(
+      patchRequest({ judges: [judgeBody("j1", 1), judgeBody("j2", 2, { kind: "guest" })] }),
+      { params }
+    )
+
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.judges!.map((j) => j.id)).toEqual(["j1", "j2"])
+    expect(written.teams).toHaveLength(1)
+    expect(written.unassignedIds).toEqual(["p9"])
+    expect(written.rosterLocked).toBe(true)
+  })
+
+  it("audits the judges' names, not their bios", async () => {
+    mockRunWith({ teams: [], unassignedIds: [] })
+
+    await PATCH(patchRequest({ judges: [judgeBody("j1", 1)] }), { params })
+
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { judges: ["Judge j1"] } })
+    )
+  })
+
+  it("treats an empty array as clearing the panel, not as a no-op", async () => {
+    mockRunWith({ teams: [], unassignedIds: [], judges: [judgeBody("j1", 1)] })
+
+    const res = await PATCH(patchRequest({ judges: [] }), { params })
+
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.judges).toEqual([])
+  })
+
+  it("works on a run with no frozen teams — judges are not roster data", async () => {
+    mockRunWith({})
+
+    const res = await PATCH(patchRequest({ judges: [judgeBody("j1", 1)] }), { params })
+
+    expect(res.status).toBe(200)
+    expect(mockTx.impactLabMatchRun.update).toHaveBeenCalled()
+  })
+
+  it("400s on an http photo URL and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+
+    const res = await PATCH(
+      patchRequest({ judges: [judgeBody("j1", 1, { photoUrl: "http://x.test/a.jpg" })] }),
+      { params }
+    )
+
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("400s on an over-long bio and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+
+    const res = await PATCH(
+      patchRequest({ judges: [judgeBody("j1", 1, { bio: "x".repeat(701) })] }),
+      { params }
+    )
+
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("404s when the run row disappears between the two reads", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce(null)
+
+    const res = await PATCH(patchRequest({ judges: [judgeBody("j1", 1)] }), { params })
+
+    expect(res.status).toBe(404)
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
   })
 })

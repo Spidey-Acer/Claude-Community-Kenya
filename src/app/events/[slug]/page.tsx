@@ -7,6 +7,7 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
+import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
 
 export const revalidate = 1800;
 
@@ -58,12 +59,21 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  const [approvedDemos, eventPhotos, openQuestionSession] = await Promise.all([
+  // Only a hackathon has a judge panel, and only one that resolves to an
+  // Impact Lab cohort has anywhere to read it from. Everything else skips the
+  // lookup and renders no judges section.
+  const judgesCohortPromise =
+    event.id && event.type === "hackathon"
+      ? cohortForPublicEvent(event.id, event.slug).catch(() => null)
+      : Promise.resolve(null);
+
+  const [approvedDemos, eventPhotos, openQuestionSession, judgesCohort] = await Promise.all([
     event.id
       ? getApprovedDemosByEventId(event.id).catch(() => [])
       : Promise.resolve([]),
     getEventPhotos(event.slug).catch(() => []),
     event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
+    judgesCohortPromise,
   ]);
 
   const relatedEvents = allEvents
@@ -150,6 +160,7 @@ export default async function EventDetailPage({
         linkedInShareUrl={linkedInShareUrl}
         photos={eventPhotos}
         openQuestionSession={openQuestionSession}
+        judgesCohort={judgesCohort}
       />
     </>
   );

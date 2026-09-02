@@ -5,6 +5,7 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { readJudgeSession } from "@/lib/impact-lab/judge-access"
 import { listEvents } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
+import { extractJudges } from "@/lib/impact-lab/roster"
 import { totalOutOf } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import type { Track } from "@/lib/impact-lab/tracks"
@@ -53,6 +54,12 @@ interface JudgeEvent {
    */
   criteria: JudgeCriterion[]
   /**
+   * The rest of the panel, so a judge reading the brief knows who else is in
+   * the room. Name and title only — the bios are for participants and the
+   * public page, and this endpoint stays as narrow as its doc comment claims.
+   */
+  judges: JudgePanelMember[]
+  /**
    * Always true in this response — closed events are filtered out, because the
    * judging POST refuses writes once `judgingClosedAt` is set and offering one
    * would only send a judge into an error. Kept in the payload because the
@@ -60,6 +67,12 @@ interface JudgeEvent {
    * from the data rather than infer it from the absence of a flag.
    */
   judgingOpen: boolean
+}
+
+/** One judge as the brief lists them: who they are, not their published bio. */
+interface JudgePanelMember {
+  name: string
+  title: string
 }
 
 /** One rubric row as the brief shows it: what it is called and what it is worth. */
@@ -153,6 +166,10 @@ export async function GET(request: NextRequest) {
           label: c.label,
           weight: c.weight,
           guidance: c.guidance,
+        })),
+        judges: extractJudges(run.result).map((judge) => ({
+          name: judge.name,
+          title: judge.title,
         })),
         judgingOpen: true,
       }

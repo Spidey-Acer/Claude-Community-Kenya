@@ -23,6 +23,7 @@ import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
+import { KaribuJudgesSection } from "@/components/karibu/KaribuJudgesSection";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -52,6 +53,13 @@ interface KaribuEventDetailProps {
   linkedInShareUrl: string;
   /** Null when the event has no open EventQuestionSession — the whole Q&A section is skipped. */
   openQuestionSession: OpenQuestionSessionView | null;
+  /**
+   * The Impact Lab cohort whose judge panel belongs on this page, or null when
+   * this event is not a hackathon or is not linked to a cohort. The section
+   * fetches its own data (see KaribuJudgesSection) and renders nothing until
+   * a panel is published, so a non-null cohort with no judges is not an error.
+   */
+  judgesCohort: string | null;
 }
 
 function parseDate(d: string): Date | null {
@@ -70,6 +78,7 @@ export function KaribuEventDetail({
   twitterShareUrl,
   linkedInShareUrl,
   openQuestionSession,
+  judgesCohort,
 }: KaribuEventDetailProps) {
   const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
@@ -252,6 +261,9 @@ export function KaribuEventDetail({
               <KaribuDemoRequestForm eventSlug={event.slug} />
             </div>
           )}
+
+          {/* Meet the judges — hackathons linked to an Impact Lab cohort */}
+          {judgesCohort && <KaribuJudgesSection cohort={judgesCohort} />}
 
           {/* Q&A — only when this event has an open EventQuestionSession */}
           {openQuestionSession && (

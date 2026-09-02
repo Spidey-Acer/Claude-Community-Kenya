@@ -8,7 +8,7 @@ import {
   type TeamMemberView,
   type TeamRevealView,
 } from "@/lib/impact-lab/member"
-import { extractRosterLocked } from "@/lib/impact-lab/roster"
+import { extractJudges, extractRosterLocked } from "@/lib/impact-lab/roster"
 import {
   explainTeam,
   normalizeParticipants,
@@ -87,11 +87,16 @@ export async function GET(request: NextRequest) {
       eventCohort: memberEvent.cohort,
     })
   }
+  // Judges are event-wide, not team-wide: somebody who was never placed on a
+  // team still came to the event and still gets to read who is judging it.
+  const judges = extractJudges(run.result)
+
   const team = teams.find((t) => t.memberIds.includes(memberEvent.participantId))
   if (!team) {
     return NextResponse.json({
       success: true,
       status: "unassigned",
+      judges,
       eventName: memberEvent.name,
       eventCohort: memberEvent.cohort,
     })
@@ -154,6 +159,7 @@ export async function GET(request: NextRequest) {
     success: true,
     status: "revealed",
     team: teamView,
+    judges,
     eventName: memberEvent.name,
     eventCohort: memberEvent.cohort,
   })
