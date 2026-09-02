@@ -45,14 +45,14 @@ export function TeamListRow({
               Table {team.table}
             </span>
           )}
-          <span className="truncate rounded-full border border-border-default px-2 py-0.5 font-mono text-xs uppercase tracking-wider text-text-dim">
+          <span className="truncate rounded-full border border-border-default px-2 py-0.5 font-mono text-xs uppercase tracking-wider text-text-dim lg:whitespace-normal">
             {team.trackLabel}
           </span>
         </span>
-        <span className="mt-1 block truncate text-[15px] text-text-primary">
+        <span className="mt-1 block truncate text-[15px] text-text-primary lg:whitespace-normal">
           {team.submission?.projectName ?? team.teamName}
         </span>
-        <span className="mt-0.5 block truncate font-mono text-xs text-text-dim">
+        <span className="mt-0.5 block truncate font-mono text-xs text-text-dim lg:whitespace-normal">
           {team.submission ? `${team.teamName} · ` : ""}
           {team.memberCount} member{team.memberCount === 1 ? "" : "s"}
         </span>
