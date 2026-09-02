@@ -1,5 +1,6 @@
 "use client";
 
+import { trackTone } from "@/lib/impact-lab/track-tone";
 import type { MatchProfileTrack } from "./MatchProfileForm";
 
 /**
@@ -35,7 +36,7 @@ export function TrackRadioGroup({
             key={track.key}
             className={`flex min-h-11 cursor-pointer flex-col justify-center rounded border px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-green-primary/60 ${
               selected
-                ? "border-green-primary bg-green-primary/10"
+                ? `border-l-4 ${trackTone(track.key).pill}`
                 : "border-border-default bg-bg-card hover:border-green-primary/40"
             } ${disabled ? "opacity-50" : ""}`}
           >

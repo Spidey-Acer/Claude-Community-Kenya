@@ -10,6 +10,7 @@ import {
   type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging";
+import { trackTone } from "@/lib/impact-lab/track-tone";
 import { CriterionRadioGroup } from "./CriterionRadioGroup";
 import { BODY, CARD, CARD_PAD, EYEBROW, FOCUS_RING, PRIMARY_BUTTON, TAP } from "./judge-ui";
 
@@ -198,7 +199,7 @@ function TeamIdentity({ team }: { team: JudgeTeamRow }) {
       <span className="font-mono text-xs uppercase tracking-wider text-text-dim">
         {team.teamName}
       </span>
-      <span className="rounded-full border border-border-default px-2 py-0.5 font-mono text-xs uppercase tracking-wider text-text-dim">
+      <span className={`rounded-full border px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${trackTone(team.trackKey).pill}`}>
         {team.trackLabel}
       </span>
     </div>

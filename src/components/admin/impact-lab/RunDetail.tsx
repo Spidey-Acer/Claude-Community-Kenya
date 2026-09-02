@@ -9,6 +9,7 @@ import {
   extractJudgeSignIn,
   extractJudges,
 } from "@/lib/impact-lab/roster"
+import { trackTone } from "@/lib/impact-lab/track-tone"
 import { RunJudgesPanel } from "./RunJudgesPanel"
 import type { MatchResult } from "./types"
 
@@ -58,6 +59,8 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [movingId, setMovingId] = useState<string | null>(null)
   const [settingTableId, setSettingTableId] = useState<string | null>(null)
   const [numberingTables, setNumberingTables] = useState(false)
+  const [renamingTeams, setRenamingTeams] = useState(false)
+  const [confirmingRename, setConfirmingRename] = useState(false)
   const [lockBusy, setLockBusy] = useState(false)
   const [confirmingLock, setConfirmingLock] = useState(false)
   // null until the organiser toggles it explicitly — until then, the panel's
@@ -123,6 +126,27 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
       setError(e instanceof Error ? e.message : "Failed to number tables")
     } finally {
       setNumberingTables(false)
+    }
+  }
+
+  /**
+   * Rename every numbered team to "Table <n> · <track label>". Confirmed
+   * inline because it overwrites names members may already have seen — safe
+   * mid-judging (scores key on team id) but not a click to make by accident.
+   */
+  async function renameTeamsByTable() {
+    setRenamingTeams(true)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        renameTeamsByTable: true,
+      })
+      setDetail(response)
+      setConfirmingRename(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to name teams by table")
+    } finally {
+      setRenamingTeams(false)
     }
   }
 
@@ -252,7 +276,7 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           onClick={numberTables}
           disabled={numberingTables}
@@ -261,6 +285,36 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
           {numberingTables ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
           Number tables 1..N
         </button>
+
+        {confirmingRename ? (
+          <>
+            <span className="text-[10px] font-mono text-[#ffb000]">
+              Rename every numbered team after its table? Overwrites current names.
+            </span>
+            <button
+              onClick={renameTeamsByTable}
+              disabled={renamingTeams}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#ffb000]/10 hover:bg-[#ffb000]/20 border border-[#ffb000]/30 rounded text-[10px] font-mono text-[#ffb000] disabled:opacity-40"
+            >
+              {renamingTeams ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Confirm rename
+            </button>
+            <button
+              onClick={() => setConfirmingRename(false)}
+              disabled={renamingTeams}
+              className="px-2.5 py-1 text-[10px] font-mono text-[#888] hover:text-[#ccc]"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmingRename(true)}
+            className="px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[10px] font-mono text-[#888]"
+          >
+            Name teams by table
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -271,7 +325,9 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
                 {team.name}
                 {team.locked && <span className="ml-2 text-[10px] text-[#ffb000]">[locked]</span>}
                 {team.trackKey && (
-                  <span className="ml-2 rounded border border-[#00d4ff]/30 px-1.5 py-0.5 text-[9px] text-[#00d4ff]">
+                  <span
+                    className={`ml-2 rounded border px-1.5 py-0.5 text-[9px] ${trackTone(team.trackKey).pill}`}
+                  >
                     {team.trackKey}
                   </span>
                 )}

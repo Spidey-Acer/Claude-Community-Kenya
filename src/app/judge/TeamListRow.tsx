@@ -1,6 +1,7 @@
 "use client";
 
 import type { JudgeTeamRow } from "@/lib/impact-lab/judge-team";
+import { trackTone } from "@/lib/impact-lab/track-tone";
 import { FOCUS_RING } from "./judge-ui";
 
 /**
@@ -28,6 +29,8 @@ export function TeamListRow({
   totalOutOf: number;
   onSelect: () => void;
 }) {
+  const tone = trackTone(team.trackKey);
+
   return (
     <button
       type="button"
@@ -40,12 +43,19 @@ export function TeamListRow({
     >
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-2">
+          {/* The dot is what a judge picks the row out by from a step back —
+              the track label is already in the pill, so this is decoration
+              for sighted scanning only and is hidden from a screen reader. */}
+          <span
+            aria-hidden="true"
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`}
+          />
           {team.table !== null && (
             <span className="font-mono text-base font-bold text-text-primary">
               Table {team.table}
             </span>
           )}
-          <span className="truncate rounded-full border border-border-default px-2 py-0.5 font-mono text-xs uppercase tracking-wider text-text-dim lg:whitespace-normal">
+          <span className={`truncate rounded-full border px-2 py-0.5 font-mono text-xs uppercase tracking-wider lg:whitespace-normal ${tone.pill}`}>
             {team.trackLabel}
           </span>
         </span>
