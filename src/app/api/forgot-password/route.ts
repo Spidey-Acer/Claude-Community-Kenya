@@ -38,6 +38,18 @@ export async function POST(request: NextRequest) {
   }
 
   const { email } = parsed.data
+
+  // Per-email cap: the per-IP limit above is room-sized, so this is what
+  // stops one address being flooded with reset mail.
+  const perEmail = await rateLimit(request, {
+    ...RateLimits.PASSWORD_RESET_EMAIL,
+    identifier: () => `forgot-password:${email}`,
+  })
+  if (!perEmail.success) {
+    // Same shape as the generic success reply so the endpoint does not reveal
+    // whether the address exists; the mail simply is not sent again.
+    return NextResponse.json({ success: true }, { headers: perEmail.headers })
+  }
   const user = await prisma.user.findUnique({ where: { email } })
 
   // Account-enumeration safe: always return the same success message regardless
