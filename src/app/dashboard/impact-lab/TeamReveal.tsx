@@ -11,6 +11,7 @@ import { TeamRoster } from "./TeamRoster";
 import { JoinRequestsInbox } from "./JoinRequestsInbox";
 import type { MatchProfileTrack } from "./MatchProfileForm";
 import { useOwnTrack } from "./useOwnTrack";
+import { trackTone } from "@/lib/impact-lab/track-tone";
 
 interface TeamResponse {
   success?: boolean;
@@ -179,7 +180,7 @@ export function TeamReveal({
                 </span>
               )}
               {teamTrackLabel && (
-                <span className="rounded border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-cyan">
+                <span className={`rounded border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider ${trackTone(team.trackKey).pill}`}>
                   {teamTrackLabel}
                 </span>
               )}

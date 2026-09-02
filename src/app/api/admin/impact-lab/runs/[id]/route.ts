@@ -12,10 +12,12 @@ import {
   numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
+  renameTeamsByTable,
   type Judge,
   type JudgeSignInMode,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
+import { getEventByCohort } from "@/lib/impact-lab/event-store"
 
 const moveSchema = z.object({
   participantId: z.string().min(1).max(64),
@@ -231,6 +233,59 @@ async function handleNumberTables(
 }
 
 /**
+ * Rename every numbered team to "Table <n> · <track label>".
+ *
+ * On the night a team is called forward by its table number and a judge is
+ * sent to one the same way, so the table is the name that carries. Renaming is
+ * safe mid-judging because a score is keyed on the team's id, never its name.
+ *
+ * Mirrors `handleNumberTables`'s lock/read/write/audit shape. The event lookup
+ * happens outside the lock, like `handleMove`'s participant lookup — it only
+ * supplies track labels, and a cohort with no event row (or one predating the
+ * tenancy tables) is a legitimate case that simply yields "Table <n>".
+ */
+async function handleRenameTeamsByTable(
+  request: NextRequest,
+  runId: string,
+  cohort: string,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const event = await getEventByCohort(cohort)
+  const tracks = event?.tracks ?? []
+
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+
+    const renaming = renameTeamsByTable(teams, tracks)
+    await writeRunResult(tx, runId, { ...(fresh?.result as object), teams: renaming.teams })
+    return { status: "ok" as const, renamed: renaming.renamed }
+  })
+
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to rename" },
+      { status: 400 }
+    )
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { renameTeamsByTable: { renamed: outcome.renamed } },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
+/**
  * "Finalize teams": set (or clear) `result.rosterLocked`. Once locked, the
  * member self-service roster (add/drop) refuses with 423 — see the `rosterLocked`
  * gate in `POST/DELETE /api/impact-lab/team/roster`. Mirrors `handleMove`'s
@@ -394,6 +449,10 @@ const updateSchema = z.object({
   // Backfill missing table numbers across the whole run — see
   // `numberMissingTables`. Also its own branch, for the same reason.
   numberTables: z.literal(true).optional(),
+  // Rename every numbered team after its table and track — see
+  // `handleRenameTeamsByTable`. Its own branch, same reasoning as `numberTables`,
+  // and the organiser's button sends it alone.
+  renameTeamsByTable: z.boolean().optional(),
   // "Finalize teams" / "Unlock": set or clear `result.rosterLocked`. Its own
   // branch for the same reason `move` is — never combined with rename/finalize
   // in the UI, and a boolean (unlike `move`'s object) needs an explicit
@@ -452,6 +511,9 @@ export async function PATCH(
   }
   if (validation.data.numberTables) {
     return handleNumberTables(request, id, check.user)
+  }
+  if (validation.data.renameTeamsByTable) {
+    return handleRenameTeamsByTable(request, id, existing.cohort, check.user)
   }
   if (validation.data.lockRoster !== undefined) {
     return handleLockRoster(request, id, validation.data.lockRoster, check.user)

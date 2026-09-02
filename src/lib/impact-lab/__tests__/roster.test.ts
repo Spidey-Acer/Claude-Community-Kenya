@@ -18,10 +18,12 @@ import {
   numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
+  renameTeamsByTable,
   type RosterState,
   type TeamWithLeader,
 } from "../roster"
 import type { Team } from "@/lib/matching"
+import type { Track } from "../tracks"
 
 const EMPTY_SCORE = { total: 80, dimensions: [], penalties: [], penaltyTotal: 0 }
 
@@ -368,5 +370,45 @@ describe("judgeNameForIdentity", () => {
     expect(judgeNameForIdentity("name:favor-ruhiu", panel)).toBeNull()
     expect(judgeNameForIdentity("admin@example.com", panel)).toBeNull()
     expect(judgeNameForIdentity(rosterIdentity("gone"), panel)).toBeNull()
+  })
+})
+
+const TRACKS: Track[] = [
+  { key: "elimu", label: "Elimu", aliases: [], rules: [] },
+  { key: "kilimo", label: "Kilimo", aliases: [], rules: [] },
+]
+
+describe("renameTeamsByTable", () => {
+  it("names each numbered team after its table and track label", () => {
+    const teams = [
+      team("team-1", ["a"], { table: 1, trackKey: "elimu" }),
+      team("team-2", ["b"], { table: 2, trackKey: "kilimo" }),
+    ]
+    const outcome = renameTeamsByTable(teams, TRACKS)
+    expect(outcome.teams.map((t) => t.name)).toEqual(["Table 1 · Elimu", "Table 2 · Kilimo"])
+    expect(outcome.renamed).toBe(2)
+  })
+
+  it("leaves a team with no table alone, and drops the track from an untracked one", () => {
+    const teams = [
+      team("team-1", ["a"], { trackKey: "elimu" }),
+      team("team-2", ["b"], { table: 7 }),
+    ]
+    const outcome = renameTeamsByTable(teams, TRACKS)
+    expect(outcome.teams.map((t) => t.name)).toEqual(["Team team-1", "Table 7"])
+    expect(outcome.renamed).toBe(1)
+  })
+
+  it("falls back to the capitalised key when the event has no such track", () => {
+    const outcome = renameTeamsByTable([team("team-1", ["a"], { table: 3, trackKey: "kazi" })], TRACKS)
+    expect(outcome.teams[0].name).toBe("Table 3 · Kazi")
+  })
+
+  it("counts nothing as renamed when every name already matches", () => {
+    const already = renameTeamsByTable(
+      [team("team-1", ["a"], { table: 1, trackKey: "elimu" })],
+      TRACKS
+    ).teams
+    expect(renameTeamsByTable(already, TRACKS).renamed).toBe(0)
   })
 })

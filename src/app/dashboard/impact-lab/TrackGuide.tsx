@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { MatchProfileTrack } from "./MatchProfileForm";
 import { useOwnTrack } from "./useOwnTrack";
+import { trackTone } from "@/lib/impact-lab/track-tone";
 
 /**
  * The participant-facing guide to an event's tracks.
@@ -134,6 +135,12 @@ function TrackCard({
       >
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
+            {/* Colour-codes the card to the same track colour the judge and
+                team screens use. Decorative — the label sits right beside it. */}
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${trackTone(track.key).dot}`}
+            />
             <span className="font-mono text-base font-bold text-text-primary break-words">
               {track.label}
             </span>

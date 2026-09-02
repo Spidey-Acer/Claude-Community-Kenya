@@ -16,10 +16,14 @@ import {
   type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging";
+import { trackTone } from "@/lib/impact-lab/track-tone";
 import { CHIP, CHIP_OFF, CHIP_ON, EYEBROW, FOCUS_RING, GHOST_BUTTON } from "./judge-ui";
 import { TeamDetail, type AssistResult } from "./TeamDetail";
 import { TeamListRow } from "./TeamListRow";
 import { useIsDesktop } from "./useIsDesktop";
+
+/** Prefix marking a `JudgeListFilter` as "only this track" — see `matchesFilter`. */
+const TRACK_FILTER_PREFIX = "track:";
 
 /**
  * The scorecard: every team in the final run, and one of them open.
@@ -292,10 +296,20 @@ export function JudgeScoring({
     { key: "unscored", label: `Not scored ${data.teams.length - scoredCount}` },
     { key: "scored", label: `Scored ${scoredCount}` },
     ...tracksInRun(data.teams).map((track) => ({
-      key: `track:${track.key}` as JudgeListFilter,
+      key: `${TRACK_FILTER_PREFIX}${track.key}` as JudgeListFilter,
       label: track.label,
     })),
   ];
+
+  /**
+   * The pressed-state classes for one filter chip. A track chip wears its own
+   * track's colour so the chip and the rows it filters to agree at a glance;
+   * the all/scored/unscored chips keep the default green.
+   */
+  const pressedChip = (key: JudgeListFilter): string =>
+    key.startsWith(TRACK_FILTER_PREFIX)
+      ? trackTone(key.slice(TRACK_FILTER_PREFIX.length)).pill
+      : CHIP_ON;
 
   const openRow = openTeam ? data.teams.find((t) => t.teamId === openTeam) : undefined;
 
@@ -356,7 +370,7 @@ export function JudgeScoring({
                   type="button"
                   onClick={() => setFilter(entry.key)}
                   aria-pressed={filter === entry.key}
-                  className={`${CHIP} ${filter === entry.key ? CHIP_ON : CHIP_OFF}`}
+                  className={`${CHIP} ${filter === entry.key ? pressedChip(entry.key) : CHIP_OFF}`}
                 >
                   {entry.label}
                 </button>

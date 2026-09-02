@@ -15,6 +15,7 @@
 import { z } from "zod"
 
 import { DEFAULT_MAX_TEAM_SIZE, type Team } from "@/lib/matching"
+import type { Track } from "./tracks"
 
 /** The two fields of a run's `result` JSON that a roster edit can change. */
 export interface RosterState {
@@ -201,6 +202,54 @@ export function numberMissingTables(teams: Team[]): Team[] {
     return next
   }
   return teams.map((t) => (typeof t.table === "number" ? t : { ...t, table: nextUnused() }))
+}
+
+/** Result of a bulk rename: the new team list plus how many names changed. */
+export interface RenameOutcome {
+  teams: Team[]
+  /** Teams whose `name` this call actually changed — for the audit trail. */
+  renamed: number
+}
+
+/** "elimu" -> "Elimu". First character only; the rest of the key is left alone. */
+function capitaliseKey(trackKey: string): string {
+  return trackKey.charAt(0).toUpperCase() + trackKey.slice(1)
+}
+
+/**
+ * Rename every numbered team to "Table <n> · <track label>".
+ *
+ * At the venue a team is called to the front by its table, and a judge is sent
+ * to one over a microphone the same way — so the table number, not a generated
+ * two-word team name, is the name that matters on the night. Teams with no
+ * table keep whatever they were called: renaming one to a table it does not
+ * have would send a judge to an empty chair.
+ *
+ * A team whose `trackKey` has no matching event track falls back to the key
+ * capitalised, and a team with no track at all is just "Table <n>" — a missing
+ * label must not produce "Table 4 · undefined" on a screen judges read.
+ *
+ * Pure: the caller owns reading and writing the run row, and the lock.
+ *
+ * @param teams The run's frozen teams.
+ * @param tracks The event's declared tracks, for resolving a key to its label.
+ */
+export function renameTeamsByTable(teams: Team[], tracks: Track[]): RenameOutcome {
+  const labelByKey = new Map(tracks.map((track) => [track.key, track.label]))
+
+  let renamed = 0
+  const nextTeams = teams.map((team) => {
+    if (typeof team.table !== "number") return team
+
+    const label = team.trackKey ? labelByKey.get(team.trackKey) ?? capitaliseKey(team.trackKey) : null
+    const name = label ? `Table ${team.table} · ${label}` : `Table ${team.table}`
+    if (name === team.name) return team
+
+    renamed++
+    return { ...team, name }
+  })
+
+  return { teams: nextTeams, renamed }
 }
 
 // ─── Join requests ───────────────────────────────────────────────────────────
