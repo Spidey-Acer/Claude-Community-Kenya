@@ -14,7 +14,13 @@ const WIDGET_OPEN_KEY = "cck-chat-open";
  * phone — the "Create account" button on /signup at 390px, "Sign in" on
  * /login, and the various save/submit buttons scattered through /dashboard.
  * Desktop has room for both, so this only hides the bubble under `sm:`. */
-const FAB_HIDDEN_ON_MOBILE_PREFIXES = ["/login", "/signup", "/dashboard"];
+const FAB_HIDDEN_ON_MOBILE_PREFIXES = [
+  "/login",
+  "/signup",
+  "/dashboard",
+  "/forgot-password",
+  "/verify-email",
+];
 
 export function ChatWidget() {
   const { skin, isLoaded } = useSkin();
