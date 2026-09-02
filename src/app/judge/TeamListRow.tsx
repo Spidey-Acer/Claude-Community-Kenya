@@ -39,7 +39,7 @@ export function TeamListRow({
       aria-current={isDesktop && isSelected ? "true" : undefined}
       className={`flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${FOCUS_RING} ${
         isSelected ? "bg-green-primary/5" : "hover:bg-bg-card"
-      }`}
+      } ${team.submission ? "" : "opacity-50"}`}
     >
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@ export function TeamListRow({
           {team.submission?.projectName ?? team.teamName}
         </span>
         <span className="mt-0.5 block truncate font-mono text-xs text-text-dim lg:whitespace-normal">
-          {team.submission ? `${team.teamName} · ` : ""}
+          {team.submission ? `${team.teamName} · ` : "No submission · "}
           {team.memberCount} member{team.memberCount === 1 ? "" : "s"}
         </span>
       </span>
