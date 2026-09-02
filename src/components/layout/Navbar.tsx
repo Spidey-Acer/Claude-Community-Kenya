@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, Search, LayoutDashboard } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -66,23 +67,27 @@ export function Navbar() {
             )}
             aria-label="Claude Community Kenya — Home"
           >
-            {/* Mobile + Tablet: sparkle + CC + flame (Pro) or ~/CCK (Dev) */}
+            {/* Mobile + Tablet: crisp circular mark + "CC Kenya" (Pro) or ~/CCK (Dev).
+                Previously a wide 599x181 flame raster scaled down to h-4 via a
+                plain <img> with no sizing hints — the browser's downscale of
+                that much fine detail into 16px rendered as a blurry smear on
+                phones. next/image's own logo mark (400x400, simple circle,
+                explicit width/height) is what the Karibu public nav already
+                uses and stays crisp at 1x and 2x. */}
             {isPro ? (
-              <span className="flex items-center gap-0.5 text-sm tracking-tight lg:hidden">
-                <img src="/images/claude-sparkle.svg" alt="" className="h-3.5 w-3.5" />
+              <span className="flex items-center gap-1.5 text-sm tracking-tight lg:hidden">
+                <Image
+                  src="/images/cck-logo.webp"
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-full"
+                />
                 <span
                   className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent font-bold"
                   style={{ animation: "gradient-shift 3s ease infinite" }}
                 >
-                  CC
-                </span>
-                <span className="kenya-flame-container">
-                  <img
-                    src="/images/kenya-flame.webp"
-                    alt="Kenya"
-                    className="inline-block h-4 w-auto object-contain"
-                    style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
-                  />
+                  CC Kenya
                 </span>
               </span>
             ) : (
@@ -94,26 +99,21 @@ export function Navbar() {
             )}
             {/* Desktop only */}
             {isPro ? (
-              <>
-                {/* Desktop: sparkle + "Claude Community" + flame */}
-                <span className="hidden tracking-tight text-lg items-center gap-1 lg:inline-flex">
-                  <img src="/images/claude-sparkle.svg" alt="" className="h-5 w-5" />
-                  <span
-                    className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
-                    style={{ animation: "gradient-shift 3s ease infinite" }}
-                  >
-                    Claude Community
-                  </span>
-                  <span className="kenya-flame-container">
-                    <img
-                      src="/images/kenya-flame.webp"
-                      alt="Kenya"
-                      className="inline-block h-7 w-auto object-contain"
-                      style={{ animation: "kenya-flame-glow 3s ease-in-out infinite, kenya-flame-sway 4s ease-in-out infinite" }}
-                    />
-                  </span>
+              <span className="hidden items-center gap-2 tracking-tight text-lg lg:inline-flex">
+                <Image
+                  src="/images/cck-logo.webp"
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 rounded-full"
+                />
+                <span
+                  className="bg-gradient-to-r from-[#d97757] via-[#e8956f] to-[#d97757] bg-[length:200%_auto] bg-clip-text text-transparent"
+                  style={{ animation: "gradient-shift 3s ease infinite" }}
+                >
+                  Claude Community Kenya
                 </span>
-              </>
+              </span>
             ) : (
               <span className="hidden md:inline">
                 <span className="text-text-dim">~/</span>

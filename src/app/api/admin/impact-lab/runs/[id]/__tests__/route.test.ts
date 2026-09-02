@@ -7,8 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
 const EMPTY_SCORE = { total: 80, dimensions: [], penalties: [], penaltyTotal: 0 }
-function team(id: string, memberIds: string[]) {
-  return { id, name: `Team ${id}`, memberIds, locked: false, score: EMPTY_SCORE }
+function team(id: string, memberIds: string[], extra: { table?: number | null } = {}) {
+  return { id, name: `Team ${id}`, memberIds, locked: false, score: EMPTY_SCORE, ...extra }
 }
 
 /** Shape of the JSON this route writes back to `impactLabMatchRun.result`. */
@@ -154,6 +154,82 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — add an unassigned participan
     const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
     expect(written.unassignedIds).toEqual([])
     expect(written.teams[0].memberIds).toEqual(["p1"])
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — set table", () => {
+  it("sets a team's table number", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never) // `existing`
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: { maxTeamSize: 5 },
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ table: { teamId: "team-1", table: 7 } }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result as {
+      teams: { id: string; table?: number }[]
+    }
+    expect(written.teams.find((t) => t.id === "team-1")!.table).toBe(7)
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { table: { teamId: "team-1", table: 7 } } })
+    )
+  })
+
+  it("clears a team's table number when set to null", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"], { table: 3 })], unassignedIds: [] },
+      settings: { maxTeamSize: 5 },
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ table: { teamId: "team-1", table: null } }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result as {
+      teams: { id: string; table?: number | null }[]
+    }
+    expect(written.teams.find((t) => t.id === "team-1")!.table).toBeNull()
+  })
+
+  it("400s when the team does not belong to this run", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: { maxTeamSize: 5 },
+    })
+
+    const res = await PATCH(patchRequest({ table: { teamId: "does-not-exist", table: 1 } }), { params })
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — number tables", () => {
+  it("fills in missing table numbers, leaving already-numbered teams alone", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: {
+        teams: [team("team-1", ["p1"], { table: 5 }), team("team-2", ["p2"])],
+        unassignedIds: [],
+      },
+      settings: { maxTeamSize: 5 },
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ numberTables: true }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result as {
+      teams: { id: string; table?: number }[]
+    }
+    expect(written.teams.find((t) => t.id === "team-1")!.table).toBe(5)
+    expect(written.teams.find((t) => t.id === "team-2")!.table).toBe(1)
+    expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ changes: { numberTables: true } }))
   })
 })
 

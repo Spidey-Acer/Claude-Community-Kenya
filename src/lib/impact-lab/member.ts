@@ -120,6 +120,8 @@ export interface TeamRevealView {
   projectDirection: string | null
   /** Set only for teams formed by runMatchingByTrack — the track key the team was matched within. */
   trackKey: string | null
+  /** The venue's physical table number, or null on runs saved before tables existed. */
+  table: number | null
 }
 
 /**

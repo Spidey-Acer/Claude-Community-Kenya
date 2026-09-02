@@ -178,6 +178,14 @@ export interface Team {
   score: ScoreBreakdown
   /** Set only by runMatchingByTrack — the track this team was formed within. */
   trackKey?: string
+  /**
+   * Physical table number for the venue, 1..N in output order. Assigned by
+   * `runMatching`/`runMatchingByTrack` when a run is generated, and editable
+   * afterward by an organiser via the admin run route's `table` PATCH branch.
+   * Absent on runs saved before this field existed — render nothing, never
+   * "Table undefined".
+   */
+  table?: number | null
 }
 
 export interface MatchResult {

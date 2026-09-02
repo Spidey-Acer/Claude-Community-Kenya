@@ -702,7 +702,7 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
                                   onChange={(e) => setEditForm({ ...editForm, interests: e.target.value })}
                                   className="w-full bg-[#111] border border-[#1e1e1e] rounded px-2 py-1.5 text-xs font-mono text-[#e0e0e0]"
                                 >
-                                  <option value="">Any track</option>
+                                  <option value="">Not chosen</option>
                                   {eventTracks.map((t) => (
                                     <option key={t.key} value={t.key}>{t.label}</option>
                                   ))}
@@ -729,7 +729,12 @@ export function ParticipantsTab({ cohort }: ParticipantsTabProps) {
                                 </button>
                                 <button
                                   onClick={saveEdit}
-                                  disabled={busy || !editForm.fullName || !editForm.email || !editForm.primaryRole}
+                                  disabled={
+                                    busy ||
+                                    !editForm.fullName ||
+                                    !editForm.email ||
+                                    !editForm.primaryRole
+                                  }
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[11px] font-mono text-[#00ff41] disabled:opacity-40"
                                 >
                                   {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save

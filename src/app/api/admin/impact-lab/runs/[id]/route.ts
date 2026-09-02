@@ -5,12 +5,22 @@ import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import { extractUnassignedIds, placeParticipant, readMaxTeamSize } from "@/lib/impact-lab/roster"
+import {
+  extractUnassignedIds,
+  numberMissingTables,
+  placeParticipant,
+  readMaxTeamSize,
+} from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
 
 const moveSchema = z.object({
   participantId: z.string().min(1).max(64),
   toTeamId: z.string().min(1).max(40).nullable(),
+})
+
+const tableSchema = z.object({
+  teamId: z.string().min(1).max(40),
+  table: z.number().int().min(1).max(200).nullable(),
 })
 
 // participantsSnapshot is deliberately omitted — it holds every participant's
@@ -121,6 +131,101 @@ async function handleMove(
   return NextResponse.json({ success: true, data: { ...updated, warning: outcome.warning } })
 }
 
+/**
+ * Set (or clear) one team's table number within a run's frozen result. Mirrors
+ * `handleMove`'s lock/read/write/audit shape exactly — both edit the same
+ * `result.teams` JSON under the same run lock.
+ */
+async function handleSetTable(
+  request: NextRequest,
+  runId: string,
+  table: z.infer<typeof tableSchema>,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+    if (!teams.some((t) => t.id === table.teamId)) {
+      return { status: "unknown_team" as const }
+    }
+
+    const nextTeams = teams.map((t) => (t.id === table.teamId ? { ...t, table: table.table } : t))
+    await writeRunResult(tx, runId, { ...(fresh?.result as object), teams: nextTeams })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to edit" },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "unknown_team") {
+    return NextResponse.json(
+      { success: false, error: "That team does not belong to this run" },
+      { status: 400 }
+    )
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { table },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
+/**
+ * Backfill table numbers for a run that predates them, or that an organiser
+ * edited by hand and left with gaps — see `numberMissingTables`. A no-op
+ * (every team already numbered) still succeeds, since re-clicking the
+ * organiser's "Number tables" button must be safe.
+ */
+async function handleNumberTables(
+  request: NextRequest,
+  runId: string,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+
+    const nextTeams = numberMissingTables(teams)
+    await writeRunResult(tx, runId, { ...(fresh?.result as object), teams: nextTeams })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to number" },
+      { status: 400 }
+    )
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { numberTables: true },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -154,6 +259,12 @@ const updateSchema = z.object({
   // move with a rename would otherwise leave one half silently unapplied if
   // the other failed partway, and the two are never edited together in the UI.
   move: moveSchema.optional(),
+  // Set (or clear) one team's table number. Same "own branch" reasoning as
+  // `move` — never combined with rename/finalize in the UI.
+  table: tableSchema.optional(),
+  // Backfill missing table numbers across the whole run — see
+  // `numberMissingTables`. Also its own branch, for the same reason.
+  numberTables: z.literal(true).optional(),
 })
 
 /**
@@ -193,6 +304,12 @@ export async function PATCH(
 
   if (validation.data.move) {
     return handleMove(request, id, existing.cohort, validation.data.move, check.user)
+  }
+  if (validation.data.table) {
+    return handleSetTable(request, id, validation.data.table, check.user)
+  }
+  if (validation.data.numberTables) {
+    return handleNumberTables(request, id, check.user)
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Save } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf-client";
 import type { MatchProfileTrack } from "./MatchProfileForm";
+import { TrackRadioGroup } from "./TrackRadioGroup";
 import { useOwnTrack } from "./useOwnTrack";
 
 /**
@@ -40,9 +41,13 @@ export function TrackPicker({
   }, [loading]);
 
   async function handleSave() {
-    setSaving(true);
     setSaved(false);
     setError(null);
+    if (!selectedTrack) {
+      setError("Pick a track before saving.");
+      return;
+    }
+    setSaving(true);
     try {
       const res = await fetch(`/api/impact-lab/profile${cohortQuery}`, {
         method: "PUT",
@@ -62,7 +67,7 @@ export function TrackPicker({
     }
   }
 
-  const currentLabel = tracks.find((t) => t.key === selectedTrack)?.label ?? "Any";
+  const currentLabel = tracks.find((t) => t.key === selectedTrack)?.label ?? "not chosen";
 
   return (
     <section
@@ -75,23 +80,18 @@ export function TrackPicker({
       <p className="mb-3 text-sm text-text-secondary">
         Your track: <span className="font-mono text-text-primary">{loading ? "…" : currentLabel}</span>
       </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <select
+      <div className="space-y-3">
+        <TrackRadioGroup
+          name="dashboard-track-picker"
+          tracks={tracks}
           value={selectedTrack}
-          onChange={(e) => {
-            setSelectedTrack(e.target.value);
+          onChange={(key) => {
+            setSelectedTrack(key);
             setSaved(false);
+            setError(null);
           }}
           disabled={loading || saving}
-          className="bg-bg-card border border-border-default rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-green-primary/50 disabled:opacity-50"
-        >
-          <option value="">Any</option>
-          {tracks.map((t) => (
-            <option key={t.key} value={t.key}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+        />
         <button
           type="button"
           onClick={handleSave}

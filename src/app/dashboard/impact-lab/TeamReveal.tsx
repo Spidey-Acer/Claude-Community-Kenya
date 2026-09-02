@@ -43,7 +43,7 @@ export function TeamReveal({
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const { trackKey: ownTrackKey } = useOwnTrack(cohort, tracks);
   const teamTrackLabel = tracks.find((t) => t.key === team.trackKey)?.label ?? null;
-  const ownTrackLabel = tracks.find((t) => t.key === ownTrackKey)?.label ?? "Any";
+  const ownTrackLabel = tracks.find((t) => t.key === ownTrackKey)?.label ?? "not chosen";
   const trackMismatch =
     tracks.length > 0 && team.trackKey && ownTrackKey !== (team.trackKey ?? "");
 
@@ -159,6 +159,11 @@ export function TeamReveal({
             </p>
             <h2 className="flex flex-wrap items-center gap-2 font-mono text-2xl font-bold text-text-primary sm:text-3xl">
               {team.teamName}
+              {typeof team.table === "number" && (
+                <span className="rounded border border-amber/40 bg-amber/10 px-2.5 py-0.5 font-mono text-base uppercase tracking-wider text-amber">
+                  Table {team.table}
+                </span>
+              )}
               {teamTrackLabel && (
                 <span className="rounded border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-cyan">
                   {teamTrackLabel}
