@@ -144,6 +144,30 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("the demo criterion")
   })
 
+  it("only promises in the lead what the body contains", () => {
+    const full = build({
+      judgeNotes: [{ judgeName: "Favor Ruhiu", text: "Good." }],
+      communityReview: "A review.",
+    }).html
+    expect(full).toContain("Below is how your work was scored, what the judges wrote, the winners and a card you can share.")
+
+    const bare = build({ judgeNotes: [], communityReview: null, shareUrl: null, overall: [], trackWinners: [] }).html
+    expect(bare).toContain("Below is how your work was scored.")
+    expect(bare).not.toContain("what the judges wrote")
+    expect(bare).not.toContain("a card you can share")
+
+    // A community review is never "what the judges wrote".
+    const reviewOnly = build({ judgeNotes: [], communityReview: "A review.", shareUrl: null }).html
+    expect(reviewOnly).toContain("Below is how your work was scored and the winners.")
+    expect(reviewOnly).not.toContain("what the judges wrote")
+  })
+
+  it("breaks only the URLs, never the prose around them", () => {
+    const { html } = build()
+    expect(html).toContain(`<span style="word-break:break-all;">https://www.claudekenya.org/dashboard/impact-lab</span>`)
+    expect(html).not.toMatch(/<p[^>]*word-break/)
+  })
+
   it("drops the whole share block when no share URL is given", () => {
     const withShare = build().html
     const without = build({ shareUrl: null }).html

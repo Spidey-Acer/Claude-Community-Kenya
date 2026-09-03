@@ -718,14 +718,32 @@ export function impactLabResultsEmail(data: {
   // Careful with attribution: a track winner may have been decided by score
   // rather than by the panel, so the lead states the placing and nothing
   // about who decided it. The explanatory note lower down covers that.
-  let lead: string
+  // What follows the opening is assembled from what this email actually
+  // contains: most teams received no judge note, the community review is
+  // never "what the judges wrote", and the test send carries no card. A
+  // promise the body cannot keep is worse than a shorter sentence.
+  const hasJudgeNotes = (data.judgeNotes ?? []).length > 0
+  const hasWinners = data.overall.length > 0 || data.trackWinners.length > 0
+  const contents = [
+    "how your work was scored",
+    hasJudgeNotes ? "what the judges wrote" : null,
+    hasWinners ? "the winners" : null,
+    data.shareUrl ? "a card you can share" : null,
+  ].filter((s): s is string => s !== null)
+  const contentsPhrase =
+    contents.length === 1
+      ? contents[0]
+      : `${contents.slice(0, -1).join(", ")} and ${contents[contents.length - 1]}`
+
+  let opening: string
   if (ranked && ranked.position === 1) {
-    lead = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+    opening = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track.`
   } else if (ranked && ranked.position <= PODIUM_DEPTH) {
-    lead = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track.`
   } else {
-    lead = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day. Below is how it was scored, what the judges wrote, and the winners &mdash; and a card you can share.`
+    opening = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day.`
   }
+  const lead = `${opening} Below is ${contentsPhrase}.`
 
   // ── Winners ──────────────────────────────────────────────────────────────
   // Publishing with zero announced winners is a legal (if unusual) state —
@@ -890,10 +908,12 @@ export function impactLabResultsEmail(data: {
               </tr>
             </table>`
 
-  // `word-break:break-all` on the two URL lines: an unbreakable 49-character
-  // URL was the one thing holding the whole layout wider than a phone.
+  // `word-break:break-all` on the URL only, never the sentence around it: an
+  // unbreakable 49-character URL was the one thing holding the layout wider
+  // than a phone, and break-all on the paragraph would split the prose too.
+  const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
   const shareLine = data.shareUrl
-    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">Your public card shows the placing, the project and your first names &mdash; never your scores. Post it anywhere: ${esc(data.shareUrl)}</p>`
+    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">Your public card shows the placing, the project and your first names with a last initial &mdash; never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>`
     : ""
 
   const html = `
@@ -907,7 +927,7 @@ export function impactLabResultsEmail(data: {
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="font-family:${DISPLAY_FONT};font-size:15px;font-weight:600;color:${KARIBU.ink};">Claude Community Kenya</td>
-                <td style="font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${KARIBU.inkMuted};text-align:right;">Results</td>
+                <td style="font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${KARIBU.inkMuted};text-align:right;">${esc(data.eventName)}</td>
               </tr>
             </table>
           </td>
@@ -929,7 +949,7 @@ export function impactLabResultsEmail(data: {
             ${shareButton}
             ${dashboardButton}
             ${shareLine}
-            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">If a button doesn&#x27;t work, paste this URL into your browser: ${esc(data.dashboardUrl)}</p>
+            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">If a button doesn&#x27;t work, paste this URL into your browser: ${breakable(data.dashboardUrl)}</p>
 
             <p style="margin:0;padding-top:16px;border-top:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:11px;color:${KARIBU.inkMuted};">${esc(data.eventName)} &middot; Claude Community Kenya &middot; ${APP_URL}</p>
           </td>
