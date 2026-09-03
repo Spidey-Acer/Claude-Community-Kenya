@@ -184,6 +184,16 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("Team &lt;x&gt;")
   })
 
+  it("claims a panel deliberation only when the snapshot shows one", () => {
+    const scores = build().html
+    expect(scores).toContain("Placings and track winners follow the judging panel&#x27;s scores across the same five criteria every team was judged on.")
+    expect(scores).not.toContain("discussed the projects together")
+
+    const panel = build({ panelOverrodeScores: true }).html
+    expect(panel).toContain("decided by the judging panel after they had seen the demos and discussed the projects together. That conversation is what those placings reflect.")
+    expect(panel).not.toContain("&mdash; that conversation")
+  })
+
   it("renders nothing for winners when none were announced", () => {
     const { html } = build({ overall: [], trackWinners: [] })
     expect(html).not.toContain("Overall winners")

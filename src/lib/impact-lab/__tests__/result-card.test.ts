@@ -9,6 +9,7 @@ import {
   looksLikeResultCardSlug,
   placementFor,
   placementTitle,
+  placingsFollowScores,
   resultCardSecret,
   resultCardSlug,
   resultCardUrl,
@@ -74,6 +75,39 @@ describe("placementFor", () => {
     // under a headline that names someone else.
     expect(placementFor(overridden, "e1")).toMatchObject({ position: 2, of: 3 })
     expect(placementFor(overridden, "e3")).toMatchObject({ position: 3, of: 3 })
+  })
+})
+
+describe("placingsFollowScores", () => {
+  it("is true when the announced winners are the top of the score order", () => {
+    expect(placingsFollowScores(SNAPSHOT)).toBe(true)
+  })
+
+  it("is false when the panel announced a different order than the scores", () => {
+    const overridden: ResultsSnapshot = {
+      ...SNAPSHOT,
+      overall: [
+        { rank: 1, teamId: "e1", projectName: "Mwalimu AI" },
+        { rank: 2, teamId: "k1", projectName: "Shamba Bot" },
+        { rank: 3, teamId: "k2", projectName: "Soko Link" },
+      ],
+    }
+    expect(placingsFollowScores(overridden)).toBe(false)
+  })
+
+  it("is false when an organiser assigned a track winner", () => {
+    const overridden: ResultsSnapshot = {
+      ...SNAPSHOT,
+      trackWinners: [
+        { track: "Elimu", teamId: "e2", projectName: "Darasa", basis: "organiser" },
+        { track: "Kilimo", teamId: "k1", projectName: "Shamba Bot", basis: "announced" },
+      ],
+    }
+    expect(placingsFollowScores(overridden)).toBe(false)
+  })
+
+  it("is vacuously true with no announced winners", () => {
+    expect(placingsFollowScores({ ...SNAPSHOT, overall: [] })).toBe(true)
   })
 })
 

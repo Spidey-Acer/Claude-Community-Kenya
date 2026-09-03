@@ -185,3 +185,22 @@ export function resultCardUrl(baseUrl: string, runId: string, teamId: string): s
   if (!secret) return null
   return `${baseUrl}${resultCardPath(resultCardSlug(runId, teamId, secret))}`
 }
+
+/**
+ * Whether the published placings are simply the panel's scores in order.
+ *
+ * True when the announced overall winners are the top of the score-derived
+ * order (same tie-break as `buildRanking`) and no track winner was assigned
+ * by an organiser. Impact Lab 02's placings were exactly that, so its email
+ * must not claim a deliberation that never happened; an edition where the
+ * panel did override the arithmetic gets the "decided after discussion"
+ * wording instead. With no announced winners this is vacuously true and the
+ * caller's no-winners wording applies anyway.
+ */
+export function placingsFollowScores(snapshot: ResultsSnapshot): boolean {
+  if (snapshot.trackWinners.some((w) => w.basis === "organiser")) return false
+  const byScore = [...snapshot.ranking].sort(
+    (a, b) => b.average - a.average || a.teamId.localeCompare(b.teamId)
+  )
+  return snapshot.overall.every((w, i) => byScore[i]?.teamId === w.teamId)
+}

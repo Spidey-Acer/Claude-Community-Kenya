@@ -620,6 +620,14 @@ export function impactLabResultsEmail(data: {
   placement: Placement | null
   /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
+  /**
+   * True when the panel's announced placings override the score order (see
+   * `placingsFollowScores`). Decides whether the explanatory note says the
+   * placings were decided after discussion or simply follow the scores.
+   * Defaults to false: the claim of a deliberation is the one that must be
+   * earned.
+   */
+  panelOverrodeScores?: boolean
   criterionAverages: Record<string, number>
   low: number | null
   high: number | null
@@ -794,10 +802,17 @@ export function impactLabResultsEmail(data: {
   const criterionCount = data.rubric.criteria.length
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[criterionCount] ?? criterionCount} criteria`
 
-  const note =
-    data.overall.length > 0
-      ? `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together &mdash; that conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
-      : `Every project was ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
+  // Only an edition whose snapshot shows the panel overriding the score
+  // order may claim a deliberation. Otherwise the placings are the scores.
+  const entitled = `Your scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
+  let note: string
+  if (data.overall.length === 0) {
+    note = `Every project was ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
+  } else if (data.panelOverrodeScores) {
+    note = `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together. That conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
+  } else {
+    note = `Placings and track winners follow the judging panel&#x27;s scores across ${criteriaPhrase} every team was judged on. ${entitled}`
+  }
 
   // ── Scores ───────────────────────────────────────────────────────────────
   const criterionRows = data.rubric.criteria.map((criterion) => {
@@ -913,7 +928,7 @@ export function impactLabResultsEmail(data: {
   // than a phone, and break-all on the paragraph would split the prose too.
   const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
   const shareLine = data.shareUrl
-    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">Your public card shows the placing, the project and your first names with a last initial &mdash; never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>`
+    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>`
     : ""
 
   const html = `
