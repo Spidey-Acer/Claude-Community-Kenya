@@ -116,27 +116,35 @@ export default async function ResultCardPage({ params }: Params) {
         </p>
 
         <article
-          className={`relative overflow-hidden rounded-2xl border border-[#2A261E] px-7 py-10 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)] sm:px-12 sm:py-14 ${panelClass} ${inkClass}`}
+          className={`relative flex flex-col items-center overflow-hidden rounded-2xl border border-[#2A261E] px-7 py-10 text-center shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)] sm:px-12 sm:py-14 ${panelClass} ${inkClass}`}
           aria-label={headline(card)}
         >
           {style.kind === "winner" ? (
             <div className="absolute inset-x-0 top-0 h-[3px] bg-[#F3DFA0]" aria-hidden="true" />
           ) : null}
 
-          <div className="flex items-center justify-between gap-4">
-            <p className={`font-sans text-[11px] uppercase tracking-[0.2em] ${eyebrowClass}`}>
-              {isPodium ? card.track : `Built at ${card.eventName}`}
-            </p>
-            {style.pill ? (
-              <span
-                className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] ${pillClass}`}
-              >
-                {style.pill.label}
-              </span>
-            ) : null}
-          </div>
+          <p className={`font-sans text-[11px] uppercase tracking-[0.2em] ${eyebrowClass}`}>
+            {isPodium ? card.track : `Built at ${card.eventName}`}
+          </p>
 
-          <h1 className="mt-4 text-[clamp(2.6rem,9vw,4.5rem)] font-semibold leading-[0.95] tracking-tight">
+          {style.pill ? (
+            <span
+              className={`mt-3 inline-flex shrink-0 items-center rounded-full border px-3 py-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] ${pillClass}`}
+            >
+              {style.pill.label}
+            </span>
+          ) : null}
+
+          {/* The placement word: never lets "Runner-up" or "Third place" wrap
+              or break at their hyphen/space onto a second line, at any width
+              down to a 320px mobile floor. */}
+          <h1
+            className={
+              isPodium
+                ? "mt-4 whitespace-nowrap font-serif text-[40px] font-bold leading-[0.95] tracking-[-0.01em] sm:text-[64px]"
+                : "mt-4 text-[clamp(2.2rem,7vw,3.5rem)] font-serif font-bold leading-[0.95] tracking-tight"
+            }
+          >
             {isPodium ? card.title : card.projectName}
           </h1>
 

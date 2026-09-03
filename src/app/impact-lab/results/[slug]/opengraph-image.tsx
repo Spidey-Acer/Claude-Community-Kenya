@@ -92,6 +92,18 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const members = card?.members.join(" · ") ?? ""
   const displayFamily = fonts.some((f) => f.name === DISPLAY) ? DISPLAY : SANS
 
+  // The placement word ("Winner" / "Runner-up" / "Third place") must read as
+  // one line on a 1200px poster no matter how it's cropped by a client:
+  // ~120px for the five-letter "Winner", scaled down to ~96px for the two
+  // longer titles so neither wraps or gets clipped.
+  const headlineFontSize = !isPodium
+    ? headline.length > 22
+      ? "72px"
+      : "118px"
+    : style.kind === "winner"
+      ? "120px"
+      : "96px"
+
   return new ImageResponse(
     (
       <div
@@ -108,15 +120,17 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           style={{
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
+            alignItems: "center",
+            justifyContent: "center",
             width: "100%",
             height: "100%",
             position: "relative",
+            textAlign: "center",
             background: panelBackground(style),
             border: style.kind === "built" ? `1px solid ${CARD_DARK.hairline}` : "none",
             borderLeft: style.kind === "built" ? `6px solid ${CARD_DARK.orange}` : "none",
             borderRadius: "28px",
-            padding: "56px 64px 48px",
+            padding: "56px 64px",
           }}
         >
           {style.kind === "winner" ? (
@@ -134,91 +148,83 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             />
           ) : null}
 
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: "22px",
-                  letterSpacing: "0.22em",
-                  textTransform: "uppercase",
-                  color: eyebrowColor,
-                }}
-              >
-                {eyebrow}
-              </div>
-              {style.pill ? (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: "20px",
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: style.pill.color,
-                    border: `2px solid ${style.pill.color}`,
-                    borderRadius: "999px",
-                    padding: "8px 22px",
-                  }}
-                >
-                  {style.pill.label}
-                </div>
-              ) : null}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                marginTop: "18px",
-                fontFamily: displayFamily,
-                fontSize: headline.length > 22 ? "72px" : "118px",
-                lineHeight: 1,
-                fontWeight: 600,
-                letterSpacing: "-0.03em",
-                color: fg,
-              }}
-            >
-              {headline}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                width: "72px",
-                height: "4px",
-                marginTop: "30px",
-                background: CARD_DARK.orange,
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                marginTop: "26px",
-                fontFamily: displayFamily,
-                fontSize: sub.length > 40 ? "38px" : "50px",
-                lineHeight: 1.15,
-                fontWeight: 600,
-                color: fg,
-                maxWidth: "1000px",
-              }}
-            >
-              {sub}
-            </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: "22px",
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: eyebrowColor,
+            }}
+          >
+            {eyebrow}
           </div>
+
+          {style.pill ? (
+            <div
+              style={{
+                display: "flex",
+                marginTop: "20px",
+                fontSize: "20px",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: style.pill.color,
+                border: `2px solid ${style.pill.color}`,
+                borderRadius: "999px",
+                padding: "8px 22px",
+              }}
+            >
+              {style.pill.label}
+            </div>
+          ) : null}
 
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
+              marginTop: "24px",
+              fontFamily: displayFamily,
+              fontSize: headlineFontSize,
+              lineHeight: 1,
+              fontWeight: 700,
+              letterSpacing: isPodium ? "-0.01em" : "-0.03em",
+              whiteSpace: isPodium ? "nowrap" : "normal",
+              color: fg,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "820px" }}>
-              {members ? (
-                <div style={{ display: "flex", fontSize: "22px", color: muted }}>{members}</div>
-              ) : null}
-              <div style={{ display: "flex", fontSize: "22px", color: fg }}>{eventLine}</div>
-            </div>
-            <div style={{ display: "flex", fontSize: "22px", color: muted }}>claudekenya.org</div>
+            {headline}
           </div>
+          <div
+            style={{
+              display: "flex",
+              width: "84px",
+              height: "4px",
+              marginTop: "28px",
+              background: CARD_DARK.orange,
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              marginTop: "26px",
+              fontFamily: displayFamily,
+              fontSize: sub.length > 40 ? "38px" : "50px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+              color: fg,
+              maxWidth: "1000px",
+            }}
+          >
+            {sub}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginTop: "40px" }}>
+            {members ? (
+              <div style={{ display: "flex", fontSize: "22px", color: muted }}>{members}</div>
+            ) : null}
+            <div style={{ display: "flex", fontSize: "22px", color: fg }}>{eventLine}</div>
+          </div>
+          <div style={{ display: "flex", marginTop: "16px", fontSize: "20px", color: muted }}>claudekenya.org</div>
         </div>
       </div>
     ),
