@@ -565,9 +565,9 @@ const DARK = {
   orange: "#D97757",
   orangeHover: "#E58A6B",
   /** Winner hero: gold gradient, top to bottom, plus its top highlight line. */
-  goldTop: "#8A6410",
-  goldMid: "#C9A227",
-  goldBottom: "#E6C35C",
+  goldTop: "#B8860B",
+  goldMid: "#D4AF37",
+  goldBottom: "#F0D77A",
   goldHighlight: "#F3DFA0",
   /** Text on the gold hero. */
   ink: "#16140F",
@@ -757,21 +757,29 @@ export function impactLabResultsEmail(data: {
       ? `border-top:2px solid ${variant.highlight};`
       : ""
     // Its own line rather than inline with the headline: "Runner-up" plus a
-    // pill does not fit a 360px screen at 46px.
+    // pill does not fit a 360px screen at 46px. Centred per Peter's note —
+    // eyebrow, placement word, rule, project name and table line all read
+    // as one centred block. The placement word itself is the longest
+    // fixed string in the template ("Runner-up", "Third place") and must
+    // never wrap mid-word on a 320px column, hence `white-space:nowrap`
+    // and a size (44px) chosen to fit that column at that constraint —
+    // there's no `<style>`/media-query in this template (email clients
+    // ignore `<style>` blocks here, see the file-level note above), so
+    // this is a single fixed size rather than a responsive one.
     const overallPill = ranked.announced
-      ? `<p style="margin:14px 0 0;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${variant.pillBorder};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${variant.pillText};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
+      ? `<p style="margin:14px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${variant.pillBorder};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${variant.pillText};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
       : ""
     hero = `
         <tr>
-          <td bgcolor="${variant.bgFallback}" style="${highlightRule}background-color:${variant.bgFallback};background-image:${variant.bgGradient};padding:36px 32px 32px;border-radius:14px 14px 0 0;">
-            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${variant.eyebrow};">${esc(ranked.track)}</p>
-            <p style="margin:0;font-family:${DISPLAY_FONT};font-size:46px;line-height:1;font-weight:600;letter-spacing:-0.02em;color:${variant.fg};">${esc(placementTitle(ranked))}</p>
+          <td bgcolor="${variant.bgFallback}" style="${highlightRule}background-color:${variant.bgFallback};background-image:${variant.bgGradient};padding:36px 32px 32px;border-radius:14px 14px 0 0;text-align:center;">
+            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${variant.eyebrow};text-align:center;">${esc(ranked.track)}</p>
+            <p style="margin:0;font-family:${DISPLAY_FONT};font-size:44px;line-height:1.05;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${variant.fg};text-align:center;">${esc(placementTitle(ranked))}</p>
             ${overallPill}
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 18px;">
-              <tr><td bgcolor="${DARK.orange}" style="width:44px;height:2px;background-color:${DARK.orange};font-size:0;line-height:0;">&nbsp;</td></tr>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto 18px;">
+              <tr><td bgcolor="${DARK.orange}" style="width:48px;height:2px;background-color:${DARK.orange};font-size:0;line-height:0;">&nbsp;</td></tr>
             </table>
-            <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${variant.fg};">${esc(data.projectName)}</p>
-            <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${variant.metaFg};">${tableLine}</p>
+            <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${variant.fg};text-align:center;">${esc(data.projectName)}</p>
+            <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${variant.metaFg};text-align:center;">${tableLine}</p>
           </td>
         </tr>`
   } else {
