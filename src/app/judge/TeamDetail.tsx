@@ -6,6 +6,7 @@ import {
   type JudgeTeamRow,
 } from "@/lib/impact-lab/judge-team";
 import {
+  isComplete,
   scoreTotal,
   type JudgingRubric,
   type ScoreSheet,
@@ -95,6 +96,10 @@ export function TeamDetail({
   const scoredCount = rubric.criteria.filter(
     (criterion) => typeof sheet[criterion.key] === "number"
   ).length;
+  // Some but not all criteria scored — a legitimate mid-demo state, but one
+  // that silently deflates the displayed total if it gets saved and never
+  // finished. The state line already shows "N/5"; this calls it out.
+  const partial = scoredCount > 0 && !isComplete(sheet, rubric);
   const links = submissionLinks(team.submission);
 
   return (
@@ -189,6 +194,7 @@ export function TeamDetail({
         totalOutOf={rubric.totalOutOf}
         scoredCount={scoredCount}
         criteriaCount={rubric.criteria.length}
+        partial={partial}
         savedAtLabel={savedAtLabel}
         dirty={dirty}
         saving={saving}
@@ -343,6 +349,7 @@ function SaveBar({
   totalOutOf,
   scoredCount,
   criteriaCount,
+  partial,
   savedAtLabel,
   dirty,
   saving,
@@ -353,6 +360,8 @@ function SaveBar({
   totalOutOf: number;
   scoredCount: number;
   criteriaCount: number;
+  /** Some but not all criteria are scored — save is still allowed. */
+  partial: boolean;
   savedAtLabel: string | null;
   dirty: boolean;
   saving: boolean;
@@ -383,6 +392,11 @@ function SaveBar({
             {state} · {scoredCount}/{criteriaCount}
           </span>
         </div>
+        {partial && (
+          <p className="font-mono text-xs uppercase tracking-wider text-amber">
+            {scoredCount} of {criteriaCount} criteria scored
+          </p>
+        )}
         <button type="button" onClick={onSave} disabled={saving} className={PRIMARY_BUTTON}>
           {saving ? "Saving…" : "Save score"}
         </button>

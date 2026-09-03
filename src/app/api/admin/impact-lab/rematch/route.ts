@@ -10,6 +10,7 @@ import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { toRematchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
+import { readLockedRun, withRunLock } from "@/lib/impact-lab/run-lock"
 
 const rematchSchema = z.object({
   cohort: z.string().max(60).optional(),
@@ -158,12 +159,22 @@ export async function POST(request: NextRequest) {
     (e) => typeof e.teamId === "string" && survivingTeamIds.has(e.teamId)
   )
 
-  await prisma.impactLabMatchRun.update({
-    where: { id: run.id },
-    data: {
-      result: JSON.parse(JSON.stringify(newResult)),
-      explanations: explanations.length > 0 ? explanations : undefined,
-    },
+  // Locked read-modify-write: a rematch is computed from the `run` read at
+  // the top of this handler, but another admin action (roster, track change,
+  // rosterLocked/onStage toggles) may have written the row since. Rebuilding
+  // `result` from `newResult` alone would silently drop whatever that other
+  // write added — spread the FRESH result under the lock so only the keys
+  // this rematch actually owns (teams/unassignedIds/warnings/averageScore/
+  // settingsUsed) are replaced.
+  await withRunLock(run.id, async (tx) => {
+    const fresh = await readLockedRun(tx, run.id)
+    await tx.impactLabMatchRun.update({
+      where: { id: run.id },
+      data: {
+        result: JSON.parse(JSON.stringify({ ...(fresh?.result as object), ...newResult })),
+        explanations: explanations.length > 0 ? explanations : undefined,
+      },
+    })
   })
 
   await logAudit({

@@ -35,10 +35,18 @@ import type { Team } from "@/lib/matching"
 const bodySchema = z.object({ trackKey: z.string().trim().min(1).max(40) })
 
 /**
- * The team's new name when it was auto-named after its old track
- * (`"<label> <n>"`, see runMatchingByTrack). Swaps that leading label so
- * "Elimu: Mwalimu wa Grade 10 7" becomes "Kazi: Kabla ya Daktari 7". A
- * hand-renamed team, or one from a run with no track, keeps its name.
+ * The team's new name when it was auto-named after its old track. Two
+ * formats carry the label, and both get their label swapped:
+ *
+ *   1. `"Table <n> · <label>"` — the live format (renameTeamsByTable in
+ *      roster.ts, applied once tables are assigned). Only the label after
+ *      the "Table <n> · " prefix is replaced, so "Table 7 · Elimu: Mwalimu
+ *      wa Grade 10" becomes "Table 7 · Kazi: Kabla ya Daktari".
+ *   2. `"<label> <n>"` (runMatchingByTrack, pre-table naming) — the leading
+ *      label is swapped, so "Elimu: Mwalimu wa Grade 10 7" becomes
+ *      "Kazi: Kabla ya Daktari 7".
+ *
+ * A hand-renamed team, or one from a run with no track, keeps its name.
  */
 function renamedForTrack(
   currentName: string,
@@ -46,6 +54,13 @@ function renamedForTrack(
   newLabel: string
 ): string {
   if (!oldLabel) return currentName
+
+  const tablePrefixed = currentName.match(/^(Table \d+ · )(.*)$/)
+  if (tablePrefixed) {
+    const [, prefix, rest] = tablePrefixed
+    return rest.toLowerCase() === oldLabel.toLowerCase() ? prefix + newLabel : currentName
+  }
+
   if (!currentName.toLowerCase().startsWith(oldLabel.toLowerCase())) return currentName
   return newLabel + currentName.slice(oldLabel.length)
 }

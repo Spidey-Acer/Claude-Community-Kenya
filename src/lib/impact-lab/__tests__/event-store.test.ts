@@ -16,7 +16,7 @@ vi.mock("@/lib/prisma", () => ({
 }))
 
 import { prisma } from "@/lib/prisma"
-import { cohortForPublicEvent } from "../event-store"
+import { cohortForPublicEvent, singleLiveCohort } from "../event-store"
 
 const PUBLIC_ID = "evt_1"
 const PUBLIC_SLUG = "nairobi-claude-impact-lab-ai-mashinani-02-mt2jpq2a"
@@ -53,5 +53,36 @@ describe("cohortForPublicEvent", () => {
 
     await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG)).resolves.toBe("impact-lab-linked")
     expect(prisma.impactLabEvent.findMany).not.toHaveBeenCalled()
+  })
+})
+
+// Extracted so judge-access's roster-mode check can reuse the exact same
+// "which run applies right now" answer for a sign-in that names no cohort.
+describe("singleLiveCohort", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("resolves the one LIVE cohort", async () => {
+    vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
+      { cohort: "impact-lab-2026-09" },
+    ] as never)
+
+    await expect(singleLiveCohort()).resolves.toBe("impact-lab-2026-09")
+  })
+
+  it("declines when nothing is LIVE", async () => {
+    vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([] as never)
+
+    await expect(singleLiveCohort()).resolves.toBeNull()
+  })
+
+  it("declines when two events are LIVE at once", async () => {
+    vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
+      { cohort: "impact-lab-2026-09" },
+      { cohort: "impact-lab-2026-10" },
+    ] as never)
+
+    await expect(singleLiveCohort()).resolves.toBeNull()
   })
 })

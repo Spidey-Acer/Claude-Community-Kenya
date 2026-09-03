@@ -158,6 +158,40 @@ describe("POST /api/impact-lab/team/track", () => {
     })
   })
 
+  it("swaps the label in a live Table N · <label> name, keeping the table prefix", async () => {
+    givenRun([
+      team("team-1", ["me"], {
+        name: "Table 7 · Elimu: Mwalimu wa Grade 10",
+        trackKey: "elimu",
+        table: 7,
+        leaderId: "me",
+      }),
+    ])
+
+    const res = await POST(request({ trackKey: "kazi" }))
+    const json = await res.json()
+
+    expect(json.team.name).toBe("Table 7 · Kazi: Kabla ya Daktari")
+    expect(json.team.trackKey).toBe("kazi")
+  })
+
+  it("leaves a Table N · <label> name alone when the label doesn't match the old track", async () => {
+    givenRun([
+      team("team-1", ["me"], {
+        name: "Table 7 · Something Else",
+        trackKey: "elimu",
+        table: 7,
+        leaderId: "me",
+      }),
+    ])
+
+    const res = await POST(request({ trackKey: "kazi" }))
+    const json = await res.json()
+
+    expect(json.team.name).toBe("Table 7 · Something Else")
+    expect(json.team.trackKey).toBe("kazi")
+  })
+
   it("leaves a hand-renamed team's name alone while still moving its track", async () => {
     givenRun([
       team("team-1", ["me"], {

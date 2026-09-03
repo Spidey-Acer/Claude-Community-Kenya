@@ -6,6 +6,13 @@
 // The open (typed-name) path is covered too, because roster mode must not
 // change it.
 //
+// A second describe block below covers the same ROSTER_ONLY refusal for a
+// caller that sends NO cohort at all — JudgeGate's typed-name form never
+// does (it posts `{ name, code }`), so a judge on a stale tab could sign in
+// free-text even after an organiser switched the live cohort to roster mode.
+// The fix resolves the cohort server-side via the same single-LIVE-cohort
+// fallback `cohortForPublicEvent` uses, before deciding whether to refuse.
+//
 // Follows the mocking pattern from
 // src/app/api/admin/impact-lab/judging/__tests__/route.test.ts.
 
@@ -25,8 +32,13 @@ vi.mock("@/lib/rate-limit", () => ({
 // judge-access.ts reads it at module load; nothing here exercises the cookie jar.
 vi.mock("next/headers", () => ({ cookies: vi.fn() }))
 
+vi.mock("@/lib/impact-lab/event-store", () => ({
+  singleLiveCohort: vi.fn(async () => null),
+}))
+
 import { prisma } from "@/lib/prisma"
 import { JUDGE_ACCESS_CODE, JUDGE_COOKIE } from "@/lib/impact-lab/judge-access"
+import { singleLiveCohort } from "@/lib/impact-lab/event-store"
 import { POST } from "../route"
 
 const COHORT = "impact-lab-02"
@@ -118,5 +130,72 @@ describe("POST /api/impact-lab/judge-access", () => {
 
     expect(res.status).toBe(401)
     expect(prisma.impactLabMatchRun.findFirst).not.toHaveBeenCalled()
+  })
+})
+
+describe("POST /api/impact-lab/judge-access — roster mode without a cohort in the body", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("refuses a typed name with 403 ROSTER_ONLY when the resolved single-LIVE cohort's run is roster mode", async () => {
+    vi.mocked(singleLiveCohort).mockResolvedValue(COHORT)
+    stubRun("roster")
+
+    const res = await POST(postRequest({ code: JUDGE_ACCESS_CODE, name: "Darlington Wleh" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(json.success).toBe(false)
+    expect(json.code).toBe("ROSTER_ONLY")
+    expect(prisma.impactLabMatchRun.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { cohort: COHORT, isFinal: true } })
+    )
+  })
+
+  it("still allows a typed name when the resolved cohort's run is open mode", async () => {
+    vi.mocked(singleLiveCohort).mockResolvedValue(COHORT)
+    stubRun("open")
+
+    const res = await POST(postRequest({ code: JUDGE_ACCESS_CODE, name: "Darlington Wleh" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.judge).toBe("Darlington Wleh")
+  })
+
+  it("allows a typed name when no single LIVE cohort resolves (none, or more than one)", async () => {
+    vi.mocked(singleLiveCohort).mockResolvedValue(null)
+
+    const res = await POST(postRequest({ code: JUDGE_ACCESS_CODE, name: "Darlington Wleh" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    // No cohort resolved, so there is nothing to look a panel up for.
+    expect(prisma.impactLabMatchRun.findFirst).not.toHaveBeenCalled()
+  })
+
+  it("still checks the mode of the EXPLICIT cohort when the caller sends one, without falling back", async () => {
+    stubRun("roster")
+
+    const res = await POST(
+      postRequest({ code: JUDGE_ACCESS_CODE, name: "Darlington Wleh", cohort: COHORT })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(json.code).toBe("ROSTER_ONLY")
+    expect(singleLiveCohort).not.toHaveBeenCalled()
+  })
+
+  it("refuses with 401 before resolving any cohort when the access code is wrong", async () => {
+    const res = await POST(postRequest({ code: "0000", name: "Darlington Wleh" }))
+    const json = await res.json()
+
+    expect(res.status).toBe(401)
+    expect(json.success).toBe(false)
+    expect(singleLiveCohort).not.toHaveBeenCalled()
   })
 })

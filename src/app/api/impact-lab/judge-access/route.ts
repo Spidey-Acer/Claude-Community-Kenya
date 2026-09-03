@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
+import { singleLiveCohort } from "@/lib/impact-lab/event-store"
 import {
   extractJudgeSignIn,
   extractJudges,
@@ -123,10 +124,14 @@ export async function POST(request: NextRequest) {
     return fail("Enter your name and the access code.", 400)
   }
 
-  // Only refused when the submission names the cohort it is for — that is the
-  // only case where the server knows which run's mode applies.
-  if (cohort) {
-    const panel = await readCohortPanel(cohort)
+  // Roster mode is enforced here regardless of whether the caller named a
+  // cohort. JudgeGate's typed-name path never sends one, so a stale tab
+  // could otherwise create a free-text scorecard for a run an organiser has
+  // since locked to the published panel — resolve the same way the public
+  // event page does, via the single-LIVE-cohort fallback.
+  const resolvedCohort = cohort ?? (await singleLiveCohort())
+  if (resolvedCohort) {
+    const panel = await readCohortPanel(resolvedCohort)
     if (panel?.mode === "roster") {
       return fail("Pick your name from the list.", 403, ROSTER_ONLY)
     }
