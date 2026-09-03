@@ -151,6 +151,22 @@ export async function cohortForPublicEvent(
     })
     if (bySlug) return bySlug.cohort
 
+    return await singleLiveCohort()
+  } catch (error) {
+    if (isMissingTable(error)) return null
+    throw error
+  }
+}
+
+/**
+ * The one Impact Lab event that is LIVE, or null when there are zero or more
+ * than one — guessing between two live events would be wrong, so this
+ * declines instead. Shared by `cohortForPublicEvent`'s fallback 3 and by
+ * judge sign-in, which needs the same "which run applies right now" answer
+ * for a request that did not name a cohort at all.
+ */
+export async function singleLiveCohort(): Promise<string | null> {
+  try {
     // `take: 2` is the whole question — one row means "the event running right
     // now", two mean "ambiguous", and nothing beyond that changes the answer.
     const live = await prisma.impactLabEvent.findMany({
