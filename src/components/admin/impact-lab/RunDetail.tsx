@@ -61,6 +61,8 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [numberingTables, setNumberingTables] = useState(false)
   const [renamingTeams, setRenamingTeams] = useState(false)
   const [confirmingRename, setConfirmingRename] = useState(false)
+  const [renamingTeamsTableOnly, setRenamingTeamsTableOnly] = useState(false)
+  const [confirmingRenameTableOnly, setConfirmingRenameTableOnly] = useState(false)
   const [lockBusy, setLockBusy] = useState(false)
   const [confirmingLock, setConfirmingLock] = useState(false)
   // null until the organiser toggles it explicitly — until then, the panel's
@@ -147,6 +149,28 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
       setError(e instanceof Error ? e.message : "Failed to name teams by table")
     } finally {
       setRenamingTeams(false)
+    }
+  }
+
+  /**
+   * Rename every numbered team to just "Table <n>" — no track suffix.
+   * For runs where a team's `trackKey` was assigned wrong, so the usual
+   * rename would print a misleading label. Same confirm-inline reasoning as
+   * `renameTeamsByTable`.
+   */
+  async function renameTeamsByTableOnly() {
+    setRenamingTeamsTableOnly(true)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        renameTeamsByTable: "table-only",
+      })
+      setDetail(response)
+      setConfirmingRenameTableOnly(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to name teams by table")
+    } finally {
+      setRenamingTeamsTableOnly(false)
     }
   }
 
@@ -313,6 +337,36 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
             className="px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[10px] font-mono text-[#888]"
           >
             Name teams by table
+          </button>
+        )}
+
+        {confirmingRenameTableOnly ? (
+          <>
+            <span className="text-[10px] font-mono text-[#ffb000]">
+              Rename every numbered team to just its table, dropping any track label? Overwrites current names.
+            </span>
+            <button
+              onClick={renameTeamsByTableOnly}
+              disabled={renamingTeamsTableOnly}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#ffb000]/10 hover:bg-[#ffb000]/20 border border-[#ffb000]/30 rounded text-[10px] font-mono text-[#ffb000] disabled:opacity-40"
+            >
+              {renamingTeamsTableOnly ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Confirm rename
+            </button>
+            <button
+              onClick={() => setConfirmingRenameTableOnly(false)}
+              disabled={renamingTeamsTableOnly}
+              className="px-2.5 py-1 text-[10px] font-mono text-[#888] hover:text-[#ccc]"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmingRenameTableOnly(true)}
+            className="px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#1e1e1e] rounded text-[10px] font-mono text-[#888]"
+          >
+            Rename by table only (no track)
           </button>
         )}
       </div>
