@@ -412,6 +412,23 @@ describe("renameTeamsByTable", () => {
     ).teams
     expect(renameTeamsByTable(already, TRACKS).renamed).toBe(0)
   })
+
+  it("with tableOnly, drops the track suffix even when trackKey is set", () => {
+    const teams = [
+      team("team-1", ["a"], { table: 1, trackKey: "elimu" }),
+      team("team-2", ["b"], { table: 2, trackKey: "kazi" }),
+      team("team-3", ["c"], { table: 7 }),
+      team("team-4", ["d"]),
+    ]
+    const outcome = renameTeamsByTable(teams, TRACKS, { tableOnly: true })
+    expect(outcome.teams.map((t) => t.name)).toEqual([
+      "Table 1",
+      "Table 2",
+      "Table 7",
+      "Team team-4",
+    ])
+    expect(outcome.renamed).toBe(3)
+  })
 })
 
 describe("extractOnStage", () => {

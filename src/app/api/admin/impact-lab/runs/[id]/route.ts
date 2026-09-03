@@ -338,7 +338,9 @@ async function handleNumberTables(
 }
 
 /**
- * Rename every numbered team to "Table <n> · <track label>".
+ * Rename every numbered team to "Table <n> · <track label>" — or, with
+ * `tableOnly`, just "Table <n>" with no track suffix, for runs where a
+ * team's track was assigned wrong and the label would mislead a judge.
  *
  * On the night a team is called forward by its table number and a judge is
  * sent to one the same way, so the table is the name that carries. Renaming is
@@ -353,6 +355,7 @@ async function handleRenameTeamsByTable(
   request: NextRequest,
   runId: string,
   cohort: string,
+  tableOnly: boolean,
   user: { id: string; name: string; email: string }
 ): Promise<NextResponse> {
   const event = await getEventByCohort(cohort)
@@ -363,7 +366,7 @@ async function handleRenameTeamsByTable(
     const teams = extractFrozenTeams(fresh?.result)
     if (!teams) return { status: "no_teams" as const }
 
-    const renaming = renameTeamsByTable(teams, tracks)
+    const renaming = renameTeamsByTable(teams, tracks, { tableOnly })
     await writeRunResult(tx, runId, { ...(fresh?.result as object), teams: renaming.teams })
     return { status: "ok" as const, renamed: renaming.renamed }
   })
@@ -382,7 +385,7 @@ async function handleRenameTeamsByTable(
     action: "UPDATE",
     entity: "ImpactLabMatchRun",
     entityId: runId,
-    changes: { renameTeamsByTable: { renamed: outcome.renamed } },
+    changes: { renameTeamsByTable: { renamed: outcome.renamed, tableOnly } },
     ...getRequestMetadata(request),
   })
 
@@ -687,8 +690,9 @@ const updateSchema = z.object({
   numberTables: z.literal(true).optional(),
   // Rename every numbered team after its table and track — see
   // `handleRenameTeamsByTable`. Its own branch, same reasoning as `numberTables`,
-  // and the organiser's button sends it alone.
-  renameTeamsByTable: z.boolean().optional(),
+  // and the organiser's button sends it alone. `"table-only"` renames to just
+  // "Table <n>" with no track suffix, for runs where the track label is wrong.
+  renameTeamsByTable: z.union([z.boolean(), z.literal("table-only")]).optional(),
   // "Finalize teams" / "Unlock": set or clear `result.rosterLocked`. Its own
   // branch for the same reason `move` is — never combined with rename/finalize
   // in the UI, and a boolean (unlike `move`'s object) needs an explicit
@@ -761,7 +765,13 @@ export async function PATCH(
     return handleNumberTables(request, id, check.user)
   }
   if (validation.data.renameTeamsByTable) {
-    return handleRenameTeamsByTable(request, id, existing.cohort, check.user)
+    return handleRenameTeamsByTable(
+      request,
+      id,
+      existing.cohort,
+      validation.data.renameTeamsByTable === "table-only",
+      check.user
+    )
   }
   if (validation.data.lockRoster !== undefined) {
     return handleLockRoster(request, id, validation.data.lockRoster, check.user)

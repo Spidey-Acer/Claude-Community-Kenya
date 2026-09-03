@@ -7,7 +7,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
 const EMPTY_SCORE = { total: 80, dimensions: [], penalties: [], penaltyTotal: 0 }
-function team(id: string, memberIds: string[], extra: { table?: number | null } = {}) {
+function team(
+  id: string,
+  memberIds: string[],
+  extra: { table?: number | null; trackKey?: string } = {}
+) {
   return { id, name: `Team ${id}`, memberIds, locked: false, score: EMPTY_SCORE, ...extra }
 }
 
@@ -64,9 +68,16 @@ vi.mock("@/lib/audit-log", () => ({
   getRequestMetadata: vi.fn(() => ({ ipAddress: "127.0.0.1", userAgent: "vitest" })),
 }))
 
+// renameTeamsByTable looks up the cohort's event for track labels — a plain
+// object mock, not full prisma, since the handler only reads `tracks`.
+vi.mock("@/lib/impact-lab/event-store", () => ({
+  getEventByCohort: vi.fn(async () => null),
+}))
+
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit-log"
 import { JUDGE_BIO_MAX } from "@/lib/impact-lab/roster"
+import { getEventByCohort } from "@/lib/impact-lab/event-store"
 import { PATCH } from "../route"
 
 function patchRequest(body: unknown): NextRequest {
@@ -414,6 +425,56 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — number tables", () => {
     expect(written.teams.find((t) => t.id === "team-1")!.table).toBe(5)
     expect(written.teams.find((t) => t.id === "team-2")!.table).toBe(1)
     expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ changes: { numberTables: true } }))
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — renameTeamsByTable", () => {
+  it('with "table-only", drops the track suffix and audits tableOnly: true', async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never) // `existing`
+    vi.mocked(getEventByCohort).mockResolvedValueOnce({
+      tracks: [{ key: "elimu", label: "Elimu", aliases: [], rules: [] }],
+    } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: {
+        teams: [team("team-1", ["p1"], { table: 1, trackKey: "elimu" })],
+        unassignedIds: [],
+      },
+      settings: { maxTeamSize: 5 },
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ renameTeamsByTable: "table-only" }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result as WrittenResult
+    expect(written.teams.find((t) => t.id === "team-1")!.name).toBe("Table 1")
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { renameTeamsByTable: { renamed: 1, tableOnly: true } } })
+    )
+  })
+
+  it("with the boolean form, keeps the track suffix and audits tableOnly: false", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    vi.mocked(getEventByCohort).mockResolvedValueOnce({
+      tracks: [{ key: "elimu", label: "Elimu", aliases: [], rules: [] }],
+    } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: {
+        teams: [team("team-1", ["p1"], { table: 1, trackKey: "elimu" })],
+        unassignedIds: [],
+      },
+      settings: { maxTeamSize: 5 },
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(patchRequest({ renameTeamsByTable: true }), { params })
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result as WrittenResult
+    expect(written.teams.find((t) => t.id === "team-1")!.name).toBe("Table 1 · Elimu")
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { renameTeamsByTable: { renamed: 1, tableOnly: false } } })
+    )
   })
 })
 
