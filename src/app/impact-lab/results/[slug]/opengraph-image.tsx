@@ -1,10 +1,13 @@
 import { ImageResponse } from "next/og"
+import { CARD_DARK, cardStyleForTitle, type CardStyle } from "@/lib/impact-lab/result-card"
 import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
 
 /**
  * The LinkedIn post graphic for one team's result card. Same lookup as the
- * page, same three facts: placing, project, event. Karibu palette by value —
- * Satori cannot read CSS variables.
+ * page, same four treatments — see `cardStyleForTitle` in `result-card.ts`,
+ * the single source of the dark premium palette both files share. Literal
+ * hex only: Satori cannot read CSS variables, and a Karibu theme token would
+ * invert under the visitor's dark-mode preference anyway.
  *
  * Fraunces and Inter are fetched from Google Fonts at render time (Satori
  * ships only Noto Sans and cannot see system fonts), cached by the runtime,
@@ -17,18 +20,13 @@ export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 export const alt = "Impact Lab result — Claude Community Kenya"
 
-const PAPER = "#F4EEE3"
-const CARD = "#FBF7F0"
-const INK = "#23201B"
-const INK_MUTED = "#6A6155"
-const CLAY = "#A84E2D"
-const SAND = "#E4DAC8"
-const PANEL_DARK = "#23201B"
-const ON_PANEL_DARK = "#E9E0D2"
-const ON_PANEL_DARK_MUTED = "#B4A997"
-
 const DISPLAY = "Fraunces"
 const SANS = "Inter"
+
+/** CSS `linear-gradient` for a `CardStyle`'s panel — 2 or 3 stops, top to bottom. */
+function panelBackground(style: CardStyle): string {
+  return `linear-gradient(to bottom, ${style.gradient.join(", ")})`
+}
 
 type LoadedFont = { name: string; data: ArrayBuffer; weight: 400 | 600; style: "normal" }
 
@@ -77,12 +75,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   ])
 
   // A valid page never gets a blank preview: an unknown slug renders the
-  // generic event card rather than nothing.
+  // generic "built" treatment rather than nothing.
   const isPodium = card ? card.title !== "Built" : false
-  const isWinner = card?.title === "Winner"
-  const panelBg = isWinner ? CLAY : isPodium ? PANEL_DARK : CARD
-  const fg = isWinner ? CARD : isPodium ? ON_PANEL_DARK : INK
-  const muted = isWinner ? "#F8E4DA" : isPodium ? ON_PANEL_DARK_MUTED : INK_MUTED
+  const style = cardStyleForTitle(card?.title ?? "Built")
+  const fg = style.ink
+  const muted = style.muted
+  const eyebrowColor = CARD_DARK.orange
   // Podium: the placing is the headline and the project sits under it.
   // Built: the project is the headline — same hierarchy as the page.
   const eyebrow = card ? (isPodium ? card.track : `Built at ${card.eventName}`) : "Claude Community Kenya"
@@ -101,8 +99,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           width: "100%",
           height: "100%",
           display: "flex",
-          background: PAPER,
-          padding: "44px",
+          background: CARD_DARK.pageBg,
+          padding: "36px",
           fontFamily: SANS,
         }}
       >
@@ -113,23 +111,59 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             justifyContent: "space-between",
             width: "100%",
             height: "100%",
-            background: panelBg,
-            border: isPodium ? "none" : `2px solid ${SAND}`,
+            position: "relative",
+            background: panelBackground(style),
+            border: style.kind === "built" ? `1px solid ${CARD_DARK.hairline}` : "none",
+            borderLeft: style.kind === "built" ? `6px solid ${CARD_DARK.orange}` : "none",
             borderRadius: "28px",
             padding: "56px 64px 48px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          {style.kind === "winner" ? (
             <div
               style={{
                 display: "flex",
-                fontSize: "22px",
-                letterSpacing: "0.22em",
-                textTransform: "uppercase",
-                color: muted,
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: "#F3DFA0",
+                borderRadius: "28px 28px 0 0",
               }}
-            >
-              {eyebrow}
+            />
+          ) : null}
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: "22px",
+                  letterSpacing: "0.22em",
+                  textTransform: "uppercase",
+                  color: eyebrowColor,
+                }}
+              >
+                {eyebrow}
+              </div>
+              {style.pill ? (
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: "20px",
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: style.pill.color,
+                    border: `2px solid ${style.pill.color}`,
+                    borderRadius: "999px",
+                    padding: "8px 22px",
+                  }}
+                >
+                  {style.pill.label}
+                </div>
+              ) : null}
             </div>
             <div
               style={{
@@ -151,7 +185,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 width: "72px",
                 height: "4px",
                 marginTop: "30px",
-                background: isPodium ? muted : CLAY,
+                background: CARD_DARK.orange,
               }}
             />
             <div
