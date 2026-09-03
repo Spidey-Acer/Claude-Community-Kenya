@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Eye,
   FileSpreadsheet,
   FileText,
@@ -15,6 +18,8 @@ import {
   Trophy,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { collapseAll, expandAll, reviewExcerpt, toggleOpen, type OpenSet } from "./reviewCollapse"
+import { cn } from "@/lib/utils"
 import type { SerializedRubric, TeamStanding } from "@/lib/impact-lab/judging"
 import { buildRanking, buildTrackWinners, toPublicRanking, type ResultsInput } from "@/lib/impact-lab/results"
 
@@ -802,17 +807,22 @@ interface GenerateBatchResult {
 /**
  * Section: the written review every team receives.
  *
- * Three of the four judges left scores and not one written word, so a team
- * that built through the night would get five numbers and silence. This
- * section drafts a substantive review per team (signed "Claude Community
- * Kenya" — never attributed to a judge), and gives the organiser the pen:
- * read each one, edit any of it, approve. Nothing reaches a participant
- * until it is approved, and a draft the organiser has edited is never
- * regenerated over without an explicit second confirmation.
+ * A judging panel returns scores and, as a rule, little written feedback —
+ * so a team that built through the night would otherwise get a handful of
+ * numbers and silence. This section drafts a substantive review per team
+ * (signed "Claude Community Kenya" — never attributed to a judge), and gives
+ * the organiser the pen: read each one, edit any of it, approve. Nothing
+ * reaches a participant until it is approved, and a draft the organiser has
+ * edited is never regenerated over without an explicit second confirmation.
  *
- * The judge's own notes (the ten Favour wrote) are shown read-only beside
- * each review — they publish as quotes under her name, and the review is
- * written to sit alongside them, so the organiser should see both together.
+ * Any notes a judge did write are shown read-only beside the review — they
+ * publish as quotes under the judge's name, and the review is written to sit
+ * alongside them, so the organiser should see both together.
+ *
+ * With a full cohort this is a long list, so each team is a collapsible
+ * card: a one-line header (name, table, status, excerpt) that opens to the
+ * full editor. Open state is local, keyed by team id so it survives the
+ * reloads that Save / Approve / Generate trigger, and never index-based.
  */
 function ReviewsSection({ cohort }: { cohort: string }) {
   const [teams, setTeams] = useState<ReviewTeam[] | null>(null)
@@ -821,6 +831,8 @@ function ReviewsSection({ cohort }: { cohort: string }) {
   const [states, setStates] = useState<Record<string, ReviewTeamState>>({})
   const [generatingAll, setGeneratingAll] = useState(false)
   const [generateAllStatus, setGenerateAllStatus] = useState<string | null>(null)
+  /** Team ids whose card is expanded. Everything starts collapsed. */
+  const [openIds, setOpenIds] = useState<OpenSet>(() => new Set())
 
   const load = useCallback(async () => {
     try {
@@ -858,6 +870,28 @@ function ReviewsSection({ cohort }: { cohort: string }) {
     const approved = teams?.filter((t) => t.review?.approvedAt).length ?? 0
     return { total, drafted, approved }
   }, [teams])
+
+  /** Teams whose local edit differs from the server's text — never bulk-collapsed. */
+  const dirtyIds = useMemo(
+    () =>
+      (teams ?? [])
+        .filter((t) => {
+          const draft = states[t.teamId]?.draftText ?? null
+          return draft !== null && draft !== (t.review?.text ?? "")
+        })
+        .map((t) => t.teamId),
+    [teams, states]
+  )
+
+  const allIds = useMemo(() => (teams ?? []).map((t) => t.teamId), [teams])
+  const openCount = allIds.filter((id) => openIds.has(id)).length
+  const allOpen = allIds.length > 0 && openCount === allIds.length
+  /** Open cards a bulk collapse would actually close — dirty ones are exempt. */
+  const collapsibleCount = allIds.filter((id) => openIds.has(id) && !dirtyIds.includes(id)).length
+
+  const toggleCard = useCallback((teamId: string) => {
+    setOpenIds((prev) => toggleOpen(prev, teamId))
+  }, [])
 
   /**
    * Fill every gap: the server drafts a few teams per call and reports how
@@ -978,8 +1012,8 @@ function ReviewsSection({ cohort }: { cohort: string }) {
       <div>
         <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">Team reviews</h2>
         <p className="mt-1 text-[11px] font-mono text-[#888]">
-          A written review for every team, signed Claude Community Kenya — because three of
-          the four judges left no written feedback at all. Claude drafts from each team&apos;s
+          A written review for every team, signed Claude Community Kenya. The panel returns
+          scores and little written feedback, so Claude drafts a review from each team&apos;s
           own submission; you read, edit, and approve. Only approved reviews reach the
           dashboard, the results email, and the exports.
         </p>
@@ -1001,6 +1035,28 @@ function ReviewsSection({ cohort }: { cohort: string }) {
             {counts.approved}/{counts.total} approved
           </span>
         </span>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setOpenIds(expandAll(allIds))}
+            disabled={allOpen || allIds.length === 0}
+            className="flex items-center gap-1.5 rounded px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#888] transition-colors hover:text-[#D97757] disabled:opacity-40 disabled:hover:text-[#888]"
+          >
+            <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
+            Expand all
+          </button>
+          <span className="h-3 w-px bg-[#1e1e1e]" aria-hidden />
+          <button
+            type="button"
+            onClick={() => setOpenIds(collapseAll(dirtyIds))}
+            disabled={collapsibleCount === 0}
+            title={dirtyIds.length > 0 ? "Cards with unsaved edits stay open." : undefined}
+            className="flex items-center gap-1.5 rounded px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#888] transition-colors hover:text-[#D97757] disabled:opacity-40 disabled:hover:text-[#888]"
+          >
+            <ChevronsDownUp className="h-3.5 w-3.5" aria-hidden />
+            Collapse all
+          </button>
+        </div>
       </div>
 
       {generateAllStatus && (
@@ -1023,148 +1079,278 @@ function ReviewsSection({ cohort }: { cohort: string }) {
           No submitted teams yet — reviews are written about submissions.
         </p>
       ) : (
-        (teams ?? []).map((team) => {
-          const state = stateFor(team.teamId)
-          const serverText = team.review?.text ?? ""
-          const text = state.draftText ?? serverText
-          const dirty = state.draftText !== null && state.draftText !== serverText
-          const approved = Boolean(team.review?.approvedAt)
-          const edited = Boolean(team.review?.editedAt)
-
-          return (
-            <div
+        <div className="space-y-2">
+          {(teams ?? []).map((team) => (
+            <ReviewCard
               key={team.teamId}
-              className="space-y-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-[12px] font-mono font-semibold text-[#e0e0e0]">
-                    {team.projectName}
-                  </p>
-                  <p className="text-[11px] font-mono text-[#888]">{team.teamName}</p>
-                </div>
-                <span
-                  className={
-                    approved
-                      ? "rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#00ff41]"
-                      : team.review
-                        ? "rounded border border-[#ffb000]/40 bg-[#ffb000]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#ffb000]"
-                        : "rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#555]"
-                  }
-                >
-                  {approved ? "Approved" : team.review ? (edited ? "Edited draft" : "Draft") : "No review"}
-                </span>
-              </div>
-
-              {team.judgeNotes.map((note) => (
-                <div
-                  key={`${note.judgeName}-${note.text.slice(0, 24)}`}
-                  className="rounded border border-[#ffb000]/30 bg-[#ffb000]/5 p-3"
-                >
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
-                    Judge&apos;s note — {note.judgeName} (publishes as a quote under her name)
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-[11px] font-mono italic text-[#ccc]">
-                    &ldquo;{note.text}&rdquo;
-                  </p>
-                </div>
-              ))}
-
-              {team.review && (
-                <p className="text-[10px] font-mono text-[#555]">
-                  Drafted by {team.review.generatedBy}
-                  {edited ? " · edited by organiser" : ""}
-                  {" · "}last updated {new Date(team.review.updatedAt).toLocaleString()}
-                </p>
-              )}
-
-              <textarea
-                value={text}
-                onChange={(e) => patch(team.teamId, { draftText: e.target.value })}
-                rows={9}
-                placeholder="No draft yet — generate one, or write the review here yourself."
-                aria-label={`Impact Lab review for ${team.projectName}`}
-                className="w-full rounded border border-[#1e1e1e] bg-[#111] px-3 py-2 text-[12px] font-mono leading-relaxed text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
-              />
-
-              {state.confirmRegenerate && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
-                >
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    This review has been edited or approved — your words, not a draft.
-                    Regenerating replaces them and clears approval. Press
-                    &ldquo;Regenerate anyway&rdquo; only if that is what you want.
-                  </span>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void generateOne(team.teamId, state.confirmRegenerate)}
-                  disabled={state.busy !== null || generatingAll}
-                  className="flex items-center gap-2 rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00d4ff] transition-colors hover:bg-[#00d4ff]/20 disabled:opacity-40"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {state.busy === "generate"
-                    ? "Generating…"
-                    : state.confirmRegenerate
-                      ? "Regenerate anyway"
-                      : team.review
-                        ? "Regenerate"
-                        : "Generate draft"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void save(team.teamId)}
-                  disabled={!dirty || text.trim() === "" || state.busy !== null}
-                  className="flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {state.busy === "save" ? "Saving…" : "Save"}
-                </button>
-                {team.review && (
-                  <button
-                    type="button"
-                    onClick={() => void setApproval(team.teamId, !approved)}
-                    disabled={state.busy !== null || dirty}
-                    title={dirty ? "Save your edit first, then approve what you saved." : undefined}
-                    className={
-                      approved
-                        ? "flex items-center gap-2 rounded border border-[#1e1e1e] bg-[#1a1a1a] px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#888] transition-colors hover:bg-[#222] disabled:opacity-40"
-                        : "flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
-                    }
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {state.busy === "approve"
-                      ? "Working…"
-                      : approved
-                        ? "Unapprove"
-                        : "Approve"}
-                  </button>
-                )}
-                {state.error && (
-                  <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
-                    {state.error}
-                  </span>
-                )}
-              </div>
-            </div>
-          )
-        })
+              team={team}
+              state={stateFor(team.teamId)}
+              open={openIds.has(team.teamId)}
+              generatingAll={generatingAll}
+              onToggle={() => toggleCard(team.teamId)}
+              onEdit={(value) => patch(team.teamId, { draftText: value })}
+              onGenerate={(force) => void generateOne(team.teamId, force)}
+              onSave={() => void save(team.teamId)}
+              onApprove={(approve) => void setApproval(team.teamId, approve)}
+            />
+          ))}
+        </div>
       )}
 
       <p className="flex items-start gap-2 text-[11px] font-mono text-[#888]">
         <MessageSquareText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00d4ff]" aria-hidden />
         <span>
           Reviews publish signed &ldquo;Claude Community Kenya&rdquo; with a line saying the
-          community wrote them — never as a judge&apos;s words. Favour&apos;s notes publish
-          separately, quoted under her name, exactly as she wrote them (spelling fixed).
+          community wrote them — never as a judge&apos;s words. A judge&apos;s own notes publish
+          separately, quoted under the judge&apos;s name, exactly as they wrote them (spelling
+          fixed).
         </span>
       </p>
+    </div>
+  )
+}
+
+interface ReviewCardProps {
+  team: ReviewTeam
+  state: ReviewTeamState
+  open: boolean
+  /** A bulk generate is running — per-card generate is paused meanwhile. */
+  generatingAll: boolean
+  onToggle: () => void
+  onEdit: (text: string) => void
+  onGenerate: (force: boolean) => void
+  onSave: () => void
+  onApprove: (approve: boolean) => void
+}
+
+/**
+ * The Claude-orange rule along a card's top edge: a hairline that fades to
+ * nothing at both ends, brighter with a soft glow while the card is open.
+ * Sits exactly on the card's border so it reads as the divider between
+ * cards rather than a second line. Decorative only.
+ */
+function ReviewDivider({ active }: { active: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute inset-x-3 -top-px h-px bg-[linear-gradient(90deg,transparent,#D97757_22%,#D97757_78%,transparent)] transition-[opacity,box-shadow] duration-300 motion-reduce:transition-none",
+        active ? "opacity-100 shadow-[0_0_12px_1px_rgba(217,119,87,0.45)]" : "opacity-45"
+      )}
+    />
+  )
+}
+
+/**
+ * One team's review as a collapsible card.
+ *
+ * The header is a single button (project name, table + track, a one-line
+ * excerpt, status) so the whole row is the toggle and keyboard users get
+ * aria-expanded for free. The body animates open on grid-template-rows —
+ * no measuring, no jank — and is `inert` while closed so a hidden textarea
+ * can never receive focus or a Tab stop. All review actions (generate,
+ * save, approve) are the parent's; this component only renders and reports.
+ */
+function ReviewCard({
+  team,
+  state,
+  open,
+  generatingAll,
+  onToggle,
+  onEdit,
+  onGenerate,
+  onSave,
+  onApprove,
+}: ReviewCardProps) {
+  const serverText = team.review?.text ?? ""
+  const text = state.draftText ?? serverText
+  const dirty = state.draftText !== null && state.draftText !== serverText
+  const approved = Boolean(team.review?.approvedAt)
+  const edited = Boolean(team.review?.editedAt)
+  const excerpt = reviewExcerpt(text)
+  const bodyId = `review-${team.teamId}`
+  const headingId = `review-${team.teamId}-heading`
+
+  return (
+    <div
+      className={cn(
+        "relative rounded-lg border bg-[#0d0d0d] transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none",
+        open
+          ? "border-[#D97757]/30 shadow-[0_0_36px_-14px_rgba(217,119,87,0.55)]"
+          : "border-[#1e1e1e] hover:border-[#2a2a2a]"
+      )}
+    >
+      <ReviewDivider active={open} />
+
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={bodyId}
+        className={cn(
+          "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-t-lg px-4 py-3 text-left md:grid-cols-[auto_minmax(0,auto)_minmax(0,1fr)_auto]",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#D97757]/60",
+          open && "bg-[linear-gradient(180deg,rgba(217,119,87,0.06),transparent_85%)]"
+        )}
+      >
+        <ChevronRight
+          aria-hidden
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-transform duration-300 motion-reduce:transition-none",
+            open ? "rotate-90 text-[#D97757]" : "text-[#555]"
+          )}
+        />
+        <span className="min-w-0">
+          <span
+            id={headingId}
+            className="block truncate text-[12px] font-mono font-semibold text-[#e0e0e0]"
+          >
+            {team.projectName}
+          </span>
+          <span className="block truncate text-[11px] font-mono text-[#888]">{team.teamName}</span>
+        </span>
+        <span
+          aria-hidden={open}
+          className={cn(
+            "hidden min-w-0 truncate text-[11px] font-mono transition-opacity duration-200 motion-reduce:transition-none md:block",
+            excerpt ? "text-[#666]" : "text-[#444]",
+            open ? "opacity-0" : "opacity-100"
+          )}
+        >
+          {excerpt || "No draft yet"}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {dirty && (
+            <span className="rounded border border-[#ffb000]/40 bg-[#ffb000]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
+              Unsaved
+            </span>
+          )}
+          <span
+            className={
+              approved
+                ? "rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#00ff41]"
+                : team.review
+                  ? "rounded border border-[#ffb000]/40 bg-[#ffb000]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#ffb000]"
+                  : "rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#555]"
+            }
+          >
+            {approved ? "Approved" : team.review ? (edited ? "Edited draft" : "Draft") : "No review"}
+          </span>
+        </span>
+      </button>
+
+      <div
+        id={bodyId}
+        role="region"
+        aria-labelledby={headingId}
+        inert={!open}
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="space-y-3 px-4 pb-4 pt-1">
+            {team.judgeNotes.map((note) => (
+              <div
+                key={`${note.judgeName}-${note.text.slice(0, 24)}`}
+                className="rounded border border-[#ffb000]/30 bg-[#ffb000]/5 p-3"
+              >
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
+                  Judge&apos;s note — {note.judgeName} (publishes as a quote under the judge&apos;s
+                  name)
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[11px] font-mono italic text-[#ccc]">
+                  &ldquo;{note.text}&rdquo;
+                </p>
+              </div>
+            ))}
+
+            {team.review && (
+              <p className="text-[10px] font-mono text-[#555]">
+                Drafted by {team.review.generatedBy}
+                {edited ? " · edited by organiser" : ""}
+                {" · "}last updated {new Date(team.review.updatedAt).toLocaleString()}
+              </p>
+            )}
+
+            <textarea
+              value={text}
+              onChange={(e) => onEdit(e.target.value)}
+              rows={9}
+              placeholder="No draft yet — generate one, or write the review here yourself."
+              aria-label={`Impact Lab review for ${team.projectName}`}
+              className="w-full rounded border border-[#1e1e1e] bg-[#111] px-3 py-2 text-[12px] font-mono leading-relaxed text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+            />
+
+            {state.confirmRegenerate && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3 text-[11px] font-mono text-[#ffb000]"
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  This review has been edited or approved — your words, not a draft.
+                  Regenerating replaces them and clears approval. Press
+                  &ldquo;Regenerate anyway&rdquo; only if that is what you want.
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onGenerate(state.confirmRegenerate)}
+                disabled={state.busy !== null || generatingAll}
+                className="flex items-center gap-2 rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00d4ff] transition-colors hover:bg-[#00d4ff]/20 disabled:opacity-40"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {state.busy === "generate"
+                  ? "Generating…"
+                  : state.confirmRegenerate
+                    ? "Regenerate anyway"
+                    : team.review
+                      ? "Regenerate"
+                      : "Generate draft"}
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={!dirty || text.trim() === "" || state.busy !== null}
+                className="flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {state.busy === "save" ? "Saving…" : "Save"}
+              </button>
+              {team.review && (
+                <button
+                  type="button"
+                  onClick={() => onApprove(!approved)}
+                  disabled={state.busy !== null || dirty}
+                  title={dirty ? "Save your edit first, then approve what you saved." : undefined}
+                  className={
+                    approved
+                      ? "flex items-center gap-2 rounded border border-[#1e1e1e] bg-[#1a1a1a] px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#888] transition-colors hover:bg-[#222] disabled:opacity-40"
+                      : "flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+                  }
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {state.busy === "approve"
+                    ? "Working…"
+                    : approved
+                      ? "Unapprove"
+                      : "Approve"}
+                </button>
+              )}
+              {state.error && (
+                <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+                  {state.error}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
