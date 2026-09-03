@@ -5,11 +5,12 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { isResultsSnapshot } from "@/lib/impact-lab/results"
 import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { totalOutOf, type JudgingRubric } from "@/lib/impact-lab/judging"
+import { placementFor, resultCardUrl, type Placement } from "@/lib/impact-lab/result-card"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailItem } from "@/lib/email"
 
@@ -75,8 +76,23 @@ const bodySchema = z.object({
  * any rubric.
  */
 function sampleCard(rubric: JudgingRubric) {
+  // A fabricated placing to match the fabricated card: mid-table in a track
+  // that does not exist, so the test send exercises the everyday variant
+  // without ever naming a real team's position. The podium variants are
+  // checked per real team through the admin preview (`preview-email`).
+  const placement: Placement = {
+    kind: "ranked",
+    track: "Sample Track",
+    position: 4,
+    of: 7,
+    overallRank: 4,
+    announced: false,
+  }
   return {
     projectName: "Sample Project (test preview — not a real team)",
+    teamName: "Sample Team",
+    table: 12,
+    placement,
     rank: 4,
     criterionAverages: Object.fromEntries(
       rubric.criteria.map((c) => [c.key, Math.round((c.min + (c.max - c.min) * 0.8) * 10) / 10])
@@ -184,14 +200,20 @@ export async function POST(request: NextRequest) {
   // this cohort were scored against its own rubric, and every email below
   // must quote them in the same units.
   const rubric = await resolveRubric(cohort)
+  // The event's display name heads every variant's hero and subject line.
+  const event = await getEventByCohort(cohort)
+  const eventName = event?.name ?? "Impact Lab"
 
   const dashboardUrl = `${APP_URL}/dashboard/impact-lab`
 
   // ── Test send: real winners, fabricated "your team" card, no DB rows touched
   if (parsed.data.testEmail) {
+    // No `shareUrl`: the sample team has no card, and a share button that
+    // 404s in a test send would be worse than none.
     const built = impactLabResultsEmail({
       fullName: "there",
       ...sampleCard(rubric),
+      eventName,
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
       dashboardUrl,
@@ -288,6 +310,13 @@ export async function POST(request: NextRequest) {
     const built = impactLabResultsEmail({
       fullName: nameById.get(row.participantId) ?? "there",
       projectName: rankingRow.projectName,
+      teamName: team.name,
+      table: team.table ?? null,
+      eventName,
+      // Read off the frozen snapshot, like everything else in this email —
+      // the same rows the leaderboard groups by track.
+      placement: placementFor(run.snapshot, team.id),
+      shareUrl: resultCardUrl(APP_URL, run.runId, team.id),
       rank: card.rank,
       criterionAverages: card.criterionAverages,
       low: card.low,

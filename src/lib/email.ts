@@ -12,6 +12,12 @@ import {
   REVIEW_SIGNATURE,
   type TeamJudgeNote,
 } from "@/lib/impact-lab/reviews"
+import {
+  isPodium,
+  placementTitle,
+  PODIUM_DEPTH,
+  type Placement,
+} from "@/lib/impact-lab/result-card"
 
 // Lazy initialization — avoids build-time error when env var is not set
 let _resend: Resend | null = null
@@ -534,6 +540,32 @@ function resultsOrdinal(rank: number): string {
 }
 
 /**
+ * Karibu, as email clients can render it. Same hex values as the tokens in
+ * globals.css — the email cannot read CSS variables, so they are repeated
+ * here by value with the token name alongside.
+ */
+const KARIBU = {
+  paper: "#F4EEE3",
+  card: "#FBF7F0",
+  ink: "#23201B",
+  inkSoft: "#5C5349",
+  inkMuted: "#6A6155",
+  clay: "#A84E2D",
+  clayDark: "#8F4023",
+  sand: "#E4DAC8",
+  /** --panel-dark: stays dark in both themes, never inverted. */
+  panelDark: "#23201B",
+  onPanelDark: "#E9E0D2",
+  onPanelDarkMuted: "#B4A997",
+  /** Eyebrow text on the clay hero — passes 4.5:1 on clay. */
+  onClayMuted: "#F8E4DA",
+} as const
+
+/** Fraunces where installed (Apple Mail, iOS), Georgia everywhere else. */
+const DISPLAY_FONT = "Fraunces, Georgia, 'Times New Roman', serif"
+const BODY_FONT = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+
+/**
  * Impact Lab: the results email. Nine of the 93 recipients never created a
  * dashboard account, so this has to stand alone — the winners and the
  * recipient's own scorecard are written out in full in the body, not just
@@ -542,21 +574,51 @@ function resultsOrdinal(rank: number): string {
  * from live scores or submissions, because live data moves after publication
  * and what 93 people are told must not move with it.
  *
+ * Three variants from one template, decided by `placement` (see
+ * `placementFor` in @/lib/impact-lab/result-card):
+ *
+ * - Track winner — a clay hero panel: "Winner", the track, the project.
+ * - Runner-up / third place — the same hero on the dark panel colour.
+ * - Everyone else — a light hero that reads as achievement: "You built
+ *   <project> at <event>". No placing is printed in the hero; the team's
+ *   own position within its track sits on its private scores block instead.
+ *
+ * Below the hero every variant carries the same blocks in the same order:
+ * the team's scores (rubric-driven labels, the low/high range across
+ * judges), judge notes quoted under the judge's name, the approved
+ * community review with its provenance line, the winners, and the calls to
+ * action — share the public card, open the dashboard.
+ *
  * Table-based layout with inline styles throughout — email clients ignore
  * `<style>` blocks and Tailwind entirely, and this is read on phones and in
  * Outlook as often as in a browser. No web fonts, no external images. Every
  * text element sets its own `color`, and every box that a client's dark-mode
- * remapping could independently repaint (the two wrapper tables and the
- * content cell they wrap) sets its own `background-color` rather than
- * relying on inheritance — some clients decide light/dark per node from its
- * own inline style, not from the resolved/inherited value.
+ * remapping could independently repaint (the wrapper tables, the hero cell,
+ * the content cell) sets its own `background-color` (and `bgcolor`, for
+ * Outlook) rather than relying on inheritance — some clients decide
+ * light/dark per node from its own inline style, not from the resolved or
+ * inherited value.
  *
  * No judge counts and no deadline language anywhere in this template — those
- * are the two things Impact Lab copy must never say.
+ * are the two things Impact Lab copy must never say. No other team's score
+ * appears anywhere: the winners are listed by name and placing only.
  */
 export function impactLabResultsEmail(data: {
   fullName: string
   projectName: string
+  /** The team's internal name ("Kilimo 3"), shown beside its table. */
+  teamName: string
+  /** The venue table the team built at, or null on runs saved before tables existed. */
+  table: number | null
+  /** The event's display name, e.g. "Impact Lab: AI Mashinani 02". */
+  eventName: string
+  /**
+   * Where the team finished within its track — drives the hero variant and
+   * the subject line. `null` is tolerated (renders the "built" variant) so a
+   * legacy caller cannot crash a send, but every real caller has one.
+   */
+  placement: Placement | null
+  /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
   criterionAverages: Record<string, number>
   low: number | null
@@ -565,6 +627,12 @@ export function impactLabResultsEmail(data: {
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
   dashboardUrl: string
+  /**
+   * The team's public result card. Omitted when no signing secret is
+   * configured (see `resultCardSecret`) and for the fabricated test send —
+   * a dead share link is worse than none, so the block disappears entirely.
+   */
+  shareUrl?: string | null
   /**
    * Notes a judge actually wrote on this team's scoresheet, quoted under that
    * judge's name (already corrected via presentableJudgeNote — never pass raw
@@ -586,6 +654,80 @@ export function impactLabResultsEmail(data: {
    */
   rubric: JudgingRubric
 }): { subject: string; html: string } {
+  const podium = isPodium(data.placement)
+  const ranked = data.placement?.kind === "ranked" ? data.placement : null
+  const track = data.placement?.track ?? null
+
+  // ── Subject ──────────────────────────────────────────────────────────────
+  let subject: string
+  if (ranked && ranked.position === 1) subject = `You won the ${ranked.track} track at ${data.eventName}`
+  else if (ranked && ranked.position === 2) subject = `Runner-up in ${ranked.track} at ${data.eventName}`
+  else if (ranked && ranked.position === 3) subject = `Third place in ${ranked.track} at ${data.eventName}`
+  else subject = `Your ${data.eventName} results: ${data.projectName}`
+
+  // ── Hero ─────────────────────────────────────────────────────────────────
+  const tableLine = [
+    data.table !== null ? `Table ${data.table}` : null,
+    data.teamName,
+  ]
+    .filter((s): s is string => Boolean(s))
+    .map(esc)
+    .join(" &middot; ")
+
+  let hero: string
+  if (podium && ranked) {
+    const isWinner = ranked.position === 1
+    const bg = isWinner ? KARIBU.clay : KARIBU.panelDark
+    const fg = isWinner ? KARIBU.card : KARIBU.onPanelDark
+    const muted = isWinner ? KARIBU.onClayMuted : KARIBU.onPanelDarkMuted
+    const rule = isWinner ? "rgba(251,247,240,0.35)" : "rgba(233,224,210,0.22)"
+    // Its own line rather than inline with the headline: "Runner-up" plus a
+    // pill does not fit a 360px screen at 46px.
+    const overallPill = ranked.announced
+      ? `<p style="margin:14px 0 0;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${rule};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${fg};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
+      : ""
+    hero = `
+        <tr>
+          <td bgcolor="${bg}" style="background-color:${bg};padding:36px 32px 32px;border-radius:14px 14px 0 0;">
+            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${muted};">${esc(ranked.track)}</p>
+            <p style="margin:0;font-family:${DISPLAY_FONT};font-size:46px;line-height:1;font-weight:600;letter-spacing:-0.02em;color:${fg};">${esc(placementTitle(ranked))}</p>
+            ${overallPill}
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 18px;">
+              <tr><td style="width:44px;height:2px;background-color:${rule};font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+            <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${fg};">${esc(data.projectName)}</p>
+            <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${muted};">${tableLine}</p>
+          </td>
+        </tr>`
+  } else {
+    const meta = [track ? `${esc(track)} track` : null, tableLine || null]
+      .filter((s): s is string => Boolean(s))
+      .join(" &middot; ")
+    hero = `
+        <tr>
+          <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:36px 32px 28px;border-bottom:1px solid ${KARIBU.sand};border-radius:14px 14px 0 0;">
+            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${KARIBU.clay};">You built this</p>
+            <p style="margin:0 0 10px;font-family:${DISPLAY_FONT};font-size:34px;line-height:1.1;font-weight:600;letter-spacing:-0.02em;color:${KARIBU.ink};">${esc(data.projectName)}</p>
+            <p style="margin:0 0 16px;font-family:${DISPLAY_FONT};font-size:18px;line-height:1.35;font-style:italic;color:${KARIBU.inkSoft};">at ${esc(data.eventName)}</p>
+            ${meta ? `<p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${KARIBU.inkMuted};">${meta}</p>` : ""}
+          </td>
+        </tr>`
+  }
+
+  // ── Lead sentence ────────────────────────────────────────────────────────
+  // Careful with attribution: a track winner may have been decided by score
+  // rather than by the panel, so the lead states the placing and nothing
+  // about who decided it. The explanatory note lower down covers that.
+  let lead: string
+  if (ranked && ranked.position === 1) {
+    lead = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+  } else if (ranked && ranked.position <= PODIUM_DEPTH) {
+    lead = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+  } else {
+    lead = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day. Below is how it was scored, what the judges wrote, and the winners &mdash; and a card you can share.`
+  }
+
+  // ── Winners ──────────────────────────────────────────────────────────────
   // Publishing with zero announced winners is a legal (if unusual) state —
   // the publish panel warns rather than blocks it. Guard each block the same
   // way ResultsView.tsx does, so an empty list renders nothing rather than an
@@ -594,14 +736,14 @@ export function impactLabResultsEmail(data: {
   const winnersSection =
     data.overall.length > 0
       ? `
-            <p style="margin:0 0 8px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;">Winners</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
+            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${KARIBU.clay};">Overall winners</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
               ${data.overall
                 .map(
                   (w) => `
               <tr>
-                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#ffb000;white-space:nowrap;width:56px;">${esc(resultsOrdinal(w.rank))}</td>
-                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#e0e0e0;">${esc(w.projectName)}</td>
+                <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${DISPLAY_FONT};font-size:15px;color:${KARIBU.clay};white-space:nowrap;width:52px;vertical-align:top;">${esc(resultsOrdinal(w.rank))}</td>
+                <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:14px;line-height:1.4;color:${KARIBU.ink};">${esc(w.projectName)}</td>
               </tr>`
                 )
                 .join("")}
@@ -611,14 +753,14 @@ export function impactLabResultsEmail(data: {
   const trackSection =
     data.trackWinners.length > 0
       ? `
-            <p style="margin:0 0 8px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;">Track winners</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${KARIBU.clay};">Track winners</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
               ${data.trackWinners
                 .map(
                   (w) => `
               <tr>
-                <td style="padding:6px 0;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#00d4ff;white-space:nowrap;width:150px;">${esc(w.track)}</td>
-                <td style="padding:6px 0;font-family:monospace,monospace;font-size:13px;color:#e0e0e0;">${esc(w.projectName)}</td>
+                <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:12px;line-height:1.4;color:${KARIBU.inkMuted};vertical-align:top;width:170px;">${esc(w.track)}</td>
+                <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:14px;line-height:1.4;color:${KARIBU.ink};">${esc(w.projectName)}</td>
               </tr>`
                 )
                 .join("")}
@@ -636,57 +778,31 @@ export function impactLabResultsEmail(data: {
 
   const note =
     data.overall.length > 0
-      ? `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together — that conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed.`
-      : `Every project was ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you're entitled to see how your own work was assessed.`
+      ? `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together &mdash; that conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
+      : `Every project was ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
 
+  // ── Scores ───────────────────────────────────────────────────────────────
   const criterionRows = data.rubric.criteria.map((criterion) => {
     const value = data.criterionAverages[criterion.key]
-    const shown = typeof value === "number" ? `${value.toFixed(1)} / ${criterion.max}` : "—"
+    const shown = typeof value === "number" ? `${value.toFixed(1)} / ${criterion.max}` : "&mdash;"
     return `
         <tr>
-          <td style="padding:5px 0;font-family:monospace,monospace;font-size:12px;color:#888;">${esc(criterion.label)}</td>
-          <td style="padding:5px 0;font-family:monospace,monospace;font-size:12px;color:#e0e0e0;text-align:right;white-space:nowrap;">${shown}</td>
+          <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:13px;color:${KARIBU.inkSoft};">${esc(criterion.label)}</td>
+          <td style="padding:7px 0;border-bottom:1px solid ${KARIBU.sand};font-family:${DISPLAY_FONT};font-size:15px;color:${KARIBU.ink};text-align:right;white-space:nowrap;">${shown}</td>
         </tr>`
   }).join("")
 
   const rangeRow =
     data.low !== null && data.high !== null
-      ? `<p style="margin:10px 0 0;font-family:monospace,monospace;font-size:11px;color:#888;">Score range across judges: ${data.low.toFixed(1)}–${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
+      ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${KARIBU.inkMuted};">Score range across judges: ${data.low.toFixed(1)}&ndash;${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
-  const judgeNotesSection = (data.judgeNotes ?? [])
-    .map(
-      (note) => `
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px;border:1px solid #3a2d00;border-radius:6px;">
-              <tr>
-                <td style="padding:14px 16px;">
-                  <p style="margin:0 0 6px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#ffb000;">Judge&#x27;s note — ${esc(note.judgeName)}</p>
-                  <p style="margin:0;font-family:monospace,monospace;font-size:13px;font-style:italic;line-height:1.6;color:#e0e0e0;">&ldquo;${esc(note.text).replace(/\n/g, "<br>")}&rdquo;</p>
-                </td>
-              </tr>
-            </table>`
-    )
-    .join("")
-
-  const reviewSection = data.communityReview
-    ? `
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border:1px solid #1e1e1e;border-radius:6px;">
-              <tr>
-                <td style="padding:16px 18px;">
-                  <p style="margin:0 0 10px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#00d4ff;">Impact Lab review</p>
-                  ${data.communityReview
-                    .split(/\n\n+/)
-                    .map(
-                      (paragraph) =>
-                        `<p style="margin:0 0 10px;font-family:monospace,monospace;font-size:13px;line-height:1.7;color:#e0e0e0;">${esc(paragraph).replace(/\n/g, "<br>")}</p>`
-                    )
-                    .join("")}
-                  <p style="margin:8px 0 0;font-family:monospace,monospace;font-size:12px;color:#e0e0e0;">— ${esc(REVIEW_SIGNATURE)}</p>
-                  <p style="margin:4px 0 0;font-family:monospace,monospace;font-size:11px;line-height:1.6;color:#888;">${esc(REVIEW_PROVENANCE)}</p>
-                </td>
-              </tr>
-            </table>`
-    : ""
+  const placingLine = [
+    `${esc(resultsOrdinal(data.rank))} overall`,
+    ranked ? `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in ${esc(ranked.track)}` : null,
+  ]
+    .filter((s): s is string => Boolean(s))
+    .join(" &middot; ")
 
   // "the demo criterion" only when this rubric actually has one keyed
   // "demo" (Impact Lab's does) — naming a criterion that does not exist
@@ -697,32 +813,15 @@ export function impactLabResultsEmail(data: {
 
   const submissionNote =
     data.basis === "submission"
-      ? `<p style="margin:0 0 14px;font-family:monospace,monospace;font-size:12px;line-height:1.6;color:#888;border:1px solid #1e1e1e;border-radius:4px;padding:10px 12px;">Your project was reviewed from your written submission against ${criteriaPhrase}. A live demo was not part of that review, which is reflected in ${demoCriterionPhrase} below.</p>`
+      ? `<p style="margin:0 0 14px;padding:10px 12px;border:1px solid ${KARIBU.sand};border-radius:8px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">Your project was reviewed from your written submission against ${criteriaPhrase}. A live demo was not part of that review, which is reflected in ${demoCriterionPhrase} below.</p>`
       : ""
 
-  const html = `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a0a;padding:24px 0;">
-  <tr>
-    <td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#0d0d0d;border:1px solid #00ff41;border-radius:8px;">
-        <tr>
-          <td style="padding:32px 28px;background-color:#0d0d0d;">
-            <p style="margin:0 0 4px;font-family:monospace,monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#00ff41;">Impact Lab: AI Mashinani</p>
-            <h1 style="margin:0 0 20px;font-family:monospace,monospace;font-size:22px;color:#e0e0e0;">Your results are in</h1>
-
-            <p style="margin:0 0 20px;font-family:monospace,monospace;font-size:14px;line-height:1.6;color:#e0e0e0;">Hi ${esc(data.fullName)},</p>
-            ${winnersSection}
-            ${trackSection}
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border:1px solid #1e1e1e;border-radius:6px;">
+  const scoresSection = `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border:1px solid ${KARIBU.sand};border-radius:10px;">
               <tr>
-                <td style="padding:18px;">
-                  <p style="margin:0 0 2px;font-family:monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#00ff41;">Your team</p>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
-                    <tr>
-                      <td style="font-family:monospace,monospace;font-size:17px;font-weight:bold;color:#e0e0e0;">${esc(data.projectName)}</td>
-                      <td style="font-family:monospace,monospace;font-size:12px;color:#888;text-align:right;white-space:nowrap;">${esc(resultsOrdinal(data.rank))} overall</td>
-                    </tr>
-                  </table>
+                <td bgcolor="${KARIBU.paper}" style="background-color:${KARIBU.paper};padding:18px 20px;border-radius:10px;">
+                  <p style="margin:0 0 4px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${KARIBU.clay};">Your scores</p>
+                  <p style="margin:0 0 12px;font-family:${DISPLAY_FONT};font-size:15px;line-height:1.4;color:${KARIBU.ink};">${placingLine}</p>
                   ${submissionNote}
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     ${criterionRows}
@@ -730,29 +829,118 @@ export function impactLabResultsEmail(data: {
                   ${rangeRow}
                 </td>
               </tr>
-            </table>
-            ${judgeNotesSection}
-            ${reviewSection}
-            <p style="margin:0 0 20px;font-family:monospace,monospace;font-size:12px;line-height:1.7;color:#888;">${note}</p>
+            </table>`
 
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
+  // ── Judge notes, community review ────────────────────────────────────────
+  const judgeNotesSection = (data.judgeNotes ?? [])
+    .map(
+      (judgeNote) => `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px;">
               <tr>
-                <td style="border-radius:4px;background-color:#00ff41;">
-                  <a href="${esc(data.dashboardUrl)}" style="display:inline-block;padding:12px 24px;font-family:monospace,monospace;font-size:13px;font-weight:bold;color:#0a0a0a;text-decoration:none;">Open my dashboard →</a>
+                <td style="width:3px;background-color:${KARIBU.clay};font-size:0;line-height:0;">&nbsp;</td>
+                <td style="padding:4px 0 4px 16px;">
+                  <p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${KARIBU.clay};">Judge&#x27;s note &mdash; ${esc(judgeNote.judgeName)}</p>
+                  <p style="margin:0;font-family:${DISPLAY_FONT};font-size:16px;font-style:italic;line-height:1.55;color:${KARIBU.ink};">&ldquo;${esc(judgeNote.text).replace(/\n/g, "<br>")}&rdquo;</p>
                 </td>
               </tr>
-            </table>
-            <p style="margin:0 0 24px;font-family:monospace,monospace;font-size:11px;color:#888;">If the button doesn't work, paste this URL into your browser:<br>${esc(data.dashboardUrl)}</p>
+            </table>`
+    )
+    .join("")
 
-            <p style="margin:0;font-family:monospace,monospace;font-size:11px;color:#888;">Claude Community Kenya · ${APP_URL}</p>
+  const reviewSection = data.communityReview
+    ? `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 20px;border:1px solid ${KARIBU.sand};border-radius:10px;">
+              <tr>
+                <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:18px 20px;border-radius:10px;">
+                  <p style="margin:0 0 10px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${KARIBU.clay};">Community review</p>
+                  ${data.communityReview
+                    .split(/\n\n+/)
+                    .map(
+                      (paragraph) =>
+                        `<p style="margin:0 0 10px;font-family:${BODY_FONT};font-size:14px;line-height:1.7;color:${KARIBU.ink};">${esc(paragraph).replace(/\n/g, "<br>")}</p>`
+                    )
+                    .join("")}
+                  <p style="margin:8px 0 0;font-family:${DISPLAY_FONT};font-size:14px;color:${KARIBU.ink};">&mdash; ${esc(REVIEW_SIGNATURE)}</p>
+                  <p style="margin:4px 0 0;font-family:${BODY_FONT};font-size:11px;line-height:1.6;color:${KARIBU.inkMuted};">${esc(REVIEW_PROVENANCE)}</p>
+                </td>
+              </tr>
+            </table>`
+    : ""
+
+  // ── Calls to action ──────────────────────────────────────────────────────
+  // Stacked, one table each. Two buttons in one table row cannot wrap, and
+  // together they forced the whole email past 480px on a phone.
+  const shareButton = data.shareUrl
+    ? `
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;">
+              <tr>
+                <td bgcolor="${KARIBU.clay}" style="border-radius:8px;background-color:${KARIBU.clay};">
+                  <a href="${esc(data.shareUrl)}" style="display:inline-block;padding:13px 22px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${KARIBU.card};text-decoration:none;">Share your result</a>
+                </td>
+              </tr>
+            </table>`
+    : ""
+
+  const dashboardButton = `
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
+              <tr>
+                <td bgcolor="${KARIBU.card}" style="border-radius:8px;border:1px solid ${KARIBU.ink};background-color:${KARIBU.card};">
+                  <a href="${esc(data.dashboardUrl)}" style="display:inline-block;padding:12px 22px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${KARIBU.ink};text-decoration:none;">Open my dashboard</a>
+                </td>
+              </tr>
+            </table>`
+
+  // `word-break:break-all` on the two URL lines: an unbreakable 49-character
+  // URL was the one thing holding the whole layout wider than a phone.
+  const shareLine = data.shareUrl
+    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">Your public card shows the placing, the project and your first names &mdash; never your scores. Post it anywhere: ${esc(data.shareUrl)}</p>`
+    : ""
+
+  const html = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${KARIBU.paper}" style="background-color:${KARIBU.paper};">
+  <tr>
+    <td align="center" style="padding:28px 12px;">
+      <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${KARIBU.card}" style="max-width:600px;width:100%;background-color:${KARIBU.card};border:1px solid ${KARIBU.sand};border-radius:14px;">
+        <tr>
+          <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:18px 32px 14px;border-radius:14px 14px 0 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-family:${DISPLAY_FONT};font-size:15px;font-weight:600;color:${KARIBU.ink};">Claude Community Kenya</td>
+                <td style="font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${KARIBU.inkMuted};text-align:right;">Results</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ${hero}
+        <tr>
+          <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:28px 32px 32px;border-radius:0 0 14px 14px;">
+            <p style="margin:0 0 12px;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${KARIBU.ink};">Hi ${esc(data.fullName)},</p>
+            <p style="margin:0 0 24px;font-family:${BODY_FONT};font-size:15px;line-height:1.65;color:${KARIBU.ink};">${lead}</p>
+
+            ${scoresSection}
+            ${judgeNotesSection}
+            ${reviewSection}
+            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.7;color:${KARIBU.inkMuted};">${note}</p>
+
+            ${winnersSection}
+            ${trackSection}
+
+            ${shareButton}
+            ${dashboardButton}
+            ${shareLine}
+            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">If a button doesn&#x27;t work, paste this URL into your browser: ${esc(data.dashboardUrl)}</p>
+
+            <p style="margin:0;padding-top:16px;border-top:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:11px;color:${KARIBU.inkMuted};">${esc(data.eventName)} &middot; Claude Community Kenya &middot; ${APP_URL}</p>
           </td>
         </tr>
       </table>
+      <!--[if mso]></td></tr></table><![endif]-->
     </td>
   </tr>
 </table>`
 
-  return { subject: "Impact Lab: your results are in", html }
+  return { subject, html }
 }
 
 export async function sendApplicationReviewEmail(data: {

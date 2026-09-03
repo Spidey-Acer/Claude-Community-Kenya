@@ -5,6 +5,7 @@ import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-sto
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
+import { placementFor, resultCardUrl } from "@/lib/impact-lab/result-card"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { APP_URL, impactLabResultsEmail } from "@/lib/email"
 
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest) {
   let snapshot: ResultsSnapshot
   let teamName: string
   let recipientCount: number
+  let table: number | null
 
   if (published) {
     // isResultsSnapshot already narrowed the shape above; Prisma's JsonValue
@@ -117,6 +119,7 @@ export async function GET(request: NextRequest) {
       )
     }
     teamName = team.name
+    table = team.table ?? null
     recipientCount = team.memberIds.length
   } else {
     const { input: inputBase, teams, submittedTeamIds, scoredTeamIds } =
@@ -155,6 +158,7 @@ export async function GET(request: NextRequest) {
     }
     snapshot = buildSnapshot(input)
     teamName = team.name
+    table = team.table ?? null
     recipientCount = team.memberIds.length
   }
 
@@ -182,6 +186,14 @@ export async function GET(request: NextRequest) {
     // makes for SAMPLE_CARD.
     fullName: "there",
     projectName: rankingRow.projectName,
+    teamName,
+    table,
+    eventName: event?.name ?? "Impact Lab",
+    placement: placementFor(snapshot, teamId),
+    // The real card URL, so the organiser can click through from the preview.
+    // Before publish the page 404s (the run is not published yet) — the link
+    // is still the one the send will carry.
+    shareUrl: resultCardUrl(APP_URL, run.id, teamId),
     rank: card.rank,
     criterionAverages: card.criterionAverages,
     low: card.low,
