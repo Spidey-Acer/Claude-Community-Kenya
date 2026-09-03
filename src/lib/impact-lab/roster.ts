@@ -227,8 +227,19 @@ function capitaliseKey(trackKey: string): string {
   return trackKey.charAt(0).toUpperCase() + trackKey.slice(1)
 }
 
+/** Options for {@link renameTeamsByTable}. */
+export interface RenameTeamsByTableOptions {
+  /**
+   * When true, name every numbered team just "Table <n>" — no track suffix,
+   * regardless of `trackKey`. For runs where the track label was assigned
+   * wrong and organisers want the table number without a misleading label.
+   */
+  tableOnly?: boolean
+}
+
 /**
- * Rename every numbered team to "Table <n> · <track label>".
+ * Rename every numbered team to "Table <n> · <track label>" (or, with
+ * `options.tableOnly`, just "Table <n>" with no track suffix at all).
  *
  * At the venue a team is called to the front by its table, and a judge is sent
  * to one over a microphone the same way — so the table number, not a generated
@@ -238,21 +249,32 @@ function capitaliseKey(trackKey: string): string {
  *
  * A team whose `trackKey` has no matching event track falls back to the key
  * capitalised, and a team with no track at all is just "Table <n>" — a missing
- * label must not produce "Table 4 · undefined" on a screen judges read.
+ * label must not produce "Table 4 · undefined" on a screen judges read. With
+ * `tableOnly`, the track lookup is skipped entirely — every numbered team is
+ * just "Table <n>".
  *
  * Pure: the caller owns reading and writing the run row, and the lock.
  *
  * @param teams The run's frozen teams.
  * @param tracks The event's declared tracks, for resolving a key to its label.
+ * @param options `tableOnly` drops the track suffix for every numbered team.
  */
-export function renameTeamsByTable(teams: Team[], tracks: Track[]): RenameOutcome {
+export function renameTeamsByTable(
+  teams: Team[],
+  tracks: Track[],
+  options: RenameTeamsByTableOptions = {}
+): RenameOutcome {
   const labelByKey = new Map(tracks.map((track) => [track.key, track.label]))
 
   let renamed = 0
   const nextTeams = teams.map((team) => {
     if (typeof team.table !== "number") return team
 
-    const label = team.trackKey ? labelByKey.get(team.trackKey) ?? capitaliseKey(team.trackKey) : null
+    const label = options.tableOnly
+      ? null
+      : team.trackKey
+        ? labelByKey.get(team.trackKey) ?? capitaliseKey(team.trackKey)
+        : null
     const name = label ? `Table ${team.table} · ${label}` : `Table ${team.table}`
     if (name === team.name) return team
 
