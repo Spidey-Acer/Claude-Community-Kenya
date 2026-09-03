@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { SITE_CONFIG } from "@/lib/constants"
 import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
-import { resultCardPath, type PublicResultCard } from "@/lib/impact-lab/result-card"
+import { cardStyleForTitle, resultCardPath, type PublicResultCard } from "@/lib/impact-lab/result-card"
 
 /**
  * A team's public result card — the page a participant posts.
@@ -77,59 +77,97 @@ export default async function ResultCardPage({ params }: Params) {
 
   const url = `${SITE_CONFIG.url}${resultCardPath(slug)}`
   const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
-  const isWinner = card.title === "Winner"
   const isPodium = card.title !== "Built"
+  const style = cardStyleForTitle(card.title)
 
-  // Winner: clay. Runner-up / third: the non-inverting dark panel. Built:
-  // paper-card with a sand rule. Same three treatments the email uses.
-  //
-  // The winner panel uses literal hex, not `bg-clay text-paper-card`: in
-  // the adaptive dark theme `--paper-card` inverts to near-black while
-  // `--clay` stays orange, which painted dark ink on clay and lost the
-  // members line entirely. A poster must look the same in both themes, so
-  // it takes the email's exact colours and never the theme's.
-  const panelClass = isWinner
-    ? "bg-[#A84E2D] text-[#FBF7F0]"
-    : isPodium
-      ? "bg-panel-dark text-on-panel-dark"
-      : "bg-paper-card text-ink border border-sand"
-  const mutedClass = isWinner
-    ? "text-[#F8E4DA]"
-    : isPodium
-      ? "text-on-panel-dark-muted"
-      : "text-ink-muted"
-  const ruleClass = isWinner ? "bg-[#FBF7F0]/40" : isPodium ? "bg-on-panel-dark/25" : "bg-clay"
+  // Dark premium, fixed in both themes: literal hex everywhere, never a
+  // Karibu theme token. `--paper`/`--ink`/`--clay` all re-define themselves
+  // under the adaptive dark theme, which would paint this panel wrong for
+  // half of all visitors. The four branches below hardcode the same hex
+  // codes as CARD_GOLD / CARD_GRAPHITE / CARD_BRONZE / CARD_DARK in
+  // result-card.ts — Tailwind can only see a literal arbitrary-value class,
+  // not one built from an imported constant, so keep the two in sync by
+  // hand if the palette changes.
+  const panelClass =
+    style.kind === "winner"
+      ? "bg-[linear-gradient(165deg,#B8860B_0%,#D4AF37_55%,#F0D77A_100%)]"
+      : style.kind === "runner-up"
+        ? "bg-gradient-to-b from-[#2A2A2E] to-[#3A3A40]"
+        : style.kind === "third"
+          ? "bg-gradient-to-b from-[#4E2A14] to-[#8C5A2B]"
+          : "bg-[#1E1B15] border-l-4 border-[#D97757]"
+  const inkClass = style.kind === "winner" ? "text-[#16140F]" : "text-[#F4EEE3]"
+  const mutedClass = style.kind === "winner" ? "text-[#16140F]/70" : "text-[#B8AE9C]"
+  const eyebrowClass = "text-[#D97757]"
+  const ruleClass = "bg-[#D97757]"
+  const pillClass =
+    style.kind === "winner"
+      ? "border-[#D97757]/50 text-[#D97757]"
+      : style.kind === "runner-up"
+        ? "border-[#C0C0C8]/50 text-[#C0C0C8]"
+        : ""
+  // The winner panel trades the shared hairline border for a translucent
+  // gold inner border, plus a faint top-left radial highlight — richer than
+  // a flat gradient without breaking the printable-poster flatness Satori
+  // needs on the OG side.
+  const borderClass = style.kind === "winner" ? "border border-transparent" : "border border-[#2A261E]"
+  const shadowClass =
+    style.kind === "winner"
+      ? "shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(243,223,160,0.45)]"
+      : "shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]"
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-12 sm:py-20">
+    <main className="min-h-screen bg-[#0B0A09] px-4 py-12 sm:py-20">
       <div className="mx-auto max-w-2xl">
-        <p className="mb-6 text-center font-sans text-[11px] uppercase tracking-[0.2em] text-ink-muted">
+        <p className="mb-6 text-center font-sans text-[11px] uppercase tracking-[0.2em] text-[#7C7365]">
           {card.eventName}
-          {card.eventDates ? <span className="text-ink-faint"> &middot; {card.eventDates}</span> : null}
+          {card.eventDates ? <span className="text-[#7C7365]"> &middot; {card.eventDates}</span> : null}
         </p>
 
         <article
-          className={`overflow-hidden rounded-2xl px-7 py-10 shadow-[0_24px_60px_-30px_rgba(35,32,27,0.35)] sm:px-12 sm:py-14 ${panelClass}`}
+          className={`relative flex flex-col items-center overflow-hidden rounded-2xl px-7 py-10 text-center sm:px-12 sm:py-14 ${panelClass} ${inkClass} ${borderClass} ${shadowClass}`}
           aria-label={headline(card)}
         >
-          <p className={`font-sans text-[11px] uppercase tracking-[0.2em] ${mutedClass}`}>
-            {isPodium ? card.track : "You built this"}
+          {style.kind === "winner" ? (
+            <>
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.10),transparent_60%)]"
+                aria-hidden="true"
+              />
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-[#F3DFA0]" aria-hidden="true" />
+            </>
+          ) : null}
+
+          <p className={`font-sans text-[11px] uppercase tracking-[0.2em] ${eyebrowClass}`}>
+            {isPodium ? card.track : `Built at ${card.eventName}`}
           </p>
 
-          <h1 className="mt-4 text-[clamp(2.6rem,9vw,4.5rem)] font-semibold leading-[0.95] tracking-tight">
+          {/* The placement word: never lets "Runner-up" or "Third place" wrap
+              or break at their hyphen/space onto a second line, at any width
+              down to a 320px mobile floor. */}
+          <h1
+            className={
+              isPodium
+                ? "mt-4 whitespace-nowrap font-serif text-[40px] font-bold leading-[0.95] tracking-[-0.01em] sm:text-[64px]"
+                : "mt-4 text-[clamp(2.2rem,7vw,3.5rem)] font-serif font-bold leading-[0.95] tracking-tight"
+            }
+          >
             {isPodium ? card.title : card.projectName}
           </h1>
+
+          {style.pill ? (
+            <span
+              className={`mt-3 inline-flex shrink-0 items-center rounded-full border px-3 py-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] ${pillClass}`}
+            >
+              {style.pill.label}
+            </span>
+          ) : null}
 
           <div className={`my-7 h-0.5 w-12 ${ruleClass}`} aria-hidden="true" />
 
           {isPodium ? (
             <p className="font-serif text-2xl leading-snug sm:text-3xl">{card.projectName}</p>
-          ) : (
-            <p className={`font-serif text-xl italic leading-snug sm:text-2xl ${mutedClass}`}>
-              at {card.eventName}
-              {card.track ? <span> &middot; {card.track} track</span> : null}
-            </p>
-          )}
+          ) : null}
 
           {card.members.length > 0 ? (
             <p className={`mt-6 font-sans text-sm leading-relaxed sm:text-[15px] ${mutedClass}`}>
@@ -143,19 +181,19 @@ export default async function ResultCardPage({ params }: Params) {
             href={linkedInShareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-[#A84E2D] px-6 py-3 font-sans text-sm font-semibold text-[#FBF7F0] transition-colors hover:bg-[#8F4023] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-[#D97757] px-6 py-3 font-sans text-sm font-semibold text-[#16140F] transition-colors hover:bg-[#E58A6B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D97757] sm:w-auto"
           >
             Share on LinkedIn
           </a>
           <Link
             href="/"
-            className="inline-flex w-full items-center justify-center rounded-lg border border-ink px-6 py-3 font-sans text-sm font-semibold text-ink transition-colors hover:bg-paper-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-[#F4EEE3]/30 px-6 py-3 font-sans text-sm font-semibold text-[#F4EEE3] transition-colors hover:bg-[#16140F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D97757] sm:w-auto"
           >
             Claude Community Kenya
           </Link>
         </div>
 
-        <p className="mt-8 text-center font-sans text-xs leading-relaxed text-ink-muted">
+        <p className="mt-8 text-center font-sans text-xs leading-relaxed text-[#7C7365]">
           Hosted by Claude Community Kenya in Nairobi. Scores and judges&apos; notes stay private to the team.
         </p>
       </div>

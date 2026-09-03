@@ -209,6 +209,111 @@ export function toPublicResultCard(input: {
   }
 }
 
+// ─── Dark premium palette ────────────────────────────────────────────────────
+
+/**
+ * The public card's dark premium palette — literal hex, shared by the page
+ * and its OG poster. Karibu's paper/ink tokens re-define themselves under
+ * `prefers-color-scheme` and an explicit `data-theme`; this card must look
+ * identical no matter the visitor's theme, so nothing here may read a CSS
+ * variable. `page.tsx` cannot import these values into its Tailwind
+ * arbitrary-value classes (the compiler only picks up a literal class string,
+ * not one built from a JS constant), so its class strings hardcode the same
+ * hex codes — keep the two in sync if the palette ever changes.
+ */
+export const CARD_DARK = {
+  pageBg: "#0B0A09",
+  card: "#16140F",
+  elevated: "#1E1B15",
+  hairline: "#2A261E",
+  text: "#F4EEE3",
+  muted: "#B8AE9C",
+  dim: "#7C7365",
+  orange: "#D97757",
+  orangeAlt: "#E58A6B",
+} as const
+
+/**
+ * Track-winner gold — warmer and richer than a flat mustard, on a slight
+ * diagonal (165deg, not straight down) with a highlight line at the very
+ * top, a translucent inner border, and a faint top-left radial highlight.
+ */
+export const CARD_GOLD = {
+  from: "#B8860B",
+  mid: "#D4AF37",
+  to: "#F0D77A",
+  highlight: "#F3DFA0",
+  innerBorder: "rgba(243, 223, 160, 0.45)",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#16140F",
+} as const
+
+/** Runner-up graphite, top to bottom, plus its silver pill colour. */
+export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
+
+/** Third-place bronze, top to bottom. */
+export const CARD_BRONZE = { from: "#4E2A14", to: "#8C5A2B" } as const
+
+export type CardStyle = {
+  kind: "winner" | "runner-up" | "third" | "built"
+  /** Panel background, gradient stops (2 or 3), in the direction of `angle`. */
+  gradient: readonly string[]
+  /** CSS `linear-gradient()` direction — `to bottom` except the winner's slight diagonal. */
+  angle: string
+  /** Body text colour against that panel. */
+  ink: string
+  /** Secondary text colour against that panel. */
+  muted: string
+  /** Small placement pill — `null` where the design has none (third, built). */
+  pill: { label: string; color: string } | null
+}
+
+/**
+ * The one of four visual treatments a printed placement title earns — a
+ * pure lookup over `PublicResultCard.title`, no placement arithmetic. Used
+ * by both the page and the OG poster so the two never drift.
+ */
+export function cardStyleForTitle(title: string): CardStyle {
+  if (title === "Winner") {
+    return {
+      kind: "winner",
+      gradient: [CARD_GOLD.from, CARD_GOLD.mid, CARD_GOLD.to],
+      angle: "165deg",
+      ink: CARD_GOLD.ink,
+      muted: CARD_GOLD.ink,
+      pill: { label: "1st overall", color: CARD_DARK.orange },
+    }
+  }
+  if (title === "Runner-up") {
+    return {
+      kind: "runner-up",
+      gradient: [CARD_GRAPHITE.from, CARD_GRAPHITE.to],
+      angle: "to bottom",
+      ink: CARD_DARK.text,
+      muted: CARD_DARK.muted,
+      pill: { label: "2nd overall", color: CARD_GRAPHITE.silver },
+    }
+  }
+  if (title === "Third place") {
+    return {
+      kind: "third",
+      gradient: [CARD_BRONZE.from, CARD_BRONZE.to],
+      angle: "to bottom",
+      ink: CARD_DARK.text,
+      muted: CARD_DARK.muted,
+      pill: null,
+    }
+  }
+  return {
+    kind: "built",
+    gradient: [CARD_DARK.elevated, CARD_DARK.elevated],
+    angle: "to bottom",
+    ink: CARD_DARK.text,
+    muted: CARD_DARK.muted,
+    pill: null,
+  }
+}
+
 /** Path of the public card under the site root. */
 export function resultCardPath(slug: string): string {
   return `/impact-lab/results/${slug}`
