@@ -82,17 +82,23 @@ export default async function ResultCardPage({ params }: Params) {
 
   // Winner: clay. Runner-up / third: the non-inverting dark panel. Built:
   // paper-card with a sand rule. Same three treatments the email uses.
+  //
+  // The winner panel uses literal hex, not `bg-clay text-paper-card`: in
+  // the adaptive dark theme `--paper-card` inverts to near-black while
+  // `--clay` stays orange, which painted dark ink on clay and lost the
+  // members line entirely. A poster must look the same in both themes, so
+  // it takes the email's exact colours and never the theme's.
   const panelClass = isWinner
-    ? "bg-clay text-paper-card"
+    ? "bg-[#A84E2D] text-[#FBF7F0]"
     : isPodium
       ? "bg-panel-dark text-on-panel-dark"
       : "bg-paper-card text-ink border border-sand"
   const mutedClass = isWinner
-    ? "text-paper-card/80"
+    ? "text-[#F8E4DA]"
     : isPodium
       ? "text-on-panel-dark-muted"
       : "text-ink-muted"
-  const ruleClass = isWinner ? "bg-paper-card/40" : isPodium ? "bg-on-panel-dark/25" : "bg-clay"
+  const ruleClass = isWinner ? "bg-[#FBF7F0]/40" : isPodium ? "bg-on-panel-dark/25" : "bg-clay"
 
   return (
     <main className="min-h-screen bg-paper px-4 py-12 sm:py-20">
@@ -137,7 +143,7 @@ export default async function ResultCardPage({ params }: Params) {
             href={linkedInShareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-clay px-6 py-3 font-sans text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-[#A84E2D] px-6 py-3 font-sans text-sm font-semibold text-[#FBF7F0] transition-colors hover:bg-[#8F4023] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay sm:w-auto"
           >
             Share on LinkedIn
           </a>

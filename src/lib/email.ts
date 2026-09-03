@@ -16,6 +16,8 @@ import {
   isPodium,
   placementTitle,
   PODIUM_DEPTH,
+  teamPlaceLabel,
+  titleCaseName,
   type Placement,
 } from "@/lib/impact-lab/result-card"
 
@@ -620,6 +622,14 @@ export function impactLabResultsEmail(data: {
   placement: Placement | null
   /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
+  /**
+   * True when the panel's announced placings override the score order (see
+   * `placingsFollowScores`). Decides whether the explanatory note says the
+   * placings were decided after discussion or simply follow the scores.
+   * Defaults to false: the claim of a deliberation is the one that must be
+   * earned.
+   */
+  panelOverrodeScores?: boolean
   criterionAverages: Record<string, number>
   low: number | null
   high: number | null
@@ -666,13 +676,9 @@ export function impactLabResultsEmail(data: {
   else subject = `Your ${data.eventName} results: ${data.projectName}`
 
   // ── Hero ─────────────────────────────────────────────────────────────────
-  const tableLine = [
-    data.table !== null ? `Table ${data.table}` : null,
-    data.teamName,
-  ]
-    .filter((s): s is string => Boolean(s))
-    .map(esc)
-    .join(" &middot; ")
+  // "Table 36 · Kilimo 3", or "Table 36" alone when the team is named after
+  // its table — see teamPlaceLabel. The middle dot is re-encoded for email.
+  const tableLine = esc(teamPlaceLabel(data.table, data.teamName)).replace(/ · /g, " &middot; ")
 
   let hero: string
   if (podium && ranked) {
@@ -718,14 +724,32 @@ export function impactLabResultsEmail(data: {
   // Careful with attribution: a track winner may have been decided by score
   // rather than by the panel, so the lead states the placing and nothing
   // about who decided it. The explanatory note lower down covers that.
-  let lead: string
+  // What follows the opening is assembled from what this email actually
+  // contains: most teams received no judge note, the community review is
+  // never "what the judges wrote", and the test send carries no card. A
+  // promise the body cannot keep is worse than a shorter sentence.
+  const hasJudgeNotes = (data.judgeNotes ?? []).length > 0
+  const hasWinners = data.overall.length > 0 || data.trackWinners.length > 0
+  const contents = [
+    "how your work was scored",
+    hasJudgeNotes ? "what the judges wrote" : null,
+    hasWinners ? "the winners" : null,
+    data.shareUrl ? "a card you can share" : null,
+  ].filter((s): s is string => s !== null)
+  const contentsPhrase =
+    contents.length === 1
+      ? contents[0]
+      : `${contents.slice(0, -1).join(", ")} and ${contents[contents.length - 1]}`
+
+  let opening: string
   if (ranked && ranked.position === 1) {
-    lead = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+    opening = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track.`
   } else if (ranked && ranked.position <= PODIUM_DEPTH) {
-    lead = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track. Below is how your work was scored, what the judges wrote, and the full list of winners &mdash; and a card you can share.`
+    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track.`
   } else {
-    lead = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day. Below is how it was scored, what the judges wrote, and the winners &mdash; and a card you can share.`
+    opening = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day.`
   }
+  const lead = `${opening} Below is ${contentsPhrase}.`
 
   // ── Winners ──────────────────────────────────────────────────────────────
   // Publishing with zero announced winners is a legal (if unusual) state —
@@ -776,10 +800,17 @@ export function impactLabResultsEmail(data: {
   const criterionCount = data.rubric.criteria.length
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[criterionCount] ?? criterionCount} criteria`
 
-  const note =
-    data.overall.length > 0
-      ? `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together &mdash; that conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
-      : `Every project was ranked by score across ${criteriaPhrase} your team was judged on. Scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
+  // Only an edition whose snapshot shows the panel overriding the score
+  // order may claim a deliberation. Otherwise the placings are the scores.
+  const entitled = `Your scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
+  let note: string
+  if (data.overall.length === 0) {
+    note = `Every project was ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
+  } else if (data.panelOverrodeScores) {
+    note = `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together. That conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
+  } else {
+    note = `Placings and track winners follow the judging panel&#x27;s scores across ${criteriaPhrase} every team was judged on. ${entitled}`
+  }
 
   // ── Scores ───────────────────────────────────────────────────────────────
   const criterionRows = data.rubric.criteria.map((criterion) => {
@@ -890,10 +921,12 @@ export function impactLabResultsEmail(data: {
               </tr>
             </table>`
 
-  // `word-break:break-all` on the two URL lines: an unbreakable 49-character
-  // URL was the one thing holding the whole layout wider than a phone.
+  // `word-break:break-all` on the URL only, never the sentence around it: an
+  // unbreakable 49-character URL was the one thing holding the layout wider
+  // than a phone, and break-all on the paragraph would split the prose too.
+  const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
   const shareLine = data.shareUrl
-    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">Your public card shows the placing, the project and your first names &mdash; never your scores. Post it anywhere: ${esc(data.shareUrl)}</p>`
+    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>`
     : ""
 
   const html = `
@@ -907,7 +940,7 @@ export function impactLabResultsEmail(data: {
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="font-family:${DISPLAY_FONT};font-size:15px;font-weight:600;color:${KARIBU.ink};">Claude Community Kenya</td>
-                <td style="font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${KARIBU.inkMuted};text-align:right;">Results</td>
+                <td style="font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${KARIBU.inkMuted};text-align:right;">${esc(data.eventName)}</td>
               </tr>
             </table>
           </td>
@@ -915,7 +948,7 @@ export function impactLabResultsEmail(data: {
         ${hero}
         <tr>
           <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:28px 32px 32px;border-radius:0 0 14px 14px;">
-            <p style="margin:0 0 12px;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${KARIBU.ink};">Hi ${esc(data.fullName)},</p>
+            <p style="margin:0 0 12px;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${KARIBU.ink};">Hi ${esc(titleCaseName(data.fullName))},</p>
             <p style="margin:0 0 24px;font-family:${BODY_FONT};font-size:15px;line-height:1.65;color:${KARIBU.ink};">${lead}</p>
 
             ${scoresSection}
@@ -929,7 +962,7 @@ export function impactLabResultsEmail(data: {
             ${shareButton}
             ${dashboardButton}
             ${shareLine}
-            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};word-break:break-all;">If a button doesn&#x27;t work, paste this URL into your browser: ${esc(data.dashboardUrl)}</p>
+            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${KARIBU.inkMuted};">If a button doesn&#x27;t work, paste this URL into your browser: ${breakable(data.dashboardUrl)}</p>
 
             <p style="margin:0;padding-top:16px;border-top:1px solid ${KARIBU.sand};font-family:${BODY_FONT};font-size:11px;color:${KARIBU.inkMuted};">${esc(data.eventName)} &middot; Claude Community Kenya &middot; ${APP_URL}</p>
           </td>

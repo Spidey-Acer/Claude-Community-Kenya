@@ -9,10 +9,13 @@ import {
   looksLikeResultCardSlug,
   placementFor,
   placementTitle,
+  placingsFollowScores,
   resultCardSecret,
   resultCardSlug,
   resultCardUrl,
   shortName,
+  teamPlaceLabel,
+  titleCaseName,
   toPublicResultCard,
 } from "../result-card"
 import type { ResultsSnapshot } from "../results"
@@ -74,6 +77,39 @@ describe("placementFor", () => {
     // under a headline that names someone else.
     expect(placementFor(overridden, "e1")).toMatchObject({ position: 2, of: 3 })
     expect(placementFor(overridden, "e3")).toMatchObject({ position: 3, of: 3 })
+  })
+})
+
+describe("placingsFollowScores", () => {
+  it("is true when the announced winners are the top of the score order", () => {
+    expect(placingsFollowScores(SNAPSHOT)).toBe(true)
+  })
+
+  it("is false when the panel announced a different order than the scores", () => {
+    const overridden: ResultsSnapshot = {
+      ...SNAPSHOT,
+      overall: [
+        { rank: 1, teamId: "e1", projectName: "Mwalimu AI" },
+        { rank: 2, teamId: "k1", projectName: "Shamba Bot" },
+        { rank: 3, teamId: "k2", projectName: "Soko Link" },
+      ],
+    }
+    expect(placingsFollowScores(overridden)).toBe(false)
+  })
+
+  it("is false when an organiser assigned a track winner", () => {
+    const overridden: ResultsSnapshot = {
+      ...SNAPSHOT,
+      trackWinners: [
+        { track: "Elimu", teamId: "e2", projectName: "Darasa", basis: "organiser" },
+        { track: "Kilimo", teamId: "k1", projectName: "Shamba Bot", basis: "announced" },
+      ],
+    }
+    expect(placingsFollowScores(overridden)).toBe(false)
+  })
+
+  it("is vacuously true with no announced winners", () => {
+    expect(placingsFollowScores({ ...SNAPSHOT, overall: [] })).toBe(true)
   })
 })
 
@@ -139,7 +175,28 @@ describe("public card", () => {
     expect(shortName("Wanjiru Kamau")).toBe("Wanjiru K.")
     expect(shortName("  Brian  Otieno Odhiambo ")).toBe("Brian O.")
     expect(shortName("Cher")).toBe("Cher")
+    expect(shortName("simon")).toBe("Simon")
+    expect(shortName("jarvis otieno")).toBe("Jarvis O.")
+    expect(shortName("JOSEPH MACHARIA")).toBe("Joseph M.")
+    expect(shortName("McKenzie Adams")).toBe("McKenzie A.")
     expect(shortName("   ")).toBe("")
+  })
+
+  it("title-cases a typed full name without touching deliberate internal capitals", () => {
+    expect(titleCaseName("simon")).toBe("Simon")
+    expect(titleCaseName("JOSEPH MACHARIA")).toBe("Joseph Macharia")
+    expect(titleCaseName("  wanjiru   McHaro ")).toBe("Wanjiru McHaro")
+    expect(titleCaseName("Ian")).toBe("Ian")
+  })
+
+  it("prints the table once when the team is named after it", () => {
+    expect(teamPlaceLabel(36, "Table 36")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "table  36")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "Kilimo 3")).toBe("Table 36 · Kilimo 3")
+    expect(teamPlaceLabel(null, "Kilimo 3")).toBe("Kilimo 3")
+    expect(teamPlaceLabel(null, "Table 36")).toBe("Table 36")
+    expect(teamPlaceLabel(null, "")).toBe("")
   })
 
   it("carries placement, names and event only — nothing a snapshot scores", () => {

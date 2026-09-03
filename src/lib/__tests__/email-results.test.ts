@@ -87,6 +87,17 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("9th overall")
   })
 
+  it("prints the table once when the team is named after it", () => {
+    const { html } = build({ table: 36, teamName: "Table 36" })
+    expect(html).toContain(">Table 36</p>")
+    expect(html).not.toContain("Table 36 &middot; Table 36")
+  })
+
+  it("title-cases the greeting name as typed", () => {
+    expect(build({ fullName: "JOSEPH MACHARIA" }).html).toContain("Hi Joseph Macharia,")
+    expect(build({ fullName: "simon" }).html).toContain("Hi Simon,")
+  })
+
   it("renders no table line when the run has no tables", () => {
     const { html } = build({ table: null })
     expect(html).not.toContain("Table ")
@@ -144,6 +155,30 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("the demo criterion")
   })
 
+  it("only promises in the lead what the body contains", () => {
+    const full = build({
+      judgeNotes: [{ judgeName: "Favor Ruhiu", text: "Good." }],
+      communityReview: "A review.",
+    }).html
+    expect(full).toContain("Below is how your work was scored, what the judges wrote, the winners and a card you can share.")
+
+    const bare = build({ judgeNotes: [], communityReview: null, shareUrl: null, overall: [], trackWinners: [] }).html
+    expect(bare).toContain("Below is how your work was scored.")
+    expect(bare).not.toContain("what the judges wrote")
+    expect(bare).not.toContain("a card you can share")
+
+    // A community review is never "what the judges wrote".
+    const reviewOnly = build({ judgeNotes: [], communityReview: "A review.", shareUrl: null }).html
+    expect(reviewOnly).toContain("Below is how your work was scored and the winners.")
+    expect(reviewOnly).not.toContain("what the judges wrote")
+  })
+
+  it("breaks only the URLs, never the prose around them", () => {
+    const { html } = build()
+    expect(html).toContain(`<span style="word-break:break-all;">https://www.claudekenya.org/dashboard/impact-lab</span>`)
+    expect(html).not.toMatch(/<p[^>]*word-break/)
+  })
+
   it("drops the whole share block when no share URL is given", () => {
     const withShare = build().html
     const without = build({ shareUrl: null }).html
@@ -158,6 +193,16 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).not.toContain("<b>Bold</b>")
     expect(html).toContain("&lt;b&gt;Bold&lt;/b&gt; &amp; co")
     expect(html).toContain("Team &lt;x&gt;")
+  })
+
+  it("claims a panel deliberation only when the snapshot shows one", () => {
+    const scores = build().html
+    expect(scores).toContain("Placings and track winners follow the judging panel&#x27;s scores across the same five criteria every team was judged on.")
+    expect(scores).not.toContain("discussed the projects together")
+
+    const panel = build({ panelOverrodeScores: true }).html
+    expect(panel).toContain("decided by the judging panel after they had seen the demos and discussed the projects together. That conversation is what those placings reflect.")
+    expect(panel).not.toContain("&mdash; that conversation")
   })
 
   it("renders nothing for winners when none were announced", () => {
