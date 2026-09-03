@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og"
-import { CARD_DARK, cardStyleForTitle, type CardStyle } from "@/lib/impact-lab/result-card"
+import { CARD_DARK, CARD_GOLD, cardStyleForTitle, type CardStyle } from "@/lib/impact-lab/result-card"
 import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
 
 /**
@@ -23,9 +23,9 @@ export const alt = "Impact Lab result — Claude Community Kenya"
 const DISPLAY = "Fraunces"
 const SANS = "Inter"
 
-/** CSS `linear-gradient` for a `CardStyle`'s panel — 2 or 3 stops, top to bottom. */
+/** CSS `linear-gradient` for a `CardStyle`'s panel — 2 or 3 stops, along `style.angle`. */
 function panelBackground(style: CardStyle): string {
-  return `linear-gradient(to bottom, ${style.gradient.join(", ")})`
+  return `linear-gradient(${style.angle}, ${style.gradient.join(", ")})`
 }
 
 type LoadedFont = { name: string; data: ArrayBuffer; weight: 400 | 600; style: "normal" }
@@ -127,12 +127,32 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             position: "relative",
             textAlign: "center",
             background: panelBackground(style),
-            border: style.kind === "built" ? `1px solid ${CARD_DARK.hairline}` : "none",
+            border:
+              style.kind === "built"
+                ? `1px solid ${CARD_DARK.hairline}`
+                : style.kind === "winner"
+                  ? `1px solid ${CARD_GOLD.innerBorder}`
+                  : "none",
             borderLeft: style.kind === "built" ? `6px solid ${CARD_DARK.orange}` : "none",
             borderRadius: "28px",
             padding: "56px 64px",
           }}
         >
+          {style.kind === "winner" ? (
+            <div
+              style={{
+                display: "flex",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: `radial-gradient(circle at top left, ${CARD_GOLD.radialHighlight}, transparent 60%)`,
+                borderRadius: "27px",
+              }}
+            />
+          ) : null}
+
           {style.kind === "winner" ? (
             <div
               style={{
@@ -160,6 +180,22 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             {eyebrow}
           </div>
 
+          <div
+            style={{
+              display: "flex",
+              marginTop: "24px",
+              fontFamily: displayFamily,
+              fontSize: headlineFontSize,
+              lineHeight: 1,
+              fontWeight: 700,
+              letterSpacing: isPodium ? "-0.01em" : "-0.03em",
+              whiteSpace: isPodium ? "nowrap" : "normal",
+              color: fg,
+            }}
+          >
+            {headline}
+          </div>
+
           {style.pill ? (
             <div
               style={{
@@ -182,22 +218,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           <div
             style={{
               display: "flex",
-              marginTop: "24px",
-              fontFamily: displayFamily,
-              fontSize: headlineFontSize,
-              lineHeight: 1,
-              fontWeight: 700,
-              letterSpacing: isPodium ? "-0.01em" : "-0.03em",
-              whiteSpace: isPodium ? "nowrap" : "normal",
-              color: fg,
-            }}
-          >
-            {headline}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              width: "84px",
+              width: "72px",
               height: "4px",
               marginTop: "28px",
               background: CARD_DARK.orange,

@@ -233,8 +233,20 @@ export const CARD_DARK = {
   orangeAlt: "#E58A6B",
 } as const
 
-/** Track-winner gold, top to bottom, with a highlight line at the very top. */
-export const CARD_GOLD = { from: "#8A6410", mid: "#C9A227", to: "#E6C35C", highlight: "#F3DFA0", ink: "#16140F" } as const
+/**
+ * Track-winner gold — warmer and richer than a flat mustard, on a slight
+ * diagonal (165deg, not straight down) with a highlight line at the very
+ * top, a translucent inner border, and a faint top-left radial highlight.
+ */
+export const CARD_GOLD = {
+  from: "#B8860B",
+  mid: "#D4AF37",
+  to: "#F0D77A",
+  highlight: "#F3DFA0",
+  innerBorder: "rgba(243, 223, 160, 0.45)",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#16140F",
+} as const
 
 /** Runner-up graphite, top to bottom, plus its silver pill colour. */
 export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
@@ -244,8 +256,10 @@ export const CARD_BRONZE = { from: "#4E2A14", to: "#8C5A2B" } as const
 
 export type CardStyle = {
   kind: "winner" | "runner-up" | "third" | "built"
-  /** Panel background, top-to-bottom gradient stops (2 or 3). */
+  /** Panel background, gradient stops (2 or 3), in the direction of `angle`. */
   gradient: readonly string[]
+  /** CSS `linear-gradient()` direction — `to bottom` except the winner's slight diagonal. */
+  angle: string
   /** Body text colour against that panel. */
   ink: string
   /** Secondary text colour against that panel. */
@@ -264,6 +278,7 @@ export function cardStyleForTitle(title: string): CardStyle {
     return {
       kind: "winner",
       gradient: [CARD_GOLD.from, CARD_GOLD.mid, CARD_GOLD.to],
+      angle: "165deg",
       ink: CARD_GOLD.ink,
       muted: CARD_GOLD.ink,
       pill: { label: "1st overall", color: CARD_DARK.orange },
@@ -273,6 +288,7 @@ export function cardStyleForTitle(title: string): CardStyle {
     return {
       kind: "runner-up",
       gradient: [CARD_GRAPHITE.from, CARD_GRAPHITE.to],
+      angle: "to bottom",
       ink: CARD_DARK.text,
       muted: CARD_DARK.muted,
       pill: { label: "2nd overall", color: CARD_GRAPHITE.silver },
@@ -282,6 +298,7 @@ export function cardStyleForTitle(title: string): CardStyle {
     return {
       kind: "third",
       gradient: [CARD_BRONZE.from, CARD_BRONZE.to],
+      angle: "to bottom",
       ink: CARD_DARK.text,
       muted: CARD_DARK.muted,
       pill: null,
@@ -290,6 +307,7 @@ export function cardStyleForTitle(title: string): CardStyle {
   return {
     kind: "built",
     gradient: [CARD_DARK.elevated, CARD_DARK.elevated],
+    angle: "to bottom",
     ink: CARD_DARK.text,
     muted: CARD_DARK.muted,
     pill: null,

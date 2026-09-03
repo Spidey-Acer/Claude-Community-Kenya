@@ -90,7 +90,7 @@ export default async function ResultCardPage({ params }: Params) {
   // hand if the palette changes.
   const panelClass =
     style.kind === "winner"
-      ? "bg-gradient-to-b from-[#8A6410] via-[#C9A227] to-[#E6C35C]"
+      ? "bg-[linear-gradient(165deg,#B8860B_0%,#D4AF37_55%,#F0D77A_100%)]"
       : style.kind === "runner-up"
         ? "bg-gradient-to-b from-[#2A2A2E] to-[#3A3A40]"
         : style.kind === "third"
@@ -106,6 +106,15 @@ export default async function ResultCardPage({ params }: Params) {
       : style.kind === "runner-up"
         ? "border-[#C0C0C8]/50 text-[#C0C0C8]"
         : ""
+  // The winner panel trades the shared hairline border for a translucent
+  // gold inner border, plus a faint top-left radial highlight — richer than
+  // a flat gradient without breaking the printable-poster flatness Satori
+  // needs on the OG side.
+  const borderClass = style.kind === "winner" ? "border border-transparent" : "border border-[#2A261E]"
+  const shadowClass =
+    style.kind === "winner"
+      ? "shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(243,223,160,0.45)]"
+      : "shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]"
 
   return (
     <main className="min-h-screen bg-[#0B0A09] px-4 py-12 sm:py-20">
@@ -116,24 +125,22 @@ export default async function ResultCardPage({ params }: Params) {
         </p>
 
         <article
-          className={`relative flex flex-col items-center overflow-hidden rounded-2xl border border-[#2A261E] px-7 py-10 text-center shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)] sm:px-12 sm:py-14 ${panelClass} ${inkClass}`}
+          className={`relative flex flex-col items-center overflow-hidden rounded-2xl px-7 py-10 text-center sm:px-12 sm:py-14 ${panelClass} ${inkClass} ${borderClass} ${shadowClass}`}
           aria-label={headline(card)}
         >
           {style.kind === "winner" ? (
-            <div className="absolute inset-x-0 top-0 h-[3px] bg-[#F3DFA0]" aria-hidden="true" />
+            <>
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.10),transparent_60%)]"
+                aria-hidden="true"
+              />
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-[#F3DFA0]" aria-hidden="true" />
+            </>
           ) : null}
 
           <p className={`font-sans text-[11px] uppercase tracking-[0.2em] ${eyebrowClass}`}>
             {isPodium ? card.track : `Built at ${card.eventName}`}
           </p>
-
-          {style.pill ? (
-            <span
-              className={`mt-3 inline-flex shrink-0 items-center rounded-full border px-3 py-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] ${pillClass}`}
-            >
-              {style.pill.label}
-            </span>
-          ) : null}
 
           {/* The placement word: never lets "Runner-up" or "Third place" wrap
               or break at their hyphen/space onto a second line, at any width
@@ -147,6 +154,14 @@ export default async function ResultCardPage({ params }: Params) {
           >
             {isPodium ? card.title : card.projectName}
           </h1>
+
+          {style.pill ? (
+            <span
+              className={`mt-3 inline-flex shrink-0 items-center rounded-full border px-3 py-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] ${pillClass}`}
+            >
+              {style.pill.label}
+            </span>
+          ) : null}
 
           <div className={`my-7 h-0.5 w-12 ${ruleClass}`} aria-hidden="true" />
 
