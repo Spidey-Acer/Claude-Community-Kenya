@@ -143,14 +143,17 @@ export interface PublicResultCard {
 }
 
 /**
- * "Wanjiru Kamau" → "Wanjiru K."; a single-token name stays as typed.
- * Whitespace-tolerant: participants type their own names.
+ * "Wanjiru Kamau" → "Wanjiru K."; a single-token name stays whole.
+ * Whitespace-tolerant, and the first letter is capitalised because
+ * participants type their own names and "simon" on a public poster reads
+ * as a typo. Nothing else about the spelling is touched.
  */
 export function shortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return ""
-  if (parts.length === 1) return parts[0]
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`
+  const first = parts[0][0].toUpperCase() + parts[0].slice(1)
+  if (parts.length === 1) return first
+  return `${first} ${parts[parts.length - 1][0].toUpperCase()}.`
 }
 
 export function toPublicResultCard(input: {

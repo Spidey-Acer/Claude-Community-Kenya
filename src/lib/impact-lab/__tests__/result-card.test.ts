@@ -173,6 +173,9 @@ describe("public card", () => {
     expect(shortName("Wanjiru Kamau")).toBe("Wanjiru K.")
     expect(shortName("  Brian  Otieno Odhiambo ")).toBe("Brian O.")
     expect(shortName("Cher")).toBe("Cher")
+    expect(shortName("simon")).toBe("Simon")
+    expect(shortName("jarvis otieno")).toBe("Jarvis O.")
+    expect(shortName("McKenzie Adams")).toBe("McKenzie A.")
     expect(shortName("   ")).toBe("")
   })
 
