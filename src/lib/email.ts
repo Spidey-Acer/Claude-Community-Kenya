@@ -564,6 +564,8 @@ const DARK = {
   /** Claude orange — rules, pills, the primary button, small-caps labels. */
   orange: "#D97757",
   orangeHover: "#E58A6B",
+  /** Deeper clay — used instead of the Claude orange only on the gold winner hero, where #D97757 reads low-contrast against gold. */
+  clay: "#A84E2D",
   /** Winner hero: gold gradient, top to bottom, plus its top highlight line. */
   goldTop: "#B8860B",
   goldMid: "#D4AF37",
@@ -716,10 +718,10 @@ export function impactLabResultsEmail(data: {
     // Gold for the winner, graphite for the runner-up, bronze for third —
     // each its own gradient with a solid fallback (Gmail drops
     // `background-image`; Outlook renders neither and falls back to
-    // `bgcolor`). Only the winner's eyebrow and pill go full orange; the
-    // other two keep the orange rule under the headline but stay muted
-    // everywhere else, per the "gold with orange accent, the rest do the
-    // best" brief.
+    // `bgcolor`). The winner's eyebrow, pill and rule use the deeper clay
+    // rather than the Claude orange — #D97757 reads low-contrast against
+    // gold. The orange stays everywhere else (dark surfaces, labels,
+    // buttons), including the rule on the two non-gold heroes.
     const variant =
       ranked.position === 1
         ? {
@@ -728,9 +730,10 @@ export function impactLabResultsEmail(data: {
             highlight: DARK.goldHighlight,
             fg: DARK.ink,
             metaFg: DARK.inkMuted,
-            eyebrow: DARK.orange,
-            pillBorder: DARK.orange,
-            pillText: DARK.orange,
+            eyebrow: DARK.clay,
+            rule: DARK.clay,
+            pillBorder: DARK.clay,
+            pillText: DARK.clay,
           }
         : ranked.position === 2
         ? {
@@ -740,6 +743,7 @@ export function impactLabResultsEmail(data: {
             fg: DARK.text,
             metaFg: DARK.muted,
             eyebrow: DARK.muted,
+            rule: DARK.orange,
             pillBorder: DARK.rankSilver,
             pillText: DARK.text,
           }
@@ -750,6 +754,7 @@ export function impactLabResultsEmail(data: {
             fg: DARK.text,
             metaFg: DARK.muted,
             eyebrow: DARK.muted,
+            rule: DARK.orange,
             pillBorder: DARK.rankBronze,
             pillText: DARK.text,
           }
@@ -776,7 +781,7 @@ export function impactLabResultsEmail(data: {
             <p style="margin:0;font-family:${DISPLAY_FONT};font-size:44px;line-height:1.05;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${variant.fg};text-align:center;">${esc(placementTitle(ranked))}</p>
             ${overallPill}
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto 18px;">
-              <tr><td bgcolor="${DARK.orange}" style="width:48px;height:2px;background-color:${DARK.orange};font-size:0;line-height:0;">&nbsp;</td></tr>
+              <tr><td bgcolor="${variant.rule}" style="width:48px;height:2px;background-color:${variant.rule};font-size:0;line-height:0;">&nbsp;</td></tr>
             </table>
             <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${variant.fg};text-align:center;">${esc(data.projectName)}</p>
             <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${variant.metaFg};text-align:center;">${tableLine}</p>
@@ -1019,11 +1024,11 @@ export function impactLabResultsEmail(data: {
   const html = `
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${DARK.bg}" style="background-color:${DARK.bg};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${DARK.bg}" style="width:100%;table-layout:fixed;background-color:${DARK.bg};">
   <tr>
     <td align="center" style="padding:28px 12px;">
       <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${DARK.card}" style="max-width:600px;width:100%;background-color:${DARK.card};border:1px solid ${DARK.hairline};border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${DARK.card}" style="width:100%;max-width:600px;table-layout:fixed;background-color:${DARK.card};border:1px solid ${DARK.hairline};border-radius:14px;">
         <tr>
           <td bgcolor="${DARK.card}" style="background-color:${DARK.card};padding:18px 32px 14px;border-radius:14px 14px 0 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
