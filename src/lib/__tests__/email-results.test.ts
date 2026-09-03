@@ -50,7 +50,7 @@ describe("impactLabResultsEmail variants", () => {
     const { subject, html } = build()
     expect(subject).toBe("You won the Kilimo: Nitapata? track at Impact Lab: AI Mashinani 02")
     expect(html).toContain(">Winner<")
-    expect(html).toContain("background-color:#A84E2D")
+    expect(html).toContain("background-color:#C9A227")
     expect(html).toContain("Kilimo: Nitapata?")
     expect(html).toContain("1st overall")
     expect(html).toContain("Table 12 &middot; Kilimo 3")
@@ -61,7 +61,7 @@ describe("impactLabResultsEmail variants", () => {
     const second = build({ placement: ranked(2), rank: 3 })
     expect(second.subject).toBe("Runner-up in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(second.html).toContain(">Runner-up<")
-    expect(second.html).toContain("background-color:#23201B")
+    expect(second.html).toContain("background-color:#2A2A2E")
     expect(second.html).toContain("2nd of 4 in Kilimo: Nitapata?")
 
     const third = build({ placement: ranked(3), rank: 5 })
