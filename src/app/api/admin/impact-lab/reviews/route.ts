@@ -9,9 +9,11 @@ import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
+import { readSettingsTracks } from "@/lib/impact-lab/roster"
 import {
+  resolveTeamTrack,
   standings,
-  trackOf,
+  trackLabelIndex,
   type JudgingRubric,
   type ScoreSheet,
 } from "@/lib/impact-lab/judging"
@@ -22,13 +24,14 @@ import { presentableJudgeNote, type TeamJudgeNote } from "@/lib/impact-lab/revie
  * The Impact Lab review — one substantive written review per team, signed
  * "Claude Community Kenya".
  *
- * Why this exists: four judges scored 73 sheets across five criteria, and
- * three of the four never wrote a word of feedback. A team that built through
- * the night would receive five numbers and silence. This route drafts the
- * words that close that gap, and gives the organiser the pen: every draft is
- * editable, and nothing reaches a participant until the organiser has read it
- * and pressed Approve (see `publishableReview` in @/lib/impact-lab/reviews —
- * the gate every participant-facing surface goes through).
+ * Why this exists: the judging panel returns numeric scores across five
+ * criteria, and written feedback from judges is often thin or absent. A team
+ * that built something real would otherwise receive five numbers and
+ * silence. This route drafts the words that close that gap, and gives the
+ * organiser the pen: every draft is editable, and nothing reaches a
+ * participant until the organiser has read it and pressed Approve (see
+ * `publishableReview` in @/lib/impact-lab/reviews — the gate every
+ * participant-facing surface goes through).
  *
  * Provenance is structural, not stylistic: the review is stored per team,
  * never per judge, and every surface labels it as the community's review. A
@@ -62,7 +65,7 @@ const reviewSchema = z.object({
     ),
 })
 
-const SYSTEM = `You are writing the review a hackathon team receives for their project, on behalf of Claude Community Kenya — the community that hosted Impact Lab: AI Mashinani, where roughly 135 people built through the night. The judging panel returned scores but almost no written feedback, so this review is the community making sure a team that built all night receives real words about their work, not five numbers and silence.
+const SYSTEM = `You are writing the review a hackathon team receives for their project, on behalf of Claude Community Kenya — the community that hosted Impact Lab: AI Mashinani. The judging panel returned scores but little written feedback, so this review is the community making sure every team receives real words about their work, not five numbers and silence.
 
 You write as the community, never as a judge. Do not mention any judge, do not speculate about what the panel thought, and do not present any opinion as the panel's. The scores are context for you, not something to explain or defend — the team can already see their own numbers, so never quote or restate them.
 
@@ -108,6 +111,13 @@ interface SubmissionRow {
 interface TeamContext {
   submission: SubmissionRow
   teamName: string
+  /**
+   * The team's track, resolved via `resolveTeamTrack` (trackKey first, then
+   * the frozen `track`, then the legacy name-parse) — never the submission's
+   * own free-text `track` field, which is the team's self-report and may
+   * disagree with how they were actually matched. See `loadTeamContexts`.
+   */
+  track: string
   criterionAverages: Record<string, number> | null
   writeupOnly: boolean
   judgeNote: string | null
@@ -136,7 +146,7 @@ function buildPrompt(ctx: TeamContext, rubric: JudgingRubric): string {
   return `The team's submission:
 
 Project: ${s.projectName}
-Track: ${s.track}
+Track: ${ctx.track}
 One-line pitch: ${s.pitch}
 Problem tackled: ${s.problemTackled}
 What it does: ${s.description}
@@ -179,22 +189,41 @@ async function loadFinalRun(cohort: string) {
   return prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
-    select: { id: true, result: true },
+    select: { id: true, result: true, settings: true },
   })
 }
 
 /**
  * Everything generation and the GET listing need about a run's teams:
- * submissions in full, per-team criterion averages, scoring basis, and the
- * (corrected) judge notes.
+ * submissions in full, per-team criterion averages, scoring basis, resolved
+ * track, and the (corrected) judge notes.
  *
  * `rubric` must be the cohort's own — every criterion average below is
  * computed against it, and a cohort that is not Impact Lab does not share
  * Impact Lab's criteria.
+ *
+ * `runSettings` is the run's own stored `settings` JSON, whose `tracks` field
+ * is this event's track list as it was at match time (see
+ * `readSettingsTracks`). Team names here follow two conventions — the
+ * matcher's own "${track.label} ${n}" and legacy hand-imported "Table 12 ·
+ * Track" — and only `resolveTeamTrack` (trackKey first, then the frozen
+ * `track`, then the name-parse) resolves both correctly. Parsing the name
+ * directly, as this route used to, sends every matcher-built team to
+ * "Unassigned".
  */
-async function loadTeamContexts(runId: string, runResult: unknown, rubric: JudgingRubric) {
+async function loadTeamContexts(
+  runId: string,
+  runResult: unknown,
+  runSettings: unknown,
+  rubric: JudgingRubric
+) {
   const teams = extractFrozenTeams(runResult) ?? []
   const nameById = new Map(teams.map((t) => [t.id, t.name]))
+  const teamById = new Map(teams.map((t) => [t.id, t]))
+  const labelByKey = trackLabelIndex(readSettingsTracks(runSettings))
+  /** A team missing from the frozen roster resolves from its name alone. */
+  const trackFor = (teamId: string): string =>
+    resolveTeamTrack(teamById.get(teamId) ?? { name: nameById.get(teamId) ?? teamId }, labelByKey)
 
   const [submissions, scores] = await Promise.all([
     prisma.impactLabSubmission.findMany({
@@ -258,6 +287,7 @@ async function loadTeamContexts(runId: string, runResult: unknown, rubric: Judgi
   const contextFor = (submission: SubmissionRow): TeamContext => ({
     submission,
     teamName: nameById.get(submission.teamId) ?? submission.teamId,
+    track: trackFor(submission.teamId),
     criterionAverages: standingByTeam.get(submission.teamId)?.criterionAverages ?? null,
     writeupOnly: writeupOnlyTeams.has(submission.teamId),
     judgeNote:
@@ -267,7 +297,7 @@ async function loadTeamContexts(runId: string, runResult: unknown, rubric: Judgi
         .join("\n") ?? null,
   })
 
-  return { teams, nameById, submissions, judgeNotesByTeam, contextFor }
+  return { teams, nameById, submissions, judgeNotesByTeam, trackFor, contextFor }
 }
 
 /** GET — every submitted team with its judge notes and current review state. */
@@ -282,9 +312,10 @@ export async function GET(request: NextRequest) {
   }
 
   const rubric = await resolveRubric(cohort)
-  const { nameById, submissions, judgeNotesByTeam } = await loadTeamContexts(
+  const { nameById, submissions, judgeNotesByTeam, trackFor } = await loadTeamContexts(
     run.id,
     run.result,
+    run.settings,
     rubric
   )
   const reviews = await prisma.impactLabTeamReview.findMany({
@@ -308,7 +339,7 @@ export async function GET(request: NextRequest) {
         teamId: s.teamId,
         teamName,
         projectName: s.projectName,
-        track: trackOf(teamName),
+        track: trackFor(s.teamId),
         judgeNotes: judgeNotesByTeam.get(s.teamId) ?? [],
         review: review
           ? {
@@ -467,7 +498,12 @@ async function handlePost(request: NextRequest) {
 
   // ── generate ───────────────────────────────────────────────────────────────
   const rubric = await resolveRubric(cohort)
-  const { submissions, contextFor } = await loadTeamContexts(run.id, run.result, rubric)
+  const { submissions, contextFor } = await loadTeamContexts(
+    run.id,
+    run.result,
+    run.settings,
+    rubric
+  )
   const existingReviews = await prisma.impactLabTeamReview.findMany({
     where: { runId: run.id },
     select: { teamId: true, editedAt: true, approvedAt: true },
