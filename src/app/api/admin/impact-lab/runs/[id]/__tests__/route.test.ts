@@ -13,7 +13,7 @@ function team(id: string, memberIds: string[], extra: { table?: number | null } 
 
 /** Shape of the JSON this route writes back to `impactLabMatchRun.result`. */
 interface WrittenResult {
-  teams: { id: string; memberIds: string[] }[]
+  teams: { id: string; name: string; memberIds: string[]; trackKey?: string }[]
   unassignedIds: string[]
   rosterLocked?: boolean
   judges?: { id: string; name: string; order: number }[]
@@ -32,6 +32,9 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     impactLabMatchRun: {
       findUnique: vi.fn(),
+      // Only `closeJudging` writes through the top-level client — every other
+      // branch goes through `mockTx` under `withRunLock`.
+      update: vi.fn(),
     },
     impactLabParticipant: {
       findFirst: vi.fn(),
@@ -210,6 +213,183 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — set table", () => {
     const res = await PATCH(patchRequest({ table: { teamId: "does-not-exist", table: 1 } }), { params })
     expect(res.status).toBe(400)
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — setTeamTracks", () => {
+  const EVENT_TRACKS = { tracks: [{ key: "elimu", label: "Elimu" }, { key: "kazi", label: "Kazi" }] }
+
+  it("corrects several teams' trackKey in one audited write", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: {
+        teams: [
+          { ...team("team-1", ["p1"]), trackKey: "kazi" },
+          { ...team("team-2", ["p2"]), trackKey: "elimu" },
+        ],
+        unassignedIds: [],
+      },
+      settings: EVENT_TRACKS,
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    const res = await PATCH(
+      patchRequest({
+        setTeamTracks: [
+          { teamId: "team-1", trackKey: "elimu" },
+          { teamId: "team-2", trackKey: "kazi" },
+        ],
+      }),
+      { params }
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.teams.find((t) => t.id === "team-1")!.trackKey).toBe("elimu")
+    expect(written.teams.find((t) => t.id === "team-2")!.trackKey).toBe("kazi")
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: {
+          setTeamTracks: [
+            { teamId: "team-1", trackKey: "elimu" },
+            { teamId: "team-2", trackKey: "kazi" },
+          ],
+        },
+      })
+    )
+  })
+
+  it("400s on an unknown teamId and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: EVENT_TRACKS,
+    })
+
+    const res = await PATCH(
+      patchRequest({ setTeamTracks: [{ teamId: "ghost", trackKey: "elimu" }] }),
+      { params }
+    )
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("400s on a trackKey this run was not matched on and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [team("team-1", ["p1"])], unassignedIds: [] },
+      settings: EVENT_TRACKS,
+    })
+
+    const res = await PATCH(
+      patchRequest({ setTeamTracks: [{ teamId: "team-1", trackKey: "afya" }] }),
+      { params }
+    )
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("does not rename the team — only trackKey changes", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true } as never)
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({
+      result: { teams: [{ ...team("team-1", ["p1"]), trackKey: "kazi" }], unassignedIds: [] },
+      settings: EVENT_TRACKS,
+    })
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({ id: "run-1", result: {} } as never)
+
+    await PATCH(patchRequest({ setTeamTracks: [{ teamId: "team-1", trackKey: "elimu" }] }), { params })
+
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.teams[0].name).toBe("Team team-1")
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — closeJudging", () => {
+  it("closes judging, stamping judgingClosedAt", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+      resultsPublishedAt: null,
+    } as never)
+    vi.mocked(prisma.impactLabMatchRun.update).mockResolvedValueOnce({} as never)
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      judgingClosedAt: new Date("2026-09-03T10:00:00.000Z"),
+    } as never)
+
+    const res = await PATCH(patchRequest({ closeJudging: true }), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(prisma.impactLabMatchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "run-1" },
+        data: { judgingClosedAt: expect.any(Date) },
+      })
+    )
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { closeJudging: true } })
+    )
+  })
+
+  it("reopens judging on an unpublished run, clearing judgingClosedAt", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+      resultsPublishedAt: null,
+    } as never)
+    vi.mocked(prisma.impactLabMatchRun.update).mockResolvedValueOnce({} as never)
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      judgingClosedAt: null,
+    } as never)
+
+    const res = await PATCH(patchRequest({ closeJudging: false }), { params })
+    expect(res.status).toBe(200)
+    expect(prisma.impactLabMatchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { judgingClosedAt: null } })
+    )
+  })
+
+  it("409s reopening a published run and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+      resultsPublishedAt: new Date("2026-09-02T20:00:00.000Z"),
+    } as never)
+
+    const res = await PATCH(patchRequest({ closeJudging: false }), { params })
+    expect(res.status).toBe(409)
+    expect(prisma.impactLabMatchRun.update).not.toHaveBeenCalled()
+    expect(logAudit).not.toHaveBeenCalled()
+  })
+
+  it("allows closing (not reopening) a published run", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+      resultsPublishedAt: new Date("2026-09-02T20:00:00.000Z"),
+    } as never)
+    vi.mocked(prisma.impactLabMatchRun.update).mockResolvedValueOnce({} as never)
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      judgingClosedAt: new Date("2026-09-02T20:00:00.000Z"),
+    } as never)
+
+    const res = await PATCH(patchRequest({ closeJudging: true }), { params })
+    expect(res.status).toBe(200)
+    expect(prisma.impactLabMatchRun.update).toHaveBeenCalled()
   })
 })
 
