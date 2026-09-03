@@ -15,7 +15,7 @@
 import { z } from "zod"
 
 import { DEFAULT_MAX_TEAM_SIZE, type Team } from "@/lib/matching"
-import type { Track } from "./tracks"
+import { parseTracks, type Track } from "./tracks"
 
 /** The two fields of a run's `result` JSON that a roster edit can change. */
 export interface RosterState {
@@ -62,6 +62,17 @@ export function readMaxTeamSize(settings: unknown): number {
     }
   }
   return DEFAULT_MAX_TEAM_SIZE
+}
+
+/**
+ * `settings.tracks` from a run's stored settings JSON, defensively — same
+ * tolerance as `readMaxTeamSize`: this is the event's track list as it was
+ * at match time (see `MatchSettings.tracks`), and a legacy or hand-edited
+ * settings object with no tracks must degrade to `[]`, not throw.
+ */
+export function readSettingsTracks(settings: unknown): Track[] {
+  if (typeof settings !== "object" || settings === null) return []
+  return parseTracks((settings as { tracks?: unknown }).tracks)
 }
 
 /** `result.unassignedIds` from a run's stored result JSON, defensively. */

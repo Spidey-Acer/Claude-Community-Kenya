@@ -12,6 +12,7 @@ import {
   numberMissingTables,
   placeParticipant,
   readMaxTeamSize,
+  readSettingsTracks,
   renameTeamsByTable,
   type Judge,
   type JudgeSignInMode,
@@ -29,6 +30,15 @@ const tableSchema = z.object({
   teamId: z.string().min(1).max(40),
   table: z.number().int().min(1).max(200).nullable(),
 })
+
+/** One team's corrected track, as the admin desk sends it. */
+const teamTrackSchema = z.object({
+  teamId: z.string().min(1).max(40),
+  trackKey: z.string().min(1).max(40),
+})
+
+/** Batched so a full set of corrections is one audited write, not several. */
+const setTeamTracksSchema = z.array(teamTrackSchema).min(1).max(50)
 
 // `teamId: null` clears the stage. Its own object (rather than a bare nullable
 // string) so `onStage` can be told apart from "field absent" in the same way
@@ -51,6 +61,9 @@ const RUN_SELECT = {
   explanations: true,
   createdById: true,
   createdAt: true,
+  // So the admin desk can render the current close/reopen state without a
+  // second round trip — see `handleCloseJudging`.
+  judgingClosedAt: true,
 } as const
 
 export async function GET(
@@ -190,6 +203,90 @@ async function handleSetTable(
     entity: "ImpactLabMatchRun",
     entityId: runId,
     changes: { table },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
+/**
+ * Correct one or more teams' `trackKey` after the fact, without renaming them
+ * — `renameTeamsByTable` already covers renaming, and mixing the two in one
+ * request would leave it ambiguous which name won if a rename landed on a
+ * team this same call also re-tracked.
+ *
+ * Exists because `POST /team/track` (the team's own self-service track
+ * change) locks at the submissions deadline: a team that pivoted its build
+ * after that point is judged, and would otherwise stay judged, under a
+ * `trackKey` its own submission and pitch disagree with. Judging results and
+ * the results export both read `trackKey` first (see `resolveTeamTrack`), so
+ * a wrong key here misannounces a track winner and mis-groups the export,
+ * not just a cosmetic label.
+ *
+ * Every entry is validated against BOTH this run's frozen teams and this
+ * run's own `settings.tracks` (the event's track list as it was at match
+ * time) before anything is written — one unknown `teamId` or `trackKey`
+ * fails the whole batch rather than applying the entries that do resolve, so
+ * a typo in entry 6 of 6 can never leave entries 1-5 written and 6 silently
+ * dropped.
+ *
+ * Mirrors `handleSetTable`'s lock/read/write/audit shape.
+ */
+async function handleSetTeamTracks(
+  request: NextRequest,
+  runId: string,
+  edits: z.infer<typeof setTeamTracksSchema>,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+
+    const teamIds = new Set(teams.map((t) => t.id))
+    const unknownTeamId = edits.find((e) => !teamIds.has(e.teamId))?.teamId
+    if (unknownTeamId) return { status: "unknown_team" as const, id: unknownTeamId }
+
+    const trackKeys = new Set(readSettingsTracks(fresh?.settings).map((t) => t.key))
+    const unknownTrackKey = edits.find((e) => !trackKeys.has(e.trackKey))?.trackKey
+    if (unknownTrackKey) return { status: "unknown_track" as const, id: unknownTrackKey }
+
+    const nextTrackByTeamId = new Map(edits.map((e) => [e.teamId, e.trackKey]))
+    const nextTeams = teams.map((t) =>
+      nextTrackByTeamId.has(t.id) ? { ...t, trackKey: nextTrackByTeamId.get(t.id) } : t
+    )
+    await writeRunResult(tx, runId, { ...(fresh?.result as object), teams: nextTeams })
+    return { status: "ok" as const }
+  })
+
+  if (outcome.status === "no_teams") {
+    return NextResponse.json(
+      { success: false, error: "This run has no frozen teams to edit" },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "unknown_team") {
+    return NextResponse.json(
+      { success: false, error: `"${outcome.id}" is not a team in this run` },
+      { status: 400 }
+    )
+  }
+  if (outcome.status === "unknown_track") {
+    return NextResponse.json(
+      { success: false, error: `"${outcome.id}" is not a track this run was matched on` },
+      { status: 400 }
+    )
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { setTeamTracks: edits },
     ...getRequestMetadata(request),
   })
 
@@ -488,6 +585,64 @@ async function handleSetOnStage(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * Close (or reopen) judging independent of publish: set or clear
+ * `judgingClosedAt`, the column the judging POST route already refuses new
+ * writes against once it is non-null (see judge-events/route.ts).
+ *
+ * Publish sets this same column as its last step, so closing here ahead of
+ * publish is a strict subset of what publish already does — it just lets an
+ * organiser freeze scores (to correct a track, review a scorecard, and so
+ * on) without also triggering publish's winner snapshot, announced-winners
+ * freeze, and results emails, none of which the organiser is ready for yet.
+ * `handleSetTeamTracks` does not require judging to be closed — a wrong
+ * `trackKey` can be corrected either side of this toggle — but closing first
+ * is the safer order: nobody scores a team under one track while another
+ * admin tab is mid-correcting it.
+ *
+ * Reopening (`closeJudging: false`) is refused once `resultsPublishedAt` is
+ * set: that snapshot is the immutable record participants were already
+ * emailed, and reopening scoring behind it is exactly the situation the
+ * schema comment on `judgingClosedAt` says the column exists to prevent.
+ * Closing (`true`) is always safe, including on an already-closed run.
+ */
+async function handleCloseJudging(
+  request: NextRequest,
+  runId: string,
+  closeJudging: boolean,
+  resultsPublishedAt: Date | null,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  if (!closeJudging && resultsPublishedAt !== null) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Results are already published for this run; judging cannot be reopened.",
+      },
+      { status: 409 }
+    )
+  }
+
+  await prisma.impactLabMatchRun.update({
+    where: { id: runId },
+    data: { judgingClosedAt: closeJudging ? new Date() : null },
+  })
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { closeJudging },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -524,6 +679,9 @@ const updateSchema = z.object({
   // Set (or clear) one team's table number. Same "own branch" reasoning as
   // `move` — never combined with rename/finalize in the UI.
   table: tableSchema.optional(),
+  // Correct one or more teams' trackKey after the fact — see
+  // `handleSetTeamTracks`. Its own branch, same reasoning as `table`.
+  setTeamTracks: setTeamTracksSchema.optional(),
   // Backfill missing table numbers across the whole run — see
   // `numberMissingTables`. Also its own branch, for the same reason.
   numberTables: z.literal(true).optional(),
@@ -548,6 +706,11 @@ const updateSchema = z.object({
   // Its own branch for the same reason `table` is: the desk sets it on its own
   // during the demos, never alongside a rename or the judge list.
   onStage: onStageSchema.optional(),
+  // Close (or reopen) judging, independent of publish — see
+  // `handleCloseJudging`. Its own branch for the same reason `lockRoster` is:
+  // `false` is meaningful (reopen), so it needs the explicit `!== undefined`
+  // check below rather than the truthy check most branches use.
+  closeJudging: z.boolean().optional(),
 })
 
 /**
@@ -591,6 +754,9 @@ export async function PATCH(
   if (validation.data.table) {
     return handleSetTable(request, id, validation.data.table, check.user)
   }
+  if (validation.data.setTeamTracks) {
+    return handleSetTeamTracks(request, id, validation.data.setTeamTracks, check.user)
+  }
   if (validation.data.numberTables) {
     return handleNumberTables(request, id, check.user)
   }
@@ -608,6 +774,15 @@ export async function PATCH(
   }
   if (validation.data.onStage !== undefined) {
     return handleSetOnStage(request, id, validation.data.onStage.teamId, check.user)
+  }
+  if (validation.data.closeJudging !== undefined) {
+    return handleCloseJudging(
+      request,
+      id,
+      validation.data.closeJudging,
+      existing.resultsPublishedAt,
+      check.user
+    )
   }
 
   const { name, notes, isFinal, submissionsCloseAt } = validation.data

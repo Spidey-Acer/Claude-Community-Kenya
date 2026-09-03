@@ -19,9 +19,10 @@
  */
 
 import {
+  resolveTeamTrack,
   scoreTotal,
   standings,
-  trackOf,
+  trackLabelIndex,
   trackWinners,
   type JudgingRubric,
   type ScoreSheet,
@@ -43,13 +44,18 @@ export interface SourceTeam {
   leaderId?: string | null
   /**
    * An organiser-assigned track, frozen into the run's `result` JSON (e.g.
-   * backfilled from a registration file). Wins over parsing the team name
-   * when present — teams were matched into a track before building, so a
-   * team can build outside its track and its name alone would say the
-   * wrong thing. Absent for cohorts (like July) that only ever encoded the
-   * track in the name.
+   * backfilled from a registration file). Absent for cohorts (like July)
+   * that only ever encoded the track in the name. See `resolveTeamTrack` for
+   * how this, `trackKey` and the name are prioritised against each other.
    */
   track?: string
+  /**
+   * The track the matcher actually built this team into — `Team.trackKey`
+   * from the run's frozen result. Wins over `track` and the name when
+   * present: it is what the team was judged as, not a label backfilled after
+   * the fact. See `resolveTeamTrack`.
+   */
+  trackKey?: string
 }
 
 export interface SourceParticipant {
@@ -109,6 +115,14 @@ export interface ExportSource {
   scores: SourceScore[]
   /** Approved community reviews only — see SourceReview. */
   reviews: SourceReview[]
+  /**
+   * The event's declared tracks, for resolving a team's `trackKey` to its
+   * label (see `resolveTeamTrack`). Defaults to `[]` — an event with no
+   * tracks configured, or a caller that has not loaded them, still gets a
+   * team's raw `trackKey` (or `track`, or a name-parse) rather than a
+   * missing field.
+   */
+  tracks?: readonly { key: string; label: string }[]
 }
 
 // ─── Assembled export ────────────────────────────────────────────────────────
@@ -378,6 +392,15 @@ export function buildResultsExport(
 
   const nameById = new Map(source.teams.map((t) => [t.id, t.name]))
 
+  // How the team was actually matched (`trackKey`) wins over an organiser's
+  // frozen label, which in turn wins over parsing the team name — see
+  // `resolveTeamTrack`. This mirrors `buildResultsInputFromRun`'s resolution
+  // exactly: the matcher names a team "${track.label} ${n}" with no dash to
+  // parse, so name-first (the old behaviour here) put every matcher-built
+  // team in "Unassigned" and collapsed every track into one.
+  const labelByKey = trackLabelIndex(source.tracks ?? [])
+  const trackById = new Map(source.teams.map((t) => [t.id, resolveTeamTrack(t, labelByKey)]))
+
   // Overall winners: the published snapshot is the record once it exists.
   // Before publication, fall back to score order for the champion. Track
   // winners are handled separately, further below, once every team's
@@ -393,7 +416,7 @@ export function buildResultsExport(
     }))
     championTeamId = snapshot.overall.find((w) => w.rank === 1)?.teamId ?? null
   } else {
-    const { champion } = trackWinners(table, nameById)
+    const { champion } = trackWinners(table, nameById, trackById)
     championTeamId = champion?.teamId ?? null
   }
 
@@ -414,9 +437,7 @@ export function buildResultsExport(
       teamName: team.name,
       projectDisplayName: submission?.projectName.trim() || team.name,
       tableLabel: tableLabelOf(team.name),
-      // An explicit organiser assignment (frozen into the run JSON) wins;
-      // name-parsing is only the fallback for cohorts that never had one.
-      track: team.track?.trim() || trackOf(team.name),
+      track: trackById.get(team.id) ?? "Unassigned",
       members: team.memberIds
         .map((id) => participantById.get(id))
         .filter((p): p is SourceParticipant => p !== undefined)

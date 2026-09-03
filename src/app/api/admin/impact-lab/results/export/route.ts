@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import type { ScoreSheet } from "@/lib/impact-lab/judging"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
@@ -61,6 +61,12 @@ export async function GET(request: NextRequest) {
 
   const teams = extractFrozenTeams(run.result) ?? []
 
+  // Read outside the Promise.all below alongside the other independent
+  // lookups — same reasoning as publish/route.ts: `getEventByCohort` uses
+  // the module-level Prisma client, so it is a plain query, not something
+  // that needs to share a transaction with anything else here.
+  const event = await getEventByCohort(cohort)
+
   const [participants, submissions, scores, reviewRows] = await Promise.all([
     prisma.impactLabParticipant.findMany({
       where: { cohort },
@@ -117,6 +123,7 @@ export async function GET(request: NextRequest) {
       memberIds: t.memberIds,
       leaderId: (t as { leaderId?: string | null }).leaderId ?? null,
       track: (t as { track?: string }).track,
+      trackKey: (t as { trackKey?: string }).trackKey,
     })),
     participants: participants.map((p) => ({
       id: p.id,
@@ -141,6 +148,7 @@ export async function GET(request: NextRequest) {
       const text = publishableReview(r)
       return text === null ? [] : [{ teamId: r.teamId, text }]
     }),
+    tracks: event?.tracks ?? [],
   }
 
   // `resolveRubric`, not the code constant: an organiser-authored rubric for

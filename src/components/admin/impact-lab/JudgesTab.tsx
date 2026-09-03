@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { apiGet, apiSend } from "./api"
+import { CloseJudgingToggle } from "./CloseJudgingToggle"
 import { OnStagePanel } from "./OnStagePanel"
 
 interface AuditCriterion {
@@ -174,9 +175,14 @@ export function JudgesTab({ cohort }: { cohort: string }) {
   // The stage control sits above every branch below, including the loading and
   // empty ones: the desk needs it from the first pitch, which is before any
   // judge has saved a sheet and therefore before this tab has an audit to show.
+  // The close-judging toggle needs a final run to act on, so it only renders
+  // once `data.finalRunId` is known — `data` may still be the previous
+  // successful load while `loading` is true again (a refetch), which is why
+  // this reads `data?.finalRunId` rather than only appearing in one branch.
   const withStage = (body: React.ReactNode) => (
     <div className="space-y-4">
       <OnStagePanel cohort={cohort} />
+      {data?.finalRunId && <CloseJudgingToggle runId={data.finalRunId} />}
       {body}
     </div>
   )
