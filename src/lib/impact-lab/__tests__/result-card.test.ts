@@ -14,6 +14,8 @@ import {
   resultCardSlug,
   resultCardUrl,
   shortName,
+  teamPlaceLabel,
+  titleCaseName,
   toPublicResultCard,
 } from "../result-card"
 import type { ResultsSnapshot } from "../results"
@@ -175,8 +177,26 @@ describe("public card", () => {
     expect(shortName("Cher")).toBe("Cher")
     expect(shortName("simon")).toBe("Simon")
     expect(shortName("jarvis otieno")).toBe("Jarvis O.")
+    expect(shortName("JOSEPH MACHARIA")).toBe("Joseph M.")
     expect(shortName("McKenzie Adams")).toBe("McKenzie A.")
     expect(shortName("   ")).toBe("")
+  })
+
+  it("title-cases a typed full name without touching deliberate internal capitals", () => {
+    expect(titleCaseName("simon")).toBe("Simon")
+    expect(titleCaseName("JOSEPH MACHARIA")).toBe("Joseph Macharia")
+    expect(titleCaseName("  wanjiru   McHaro ")).toBe("Wanjiru McHaro")
+    expect(titleCaseName("Ian")).toBe("Ian")
+  })
+
+  it("prints the table once when the team is named after it", () => {
+    expect(teamPlaceLabel(36, "Table 36")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "table  36")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "")).toBe("Table 36")
+    expect(teamPlaceLabel(36, "Kilimo 3")).toBe("Table 36 · Kilimo 3")
+    expect(teamPlaceLabel(null, "Kilimo 3")).toBe("Kilimo 3")
+    expect(teamPlaceLabel(null, "Table 36")).toBe("Table 36")
+    expect(teamPlaceLabel(null, "")).toBe("")
   })
 
   it("carries placement, names and event only — nothing a snapshot scores", () => {

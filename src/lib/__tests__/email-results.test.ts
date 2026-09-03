@@ -87,6 +87,17 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("9th overall")
   })
 
+  it("prints the table once when the team is named after it", () => {
+    const { html } = build({ table: 36, teamName: "Table 36" })
+    expect(html).toContain(">Table 36</p>")
+    expect(html).not.toContain("Table 36 &middot; Table 36")
+  })
+
+  it("title-cases the greeting name as typed", () => {
+    expect(build({ fullName: "JOSEPH MACHARIA" }).html).toContain("Hi Joseph Macharia,")
+    expect(build({ fullName: "simon" }).html).toContain("Hi Simon,")
+  })
+
   it("renders no table line when the run has no tables", () => {
     const { html } = build({ table: null })
     expect(html).not.toContain("Table ")

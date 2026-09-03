@@ -16,6 +16,8 @@ import {
   isPodium,
   placementTitle,
   PODIUM_DEPTH,
+  teamPlaceLabel,
+  titleCaseName,
   type Placement,
 } from "@/lib/impact-lab/result-card"
 
@@ -674,13 +676,9 @@ export function impactLabResultsEmail(data: {
   else subject = `Your ${data.eventName} results: ${data.projectName}`
 
   // ── Hero ─────────────────────────────────────────────────────────────────
-  const tableLine = [
-    data.table !== null ? `Table ${data.table}` : null,
-    data.teamName,
-  ]
-    .filter((s): s is string => Boolean(s))
-    .map(esc)
-    .join(" &middot; ")
+  // "Table 36 · Kilimo 3", or "Table 36" alone when the team is named after
+  // its table — see teamPlaceLabel. The middle dot is re-encoded for email.
+  const tableLine = esc(teamPlaceLabel(data.table, data.teamName)).replace(/ · /g, " &middot; ")
 
   let hero: string
   if (podium && ranked) {
@@ -950,7 +948,7 @@ export function impactLabResultsEmail(data: {
         ${hero}
         <tr>
           <td bgcolor="${KARIBU.card}" style="background-color:${KARIBU.card};padding:28px 32px 32px;border-radius:0 0 14px 14px;">
-            <p style="margin:0 0 12px;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${KARIBU.ink};">Hi ${esc(data.fullName)},</p>
+            <p style="margin:0 0 12px;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${KARIBU.ink};">Hi ${esc(titleCaseName(data.fullName))},</p>
             <p style="margin:0 0 24px;font-family:${BODY_FONT};font-size:15px;line-height:1.65;color:${KARIBU.ink};">${lead}</p>
 
             ${scoresSection}

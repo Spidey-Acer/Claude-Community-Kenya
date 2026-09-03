@@ -143,17 +143,53 @@ export interface PublicResultCard {
 }
 
 /**
- * "Wanjiru Kamau" → "Wanjiru K."; a single-token name stays whole.
- * Whitespace-tolerant, and the first letter is capitalised because
- * participants type their own names and "simon" on a public poster reads
- * as a typo. Nothing else about the spelling is touched.
+ * One name token as it should print: "simon" → "Simon", "JOSEPH" →
+ * "Joseph", "McHaro" → "McHaro". Only an all-lowercase or all-uppercase
+ * token is re-cased; anything with mixed case was typed deliberately and
+ * is left alone.
+ */
+function titleCaseToken(token: string): string {
+  const letters = token.replace(/[^\p{L}]/gu, "")
+  const uniform = letters === letters.toLowerCase() || letters === letters.toUpperCase()
+  if (!uniform) return token
+  return token[0].toUpperCase() + token.slice(1).toLowerCase()
+}
+
+/**
+ * A typed name, title-cased token by token, for the greeting and anywhere
+ * a participant's name is printed in full. Whitespace-tolerant.
+ */
+export function titleCaseName(fullName: string): string {
+  return fullName.trim().split(/\s+/).filter(Boolean).map(titleCaseToken).join(" ")
+}
+
+/**
+ * "Wanjiru Kamau" → "Wanjiru K.", "JOSEPH MACHARIA" → "Joseph M."; a
+ * single-token name stays whole. Participants type their own names, so
+ * each token goes through `titleCaseToken` — "simon" on a public poster
+ * reads as a typo.
  */
 export function shortName(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  const parts = fullName.trim().split(/\s+/).filter(Boolean).map(titleCaseToken)
   if (parts.length === 0) return ""
-  const first = parts[0][0].toUpperCase() + parts[0].slice(1)
-  if (parts.length === 1) return first
-  return `${first} ${parts[parts.length - 1][0].toUpperCase()}.`
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`
+}
+
+/**
+ * "Table 36 · Kilimo 3", or just "Table 36" when the team is named after
+ * its table (organisers rename teams to "Table N" once tables are fixed,
+ * which otherwise printed "Table 36 · Table 36"), or just the name when
+ * the run predates tables. Empty when there is neither.
+ */
+export function teamPlaceLabel(table: number | null, teamName: string): string {
+  const name = teamName.trim()
+  const tableLabel = table !== null ? `Table ${table}` : null
+  const nameIsTable =
+    tableLabel !== null && name.replace(/\s+/g, " ").toLowerCase() === tableLabel.toLowerCase()
+  return [tableLabel, nameIsTable || name === "" ? null : name]
+    .filter((s): s is string => s !== null)
+    .join(" · ")
 }
 
 export function toPublicResultCard(input: {
