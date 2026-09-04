@@ -4,7 +4,7 @@ import {
   getEvents,
   getUpcomingEvents,
   getBlogPosts,
-  getProjects,
+  getFeaturedProjects,
   getTeamMembers,
 } from "@/lib/data";
 import { getSocialLinks } from "@/lib/social-links";
@@ -31,7 +31,7 @@ export async function buildCommunityContext(): Promise<string> {
     getEvents().catch(() => []),
     getUpcomingEvents().catch(() => []),
     getBlogPosts().catch(() => []),
-    getProjects().catch(() => []),
+    getFeaturedProjects().catch(() => []),
     getTeamMembers().catch(() => []),
     getSocialLinks(),
   ]);

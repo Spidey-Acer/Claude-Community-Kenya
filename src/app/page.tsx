@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { KaribuHome } from "@/components/karibu/KaribuHome";
-import { getUpcomingEvents, getBlogPosts, getProjects, getProjectOfTheWeek } from "@/lib/data";
+import { getUpcomingEvents, getBlogPosts, getFeaturedProjects, getProjectOfTheWeek } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import type { AudienceState } from "@/contexts/AudienceContext";
@@ -35,7 +35,7 @@ export default async function Home() {
     getUpcomingEvents().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getBlogPosts().catch(() => []),
-    getProjects().catch(() => []),
+    getFeaturedProjects().catch(() => []),
     getProjectOfTheWeek().catch(() => null),
   ]);
 
