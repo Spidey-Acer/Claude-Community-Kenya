@@ -80,7 +80,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const style = cardStyleForTitle(card?.title ?? "Built")
   const fg = style.ink
   const muted = style.muted
-  const eyebrowColor = CARD_DARK.orange
+  // Clay on the gold winner surface, brand orange everywhere else — see
+  // `CardStyle.accent` in result-card.ts.
+  const eyebrowColor = style.accent
   // Podium: the placing is the headline and the project sits under it.
   // Built: the project is the headline — same hierarchy as the page.
   const eyebrow = card ? (isPodium ? card.track : `Built at ${card.eventName}`) : "Claude Community Kenya"
@@ -221,7 +223,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               width: "72px",
               height: "4px",
               marginTop: "28px",
-              background: CARD_DARK.orange,
+              background: style.accent,
             }}
           />
           <div
