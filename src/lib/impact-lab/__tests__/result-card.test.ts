@@ -5,6 +5,8 @@
 
 import { afterEach, describe, expect, it } from "vitest"
 import {
+  CARD_DARK,
+  cardStyleForTitle,
   isPodium,
   looksLikeResultCardSlug,
   placementFor,
@@ -124,6 +126,18 @@ describe("placementTitle / isPodium", () => {
     expect(isPodium(placementFor(SNAPSHOT, "k3"))).toBe(true)
     expect(isPodium(placementFor(SNAPSHOT, "k4"))).toBe(false)
     expect(isPodium(placementFor(SNAPSHOT, "u1"))).toBe(false)
+  })
+})
+
+describe("cardStyleForTitle", () => {
+  it("uses the deeper clay accent on the gold winner card, Claude orange everywhere else", () => {
+    // Claude orange is nearly invisible against the winner card's gold
+    // gradient, so the winner's eyebrow/pill/rule use a deeper clay instead.
+    expect(cardStyleForTitle("Winner").accent).toBe(CARD_DARK.accentOnGold)
+    expect(cardStyleForTitle("Winner").pill?.color).toBe(CARD_DARK.accentOnGold)
+    expect(cardStyleForTitle("Runner-up").accent).toBe(CARD_DARK.orange)
+    expect(cardStyleForTitle("Third place").accent).toBe(CARD_DARK.orange)
+    expect(cardStyleForTitle("Built").accent).toBe(CARD_DARK.orange)
   })
 })
 

@@ -564,6 +564,13 @@ const DARK = {
   /** Claude orange — rules, pills, the primary button, small-caps labels. */
   orange: "#D97757",
   orangeHover: "#E58A6B",
+  /**
+   * Deeper clay, used in place of `orange` only on the gold winner hero —
+   * the Claude orange is nearly invisible against the gold gradient
+   * (goldTop/goldMid/goldBottom below). Same clay as Karibu's `--clay`
+   * token on the public site.
+   */
+  accentOnGold: "#A84E2D",
   /** Winner hero: gold gradient, top to bottom, plus its top highlight line. */
   goldTop: "#B8860B",
   goldMid: "#D4AF37",
@@ -728,9 +735,12 @@ export function impactLabResultsEmail(data: {
             highlight: DARK.goldHighlight,
             fg: DARK.ink,
             metaFg: DARK.inkMuted,
-            eyebrow: DARK.orange,
-            pillBorder: DARK.orange,
-            pillText: DARK.orange,
+            // Deeper clay, not Claude orange — orange is nearly invisible
+            // against this gold gradient. See DARK.accentOnGold.
+            eyebrow: DARK.accentOnGold,
+            pillBorder: DARK.accentOnGold,
+            pillText: DARK.accentOnGold,
+            rule: DARK.accentOnGold,
           }
         : ranked.position === 2
         ? {
@@ -742,6 +752,7 @@ export function impactLabResultsEmail(data: {
             eyebrow: DARK.muted,
             pillBorder: DARK.rankSilver,
             pillText: DARK.text,
+            rule: DARK.orange,
           }
         : {
             bgFallback: DARK.bronzeTop,
@@ -752,6 +763,7 @@ export function impactLabResultsEmail(data: {
             eyebrow: DARK.muted,
             pillBorder: DARK.rankBronze,
             pillText: DARK.text,
+            rule: DARK.orange,
           }
     const highlightRule = variant.highlight
       ? `border-top:2px solid ${variant.highlight};`
@@ -776,7 +788,7 @@ export function impactLabResultsEmail(data: {
             <p style="margin:0;font-family:${DISPLAY_FONT};font-size:44px;line-height:1.05;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${variant.fg};text-align:center;">${esc(placementTitle(ranked))}</p>
             ${overallPill}
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto 18px;">
-              <tr><td bgcolor="${DARK.orange}" style="width:48px;height:2px;background-color:${DARK.orange};font-size:0;line-height:0;">&nbsp;</td></tr>
+              <tr><td bgcolor="${variant.rule}" style="width:48px;height:2px;background-color:${variant.rule};font-size:0;line-height:0;">&nbsp;</td></tr>
             </table>
             <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${variant.fg};text-align:center;">${esc(data.projectName)}</p>
             <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${variant.metaFg};text-align:center;">${tableLine}</p>

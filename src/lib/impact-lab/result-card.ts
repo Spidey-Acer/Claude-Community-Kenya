@@ -231,6 +231,12 @@ export const CARD_DARK = {
   dim: "#7C7365",
   orange: "#D97757",
   orangeAlt: "#E58A6B",
+  /**
+   * Deeper clay, used in place of `orange` only on the gold winner card —
+   * Claude orange is nearly invisible against CARD_GOLD's gradient. Same
+   * clay as Karibu's `--clay` token on the public site.
+   */
+  accentOnGold: "#A84E2D",
 } as const
 
 /**
@@ -264,6 +270,12 @@ export type CardStyle = {
   ink: string
   /** Secondary text colour against that panel. */
   muted: string
+  /**
+   * Eyebrow label and short rule colour. Claude orange everywhere except
+   * the gold winner card, where it's the deeper `CARD_DARK.accentOnGold`
+   * clay — orange is nearly invisible against gold.
+   */
+  accent: string
   /** Small placement pill — `null` where the design has none (third, built). */
   pill: { label: string; color: string } | null
 }
@@ -281,7 +293,8 @@ export function cardStyleForTitle(title: string): CardStyle {
       angle: "165deg",
       ink: CARD_GOLD.ink,
       muted: CARD_GOLD.ink,
-      pill: { label: "1st overall", color: CARD_DARK.orange },
+      accent: CARD_DARK.accentOnGold,
+      pill: { label: "1st overall", color: CARD_DARK.accentOnGold },
     }
   }
   if (title === "Runner-up") {
@@ -291,6 +304,7 @@ export function cardStyleForTitle(title: string): CardStyle {
       angle: "to bottom",
       ink: CARD_DARK.text,
       muted: CARD_DARK.muted,
+      accent: CARD_DARK.orange,
       pill: { label: "2nd overall", color: CARD_GRAPHITE.silver },
     }
   }
@@ -301,6 +315,7 @@ export function cardStyleForTitle(title: string): CardStyle {
       angle: "to bottom",
       ink: CARD_DARK.text,
       muted: CARD_DARK.muted,
+      accent: CARD_DARK.orange,
       pill: null,
     }
   }
@@ -310,6 +325,7 @@ export function cardStyleForTitle(title: string): CardStyle {
     angle: "to bottom",
     ink: CARD_DARK.text,
     muted: CARD_DARK.muted,
+    accent: CARD_DARK.orange,
     pill: null,
   }
 }

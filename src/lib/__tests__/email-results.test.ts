@@ -55,6 +55,9 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("1st overall")
     expect(html).toContain("Table 12 &middot; Kilimo 3")
     expect(html).not.toContain("You built this")
+    // Clay, not Claude orange, for the eyebrow/pill/rule — orange is nearly
+    // invisible against the gold gradient.
+    expect(html).toContain("#A84E2D")
   })
 
   it("runner-up and third place: dark panel hero with their own titles and subjects", () => {
@@ -63,6 +66,8 @@ describe("impactLabResultsEmail variants", () => {
     expect(second.html).toContain(">Runner-up<")
     expect(second.html).toContain("background-color:#2A2A2E")
     expect(second.html).toContain("2nd of 4 in Kilimo: Nitapata?")
+    // Runner-up keeps Claude orange for its short rule under the headline.
+    expect(second.html).toContain("#D97757")
 
     const third = build({ placement: ranked(3), rank: 5 })
     expect(third.subject).toBe("Third place in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")

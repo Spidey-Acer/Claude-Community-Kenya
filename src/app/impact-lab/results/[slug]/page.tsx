@@ -98,11 +98,14 @@ export default async function ResultCardPage({ params }: Params) {
           : "bg-[#1E1B15] border-l-4 border-[#D97757]"
   const inkClass = style.kind === "winner" ? "text-[#16140F]" : "text-[#F4EEE3]"
   const mutedClass = style.kind === "winner" ? "text-[#16140F]/70" : "text-[#B8AE9C]"
-  const eyebrowClass = "text-[#D97757]"
-  const ruleClass = "bg-[#D97757]"
+  // Claude orange everywhere except the gold winner card, where it's nearly
+  // invisible against the gradient — deeper clay (#A84E2D) instead. Same
+  // pairing as CardStyle.accent in result-card.ts.
+  const eyebrowClass = style.kind === "winner" ? "text-[#A84E2D]" : "text-[#D97757]"
+  const ruleClass = style.kind === "winner" ? "bg-[#A84E2D]" : "bg-[#D97757]"
   const pillClass =
     style.kind === "winner"
-      ? "border-[#D97757]/50 text-[#D97757]"
+      ? "border-[#A84E2D]/50 text-[#A84E2D]"
       : style.kind === "runner-up"
         ? "border-[#C0C0C8]/50 text-[#C0C0C8]"
         : ""
