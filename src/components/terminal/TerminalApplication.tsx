@@ -12,6 +12,7 @@ import { TypingAnimation } from "./TypingAnimation";
 import { BOOT_INTRO_TEXT, BOOT_LINES } from "./application/boot";
 import {
   buildCompleteLines,
+  buildFailureLines,
   persistApplication,
   submitApplication,
 } from "./application/complete";
@@ -167,12 +168,14 @@ export function TerminalApplication({ prefill }: { prefill?: KaribuPrefill }) {
   }, []);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const handleProcessingComplete = useCallback(() => {
+  const handleProcessingComplete = useCallback(async () => {
     persistApplication(state.responses);
-    submitApplication(state.responses, csrfToken);
+    const ok = await submitApplication(state.responses, csrfToken);
     dispatch({
       type: "ADD_LINES",
-      lines: buildCompleteLines(state.responses, state.easterEggsFound),
+      lines: ok
+        ? buildCompleteLines(state.responses, state.easterEggsFound)
+        : buildFailureLines(),
     });
     dispatch({ type: "SET_STEP", step: "complete" });
   }, [state.responses, state.easterEggsFound, csrfToken]);
