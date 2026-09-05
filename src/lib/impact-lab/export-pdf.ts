@@ -23,7 +23,12 @@
 
 import PDFDocument from "pdfkit"
 import { totalOutOf } from "./judging"
-import { type ExportTeam, type ResultsExport } from "./export-data"
+import {
+  formatDisplayName,
+  sortByTrailingNumber,
+  type ExportTeam,
+  type ResultsExport,
+} from "./export-data"
 import { brandingForCohort, REPORT_PRODUCER, type EventBranding } from "./event-branding"
 import { REVIEW_PROVENANCE, REVIEW_SIGNATURE } from "./reviews"
 import { ANALYSIS_LABEL, ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
@@ -190,6 +195,16 @@ function placingKicker(team: ExportTeam): string {
 
 const fmt1 = (value: number): string => value.toFixed(1)
 
+/**
+ * The check-in figure to print: an organiser's recorded count (e.g. from
+ * Luma) when one disagrees with the system's own, else the system's count.
+ * Shared by the cover tile and the event-in-numbers funnel line so the two
+ * never print different numbers for the same fact.
+ */
+function checkedInCount(data: ResultsExport): number {
+  return data.summary.participantsCheckedInRecorded ?? data.summary.participantsCheckedIn
+}
+
 // ─── Cover ───────────────────────────────────────────────────────────────────
 
 /**
@@ -242,13 +257,22 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   // A count of 1 needs the singular form — "1 TRACKS" printed on a real
   // cohort's cover before this fix.
   const plural = (n: number, word: string): string => `${word}${n === 1 ? "" : "s"}`
+  // The system's own check-in count, overridden by an organiser's recorded
+  // count when one was given and disagrees (see `checkedInCount`) — the
+  // cover printed "159 BUILDERS" (everyone who ever registered) to a room
+  // where only a fraction checked in. Registrants stay in the record; the
+  // headline figure is who was actually there.
+  const checkedIn = checkedInCount(data)
   drawStatTiles(
     doc,
     MARGIN,
     doc.y,
     CONTENT_WIDTH,
     [
-      { value: String(s.participantsRegistered), label: plural(s.participantsRegistered, "Builder") },
+      {
+        value: String(checkedIn),
+        label: checkedIn === 1 ? "Builder checked in" : "Builders checked in",
+      },
       { value: String(s.teamsFormed), label: `${plural(s.teamsFormed, "Team")} formed` },
       { value: String(s.teamsSubmitted), label: `${plural(s.teamsSubmitted, "Project")} submitted` },
       { value: String(s.judges), label: plural(s.judges, "Judge") },
@@ -260,18 +284,36 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   doc.y += 2 * 58 + 12
   rule(doc, INK, 1)
 
-  // Champion line — the one result worth putting on the front.
-  const champion = data.announced.find((w) => w.rank === 1)
-  if (champion) {
-    doc.y += 14
-    kicker(doc, "Champion, as announced", CLAY_DEEP)
-    doc
-      .font(SERIF)
-      .fontSize(17)
-      .fillColor(INK)
-      .text(`${champion.projectName} — ${champion.teamName}`, MARGIN, doc.y, {
-        width: CONTENT_WIDTH,
-      })
+  // The one result worth putting on the front — a champion when an overall
+  // podium was announced, or the per-track winners when it was not. There is
+  // no overall winner to print in "tracks" mode; printing one anyway is
+  // exactly the bug this mode exists to remove.
+  if (data.announcementMode === "tracks") {
+    const trackWinners = data.trackWinners.filter((w) => w.basis === "announced")
+    if (trackWinners.length > 0) {
+      doc.y += 14
+      kicker(doc, "Track winners, as announced", CLAY_DEEP)
+      for (const w of trackWinners) {
+        doc
+          .font(SERIF)
+          .fontSize(13)
+          .fillColor(INK)
+          .text(`${w.projectName} — ${w.teamName}`, MARGIN, doc.y, { width: CONTENT_WIDTH })
+      }
+    }
+  } else {
+    const champion = data.announced.find((w) => w.rank === 1)
+    if (champion) {
+      doc.y += 14
+      kicker(doc, "Champion, as announced", CLAY_DEEP)
+      doc
+        .font(SERIF)
+        .fontSize(17)
+        .fillColor(INK)
+        .text(`${champion.projectName} — ${champion.teamName}`, MARGIN, doc.y, {
+          width: CONTENT_WIDTH,
+        })
+    }
   }
 
   // Writing inside the bottom margin would auto-add a page (the pdfkit
@@ -488,17 +530,26 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     )
   doc.moveDown(1.1)
 
-  // 3 — The podium.
-  kicker(doc, "How the winners were decided")
+  // 3 — How the winners were decided. This event may have announced an
+  // overall podium or one winner per track — never both, and never assumed;
+  // see `ResultsExport.announcementMode`.
+  kicker(doc, data.announcementMode === "tracks" ? "How the track winners were decided" : "How the winners were decided")
   doc
     .font(SANS)
     .fontSize(9)
     .fillColor(INK)
     .text(
-      "The podium was decided by the judging panel in deliberation, after watching the demos — " +
-        "not by the raw score order, which it does not reproduce. Both orderings appear in this " +
-        "document, each labelled as what it is: “announced” placings are the panel's decision; " +
-        "“score order” is the arithmetic. Neither is silently dressed as the other.",
+      data.announcementMode === "tracks"
+        ? "There was no overall podium at this event. The judging panel deliberated, after " +
+            "watching the demos, and named one winner per track — that decision is not " +
+            "reproduced by the raw score order, which ranks every other team. Both appear in " +
+            "this document, each labelled as what it is: “announced” track winners are the " +
+            "panel's decision; “score order” is the arithmetic. Neither is silently dressed as " +
+            "the other."
+        : "The podium was decided by the judging panel in deliberation, after watching the demos — " +
+            "not by the raw score order, which it does not reproduce. Both orderings appear in this " +
+            "document, each labelled as what it is: “announced” placings are the panel's decision; " +
+            "“score order” is the arithmetic. Neither is silently dressed as the other.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2.5 }
@@ -587,10 +638,30 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     "The field",
     "The event in numbers",
     "How the scores fell across the whole field — read alongside the methodology on the " +
-      `previous page. Score charts show weighted averages out of ${denom}; the podium was ` +
-      "decided by the panel, not by these charts."
+      `previous page. Score charts show weighted averages out of ${denom}; ` +
+      (data.announcementMode === "tracks"
+        ? "the track winners were decided by the panel, not by these charts."
+        : "the podium was decided by the panel, not by these charts.")
   )
   markSection(doc, state, "The event in numbers")
+
+  // The funnel: how many of the people who registered were actually in the
+  // room. The cover states the checked-in figure as the headline; this line
+  // is where the full drop-off — including the registrants who never
+  // checked in at all — is on the record.
+  const s = data.summary
+  doc
+    .font(SANS)
+    .fontSize(9)
+    .fillColor(DIM)
+    .text(
+      `${s.participantsRegistered} registered  →  ${checkedInCount(data)} checked in  →  ` +
+        `${s.teamsFormed} teams formed  →  ${s.teamsSubmitted} projects submitted.`,
+      MARGIN,
+      doc.y,
+      { width: CONTENT_WIDTH }
+    )
+  doc.moveDown(0.9)
 
   // Score distribution.
   kicker(doc, "Score distribution", DIM)
@@ -705,15 +776,23 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
 
 // ─── Winners ─────────────────────────────────────────────────────────────────
 
-/** Podium cards and the track winners table. One composition, one place. */
+/**
+ * Podium cards and the track winners table in "podium" mode; in "tracks"
+ * mode `data.announced` is empty (see `ResultsExport.announcementMode`), so
+ * the podium cards render nothing and the track winners table is the whole
+ * result. One composition, one place.
+ */
 function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void {
   sectionOpener(
     doc,
     "Results",
     "The winners",
-    data.announced.length > 0
-      ? "As announced in the room by the judging panel after deliberation."
-      : "Results have not been published; the leaders below are ordered by score alone."
+    !data.published
+      ? "Results have not been published; the leaders below are ordered by score alone."
+      : data.announcementMode === "tracks"
+        ? "One winner per track, as announced in the room by the judging panel after " +
+          "deliberation. There was no overall podium at this event."
+        : "As announced in the room by the judging panel after deliberation."
   )
   markSection(doc, state, "The winners")
   const denom = totalOutOf(data.rubric)
@@ -761,7 +840,7 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
   }
 
   doc.moveDown(0.8)
-  kicker(doc, "Track winners")
+  kicker(doc, data.announcementMode === "tracks" ? "The winners, by track" : "Track winners")
   doc.moveDown(0.2)
   for (const w of data.trackWinners) {
     ensureSpace(doc, 26)
@@ -808,7 +887,9 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
     .fontSize(7.5)
     .fillColor(FAINT)
     .text(
-      "“Announced” track winners follow from the podium (the champion leads its own track); " +
+      (data.announcementMode === "tracks"
+        ? "“Announced” track winners are the panel's declared winner for that track; "
+        : "“Announced” track winners follow from the podium (the champion leads its own track); ") +
         "“by score” winners top their track on weighted average. An “organiser decision” means the " +
         "organisers assigned the award rather than taking score order: teams were matched into a " +
         "track before building and judged at that track's tables, so a team that built outside its " +
@@ -858,20 +939,27 @@ function rankingHeader(doc: Doc, cols: ReturnType<typeof rankCols>): void {
  * its row layout, page breaks and header re-draws in one place.
  */
 function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void {
+  const tracksMode = data.announcementMode === "tracks"
   sectionOpener(
     doc,
     "Results",
     "Every team, and how its placing was decided",
-    "Placings 1–3 were announced by the panel; every other scored team follows in raw score " +
-      "order. The averages are the archival record — they order this list, they did not decide " +
-      "the podium."
+    tracksMode
+      ? "The ranking below is raw score order throughout — there was no overall podium at this " +
+        "event. The panel announced one winner per track separately; see “The winners”. The " +
+        "averages are the archival record — they order this list, nothing here was announced."
+      : "Placings 1–3 were announced by the panel; every other scored team follows in raw score " +
+        "order. The averages are the archival record — they order this list, they did not decide " +
+        "the podium."
   )
   markSection(doc, state, "Full ranking")
   const cols = rankCols(totalOutOf(data.rubric))
   rankingHeader(doc, cols)
 
   const ranked = data.teams.filter((t) => t.average !== null)
+  let anyScoredFromWriteup = false
   for (const team of ranked) {
+    if (team.scoredFromWriteup) anyScoredFromWriteup = true
     const cells = [
       team.finalRank !== null ? String(team.finalRank) : `(${team.scoreRank})`,
       team.projectDisplayName,
@@ -894,9 +982,17 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       rankingHeader(doc, cols)
     }
     const top = doc.y
-    if (team.finalRankBasis === "announced") {
+    // In "tracks" mode no row is an announced overall placing — there is no
+    // podium — so tinting on `finalRankBasis === "announced"` would tint
+    // nothing here even though the honesty rule (a real result, marked) still
+    // applies. Track-winner rows carry that marking instead, in olive rather
+    // than clay, so the two tints never look interchangeable at a glance.
+    if (!tracksMode && team.finalRankBasis === "announced") {
       doc.rect(MARGIN - 6, top - 3, CONTENT_WIDTH + 12, rowHeight).fillColor(CALLOUT_BG).fill()
       doc.rect(MARGIN - 6, top - 3, 2.5, rowHeight).fillColor(CLAY).fill()
+    } else if (tracksMode && team.isTrackWinner) {
+      doc.rect(MARGIN - 6, top - 3, CONTENT_WIDTH + 12, rowHeight).fillColor(CALLOUT_BG).fill()
+      doc.rect(MARGIN - 6, top - 3, 2.5, rowHeight).fillColor(OLIVE).fill()
     }
     let x = MARGIN
     cells.forEach((text, i) => {
@@ -918,12 +1014,17 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
   }
 
   doc.moveDown(0.6)
-  doc
-    .font(SANS)
-    .fontSize(7.5)
-    .fillColor(CLAY_DEEP)
-    .text("†  " + WRITEUP_NOTE, MARGIN, doc.y, { width: CONTENT_WIDTH, lineGap: 2 })
-  doc.moveDown(0.4)
+  // Only when a rendered row actually carries the basis this footnote marks
+  // — page 4 has stated "0 teams were scored from their written submission"
+  // under this exact footnote before, with no † anywhere on the page.
+  if (anyScoredFromWriteup) {
+    doc
+      .font(SANS)
+      .fontSize(7.5)
+      .fillColor(CLAY_DEEP)
+      .text("†  " + WRITEUP_NOTE, MARGIN, doc.y, { width: CONTENT_WIDTH, lineGap: 2 })
+    doc.moveDown(0.4)
+  }
   doc
     .font(SANS)
     .fontSize(7.5)
@@ -935,8 +1036,24 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2 }
     )
+  if (tracksMode) {
+    doc.moveDown(0.4)
+    doc
+      .font(SANS)
+      .fontSize(7.5)
+      .fillColor(OLIVE)
+      .text(
+        "Rows tinted here are each track's announced winner — see “The winners” for the full list.",
+        MARGIN,
+        doc.y,
+        { width: CONTENT_WIDTH, lineGap: 2 }
+      )
+  }
 
-  const unscored = data.teams.filter((t) => t.average === null)
+  const unscored = sortByTrailingNumber(
+    data.teams.filter((t) => t.average === null),
+    (t) => t.teamName
+  )
   if (unscored.length > 0) {
     doc.moveDown(1)
     kicker(doc, "Teams without a score", DIM)
@@ -1029,7 +1146,7 @@ function renderMembers(doc: Doc, team: ExportTeam): void {
 
   const cellCap = ROSTER_MAX_CELL_LINES * ROSTER_LINE + 2
   team.members.forEach((m, i) => {
-    const name = `${m.fullName}${m.isLeader ? " (lead)" : ""}`
+    const name = `${formatDisplayName(m.fullName)}${m.isLeader ? " (lead)" : ""}`
     const role = m.primaryRole || "—"
     const institution = m.institution || "—"
 
@@ -1482,11 +1599,14 @@ function renderAppendix(
     "Appendix",
     "The rest of the room",
     "A complete record includes the teams that formed but did not submit, and the builders " +
-      "who registered without landing on a frozen team. They were part of the night too."
+      "who registered without landing on a frozen team."
   )
   markSection(doc, state, "Appendix — the rest of the room")
 
-  const noSubmission = data.teams.filter((t) => t.submission === null)
+  const noSubmission = sortByTrailingNumber(
+    data.teams.filter((t) => t.submission === null),
+    (t) => t.teamName
+  )
   if (noSubmission.length > 0) {
     kicker(doc, `Teams that formed but did not submit (${noSubmission.length})`, DIM)
     doc
@@ -1500,17 +1620,45 @@ function renderAppendix(
     doc.moveDown(1)
   }
 
-  if (data.unassignedParticipants.length > 0) {
+  // Most of a registration list never sets foot in the room — printing every
+  // name here once claimed all of them "were part of the night too." Only
+  // the people who actually checked in are named; everyone else is a count.
+  const uncheckedInUnassigned = data.unassignedParticipants.filter((m) => m.checkedIn)
+  const notCheckedInUnassigned = data.unassignedParticipants.filter((m) => !m.checkedIn)
+
+  if (uncheckedInUnassigned.length > 0) {
     ensureSpace(doc, 60)
-    kicker(doc, `Registered but not on a frozen team (${data.unassignedParticipants.length})`, DIM)
+    kicker(doc, `Checked in but not on a frozen team (${uncheckedInUnassigned.length})`, DIM)
     doc
       .font(SANS)
       .fontSize(8.5)
       .fillColor(DIM)
       .text(
-        data.unassignedParticipants
-          .map((m) => `${m.fullName} — ${m.primaryRole}`)
+        uncheckedInUnassigned
+          .map((m) => `${formatDisplayName(m.fullName)} — ${m.primaryRole}`)
           .join("  ·  "),
+        MARGIN,
+        doc.y,
+        { width: CONTENT_WIDTH, lineGap: 2.5 }
+      )
+    doc.moveDown(0.4)
+    doc
+      .font(SANS_ITALIC)
+      .fontSize(8)
+      .fillColor(FAINT)
+      .text("They were part of the night too.", MARGIN, doc.y, { width: CONTENT_WIDTH })
+    doc.moveDown(1)
+  }
+
+  if (notCheckedInUnassigned.length > 0) {
+    ensureSpace(doc, 24)
+    doc
+      .font(SANS)
+      .fontSize(8.5)
+      .fillColor(DIM)
+      .text(
+        `A further ${notCheckedInUnassigned.length} builder${notCheckedInUnassigned.length === 1 ? "" : "s"} ` +
+          "registered but did not check in.",
         MARGIN,
         doc.y,
         { width: CONTENT_WIDTH, lineGap: 2.5 }
