@@ -16,6 +16,16 @@ import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
  * Prisma, which the edge runtime cannot load.
  */
 
+/**
+ * Force-dynamic for the same reason `page.tsx` is: a result card is computed
+ * from the run's `resultsSnapshot` per request, and that snapshot can be
+ * corrected after publication. Impact Lab 02 published a podium naming a team
+ * that had won nothing; correcting it fixes the page, but a PNG left in the
+ * route cache would keep serving the wrong placing to every link preview —
+ * the right page and the wrong image, which is the version nobody checks.
+ */
+export const dynamic = "force-dynamic"
+
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 export const alt = "Impact Lab result — Claude Community Kenya"
