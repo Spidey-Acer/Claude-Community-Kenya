@@ -23,12 +23,18 @@ interface MarqueeProps {
 // times per half guarantees that even on ultra-wide screens (no visible gap).
 const REPEATS_PER_HALF = 3;
 
-export function Marquee({ items }: MarqueeProps) {
-  const Half = () => (
+/**
+ * One half of the scrolling track. Hoisted to module scope (rather than
+ * declared inside Marquee's render) so React doesn't treat it as a new
+ * component type on every render — a component created during render loses
+ * its state and remounts each time its parent re-renders.
+ */
+function MarqueeHalf({ items, halfKey }: { items: string[]; halfKey: string }) {
+  return (
     <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-[#FBF0E8] whitespace-nowrap">
       {Array.from({ length: REPEATS_PER_HALF }).flatMap((_, r) =>
         items.map((item, i) => (
-          <span key={`${r}-${i}`} className="flex items-center gap-[26px]">
+          <span key={`${halfKey}-${r}-${i}`} className="flex items-center gap-[26px]">
             <span>{item}</span>
             <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
           </span>
@@ -36,7 +42,9 @@ export function Marquee({ items }: MarqueeProps) {
       )}
     </div>
   );
+}
 
+export function Marquee({ items }: MarqueeProps) {
   return (
     <div data-marquee className="overflow-hidden border-b border-clay-dark bg-clay">
       {/* Screen readers get the phrase list once; the scrolling track below is
@@ -48,8 +56,8 @@ export function Marquee({ items }: MarqueeProps) {
         style={{ animation: "karibu-marquee 26s linear infinite" }}
         aria-hidden="true"
       >
-        <Half />
-        <Half />
+        <MarqueeHalf items={items} halfKey="a" />
+        <MarqueeHalf items={items} halfKey="b" />
       </div>
     </div>
   );
