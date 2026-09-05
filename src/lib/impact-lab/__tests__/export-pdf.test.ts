@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "vitest"
 import { checkedInCount } from "../export-pdf"
-import type { ResultsExport } from "../export-data"
+import { checkedInIsRecorded, type ResultsExport } from "../export-data"
 
 function withSummary(summary: Partial<ResultsExport["summary"]>): ResultsExport {
   return {
@@ -48,5 +48,27 @@ describe("checkedInCount", () => {
   it("falls back to the system's own count when no override was recorded", () => {
     const data = withSummary({ participantsCheckedIn: 42, participantsCheckedInRecorded: null })
     expect(checkedInCount(data)).toBe(42)
+  })
+})
+
+/**
+ * `checkedInIsRecorded` regression coverage — AI Mashinani 02's door count
+ * (70, from Luma) disagreed with the site's own self-service check-ins (66).
+ * `renderCover` and the "event in numbers" funnel line must both consult
+ * this alongside `checkedInCount`: with an override, the figure is printed
+ * as plain attendance ("Builders checked in", "checked in"); without one,
+ * the site's own partial count must be labelled as what it is ("Checked in
+ * on site", "checked in on the site") and never dressed as the room's full
+ * attendance.
+ */
+describe("checkedInIsRecorded", () => {
+  it("is true once an organiser's door count was recorded and disagreed with the site's own", () => {
+    const data = withSummary({ participantsCheckedIn: 66, participantsCheckedInRecorded: 70 })
+    expect(checkedInIsRecorded(data.summary)).toBe(true)
+  })
+
+  it("is false with no override — the figure on the page is the site's own count", () => {
+    const data = withSummary({ participantsCheckedIn: 66, participantsCheckedInRecorded: null })
+    expect(checkedInIsRecorded(data.summary)).toBe(false)
   })
 })

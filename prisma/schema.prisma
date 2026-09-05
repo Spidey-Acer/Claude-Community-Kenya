@@ -887,6 +887,16 @@ model ImpactLabMatchRun {
   /// the judging route rejects writes rather than silently accepting a score
   /// that can never reach the published result.
   judgingClosedAt      DateTime?
+  /// An organiser's own door count (e.g. read off Luma), entered on the
+  /// export admin surface. Every export falls back to this figure when its
+  /// own `checkedIn=` query parameter is not given — see
+  /// `results/export/route.ts` — because the platform's own self-service
+  /// check-in flow undercounts a room where two systems ran (AI Mashinani
+  /// 02, 2 Sep 2026: 70 at the door, 66 on the site). Null means no door
+  /// count was recorded; exports then label the site's own count honestly
+  /// instead of presenting it as attendance — see `checkedInIsRecorded` in
+  /// `lib/impact-lab/export-data.ts`.
+  checkedInRecorded    Int?
   /// When results were published to participants. Non-null means the result
   /// is immutable: everything participants see is served from resultsSnapshot.
   resultsPublishedAt   DateTime?

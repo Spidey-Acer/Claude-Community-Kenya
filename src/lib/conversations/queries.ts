@@ -363,6 +363,35 @@ export async function getConversationsReportForEvent(
   }
 }
 
+/** One published Conversations report, for the `/reports` index. */
+export interface PublishedConversationsReport {
+  eventTitle: string
+  eventSlug: string
+  eventDate: string
+  reportUrl: string
+}
+
+/**
+ * Every Conversations event with a `reportUrl` set, newest event first — the
+ * `/reports` index reads this rather than a hardcoded list, so a report
+ * published later shows up without a code change.
+ */
+export async function listPublishedConversationsReports(): Promise<PublishedConversationsReport[]> {
+  const pages = await prisma.conversationsPage.findMany({
+    where: { reportUrl: { not: null } },
+    select: { reportUrl: true, event: { select: { title: true, slug: true, date: true } } },
+    orderBy: { event: { date: "desc" } },
+  })
+  return pages
+    .filter((p): p is typeof p & { reportUrl: string } => p.reportUrl !== null)
+    .map((p) => ({
+      eventTitle: decodeHtmlEntities(p.event.title),
+      eventSlug: p.event.slug,
+      eventDate: p.event.date.toISOString(),
+      reportUrl: p.reportUrl,
+    }))
+}
+
 /**
  * The open EventQuestionSession for an event, if any, with a count-only
  * tally of pending+approved questions for the "X questions already in"

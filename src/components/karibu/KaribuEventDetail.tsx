@@ -60,6 +60,8 @@ interface KaribuEventDetailProps {
    * a panel is published, so a non-null cohort with no judges is not an error.
    */
   judgesCohort: string | null;
+  /** `/impact-lab/[cohort]` when this event's cohort has published a public recap, else null. */
+  recapHref: string | null;
 }
 
 function parseDate(d: string): Date | null {
@@ -79,6 +81,7 @@ export function KaribuEventDetail({
   linkedInShareUrl,
   openQuestionSession,
   judgesCohort,
+  recapHref,
 }: KaribuEventDetailProps) {
   const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
@@ -264,6 +267,18 @@ export function KaribuEventDetail({
 
           {/* Meet the judges — hackathons linked to an Impact Lab cohort */}
           {judgesCohort && <KaribuJudgesSection cohort={judgesCohort} />}
+
+          {/* The public recap — once results are published */}
+          {recapHref && (
+            <div className="mt-9">
+              <Link
+                href={recapHref}
+                className="inline-flex items-center rounded-full bg-clay px-5 py-2.5 font-inter text-[13.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              >
+                See the results →
+              </Link>
+            </div>
+          )}
 
           {/* Q&A — only when this event has an open EventQuestionSession */}
           {openQuestionSession && (

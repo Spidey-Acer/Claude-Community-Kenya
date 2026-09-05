@@ -8,6 +8,7 @@ import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
 import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
+import { hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
 
 export const revalidate = 1800;
 
@@ -75,6 +76,14 @@ export default async function EventDetailPage({
     event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
     judgesCohortPromise,
   ]);
+
+  // Only a cohort that has actually published its results is worth a link —
+  // the recap page itself 404s otherwise, and `hasPublishedRecap` is one
+  // cheap count rather than fetching the whole recap just to throw it away.
+  const recapHref =
+    judgesCohort && (await hasPublishedRecap(judgesCohort).catch(() => false))
+      ? `/impact-lab/${judgesCohort}`
+      : null;
 
   const relatedEvents = allEvents
     .filter((e) => e.slug !== event.slug)
@@ -161,6 +170,7 @@ export default async function EventDetailPage({
         photos={eventPhotos}
         openQuestionSession={openQuestionSession}
         judgesCohort={judgesCohort}
+        recapHref={recapHref}
       />
     </>
   );
