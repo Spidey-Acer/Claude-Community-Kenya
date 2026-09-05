@@ -30,15 +30,18 @@ import { APP_URL, impactLabResultsEmail, resultsOrdinal } from "@/lib/email"
  */
 export function announcementHeadline(
   placement: Placement | null,
-  mode: "podium" | "tracks"
+  mode: "podium" | "tracks" | "champion"
 ): string {
   if (!placement) return "Not part of the published result."
   if (placement.kind === "participant") return "Took part — not scored in the finals."
   const title = placementTitle(placement)
-  if (mode === "tracks") {
-    // No overall podium exists in this mode — every headline is phrased by
-    // track position, never "Nth overall", so it cannot imply a podium that
-    // was never announced.
+  // No overall podium exists in "tracks" mode, and in "champion" mode a
+  // non-champion track winner has no overall placing either — only the
+  // champion itself does (`placement.announced`, set from `snapshot.overall`,
+  // which holds only the champion in this mode). Both phrase by track
+  // position, never "Nth overall", so neither can imply a podium that was
+  // never announced.
+  if (mode === "tracks" || (mode === "champion" && !placement.announced)) {
     return title === "Built"
       ? `Finished ${resultsOrdinal(placement.position)} of ${placement.of} in the ${placement.track} track.`
       : `${title} of the ${placement.track} track.`
@@ -133,8 +136,21 @@ export async function GET(request: NextRequest) {
           .map((id) => id.trim())
           .filter((id) => id !== "" && id.length <= 64)
       )].slice(0, 20)
-  const announcementMode: "podium" | "tracks" =
-    request.nextUrl.searchParams.get("announcementMode") === "tracks" ? "tracks" : "podium"
+  // Champion mode's second id list — the announced track winners. Same
+  // parsing and cap as `announced` above; empty (and ignored by
+  // `buildSnapshot`) in every other mode.
+  const trackWinnersParam = (request.nextUrl.searchParams.get("announcedTrackWinnerIds") ?? "").trim()
+  const requestedTrackWinners = trackWinnersParam === ""
+    ? []
+    : [...new Set(
+        trackWinnersParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id !== "" && id.length <= 64)
+      )].slice(0, 20)
+  const modeParam = request.nextUrl.searchParams.get("announcementMode")
+  const announcementMode: "podium" | "tracks" | "champion" =
+    modeParam === "tracks" ? "tracks" : modeParam === "champion" ? "champion" : "podium"
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
@@ -205,10 +221,12 @@ export async function GET(request: NextRequest) {
       ...inputBase,
       publishedAt: new Date().toISOString(),
       announcementMode,
-      // Filter to scored teams — the same eligibility publish enforces, so a
-      // stale selection left in the form cannot make this preview show a
-      // winner that publishing would then refuse.
+      // Filter to scored teams — the same eligibility the admin picker
+      // enforces (`ResultsTab.tsx`'s `eligibleWinners`), so a stale selection
+      // left in the form cannot preview a winner the panel never actually
+      // scored.
       announcedTeamIds: requestedAnnounced.filter((id) => scoredTeamIds.has(id)),
+      announcedTrackWinnerIds: requestedTrackWinners.filter((id) => scoredTeamIds.has(id)),
     }
     snapshot = buildSnapshot(input)
     teamName = team.name
@@ -250,6 +268,7 @@ export async function GET(request: NextRequest) {
     table,
     eventName: event?.name ?? "Impact Lab",
     placement,
+    announcementMode: effectiveMode,
     panelOverrodeScores: !placingsFollowScores(snapshot),
     // The real card URL, so the organiser can click through from the preview.
     // Before publish the page 404s (the run is not published yet) — the link
