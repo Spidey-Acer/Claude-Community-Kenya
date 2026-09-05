@@ -221,7 +221,7 @@ function Hero({ nextEvent }: { nextEvent?: Event }) {
             alt={`Claude Community Kenya members at the ${HERO_PHOTO_CREDIT}`}
             fill
             priority
-            sizes="(max-width: 1024px) 100vw, 560px"
+            sizes="(max-width: 1024px) 100vw, 40vw"
             className="object-cover"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim/45 via-transparent to-transparent" />
