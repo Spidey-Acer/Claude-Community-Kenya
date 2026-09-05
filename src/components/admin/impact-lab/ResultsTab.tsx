@@ -2419,6 +2419,148 @@ function filenameFromDisposition(header: string | null, fallback: string): strin
   return match ? match[1] : fallback
 }
 
+/**
+ * The organiser's own door count (e.g. read off Luma), entered once and
+ * stored on the cohort's final run — see `handleSetCheckedIn` in
+ * `runs/[id]/route.ts`. Every export then reads it automatically (see
+ * `results/export/route.ts`'s `checkedInRecorded` resolution), so a report
+ * generated weeks later still carries the right figure without an operator
+ * having to remember `?checkedIn=70` in the URL.
+ *
+ * Two check-in systems ran at once at AI Mashinani 02 (2 Sep 2026) and
+ * neither saw everyone in the room — the platform's own self-service
+ * check-in only counts someone who tapped its own link, so it undercounts a
+ * room where people walk in and start building without opening the site.
+ */
+function CheckedInField({ cohort }: { cohort: string }) {
+  const [runId, setRunId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [value, setValue] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const judging = await apiGet<JudgingData>(`/api/admin/impact-lab/judging?cohort=${cohort}`)
+        if (cancelled) return
+        setRunId(judging.finalRunId)
+        if (judging.finalRunId) {
+          const run = await apiGet<{ checkedInRecorded: number | null }>(
+            `/api/admin/impact-lab/runs/${judging.finalRunId}`
+          )
+          if (!cancelled) {
+            setValue(run.checkedInRecorded === null ? "" : String(run.checkedInRecorded))
+          }
+        }
+        setLoadError(null)
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : "Could not load the door count.")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [cohort])
+
+  async function save() {
+    if (!runId) return
+    setSaving(true)
+    setSaveError(null)
+    setSaved(false)
+    try {
+      await apiSend(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        checkedInRecorded: value.trim() === "" ? null : Number(value),
+      })
+      setSaved(true)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save the door count.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center">
+        <Loader2 className="mx-auto h-4 w-4 animate-spin text-[#333]" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+        {loadError}
+      </div>
+    )
+  }
+
+  if (!runId) {
+    return (
+      <p className="text-[11px] font-mono text-[#555]">
+        Mark a run final to record a door count.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4">
+      <label htmlFor="checked-in-recorded" className="block">
+        <span className="text-[11px] font-mono font-semibold text-[#e0e0e0]">
+          Checked in at the door (Luma)
+        </span>
+        <span className="mt-1 block text-[11px] font-mono leading-relaxed text-[#888]">
+          The platform&apos;s own self-service check-in under-counts a room where people
+          walk in and start building without opening the site — this is the number that
+          goes on public artefacts.
+        </span>
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          id="checked-in-recorded"
+          type="number"
+          min={0}
+          step={1}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="e.g. 70"
+          className="w-32 rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="flex items-center gap-2 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-[#00ff41] transition-colors hover:bg-[#00ff41]/20 disabled:opacity-40"
+        >
+          <Save className="h-3.5 w-3.5" />
+          {saving ? "Saving…" : "Save"}
+        </button>
+        {saved && !saveError && (
+          <span className="text-[11px] font-mono text-[#00ff41]">Saved.</span>
+        )}
+        {saveError && (
+          <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+            {saveError}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ExportPanel({ cohort }: { cohort: string }) {
   const [published, setPublished] = useState<boolean | null>(null)
   // Which export is currently being built server-side, so the trigger can
@@ -2503,6 +2645,8 @@ function ExportPanel({ cohort }: { cohort: string }) {
           judged, and who won. Generated fresh on each download; nothing is stored.
         </p>
       </div>
+
+      <CheckedInField cohort={cohort} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         {exports.map(({ format, label, description, Icon, accentClass }) => {

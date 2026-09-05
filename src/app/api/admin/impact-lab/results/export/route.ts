@@ -36,12 +36,17 @@ import { generateTeamAnalyses, type TeamAnalysis } from "@/lib/impact-lab/export
  * organiser-facing behaviour is unchanged; ignored for `format=pdf`, which
  * never carried contact details to begin with.
  *
- * `checkedIn=<positive integer>` records an organiser's own count (e.g. read
- * off Luma at the door) alongside the system's own, when the two disagree —
- * see `ExportSummary.participantsCheckedInRecorded`. Must be a whole number
- * no greater than the number of registered participants; anything else is a
+ * `checkedIn=<positive integer>` overrides — for this one export only — an
+ * organiser's own door count (e.g. read off Luma), recorded alongside the
+ * system's own when the two disagree — see
+ * `ExportSummary.participantsCheckedInRecorded`. Must be a whole number no
+ * greater than the number of registered participants; anything else is a
  * 400, not a silently ignored or clamped value, because this figure ends up
- * printed on the cover of a document built to be read by Anthropic.
+ * printed on the cover of a document built to be read by Anthropic. Absent
+ * the query parameter, the run's own `checkedInRecorded` column — set from
+ * the export panel's "Checked in at the door (Luma)" field — is used
+ * instead, so a recorded door count survives across every future export of
+ * the same cohort without having to be re-typed into the URL each time.
  *
  * Gated on `edit` (not `view`): the file is built to leave the building —
  * sponsors, community — so producing it is treated as an organiser action,
@@ -64,7 +69,7 @@ export async function GET(request: NextRequest) {
   // A whole-number string only — `Number("1e2")` and `Number(" 5 ")` both
   // pass `Number.isInteger`, and neither is what an organiser typed.
   const checkedInParam = request.nextUrl.searchParams.get("checkedIn")
-  let checkedInRecorded: number | undefined
+  let checkedInParamValue: number | undefined
   if (checkedInParam !== null) {
     if (!/^[1-9]\d*$/.test(checkedInParam)) {
       return NextResponse.json(
@@ -72,13 +77,19 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
-    checkedInRecorded = Number(checkedInParam)
+    checkedInParamValue = Number(checkedInParam)
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
-    select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
+    select: {
+      id: true,
+      result: true,
+      resultsPublishedAt: true,
+      resultsSnapshot: true,
+      checkedInRecorded: true,
+    },
   })
   if (!run) {
     return NextResponse.json(
@@ -86,6 +97,11 @@ export async function GET(request: NextRequest) {
       { status: 404 }
     )
   }
+
+  // The query parameter overrides the run's own stored door count for a
+  // one-off; with neither given, `undefined` falls through to
+  // `buildResultsExport`'s own "no override" honesty rules.
+  const checkedInRecorded = checkedInParamValue ?? run.checkedInRecorded ?? undefined
 
   const teams = extractFrozenTeams(run.result) ?? []
 
