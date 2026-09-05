@@ -4,8 +4,9 @@
  * Rendered on converted routes only. Links resolve to real app routes and
  * social URLs from `useSocialLinks()` (admin-configured, falling back to
  * the constants in constants.ts). A platform with no configured or
- * fallback URL is omitted entirely — never a dead link. Cities reflect
- * genuinely active locations (Nairobi + Mombasa) — no inflated claims.
+ * fallback URL is omitted entirely — never a dead link. Cities list matches
+ * places with at least one hosted event (Nairobi, Mombasa, Kisumu) — no
+ * inflated claims.
  *
  * Always dark, in every theme and persona. This uses the fixed `--footer-*`
  * tokens from globals.css, not `--ink`/`--paper`/`--clay` — those flip in
@@ -103,6 +104,7 @@ export function KaribuFooter() {
         <FooterColumn title="Cities">
           <span>Nairobi</span>
           <span>Mombasa</span>
+          <span>Kisumu</span>
         </FooterColumn>
       </div>
 
