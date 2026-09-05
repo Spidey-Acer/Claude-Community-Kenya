@@ -364,6 +364,362 @@ const EMPTY_RESULTS_INPUT_EXTRAS = {
   range: new Map<string, { low: number; high: number }>(),
 }
 
+/** Mirrors `src/lib/impact-lab/tracks.ts`'s `Track` — only the fields this screen needs. */
+interface EventTrack {
+  key: string
+  label: string
+}
+
+/** The event's declared tracks for this cohort — `[]` for an event with none configured. */
+async function loadEventTracks(cohort: string): Promise<EventTrack[]> {
+  const data = await apiGet<{ events: { cohort: string; tracks?: EventTrack[] }[] }>(
+    "/api/admin/impact-lab/events"
+  )
+  return data.events.find((e) => e.cohort === cohort)?.tracks ?? []
+}
+
+function teamOptionLabel(t: PublishTeam): string {
+  return t.submission ? `${t.teamName} — ${t.submission.projectName}` : t.teamName
+}
+
+/** What `AnnouncementSelector` reports upward — enough to publish or correct with. */
+interface AnnouncementSelection {
+  mode: "podium" | "tracks"
+  announcedTeamIds: string[]
+  /**
+   * True only when the operator is knowingly publishing an overall podium
+   * that has the exact Impact Lab 02 fingerprint (ticked count equals track
+   * count, every ticked team in a distinct track) — mirrors
+   * `looksLikePerTrackWinners` in `@/lib/impact-lab/results-input` (not
+   * imported directly: that module also carries a Prisma type import, and
+   * this client component should not depend on where that boundary sits).
+   * Both `publish/route.ts` and `correct/route.ts` run the same check
+   * server-side and refuse without this flag — sending it here only when the
+   * auto-preselect above was actually overridden, never by default, keeps
+   * the server the actual source of truth.
+   */
+  confirmPodium: boolean
+}
+
+/**
+ * Mirrors `looksLikePerTrackWinners` (`@/lib/impact-lab/results-input`) —
+ * same fingerprint, same doc comment reasoning. Duplicated rather than
+ * imported so this "use client" component never pulls in a module that also
+ * carries a Prisma type import; keep the two in sync (see
+ * `results-input.test.ts` for the canonical test coverage of this shape).
+ */
+function looksLikeTrackWinners(
+  announcedTeamIds: readonly string[],
+  trackByTeamId: ReadonlyMap<string, string>,
+  trackCount: number
+): boolean {
+  if (announcedTeamIds.length === 0 || trackCount === 0) return false
+  if (announcedTeamIds.length !== trackCount) return false
+  const picked = announcedTeamIds.map((id) => trackByTeamId.get(id))
+  if (picked.some((t) => t === undefined)) return false
+  return new Set(picked).size === picked.length
+}
+
+const PODIUM_LABELS = ["1st place (announced)", "2nd place (announced)", "3rd place (announced)"]
+
+/**
+ * The team-picking widget shared by `PublishPanel` and `CorrectionPanel` — one
+ * announcement-mode toggle plus the matching selection UI, so a publish and a
+ * later correction can never disagree about what "tracks mode" even looks
+ * like on screen.
+ *
+ * Owns its own selection state and reports only the derived
+ * `{ mode, announcedTeamIds }` upward via `onChange` — the caller never feeds
+ * a value back down, so there is no controlled-component loop to get wrong.
+ *
+ * Preselects "tracks" mode the moment the ticked podium slots are exactly one
+ * team per track, in distinct tracks — the exact shape that silently produced
+ * Impact Lab 02's wrong overall 1-2-3 (see the module doc comment on
+ * `results.ts`). Never fires again once the operator has touched the mode
+ * toggle themselves, so an explicit "podium" choice always sticks.
+ */
+function AnnouncementSelector({
+  eligibleTeams,
+  tracks,
+  onChange,
+}: {
+  eligibleTeams: PublishTeam[]
+  tracks: EventTrack[]
+  onChange: (selection: AnnouncementSelection) => void
+}) {
+  const [mode, setMode] = useState<"podium" | "tracks">("podium")
+  const [modeTouched, setModeTouched] = useState(false)
+  const [podium, setPodium] = useState<[string, string, string]>(["", "", ""])
+  const [byTrack, setByTrack] = useState<Record<string, string>>({})
+
+  const podiumIds = useMemo(() => podium.filter((id) => id !== ""), [podium])
+  const trackByTeamId = useMemo(
+    () => new Map(eligibleTeams.map((t) => [t.teamId, t.track])),
+    [eligibleTeams]
+  )
+
+  const podiumLooksLikeTracks = useMemo(
+    () => looksLikeTrackWinners(podiumIds, trackByTeamId, tracks.length),
+    [podiumIds, trackByTeamId, tracks.length]
+  )
+
+  useEffect(() => {
+    if (modeTouched) return
+    if (!podiumLooksLikeTracks) return
+    setMode("tracks")
+    const next: Record<string, string> = {}
+    for (const id of podiumIds) {
+      const track = trackByTeamId.get(id)
+      if (track) next[track] = id
+    }
+    setByTrack(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [podiumLooksLikeTracks, podiumIds.join(","), modeTouched])
+
+  const announcedTeamIds = useMemo(
+    () => (mode === "tracks" ? Object.values(byTrack).filter((id) => id !== "") : podiumIds),
+    [mode, byTrack, podiumIds]
+  )
+
+  // True exactly when the operator has explicitly overridden the auto-detect
+  // above back to "podium" despite the ticked teams matching the per-track
+  // fingerprint — see `AnnouncementSelection.confirmPodium`'s own doc
+  // comment for why this is safe to derive rather than a separate checkbox.
+  const confirmPodium = mode === "podium" && podiumLooksLikeTracks
+
+  useEffect(() => {
+    onChange({ mode, announcedTeamIds, confirmPodium })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, announcedTeamIds.join(","), confirmPodium])
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+          What was announced
+        </span>
+        <label className="flex items-center gap-1.5 text-[11px] font-mono text-[#e0e0e0]">
+          <input
+            type="radio"
+            name="announcement-mode"
+            checked={mode === "tracks"}
+            disabled={tracks.length === 0}
+            onChange={() => {
+              setModeTouched(true)
+              setMode("tracks")
+            }}
+            className="accent-[#00ff41]"
+          />
+          One winner per track
+        </label>
+        <label className="flex items-center gap-1.5 text-[11px] font-mono text-[#e0e0e0]">
+          <input
+            type="radio"
+            name="announcement-mode"
+            checked={mode === "podium"}
+            onChange={() => {
+              setModeTouched(true)
+              setMode("podium")
+            }}
+            className="accent-[#00ff41]"
+          />
+          An overall podium (1st, 2nd, 3rd)
+        </label>
+        {tracks.length === 0 && (
+          <span className="text-[10px] font-mono text-[#555]">
+            (no tracks declared for this event — Events tab)
+          </span>
+        )}
+      </div>
+
+      {mode === "podium" ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {PODIUM_LABELS.map((label, i) => (
+            <label key={label} className="block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+                {label}
+              </span>
+              <select
+                value={podium[i]}
+                onChange={(e) => {
+                  const next: [string, string, string] = [...podium]
+                  next[i] = e.target.value
+                  setPodium(next)
+                }}
+                className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+              >
+                <option value="">— not announced —</option>
+                {eligibleTeams.map((t) => (
+                  <option
+                    key={t.teamId}
+                    value={t.teamId}
+                    disabled={podiumIds.includes(t.teamId) && t.teamId !== podium[i]}
+                  >
+                    {teamOptionLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tracks.map((track) => {
+            const options = eligibleTeams.filter((t) => t.track === track.label)
+            const selected = byTrack[track.label] ?? ""
+            return (
+              <label key={track.key} className="block">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+                  {track.label} — winner
+                </span>
+                <select
+                  value={selected}
+                  onChange={(e) =>
+                    setByTrack((prev) => ({ ...prev, [track.label]: e.target.value }))
+                  }
+                  className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
+                >
+                  <option value="">— not announced —</option>
+                  {options.map((t) => (
+                    <option key={t.teamId} value={t.teamId}>
+                      {teamOptionLabel(t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          })}
+        </div>
+      )}
+
+      {mode === "podium" && announcedTeamIds.length !== 3 && (
+        <p className="text-[11px] font-mono text-[#ffb000]">
+          {announcedTeamIds.length} of the usual 3 announced winners selected. Publishing with
+          fewer (or none) ranks everyone by score alone — confirm this is intended before
+          continuing.
+        </p>
+      )}
+
+      {confirmPodium && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-3 text-[11px] font-mono text-[#ff3333]"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            This selection is one winner per track — the shape that produced Impact Lab 02&apos;s
+            wrong podium. You have switched back to &ldquo;overall podium&rdquo; anyway, so the
+            server will require an explicit override to accept it. Only continue if the panel
+            genuinely announced an overall 1st/2nd/3rd, not one winner per track.
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** One announced team's read-back, from `preview-email`'s own `headline` field. */
+interface AnnouncementHeadlineRow {
+  teamId: string
+  projectName: string
+  headline: string
+}
+
+/**
+ * The sentence an operator reads before confirming — "ElimuTayari will be
+ * told: Runner-up — 3rd overall." One row per announced team (podium mode)
+ * or per declared track winner (tracks mode — every id in `announcedTeamIds`
+ * already IS that track's winner in this mode; see `AnnouncementSelector`).
+ *
+ * This is the actual fix for Impact Lab 02 (3 September 2026): the operator
+ * ticked three teams and never saw the consequence before publishing: the
+ * wrong podium was only caught two days later by reading the PDF. Each
+ * sentence here is read off `preview-email`'s own `headline` — the same
+ * `Placement` the real email renders from — so what an organiser reads here
+ * cannot disagree with what a team actually receives. Calls
+ * `preview-email`'s GET only: no write, no enqueue, nothing to undo if the
+ * organiser changes their mind before pressing confirm.
+ */
+function AnnouncementHeadlines({
+  cohort,
+  mode,
+  announcedTeamIds,
+}: {
+  cohort: string
+  mode: "podium" | "tracks"
+  announcedTeamIds: string[]
+}) {
+  const [rows, setRows] = useState<AnnouncementHeadlineRow[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (announcedTeamIds.length === 0) {
+        setRows(null)
+        setError(null)
+        return
+      }
+      setLoading(true)
+      setError(null)
+      try {
+        const announcedParam = encodeURIComponent(announcedTeamIds.join(","))
+        const results = await Promise.all(
+          announcedTeamIds.map((teamId) =>
+            apiGet<PreviewEmailData>(
+              `/api/admin/impact-lab/results/preview-email?cohort=${cohort}` +
+                `&teamId=${encodeURIComponent(teamId)}&announced=${announcedParam}` +
+                `&announcementMode=${mode}`
+            )
+          )
+        )
+        if (cancelled) return
+        setRows(
+          results.map((r, i) => ({
+            teamId: announcedTeamIds[i],
+            projectName: r.projectName,
+            headline: r.headline,
+          }))
+        )
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Could not read back what each team would be told.")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [cohort, mode, announcedTeamIds.join(",")])
+
+  if (announcedTeamIds.length === 0) return null
+
+  return (
+    <div className="space-y-1.5 rounded border border-[#00d4ff]/30 bg-[#00d4ff]/10 p-3">
+      <p className="text-[10px] font-mono uppercase tracking-wider text-[#00d4ff]">
+        What each team will be told
+      </p>
+      {loading && (
+        <p className="text-[11px] font-mono text-[#888]">Reading back each team&apos;s email…</p>
+      )}
+      {error && (
+        <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
+          {error}
+        </p>
+      )}
+      {rows?.map((row) => (
+        <p key={row.teamId} className="text-[11px] font-mono text-[#e0e0e0]">
+          <span className="font-semibold">{row.projectName}</span> will be told: {row.headline}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 /**
  * Section: publish results. A one-way door — see the route's own header
  * comment for why the snapshot it writes is never recomputed afterwards.
@@ -376,25 +732,23 @@ const EMPTY_RESULTS_INPUT_EXTRAS = {
  */
 function PublishPanel({
   cohort,
-  firstPlace,
-  secondPlace,
-  thirdPlace,
-  setFirstPlace,
-  setSecondPlace,
-  setThirdPlace,
+  onAnnouncementChange,
 }: {
   cohort: string
-  firstPlace: string
-  secondPlace: string
-  thirdPlace: string
-  setFirstPlace: (id: string) => void
-  setSecondPlace: (id: string) => void
-  setThirdPlace: (id: string) => void
+  /** Lifted so `PreviewEmailPanel` can preview exactly this selection. */
+  onAnnouncementChange: (selection: AnnouncementSelection) => void
 }) {
   const [judging, setJudging] = useState<JudgingData | null>(null)
+  const [tracks, setTracks] = useState<EventTrack[]>([])
   const [publishStatus, setPublishStatus] = useState<PublishStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  const [selection, setSelection] = useState<AnnouncementSelection>({
+    mode: "podium",
+    announcedTeamIds: [],
+    confirmPodium: false,
+  })
 
   const [confirmText, setConfirmText] = useState("")
   const [publishing, setPublishing] = useState(false)
@@ -406,12 +760,14 @@ function PublishPanel({
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [judgingData, status] = await Promise.all([
+      const [judgingData, status, eventTracks] = await Promise.all([
         apiGet<JudgingData>(`/api/admin/impact-lab/judging?cohort=${cohort}`),
         apiGet<PublishStatus>(`/api/admin/impact-lab/results/publish?cohort=${cohort}`),
+        loadEventTracks(cohort),
       ])
       setJudging(judgingData)
       setPublishStatus(status)
+      setTracks(eventTracks)
       setLoadError(null)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load results")
@@ -451,10 +807,12 @@ function PublishPanel({
         .reduce((sum, t) => sum + t.memberCount, 0),
     [submittedTeams, scoredTeamIds, allowUnscored]
   )
-  const announcedTeamIds = useMemo(
-    () => [firstPlace, secondPlace, thirdPlace].filter((id) => id !== ""),
-    [firstPlace, secondPlace, thirdPlace]
-  )
+  const announcedTeamIds = selection.announcedTeamIds
+
+  function handleSelectionChange(next: AnnouncementSelection) {
+    setSelection(next)
+    onAnnouncementChange(next)
+  }
 
   const preview = useMemo(() => {
     if (!judging) return null
@@ -468,21 +826,21 @@ function PublishPanel({
     }
     const input: ResultsInput = {
       ...EMPTY_RESULTS_INPUT_EXTRAS,
+      announcementMode: selection.mode,
       announcedTeamIds,
       standings: judging.standings,
       teams: teamsMeta,
     }
     const ranking = buildRanking(input)
     return {
-      overall: toPublicRanking(ranking.slice(0, announcedTeamIds.length)),
-      trackWinners: buildTrackWinners(ranking),
+      overall:
+        selection.mode === "tracks"
+          ? []
+          : toPublicRanking(ranking.slice(0, announcedTeamIds.length)),
+      trackWinners: buildTrackWinners(ranking, new Set(announcedTeamIds)),
       ranking: toPublicRanking(ranking),
     }
-  }, [judging, submittedTeams, announcedTeamIds])
-
-  function teamOptionLabel(t: PublishTeam): string {
-    return t.submission ? `${t.teamName} — ${t.submission.projectName}` : t.teamName
-  }
+  }, [judging, submittedTeams, announcedTeamIds, selection.mode])
 
   async function publish() {
     setPublishing(true)
@@ -491,7 +849,14 @@ function PublishPanel({
       const result = await apiSend<PublishResponse>(
         "/api/admin/impact-lab/results/publish",
         "POST",
-        { cohort, announcedTeamIds, confirm: confirmText, allowUnscored }
+        {
+          cohort,
+          announcedTeamIds,
+          announcementMode: selection.mode,
+          confirmPodium: selection.confirmPodium,
+          confirm: confirmText,
+          allowUnscored,
+        }
       )
       setPublishStatus({ published: true, publishedAt: result.publishedAt, recipients: result.recipients })
     } catch (e) {
@@ -539,7 +904,8 @@ function PublishPanel({
             </p>
             <p className="mt-1 text-[11px] font-mono text-[#888]">
               {publishStatus.recipients} recipient{publishStatus.recipients === 1 ? "" : "s"}{" "}
-              queued for the results email.
+              queued for the results email. Announced the wrong winners? Use the correction
+              panel below the send section — it never sends a second email.
             </p>
           </div>
         </div>
@@ -617,46 +983,11 @@ function PublishPanel({
         </label>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          { label: "1st place (announced)", value: firstPlace, set: setFirstPlace },
-          { label: "2nd place (announced)", value: secondPlace, set: setSecondPlace },
-          { label: "3rd place (announced)", value: thirdPlace, set: setThirdPlace },
-        ].map((slot) => (
-          <label key={slot.label} className="block">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
-              {slot.label}
-            </span>
-            <select
-              value={slot.value}
-              onChange={(e) => slot.set(e.target.value)}
-              className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] focus:border-[#00ff41] focus:outline-none"
-            >
-              <option value="">— not announced —</option>
-              {eligibleWinners.map((t) => (
-                <option
-                  key={t.teamId}
-                  value={t.teamId}
-                  disabled={
-                    announcedTeamIds.includes(t.teamId) &&
-                    t.teamId !== slot.value
-                  }
-                >
-                  {teamOptionLabel(t)}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
-      </div>
-
-      {announcedTeamIds.length !== 3 && (
-        <p className="text-[11px] font-mono text-[#ffb000]">
-          {announcedTeamIds.length} of the usual 3 announced winners selected. Publishing with
-          fewer (or none) ranks everyone by score alone — confirm this is intended before
-          continuing.
-        </p>
-      )}
+      <AnnouncementSelector
+        eligibleTeams={eligibleWinners}
+        tracks={tracks}
+        onChange={handleSelectionChange}
+      />
 
       {preview && (
         <div className="space-y-4 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4">
@@ -725,6 +1056,8 @@ function PublishPanel({
         </div>
       )}
 
+      <AnnouncementHeadlines cohort={cohort} mode={selection.mode} announcedTeamIds={announcedTeamIds} />
+
       <label className="block max-w-xs">
         <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
           Type PUBLISH to confirm
@@ -754,6 +1087,289 @@ function PublishPanel({
         {publishError && (
           <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
             {publishError}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Correct a published result ────────────────────────────────────────────
+
+/** What `/results/correct`'s GET returns for one side of the current-vs-proposed comparison. */
+interface AnnouncementView {
+  announcementMode: "podium" | "tracks"
+  overall: { rank: number; teamId: string; projectName: string }[]
+  trackWinners: { track: string; teamId: string; projectName: string; basis: string }[]
+}
+
+function announcementSummary(view: AnnouncementView, nameById: Map<string, string>): {
+  label: string
+  lines: string[]
+} {
+  if (view.announcementMode === "tracks") {
+    return {
+      label: "One winner per track",
+      lines: view.trackWinners.map((w) => `${w.track}: ${w.projectName} (${nameById.get(w.teamId) ?? w.teamId})`),
+    }
+  }
+  return {
+    label: "Overall podium",
+    lines: view.overall.map((w) => `#${w.rank} ${w.projectName} (${nameById.get(w.teamId) ?? w.teamId})`),
+  }
+}
+
+/**
+ * Section: correct an already-published result. Visible only once
+ * `publish/route.ts` has actually published a run — a run with nothing
+ * published has nothing to correct, and `correct/route.ts` itself refuses
+ * with `NOT_PUBLISHED` for the same reason.
+ *
+ * Deliberately built on the same `AnnouncementSelector` `PublishPanel` uses —
+ * a correction is "pick the right winners again", not a different kind of
+ * decision, and two separate pickers is exactly how a publish screen and a
+ * correction screen could quietly disagree about what "tracks mode" means.
+ *
+ * States plainly, on screen and every time: this rewrites the results pages
+ * and share cards, and sends no email. The 85 emails already sent for the
+ * wrong announcement stay sent — nobody gets a second one.
+ */
+function CorrectionPanel({ cohort }: { cohort: string }) {
+  const [published, setPublished] = useState<boolean | null>(null)
+  const [judging, setJudging] = useState<JudgingData | null>(null)
+  const [tracks, setTracks] = useState<EventTrack[]>([])
+  const [current, setCurrent] = useState<AnnouncementView | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const [selection, setSelection] = useState<AnnouncementSelection>({
+    mode: "podium",
+    announcedTeamIds: [],
+    confirmPodium: false,
+  })
+  const [proposed, setProposed] = useState<AnnouncementView | null>(null)
+
+  const [confirmText, setConfirmText] = useState("")
+  const [correcting, setCorrecting] = useState(false)
+  const [correctError, setCorrectError] = useState<string | null>(null)
+  const [correctedAt, setCorrectedAt] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [status, judgingData, eventTracks] = await Promise.all([
+        apiGet<{ published: boolean }>(`/api/admin/impact-lab/results/publish?cohort=${cohort}`),
+        apiGet<JudgingData>(`/api/admin/impact-lab/judging?cohort=${cohort}`),
+        loadEventTracks(cohort),
+      ])
+      setPublished(status.published)
+      setJudging(judgingData)
+      setTracks(eventTracks)
+      if (status.published) {
+        const view = await apiGet<{ current: AnnouncementView; proposed: AnnouncementView | null }>(
+          `/api/admin/impact-lab/results/correct?cohort=${cohort}`
+        )
+        setCurrent(view.current)
+      } else {
+        setCurrent(null)
+      }
+      setLoadError(null)
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load the published result")
+    } finally {
+      setLoading(false)
+    }
+  }, [cohort])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const nameById = useMemo(
+    () => new Map((judging?.teams ?? []).map((t) => [t.teamId, teamOptionLabel(t)])),
+    [judging]
+  )
+  const eligibleWinners = useMemo(() => {
+    if (!judging) return []
+    const scoredTeamIds = new Set(judging.standings.map((s) => s.teamId))
+    return judging.teams.filter((t) => t.submission !== null && scoredTeamIds.has(t.teamId))
+  }, [judging])
+
+  // The proposed preview comes from the server (same `buildSnapshot` path
+  // `correct/route.ts`'s POST commits with) rather than being computed again
+  // here — one function decides what an announcement produces, not two.
+  useEffect(() => {
+    let cancelled = false
+    async function loadProposal() {
+      if (selection.announcedTeamIds.length === 0) {
+        setProposed(null)
+        return
+      }
+      try {
+        const data = await apiGet<{ current: AnnouncementView; proposed: AnnouncementView | null }>(
+          `/api/admin/impact-lab/results/correct?cohort=${cohort}` +
+            `&announcedTeamIds=${encodeURIComponent(selection.announcedTeamIds.join(","))}` +
+            `&announcementMode=${selection.mode}`
+        )
+        if (!cancelled) setProposed(data.proposed)
+      } catch {
+        if (!cancelled) setProposed(null)
+      }
+    }
+    void loadProposal()
+    return () => {
+      cancelled = true
+    }
+  }, [cohort, selection.mode, selection.announcedTeamIds])
+
+  async function correct() {
+    setCorrecting(true)
+    setCorrectError(null)
+    try {
+      const result = await apiSend<{ publishedAt: string }>(
+        "/api/admin/impact-lab/results/correct",
+        "POST",
+        {
+          cohort,
+          announcedTeamIds: selection.announcedTeamIds,
+          announcementMode: selection.mode,
+          confirmPodium: selection.confirmPodium,
+          confirm: confirmText,
+        }
+      )
+      setCorrectedAt(result.publishedAt)
+      setConfirmText("")
+      await load()
+    } catch (e) {
+      setCorrectError(e instanceof Error ? e.message : "Could not correct results.")
+    } finally {
+      setCorrecting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#333]" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded border border-[#ff3333]/30 bg-[#ff3333]/10 p-2 text-[11px] font-mono text-[#ff3333]">
+        {loadError}
+      </div>
+    )
+  }
+
+  // Nothing to correct until something has actually been published.
+  if (!published || !current) {
+    return (
+      <p className="p-8 text-center text-sm font-mono text-[#555]">
+        Publish results above to unlock corrections.
+      </p>
+    )
+  }
+
+  const disabledReason =
+    selection.announcedTeamIds.length === 0
+      ? "Pick at least one announced winner."
+      : confirmText !== "CORRECT"
+        ? "Type CORRECT to confirm."
+        : null
+
+  const currentSummary = announcementSummary(current, nameById)
+  const proposedSummary = proposed ? announcementSummary(proposed, nameById) : null
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-mono font-semibold text-[#e0e0e0]">
+          Correct a published result
+        </h2>
+        <p className="mt-1 text-[11px] font-mono text-[#888]">
+          Rewrites the results pages and share cards to say what the panel actually announced.
+          It sends no email — the recipients already sent keep their mail exactly as it was,
+          and nobody receives a second one. Use this only to fix a wrong announcement, not to
+          re-run publish.
+        </p>
+      </div>
+
+      <div className="rounded border border-[#1e1e1e] bg-[#0d0d0d] p-3">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+          Currently announced — {currentSummary.label}
+        </p>
+        <ul className="mt-1 space-y-0.5">
+          {currentSummary.lines.length === 0 ? (
+            <li className="text-[11px] font-mono text-[#555]">Nothing announced (score order only).</li>
+          ) : (
+            currentSummary.lines.map((line) => (
+              <li key={line} className="text-[11px] font-mono text-[#e0e0e0]">
+                {line}
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+
+      <AnnouncementSelector eligibleTeams={eligibleWinners} tracks={tracks} onChange={setSelection} />
+
+      {proposedSummary && (
+        <div className="rounded border border-[#ffb000]/30 bg-[#ffb000]/10 p-3">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-[#ffb000]">
+            Proposed — {proposedSummary.label}
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {proposedSummary.lines.map((line) => (
+              <li key={line} className="text-[11px] font-mono text-[#e0e0e0]">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <AnnouncementHeadlines
+        cohort={cohort}
+        mode={selection.mode}
+        announcedTeamIds={selection.announcedTeamIds}
+      />
+
+      <label className="block max-w-xs">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+          Type CORRECT to confirm
+        </span>
+        <input
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="CORRECT"
+          className="mt-1 w-full rounded border border-[#1e1e1e] bg-[#111] px-2 py-1.5 text-[11px] font-mono uppercase text-[#e0e0e0] focus:border-[#ffb000] focus:outline-none"
+        />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void correct()}
+          disabled={disabledReason !== null || correcting}
+          className="flex items-center gap-2 rounded border border-[#ffb000]/40 bg-[#ffb000]/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wider text-[#ffb000] transition-colors hover:bg-[#ffb000]/20 disabled:opacity-40"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {correcting ? "Correcting…" : "Correct results"}
+        </button>
+        {disabledReason && (
+          <span className="text-[11px] font-mono text-[#888]">{disabledReason}</span>
+        )}
+        {correctError && (
+          <span role="alert" className="text-[11px] font-mono text-[#ff3333]">
+            {correctError}
+          </span>
+        )}
+        {correctedAt && !correctError && (
+          <span className="text-[11px] font-mono text-[#00ff41]">
+            Corrected — results pages and share cards now reflect this. No email was sent.
           </span>
         )}
       </div>
@@ -1371,6 +1987,14 @@ interface PreviewEmailData {
   recipientCount: number
   /** Whether this was read off the frozen post-publish snapshot, or computed live. */
   published: boolean
+  /**
+   * The one-line sentence this team's email actually says — "Runner-up — 3rd
+   * overall.", "Winner of the Kilimo track." — read straight off the same
+   * `Placement` the email renders from. See `announcementHeadline` on the
+   * server for why this exists: Impact Lab 02's wrong podium was caught two
+   * days later by reading the PDF, not before the click that sent it.
+   */
+  headline: string
 }
 
 /**
@@ -1388,9 +2012,11 @@ interface PreviewEmailData {
  */
 function PreviewEmailPanel({
   cohort,
+  announcementMode,
   announcedTeamIds,
 }: {
   cohort: string
+  announcementMode: "podium" | "tracks"
   announcedTeamIds: string[]
 }) {
   const [teams, setTeams] = useState<PreviewEmailOption[] | null>(null)
@@ -1425,12 +2051,13 @@ function PreviewEmailPanel({
     }
   }, [cohort])
 
-  // Re-render whenever the announced winners change: a preview showing a
-  // placing the organiser has since altered is worse than no preview.
+  // Re-render whenever the announced winners OR the announcement mode
+  // change: a preview showing a placing (or a podium/tracks shape) the
+  // organiser has since altered is worse than no preview.
   useEffect(() => {
     if (selectedTeamId !== "") void loadPreview(selectedTeamId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [announcedTeamIds.join(",")])
+  }, [announcedTeamIds.join(","), announcementMode])
 
   async function loadPreview(teamId: string) {
     setSelectedTeamId(teamId)
@@ -1441,10 +2068,12 @@ function PreviewEmailPanel({
     try {
       const data = await apiGet<PreviewEmailData>(
         // The announced winners are part of what the email says — they decide
-        // the overall placing AND which team leads each track. Sending them
-        // means a pre-publish preview renders what publishing would actually
-        // produce, rather than the score-only ranking the panel overrode.
+        // the overall placing AND which team leads each track. Sending them,
+        // together with the announcement mode, means a pre-publish preview
+        // renders what publishing would actually produce, rather than the
+        // score-only (always-podium) ranking the panel overrode.
         `/api/admin/impact-lab/results/preview-email?cohort=${cohort}&teamId=${encodeURIComponent(teamId)}` +
+          `&announcementMode=${announcementMode}` +
           (announcedTeamIds.length > 0
             ? `&announced=${encodeURIComponent(announcedTeamIds.join(","))}`
             : "")
@@ -1948,42 +2577,43 @@ function ExportPanel({ cohort }: { cohort: string }) {
  * simple stack, fetching its own data independently.
  */
 export function ResultsTab({ cohort }: { cohort: string }) {
-  // The announced winners live here, not inside PublishPanel, because two
-  // panels depend on them: the one that publishes and the one that previews
+  // The announced selection lives here, not inside PublishPanel, because two
+  // panels depend on it: the one that publishes and the one that previews
   // what publishing would send. While this state was private to PublishPanel,
   // the preview had no way to read it and rendered the score-only ranking —
   // so it showed a different champion and different track winners than the
-  // email it was supposed to be previewing.
-  const [firstPlace, setFirstPlace] = useState("")
-  const [secondPlace, setSecondPlace] = useState("")
-  const [thirdPlace, setThirdPlace] = useState("")
-  const announcedTeamIds = useMemo(
-    () => [firstPlace, secondPlace, thirdPlace].filter((id) => id !== ""),
-    [firstPlace, secondPlace, thirdPlace]
-  )
+  // email it was supposed to be previewing. Carries `mode` alongside the ids
+  // (not just a bare id list) since "who" and "podium or per-track" are the
+  // same decision — a preview built from the ids alone, defaulting to
+  // podium, is exactly the shape that mislabelled Impact Lab 02's per-track
+  // calls as an overall 1-2-3.
+  const [announcement, setAnnouncement] = useState<AnnouncementSelection>({
+    mode: "podium",
+    announcedTeamIds: [],
+    confirmPodium: false,
+  })
 
   return (
     <div className="space-y-6">
       <AwaitingScoreSection cohort={cohort} />
       <div className="border-t border-[#1e1e1e] pt-6">
-        <PublishPanel
-          cohort={cohort}
-          firstPlace={firstPlace}
-          secondPlace={secondPlace}
-          thirdPlace={thirdPlace}
-          setFirstPlace={setFirstPlace}
-          setSecondPlace={setSecondPlace}
-          setThirdPlace={setThirdPlace}
-        />
+        <PublishPanel cohort={cohort} onAnnouncementChange={setAnnouncement} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <ReviewsSection cohort={cohort} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
-        <PreviewEmailPanel cohort={cohort} announcedTeamIds={announcedTeamIds} />
+        <PreviewEmailPanel
+          cohort={cohort}
+          announcementMode={announcement.mode}
+          announcedTeamIds={announcement.announcedTeamIds}
+        />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <NotifyPanel cohort={cohort} />
+      </div>
+      <div className="border-t border-[#1e1e1e] pt-6">
+        <CorrectionPanel cohort={cohort} />
       </div>
       <div className="border-t border-[#1e1e1e] pt-6">
         <ExportPanel cohort={cohort} />

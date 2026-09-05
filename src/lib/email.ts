@@ -535,9 +535,14 @@ export function impactLabAccountEmail(data: {
   return { to: data.to, subject: "Impact Lab: meet your team", html }
 }
 
-/** Matches the ordinal shown on the dashboard's results page (ResultsView.tsx) exactly. */
+/**
+ * Matches the ordinal shown on the dashboard's results page (ResultsView.tsx)
+ * exactly. Exported so preview-email/route.ts's publish-time headline (the
+ * one an organiser reads before confirming) can never phrase a placing
+ * differently from the email itself.
+ */
 const RESULTS_ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" }
-function resultsOrdinal(rank: number): string {
+export function resultsOrdinal(rank: number): string {
   return RESULTS_ORDINALS[rank] ?? `${rank}th`
 }
 
