@@ -1802,39 +1802,83 @@ function renderFurniture(doc: Doc, state: RenderState, branding: EventBranding):
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 /**
+ * Reports how far through *this* render pass the document is — a fraction
+ * from 0 to 1, never a global percentage. `export-pipeline.ts` is the only
+ * place that knows what band of the overall export this render occupies;
+ * keeping that mapping out of this file is what lets `export-pdf.test.ts`
+ * assert on plain fractions without knowing anything about the pipeline.
+ */
+export type PdfRenderProgress = (label: string, fraction: number) => void
+
+/**
  * Build the complete PDF and resolve with a Node buffer to stream. Analyses
  * are optional by construction: a missing entry means that team's analysis
  * section is simply absent (see export-analysis's fail-soft rule).
+ *
+ * `onProgress`, when given, fires between each major section — cover,
+ * methodology, the event in numbers, winners and ranking, then once per team
+ * profile — and once more before `doc.end()`. Every render call in this
+ * function is synchronous (pdfkit buffers pages in memory; nothing here
+ * awaits I/O), so without an explicit yield those calls would all fire back
+ * to back before Node's event loop gets a turn — fine for the returned bytes,
+ * which are unaffected either way, but it would mean a caller streaming this
+ * to a client sees every progress event arrive in one burst at the very end.
+ * `tick()` (`setImmediate`) after each report gives the stream a chance to
+ * flush before the next section renders.
  */
 export async function buildResultsPdf(
   data: ResultsExport,
-  analyses: ReadonlyMap<string, TeamAnalysis> = new Map()
+  analyses: ReadonlyMap<string, TeamAnalysis> = new Map(),
+  onProgress?: PdfRenderProgress
 ): Promise<Buffer> {
   const branding = await brandingForCohort(data.cohort)
-  return new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: "A4",
-      margins: { top: MARGIN, bottom: 60, left: MARGIN, right: MARGIN },
-      bufferPages: true,
-      info: {
-        Title: `${branding.title} — Results`,
-        Author: branding.host,
-        Subject: `Hackathon results, ${branding.dates}, ${branding.location}`,
-      },
-    })
-    const chunks: Buffer[] = []
+  const doc = new PDFDocument({
+    size: "A4",
+    margins: { top: MARGIN, bottom: 60, left: MARGIN, right: MARGIN },
+    bufferPages: true,
+    info: {
+      Title: `${branding.title} — Results`,
+      Author: branding.host,
+      Subject: `Hackathon results, ${branding.dates}, ${branding.location}`,
+    },
+  })
+  const chunks: Buffer[] = []
+  // Built before any rendering starts and awaited only at the very end, so a
+  // render-time throw below is caught by the surrounding try/catch — not
+  // left to reject this promise while nothing is listening for it. Making
+  // the executor itself `async` (the alternative) turns that throw into an
+  // unhandled rejection instead of a rejected `buildResultsPdf` promise,
+  // since a Promise executor's return value is never awaited by anyone.
+  const finished = new Promise<Buffer>((resolve, reject) => {
     doc.on("data", (chunk: Buffer) => chunks.push(chunk))
     doc.on("end", () => resolve(Buffer.concat(chunks)))
     doc.on("error", reject)
+  })
 
+  // Yields to the event loop so a queued progress event actually flushes
+  // over the wire before the next (synchronous) render call runs.
+  const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve))
+
+  try {
     const state: RenderState = { toc: [], tocPageIndex: 1 }
 
     renderCover(doc, data, branding)
+    onProgress?.("Rendering the cover", 0.03)
+    await tick()
+
     reserveContentsPage(doc, state)
     renderMethodology(doc, data, state)
+    onProgress?.("Rendering how this record was produced", 0.14)
+    await tick()
+
     renderEventInNumbers(doc, data, state)
+    onProgress?.("Rendering the event in numbers", 0.28)
+    await tick()
+
     renderWinners(doc, data, state)
     renderRanking(doc, data, state)
+    onProgress?.("Rendering winners and the full ranking", 0.42)
+    await tick()
 
     const profiled = data.teams.filter((t) => t.submission !== null)
     if (profiled.length > 0) {
@@ -1846,15 +1890,30 @@ export async function buildResultsPdf(
         page: state.toc[state.toc.length - 1].page,
         level: 0,
       })
+      let done = 1
+      onProgress?.(`Rendering team profiles (${done}/${profiled.length})`, 0.42 + (0.5 * done) / profiled.length)
+      await tick()
       for (const team of profiled.slice(1)) {
         renderTeamProfile(doc, team, analyses.get(team.teamId), state, data.rubric)
+        done += 1
+        onProgress?.(`Rendering team profiles (${done}/${profiled.length})`, 0.42 + (0.5 * done) / profiled.length)
+        await tick()
       }
     }
     renderAppendix(doc, data, state, branding)
 
     renderContents(doc, state)
     renderFurniture(doc, state, branding)
+    onProgress?.("Finalising the document", 0.98)
 
     doc.end()
-  })
+  } catch (error) {
+    // `doc.destroy()` releases pdfkit's internal buffers; without it a
+    // render-time throw would leave the document object (and every page it
+    // has already buffered) alive with nothing left to consume it.
+    doc.destroy()
+    throw error
+  }
+
+  return finished
 }
