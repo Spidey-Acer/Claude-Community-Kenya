@@ -119,6 +119,7 @@ Console: clean on every page. Broken images: none. Meta and canonical: correct. 
 - Item 15 was not the only Terminal Noir surface: the other `/resources/*` guides and the legacy routes above share monospace "code editor" chrome and a second 5-column footer carrying the persona toggle. Phase 3 scope.
 - A "mobile header collapses into a floating pill" report did not reproduce in a real scroll; dropped.
 - The repo's `CLAUDE.md` carried a hardcoded, stale event count ("2"); Phase 0 removes the number.
+- Item 18 was reverted in Phase 0: `/login`, `/signup` (and `forgot-password`, `reset-password`, `verify-email`) have Terminal Noir form bodies, so swapping only the chrome produced a light nav over a black page. The auth pages get restyled as a unit in Phase 3, chrome and body together. Same ruling for the `/resources/*` guides.
 
 **Peter's canvas feedback (2026-09-05):** ticker strip moves ABOVE the nav on every page; mobile navigation is rebuilt (compact top bar + full-height menu sheet with grouped serif links, city chips, pinned Join buttons). Both go into the primitives in Phase 2 as `Ticker` and `MobileNav`.
 

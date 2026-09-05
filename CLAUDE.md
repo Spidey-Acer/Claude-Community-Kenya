@@ -176,7 +176,7 @@ npm run db:seed          # Seed database
 - First meetup: Community gathering + networking, Peter Kibet demoed Claude Code workflow
 - Events hosted: growing count across Nairobi, Mombasa and Kisumu — the live
   figure comes from `SiteSettings.eventsHeld` in the DB, not this file
-- Cities: Nairobi + Mombasa (expanding)
+- Cities: Nairobi, Mombasa and Kisumu (each has hosted at least one event; the footer list is the source of truth)
 
 ## Known Issues
 
