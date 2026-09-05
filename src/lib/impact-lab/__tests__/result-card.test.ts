@@ -5,6 +5,7 @@
 
 import { afterEach, describe, expect, it } from "vitest"
 import {
+  cardStyleForTitle,
   isPodium,
   looksLikeResultCardSlug,
   placementFor,
@@ -217,5 +218,18 @@ describe("public card", () => {
     })
     expect(Object.keys(card)).not.toContain("position")
     expect(Object.keys(card)).not.toContain("overallRank")
+  })
+})
+
+describe("card pills never claim an overall ranking", () => {
+  it("labels a track winner by its track, not by an overall place", () => {
+    expect(cardStyleForTitle("Winner").pill?.label).toBe("Track winner")
+    expect(cardStyleForTitle("Runner-up").pill?.label).toBe("2nd in track")
+  })
+
+  it("prints no pill anywhere containing the word overall", () => {
+    for (const title of ["Winner", "Runner-up", "Third place", "Built"]) {
+      expect(cardStyleForTitle(title).pill?.label ?? "").not.toContain("overall")
+    }
   })
 })

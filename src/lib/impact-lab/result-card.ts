@@ -282,6 +282,15 @@ export type CardStyle = {
  * The one of four visual treatments a printed placement title earns — a
  * pure lookup over `PublicResultCard.title`, no placement arithmetic. Used
  * by both the page and the OG poster so the two never drift.
+ *
+ * The pills say "Track winner" and "2nd in track", never "1st overall" or
+ * "2nd overall". `placementFor` derives `position` WITHIN a track, so a
+ * title of "Winner" means first in its track and nothing more — the earlier
+ * "1st overall" label printed an overall ranking on every track winner's
+ * public card, including at Impact Lab 02 where no overall ranking was ever
+ * announced. The wording above is true under both announcement modes: an
+ * announced overall champion also leads its own track (see
+ * `buildTrackWinners`), so it loses no claim it had earned.
  */
 export function cardStyleForTitle(title: string): CardStyle {
   if (title === "Winner") {
@@ -292,7 +301,7 @@ export function cardStyleForTitle(title: string): CardStyle {
       ink: CARD_GOLD.ink,
       muted: CARD_GOLD.ink,
       accent: CARD_DARK.clay,
-      pill: { label: "1st overall", color: CARD_DARK.clay },
+      pill: { label: "Track winner", color: CARD_DARK.clay },
     }
   }
   if (title === "Runner-up") {
@@ -303,7 +312,7 @@ export function cardStyleForTitle(title: string): CardStyle {
       ink: CARD_DARK.text,
       muted: CARD_DARK.muted,
       accent: CARD_DARK.orange,
-      pill: { label: "2nd overall", color: CARD_GRAPHITE.silver },
+      pill: { label: "2nd in track", color: CARD_GRAPHITE.silver },
     }
   }
   if (title === "Third place") {
