@@ -611,12 +611,15 @@ async function addSummarySheet(
   // An organiser-recorded count (e.g. from Luma) is added alongside the
   // system's own, never in place of it — the two are different facts (who
   // Impact Lab's own check-in flow saw vs who the door recorded), and a
-  // reader comparing them against each other needs both on the page.
+  // reader comparing them against each other needs both on the page. With
+  // no override the site's own count is the only figure available, and it
+  // is labelled as what it is — self-service check-ins, not the room's full
+  // attendance — never printed as a bare "checked in" that reads as a total.
   if (s.participantsCheckedInRecorded !== null) {
     fact("Participants checked in (system)", s.participantsCheckedIn)
     fact("Participants checked in (recorded)", s.participantsCheckedInRecorded)
   } else {
-    fact("Participants checked in", s.participantsCheckedIn)
+    fact("Participants checked in (site)", s.participantsCheckedIn)
   }
   fact("Teams formed", s.teamsFormed)
   fact("Teams that submitted", s.teamsSubmitted)

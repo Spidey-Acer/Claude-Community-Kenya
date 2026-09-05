@@ -277,6 +277,20 @@ export interface ExportSummary {
   tracks: number
 }
 
+/**
+ * Whether the check-in figure this export prints is an organiser's own
+ * recorded count (e.g. a door count read off Luma) rather than the site's
+ * own self-service check-ins. Two systems ran at once at AI Mashinani 02 and
+ * neither saw everyone in the room — the site only counts someone who
+ * tapped its own check-in link, so without an override its count is real
+ * but partial. Shared by both the PDF and Excel builders so a check-in
+ * figure is never printed as plain attendance unless an organiser actually
+ * recorded it.
+ */
+export function checkedInIsRecorded(summary: ExportSummary): boolean {
+  return summary.participantsCheckedInRecorded !== null
+}
+
 export interface ResultsExport {
   cohort: string
   generatedAt: Date

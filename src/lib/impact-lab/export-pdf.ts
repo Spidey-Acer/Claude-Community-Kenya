@@ -24,6 +24,7 @@
 import PDFDocument from "pdfkit"
 import { totalOutOf } from "./judging"
 import {
+  checkedInIsRecorded,
   formatDisplayName,
   sortByTrailingNumber,
   type ExportTeam,
@@ -268,8 +269,11 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   // count when one was given and disagrees (see `checkedInCount`) — the
   // cover printed "159 BUILDERS" (everyone who ever registered) to a room
   // where only a fraction checked in. Registrants stay in the record; the
-  // headline figure is who was actually there.
+  // headline figure is who was actually there. Without an override the tile
+  // says so plainly ("checked in on site") rather than dressing the site's
+  // own partial count as attendance — see `checkedInIsRecorded`.
   const checkedIn = checkedInCount(data)
+  const checkedInRecorded = checkedInIsRecorded(data.summary)
   drawStatTiles(
     doc,
     MARGIN,
@@ -278,7 +282,11 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
     [
       {
         value: String(checkedIn),
-        label: checkedIn === 1 ? "Builder checked in" : "Builders checked in",
+        label: checkedInRecorded
+          ? checkedIn === 1
+            ? "Builder checked in"
+            : "Builders checked in"
+          : "Checked in on site",
       },
       { value: String(s.teamsFormed), label: `${plural(s.teamsFormed, "Team")} formed` },
       { value: String(s.teamsSubmitted), label: `${plural(s.teamsSubmitted, "Project")} submitted` },
@@ -513,6 +521,31 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   }
   doc.moveDown(1.1)
 
+  // 1.5 — Who counts as checked in. Two systems can run at once at an event
+  // — the site's own self-service check-in, and an organiser's door count
+  // (e.g. read off Luma) — and they do not have to agree: someone who walks
+  // in and starts building without opening the site is invisible to the
+  // site's own count. Whichever figure this document quotes, this is the
+  // one place that says which it is.
+  kicker(doc, "Who counts as checked in")
+  doc
+    .font(SANS)
+    .fontSize(9)
+    .fillColor(INK)
+    .text(
+      checkedInIsRecorded(data.summary)
+        ? "The check-in figure quoted throughout this document is an organiser's own count taken " +
+            "at the door. It may exceed the platform's own self-service check-ins, which only " +
+            "capture attendees who tapped the check-in link themselves."
+        : "The check-in figure quoted throughout this document is the platform's own self-service " +
+            "count — attendees who tapped the check-in link themselves. It does not include anyone " +
+            "who walked in and started building without opening the site.",
+      MARGIN,
+      doc.y,
+      { width: CONTENT_WIDTH, lineGap: 2.5 }
+    )
+  doc.moveDown(1.1)
+
   // 2 — Coverage and the writeup rule.
   const scoredTeams = data.teams.filter((t) => t.judgeCount > 0)
   const coverageMin = Math.min(...scoredTeams.map((t) => t.judgeCount))
@@ -657,12 +690,16 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
   // is where the full drop-off — including the registrants who never
   // checked in at all — is on the record.
   const s = data.summary
+  // Mirrors the cover tile's wording rule: an organiser's recorded count
+  // reads as plain "checked in", but the site's own self-service count
+  // — partial by construction, see `checkedInIsRecorded` — says so.
+  const checkedInPhrase = checkedInIsRecorded(data.summary) ? "checked in" : "checked in on the site"
   doc
     .font(SANS)
     .fontSize(9)
     .fillColor(DIM)
     .text(
-      `${s.participantsRegistered} registered  →  ${checkedInCount(data)} checked in  →  ` +
+      `${s.participantsRegistered} registered  →  ${checkedInCount(data)} ${checkedInPhrase}  →  ` +
         `${s.teamsFormed} teams formed  →  ${s.teamsSubmitted} projects submitted.`,
       MARGIN,
       doc.y,
