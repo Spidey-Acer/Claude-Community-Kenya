@@ -25,7 +25,6 @@ interface LinkedPublicEvent {
   slug: string
   venue: string
   city: string
-  attendeeCount: number | null
 }
 
 /**
@@ -40,7 +39,7 @@ interface LinkedPublicEvent {
 async function findLinkedPublicEvent(cohort: string): Promise<LinkedPublicEvent | null> {
   const candidates = await prisma.event.findMany({
     where: { type: "HACKATHON" },
-    select: { id: true, slug: true, venue: true, city: true, attendeeCount: true },
+    select: { id: true, slug: true, venue: true, city: true },
   })
   for (const candidate of candidates) {
     const matched = await cohortForPublicEvent(candidate.id, candidate.slug)
@@ -62,7 +61,7 @@ export async function findPublicRecap(cohortInput: string): Promise<PublicRecap 
     prisma.impactLabMatchRun.findFirst({
       where: { cohort, isFinal: true, resultsPublishedAt: { not: null } },
       orderBy: { createdAt: "desc" },
-      select: { id: true, result: true, resultsSnapshot: true },
+      select: { id: true, result: true, resultsSnapshot: true, checkedInRecorded: true },
     }),
     getEventByCohort(cohort),
   ])
@@ -85,14 +84,13 @@ export async function findPublicRecap(cohortInput: string): Promise<PublicRecap 
     findLinkedPublicEvent(cohort),
   ])
 
-  // No organiser door count is persisted anywhere yet (see the module doc in
-  // public-recap.ts) — this reads the one existing admin-settable proxy for
-  // it, the public Event's own `attendeeCount`, and falls back to the site's
-  // own count, honestly labelled, when it is unset. See `publicCheckedIn`.
-  const { checkedIn, checkedInIsRecorded } = publicCheckedIn(
-    checkedInSite,
-    publicEvent?.attendeeCount ?? null
-  )
+  // `run.checkedInRecorded` is the organiser's own door count (e.g. read off
+  // Luma) — set today via `PATCH /api/admin/impact-lab/runs/[id]` with
+  // `{ checkedInRecorded }` (see that route's `handleSetCheckedIn`), the same
+  // stored value every export falls back to. Null means no door count was
+  // ever recorded; the site's own self-service count is used instead,
+  // honestly labelled — see `publicCheckedIn`.
+  const { checkedIn, checkedInIsRecorded } = publicCheckedIn(checkedInSite, run.checkedInRecorded)
 
   return {
     cohort,
