@@ -211,4 +211,38 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).not.toContain("Track winners")
     expect(html).toContain("Every project was ranked by score")
   })
+
+  it("never claims an overall placing in the recipient's own scores line or hero pill when none was announced", () => {
+    // The real "tracks" mode shape: `overall: []` AND the team's own
+    // `placement.announced` is false (a track winner named by the panel in
+    // that mode is `announced` on its OWN track slot, never on an overall
+    // podium that was never called — see `results.ts`'s own doc comment).
+    // `rank: 1` (from `build`'s defaults) is still populated — pure score
+    // order exists in "tracks" mode too — so nothing here must say "1st
+    // overall" even though the number is available. The track-relative half
+    // of the placing line ("1st of 4 in ...") is unaffected: that comes from
+    // `placement`, not from `overall`.
+    const { html } = build({
+      overall: [],
+      trackWinners: [],
+      placement: ranked(1, 4, 1, false),
+    })
+    expect(html).not.toContain("1st overall")
+    expect(html).toContain("1st of 4 in Kilimo: Nitapata?")
+
+    // With an announced overall podium, the same recipient's line and hero
+    // pill do say so.
+    const withPodium = build().html
+    expect(withPodium).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
+    expect(withPodium).toContain(">1st overall<")
+  })
+
+  it("never renders the hero's overall pill when the placement says announced but no overall podium exists", () => {
+    // Defense in depth: `ranked.announced` and `data.overall` come from the
+    // same snapshot in every real caller, but a caller that ever passed the
+    // two out of sync must still not render an overall placing nobody
+    // announced — see the guard's own comment in email.ts.
+    const { html } = build({ overall: [], trackWinners: [], placement: ranked(1) })
+    expect(html).not.toContain("overall</span>")
+  })
 })
