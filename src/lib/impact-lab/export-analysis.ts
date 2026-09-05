@@ -85,13 +85,24 @@ Rules, all of them hard:
  * Teams whose generation fails are simply absent from the map (fail-soft rule
  * above); the error is logged so a wholly failed run is visible in server
  * logs, but the export itself never breaks on this.
+ *
+ * This is the slowest phase of a full export by far — one Sonnet call per
+ * team, four at a time — so `onProgress` (optional; the export route omits
+ * it entirely when the caller wants a fast pull with `analyses=off`, and the
+ * plain non-streaming download route never passes one) fires after every
+ * team finishes, success or fail-soft alike, with how many of the total have
+ * completed. The export pipeline's progress reporter turns that count into a
+ * percentage; this module only ever reports raw counts, never a fraction, so
+ * it stays free of the streaming route's own concerns.
  */
 export async function generateTeamAnalyses(
-  teams: readonly ExportTeam[]
+  teams: readonly ExportTeam[],
+  onProgress?: (completed: number, total: number) => void
 ): Promise<ReadonlyMap<string, TeamAnalysis>> {
   const anthropic = createAnthropic()
   const withSubmission = teams.filter((t) => t.submission !== null)
   const analyses = new Map<string, TeamAnalysis>()
+  let completed = 0
 
   const queue = [...withSubmission]
   const worker = async (): Promise<void> => {
@@ -121,6 +132,11 @@ How they used AI: ${s.claudeUsage}`
         // Fail-soft: this team's analysis section is simply absent. The
         // export must never carry a placeholder out of the building.
         console.error(`[results/export] analysis failed for ${team.teamId}`, error)
+      } finally {
+        // Counted whether this team's analysis landed or failed soft — the
+        // progress bar tracks teams processed, not teams that succeeded.
+        completed += 1
+        onProgress?.(completed, withSubmission.length)
       }
     }
   }

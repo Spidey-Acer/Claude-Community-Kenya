@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
-import { prisma } from "@/lib/prisma"
-import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
-import { extractFrozenTeams } from "@/lib/impact-lab/member"
-import type { ScoreSheet } from "@/lib/impact-lab/judging"
-import { resolveRubric } from "@/lib/impact-lab/rubric-store"
-import {
-  buildResultsExport,
-  parseResultsSnapshot,
-  type ExportSource,
-} from "@/lib/impact-lab/export-data"
-import { buildResultsWorkbook } from "@/lib/impact-lab/export-excel"
-import { buildResultsPdf } from "@/lib/impact-lab/export-pdf"
-import { publishableReview } from "@/lib/impact-lab/reviews"
-import { generateTeamAnalyses, type TeamAnalysis } from "@/lib/impact-lab/export-analysis"
+import { buildExportArtefact, ExportError } from "@/lib/impact-lab/export-pipeline"
 
 /**
  * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf[&analyses=off][&contacts=off][&checkedIn=N]
@@ -24,6 +11,14 @@ import { generateTeamAnalyses, type TeamAnalysis } from "@/lib/impact-lab/export
  * participant data has leaked from an artefact-on-disk before. (The PDF, the
  * artefact built for sharing, omits contact details entirely, regardless of
  * `contacts`.)
+ *
+ * The actual build — validation, DB loads, analysis generation, the Excel or
+ * PDF render — lives in `@/lib/impact-lab/export-pipeline`, shared with
+ * `export/stream/route.ts` (the same pipeline, reporting its own progress
+ * over NDJSON) so the two routes can never drift into producing different
+ * bytes for the same inputs. This route is now just the byte-response
+ * wrapper: same request params, same validation errors, same output as
+ * before the split.
  *
  * Per-team project analyses are generated at export time from the teams' own
  * submissions (see export-analysis for the honesty rules) — pass
@@ -52,176 +47,19 @@ export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
   if (!check.authorized) return check.response
 
-  const cohort = await resolveAdminCohort(request.nextUrl.searchParams.get("cohort"))
-  const format = request.nextUrl.searchParams.get("format")
-  if (format !== "xlsx" && format !== "pdf") {
-    return NextResponse.json(
-      { success: false, error: "format must be xlsx or pdf" },
-      { status: 400 }
-    )
-  }
-
-  // A whole-number string only — `Number("1e2")` and `Number(" 5 ")` both
-  // pass `Number.isInteger`, and neither is what an organiser typed.
-  const checkedInParam = request.nextUrl.searchParams.get("checkedIn")
-  let checkedInRecorded: number | undefined
-  if (checkedInParam !== null) {
-    if (!/^[1-9]\d*$/.test(checkedInParam)) {
-      return NextResponse.json(
-        { success: false, error: "checkedIn must be a positive whole number." },
-        { status: 400 }
-      )
-    }
-    checkedInRecorded = Number(checkedInParam)
-  }
-
-  const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort, isFinal: true },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
-  })
-  if (!run) {
-    return NextResponse.json(
-      { success: false, error: "No final run for this cohort yet." },
-      { status: 404 }
-    )
-  }
-
-  const teams = extractFrozenTeams(run.result) ?? []
-
-  // Read outside the Promise.all below alongside the other independent
-  // lookups — same reasoning as publish/route.ts: `getEventByCohort` uses
-  // the module-level Prisma client, so it is a plain query, not something
-  // that needs to share a transaction with anything else here.
-  const event = await getEventByCohort(cohort)
-
-  const [participants, submissions, scores, reviewRows] = await Promise.all([
-    prisma.impactLabParticipant.findMany({
-      where: { cohort },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        primaryRole: true,
-        institution: true,
-        checkedInAt: true,
-      },
-      orderBy: { fullName: "asc" },
-    }),
-    prisma.impactLabSubmission.findMany({
-      where: { runId: run.id },
-      select: {
-        teamId: true,
-        projectName: true,
-        pitch: true,
-        problemTackled: true,
-        description: true,
-        worksVsMocked: true,
-        claudeUsage: true,
-        repoUrl: true,
-        demoUrl: true,
-        videoUrl: true,
-        slidesUrl: true,
-      },
-    }),
-    prisma.impactLabScore.findMany({
-      where: { runId: run.id },
-      select: {
-        teamId: true,
-        judgeEmail: true,
-        judgeName: true,
-        scores: true,
-        feedback: true,
-        writeupOnly: true,
-      },
-    }),
-    prisma.impactLabTeamReview.findMany({
-      where: { runId: run.id },
-      select: { teamId: true, text: true, approvedAt: true },
-    }),
-  ])
-
-  const source: ExportSource = {
-    cohort,
-    publishedAt: run.resultsPublishedAt?.toISOString() ?? null,
-    snapshot: parseResultsSnapshot(run.resultsSnapshot),
-    teams: teams.map((t) => ({
-      id: t.id,
-      name: t.name,
-      memberIds: t.memberIds,
-      leaderId: (t as { leaderId?: string | null }).leaderId ?? null,
-      track: (t as { track?: string }).track,
-      trackKey: (t as { trackKey?: string }).trackKey,
-    })),
-    participants: participants.map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      email: p.email,
-      primaryRole: p.primaryRole,
-      institution: p.institution,
-      checkedIn: p.checkedInAt !== null,
-    })),
-    submissions,
-    scores: scores.map((s) => ({
-      teamId: s.teamId,
-      judgeEmail: s.judgeEmail,
-      judgeName: s.judgeName,
-      sheet: (s.scores ?? {}) as ScoreSheet,
-      feedback: s.feedback,
-      writeupOnly: s.writeupOnly,
-    })),
-    // Approved reviews only — publishableReview is the gate every
-    // participant-facing surface shares; drafts never leave the admin panel.
-    reviews: reviewRows.flatMap((r) => {
-      const text = publishableReview(r)
-      return text === null ? [] : [{ teamId: r.teamId, text }]
-    }),
-    tracks: event?.tracks ?? [],
-  }
-
-  // Checked against the real registered count, not trusted from the query
-  // string alone — an organiser fat-fingering a door count into a figure
-  // larger than the guest list would otherwise land on the cover unchallenged.
-  if (checkedInRecorded !== undefined && checkedInRecorded > source.participants.length) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `checkedIn (${checkedInRecorded}) cannot exceed the ${source.participants.length} registered participant(s).`,
-      },
-      { status: 400 }
-    )
-  }
-
-  // `resolveRubric`, not the code constant: an organiser-authored rubric for
-  // this cohort must win, exactly as it does for the judging routes.
-  const rubric = await resolveRubric(cohort)
-  const data = buildResultsExport(source, rubric, undefined, { checkedInRecorded })
-  const stamp = data.generatedAt.toISOString().slice(0, 10)
-
-  // One generation pass per export run — both builders read the same map.
-  const wantAnalyses = request.nextUrl.searchParams.get("analyses") !== "off"
-  const analyses: ReadonlyMap<string, TeamAnalysis> = wantAnalyses
-    ? await generateTeamAnalyses(data.teams)
-    : new Map()
-
-  if (format === "xlsx") {
-    const includeContacts = request.nextUrl.searchParams.get("contacts") !== "off"
-    const buffer = await buildResultsWorkbook(data, analyses, includeContacts)
-    return new NextResponse(new Uint8Array(buffer), {
+  try {
+    const artefact = await buildExportArtefact(request)
+    return new NextResponse(new Uint8Array(artefact.buffer), {
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="impact-lab-results-${cohort}-${stamp}.xlsx"`,
+        "Content-Type": artefact.contentType,
+        "Content-Disposition": `attachment; filename="${artefact.filename}"`,
         "Cache-Control": "no-store",
       },
     })
+  } catch (error) {
+    if (error instanceof ExportError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.status })
+    }
+    throw error
   }
-
-  const buffer = await buildResultsPdf(data, analyses)
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="impact-lab-results-${cohort}-${stamp}.pdf"`,
-      "Cache-Control": "no-store",
-    },
-  })
 }
