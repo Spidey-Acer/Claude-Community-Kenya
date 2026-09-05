@@ -41,15 +41,28 @@ export function yourTeamOverallLabel(
 }
 
 /**
- * The closing "how these results were decided" paragraph. Three distinct
- * true statements, chosen by what was actually announced — never "the top
- * three" when there was no overall podium, and credits the panel's own
- * discussion only for the placings that discussion actually produced.
+ * The closing "how these results were decided" paragraph. Four distinct true
+ * statements, chosen by what was actually announced — never "the top three"
+ * when only a single champion was announced (or there was no overall podium
+ * at all), and credits the panel's own discussion only for the placings that
+ * discussion actually produced.
+ *
+ * `announcementMode` defaults to `"podium"` so every existing caller (and the
+ * "top three" / "no overall podium" wording those tests hold in place) keeps
+ * its exact behaviour untouched — only `"champion"` gets a fourth branch.
  */
 export function decidedByNote(
   hasAnnouncedOverall: boolean,
-  hasAnnouncedTrackWinner: boolean
+  hasAnnouncedTrackWinner: boolean,
+  announcementMode: "podium" | "tracks" | "champion" = "podium"
 ): string {
+  if (announcementMode === "champion" && hasAnnouncedOverall) {
+    return (
+      "The champion was decided by the judging panel after they had seen the demos and discussed " +
+      "the projects together — and so was each track's own winner, in the same conversation. " +
+      "Every other team is ranked below them on score."
+    );
+  }
   if (hasAnnouncedOverall) {
     return (
       "The top three were decided by the judging panel after they had seen the demos and discussed " +

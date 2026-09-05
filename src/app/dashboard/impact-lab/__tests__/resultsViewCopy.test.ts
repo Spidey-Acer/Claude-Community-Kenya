@@ -44,4 +44,15 @@ describe("decidedByNote", () => {
     expect(note).not.toContain("panel named")
     expect(note).toContain("ranked purely by score")
   })
+
+  it("defaults to podium wording when no mode is given, unchanged from before champion mode existed", () => {
+    expect(decidedByNote(true, true)).toContain("top three")
+  })
+
+  it("credits the champion, never 'the top three', in champion mode", () => {
+    const note = decidedByNote(true, true, "champion")
+    expect(note).not.toContain("top three")
+    expect(note).toContain("The champion was decided")
+    expect(note).toContain("each track's own winner")
+  })
 })
