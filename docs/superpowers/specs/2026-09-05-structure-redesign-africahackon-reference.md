@@ -112,6 +112,16 @@ Inner pages (full-site crawl):
 
 Console: clean on every page. Broken images: none. Meta and canonical: correct. The blank gaps in the first crawl's screenshots were capture artifacts, verified by re-crawl.
 
+**Corrections after Phase 0 (2026-09-05 evening):**
+
+- Item 13 is not dead code. `useSkin()` / `cck-skin` is the live theme switch for every non-Karibu ("legacy") route: `/chat`, `/code-of-conduct`, `/faq`, `/projects`, `/blog/[slug]`, the chat and terminal components, and the legacy `Navbar`/`Footer`/`MobileMenu`. It stays until those routes migrate to Karibu primitives in Phase 3, which is therefore also a **persona-system retirement**. Section 5 gains those routes.
+- Item 14 does not exist. Both guides are plain server components with an anchor jump-nav; the live page measures evenly spaced sections with the footer directly after "Next Steps". The dead scroll was another capture artifact.
+- Item 15 was not the only Terminal Noir surface: the other `/resources/*` guides and the legacy routes above share monospace "code editor" chrome and a second 5-column footer carrying the persona toggle. Phase 3 scope.
+- A "mobile header collapses into a floating pill" report did not reproduce in a real scroll; dropped.
+- The repo's `CLAUDE.md` carried a hardcoded, stale event count ("2"); Phase 0 removes the number.
+
+**Peter's canvas feedback (2026-09-05):** ticker strip moves ABOVE the nav on every page; mobile navigation is rebuilt (compact top bar + full-height menu sheet with grouped serif links, city chips, pinned Join buttons). Both go into the primitives in Phase 2 as `Ticker` and `MobileNav`.
+
 ## 3. New home composition (Karibu tokens, africahackon grammar)
 
 1. **Nav** as today, sticky. One primary CTA: **Join** → `/join`. "Sign in" stays as a text link. Hero and footer CTAs point to the same `/join`; the WhatsApp deep link lives there, not in three places.
@@ -167,6 +177,7 @@ Every public page opens with `PageBanner`: tinted photo (page-specific, from the
 | `/showcase`, `/projects` | Banner; hide filter pills below 8 posts | 2 posts each |
 | `/join` | Banner; keep 3-step; add FAQ + CTA band | none |
 | `/signup`, `/login` | Standard footer + theme toggle | item 18 |
+| `/chat`, `/code-of-conduct`, `/blog/[slug]`, `/team/[slug]`, `/resources/*` guides | Banner; Karibu header/footer; drop the persona toggle and legacy `Navbar`/`Footer`/`MobileMenu` once nothing renders them | persona system retired (item 13), monospace guide chrome replaced |
 
 ## 6. Content inputs Peter owns
 
