@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og"
 import { CARD_DARK, CARD_GOLD, cardStyleForTitle, type CardStyle } from "@/lib/impact-lab/result-card"
 import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
+import { loadFonts } from "@/lib/impact-lab/og-fonts"
 
 /**
  * The LinkedIn post graphic for one team's result card. Same lookup as the
@@ -38,50 +39,14 @@ function panelBackground(style: CardStyle): string {
   return `linear-gradient(${style.angle}, ${style.gradient.join(", ")})`
 }
 
-type LoadedFont = { name: string; data: ArrayBuffer; weight: 400 | 600; style: "normal" }
-
-/**
- * Fraunces 600 and Inter 400 — the Karibu pairing. The stylesheet endpoint
- * serves TTF or WOFF (not WOFF2) to a browser that predates woff2, which is
- * what Satori can parse; both requests use `force-cache` so a warm function
- * reuses them. Any failure yields `[]` and the image renders in Satori's
- * bundled sans rather than failing a share.
- */
-async function loadFonts(): Promise<LoadedFont[]> {
-  try {
-    const css = await fetch(
-      "https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400",
-      {
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0" },
-        cache: "force-cache",
-      }
-    ).then((r) => r.text())
-
-    const wanted: { name: string; weight: 400 | 600 }[] = [
-      { name: DISPLAY, weight: 600 },
-      { name: SANS, weight: 400 },
-    ]
-    const fonts = await Promise.all(
-      wanted.map(async ({ name, weight }) => {
-        const block = css.match(
-          new RegExp(`font-family: '${name}';[^}]*?font-weight: ${weight};[^}]*?src:\\s*url\\(([^)]+\\.(?:ttf|woff))\\)`)
-        )
-        if (!block) return null
-        const data = await fetch(block[1], { cache: "force-cache" }).then((r) => r.arrayBuffer())
-        return { name, data, weight, style: "normal" as const }
-      })
-    )
-    return fonts.filter((f): f is LoadedFont => f !== null)
-  } catch {
-    return []
-  }
-}
-
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [card, fonts] = await Promise.all([
     findResultCardBySlug(slug).catch(() => null),
-    loadFonts(),
+    loadFonts([
+      { name: DISPLAY, weight: 600 },
+      { name: SANS, weight: 400 },
+    ]),
   ])
 
   // A valid page never gets a blank preview: an unknown slug renders the
