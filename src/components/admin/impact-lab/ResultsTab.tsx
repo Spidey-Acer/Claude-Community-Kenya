@@ -694,6 +694,11 @@ function AnnouncementHeadlines({
     return () => {
       cancelled = true
     }
+    // `announcedTeamIds.join(",")` is the real dependency — re-fires exactly
+    // when the selection's contents change, not on every render a new array
+    // identity would otherwise trigger. Same pattern as `PreviewEmailPanel`'s
+    // own effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cohort, mode, announcedTeamIds.join(",")])
 
   if (announcedTeamIds.length === 0) return null
