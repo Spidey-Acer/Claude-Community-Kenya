@@ -817,6 +817,26 @@ body::before {
   animation-play-state: paused;
 }
 
+/* ─── CountUp reveal ─────────────────────────────────────────────────────
+ * The number itself is always the final, server-rendered value (see
+ * CountUp.tsx) — this only fades/rises it in on first paint. Pure CSS: no
+ * JavaScript required to run, so it also plays for no-JS readers instead of
+ * leaving the stat inert. The site-wide `prefers-reduced-motion: reduce`
+ * reset above already collapses this to an instant, fully-visible state. */
+@keyframes count-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.count-reveal {
+  animation: count-reveal 500ms var(--ease-entrance, ease-out) both;
+}
+
 /* ─── Karibu skeleton loading ─────────────────────────────────────────────
  * Token-driven shimmer for route-level loading states. The sweep is a
  * translucent ink gradient, so it reads darker-on-light in light mode and
