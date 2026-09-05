@@ -139,6 +139,40 @@ export async function buildResultsInputFromRun(
 }
 
 /**
+ * Detects the exact shape that published Impact Lab 02's wrong podium (3
+ * September 2026): three teams ticked as an overall 1st/2nd/3rd that were
+ * actually the panel's separate per-track calls — one team per track, in a
+ * three-track run — published as a podium that named a team who had won
+ * nothing overall. Caught two days later by reading the PDF.
+ *
+ * Not a ban on small fields, and not "every event with few announced
+ * winners is suspicious": July 2026 was a genuine podium event with 3
+ * announced teams in a 5-track run, two of them sharing one track, and this
+ * correctly returns `false` for it — see the regression test named for that
+ * event. It fires only on the specific fingerprint: the ticked count exactly
+ * equals the run's track count, AND every ticked team sits in a distinct
+ * track. That combination is what "these are really per-track calls, not an
+ * overall podium" looks like; a smaller or larger podium, or two ticked
+ * teams sharing a track, is not this bug.
+ *
+ * `teamsMeta` and `allTracks` both come from the same resolved tracks
+ * `buildSnapshot` itself ranks against (see `buildResultsInputFromRun`'s
+ * `input.teams`) — never a second, independent track lookup that could
+ * disagree with the one the snapshot actually uses.
+ */
+export function looksLikePerTrackWinners(
+  announcedTeamIds: readonly string[],
+  teamsMeta: ReadonlyMap<string, { track: string }>,
+  allTracks: ReadonlySet<string>
+): boolean {
+  if (announcedTeamIds.length === 0 || allTracks.size === 0) return false
+  if (announcedTeamIds.length !== allTracks.size) return false
+  const tracks = announcedTeamIds.map((id) => teamsMeta.get(id)?.track)
+  if (tracks.some((t) => t === undefined)) return false
+  return new Set(tracks).size === tracks.length
+}
+
+/**
  * Written feedback per team for one run, as it may be shown to that team:
  * judge notes quoted through `presentableJudgeNote` (spelling/casing
  * corrections only — the stored record is never altered) and the community

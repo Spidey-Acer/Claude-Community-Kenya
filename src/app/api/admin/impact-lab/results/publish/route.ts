@@ -6,7 +6,7 @@ import { checkApiPermission } from "@/lib/rbac"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
-import { buildResultsInputFromRun } from "@/lib/impact-lab/results-input"
+import { buildResultsInputFromRun, looksLikePerTrackWinners } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, type ResultsInput } from "@/lib/impact-lab/results"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 
@@ -26,7 +26,20 @@ import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 const bodySchema = z.object({
   cohort: z.string().max(60).optional(),
   announcedTeamIds: z.array(z.string().min(1).max(64)).max(20),
+  /**
+   * Whether `announcedTeamIds` names an overall podium or one winner per
+   * track. Defaults to `"podium"` — the shape every publish before this
+   * field existed actually sent. See `ResultsInput.announcementMode` for
+   * what each value means to the snapshot builder.
+   */
+  announcementMode: z.enum(["podium", "tracks"]).optional().default("podium"),
   confirm: z.string(),
+  /**
+   * Overrides the `PODIUM_LOOKS_LIKE_TRACK_WINNERS` refusal below. Off by
+   * default: an operator must actively say "yes, this really is an overall
+   * podium" rather than the refusal being something a retry silently clears.
+   */
+  confirmPodium: z.boolean().optional().default(false),
   /**
    * Publish even though some submitted teams were never scored.
    *
@@ -231,6 +244,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 4b. The Impact Lab 02 fingerprint (3 September 2026): three teams
+    // ticked as an overall podium that were actually the panel's separate
+    // per-track calls — one team per track, in a three-track run — published
+    // as a 1-2-3 that named a team who had won nothing overall, caught two
+    // days later by reading the PDF. `looksLikePerTrackWinners` fires only
+    // on that exact shape (ticked count equals track count, every ticked
+    // team in a distinct track) — July 2026's genuine podium (3 announced
+    // teams in a 5-track run, two sharing a track) does not match it and
+    // publishes with no `confirmPodium` needed; see that function's own doc
+    // comment and `results-input.test.ts` for both directions.
+    if (
+      parsed.data.announcementMode === "podium" &&
+      !parsed.data.confirmPodium &&
+      looksLikePerTrackWinners(
+        parsed.data.announcedTeamIds,
+        inputBase.teams,
+        new Set([...inputBase.teams.values()].map((t) => t.track))
+      )
+    ) {
+      const named = parsed.data.announcedTeamIds
+        .map((id) => `${displayName(id)} (${inputBase.teams.get(id)?.track ?? "unknown track"})`)
+        .join(", ")
+      return {
+        ok: false,
+        status: 409,
+        error:
+          `This looks like one winner per track, not an overall podium: ${named}. ` +
+          'If this really is an announced overall podium, resend with confirmPodium: true. ' +
+          'If the panel actually named one winner per track, switch announcementMode to "tracks" instead.',
+        code: "PODIUM_LOOKS_LIKE_TRACK_WINNERS",
+      }
+    }
+
     // 5. The rest of the ResultsInput the pure snapshot builder needs.
     //
     // An announced winner is excluded from `unranked` even if it has no score
@@ -243,6 +289,7 @@ export async function POST(request: NextRequest) {
     const input: ResultsInput = {
       ...inputBase,
       publishedAt: publishedAt.toISOString(),
+      announcementMode: parsed.data.announcementMode,
       announcedTeamIds: parsed.data.announcedTeamIds,
       unrankedTeamIds,
     }
@@ -313,6 +360,8 @@ export async function POST(request: NextRequest) {
     entityId: runId,
     changes: {
       announcedTeamIds: parsed.data.announcedTeamIds,
+      announcementMode: parsed.data.announcementMode,
+      confirmPodium: parsed.data.confirmPodium,
       recipients: outcome.recipients,
       // A one-way door taken with unscored teams in it is exactly the
       // decision an audit trail has to be able to answer for afterwards.
