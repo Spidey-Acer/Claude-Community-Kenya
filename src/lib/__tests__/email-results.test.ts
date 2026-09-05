@@ -246,3 +246,67 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).not.toContain("overall</span>")
   })
 })
+
+describe("impactLabResultsEmail — champion mode", () => {
+  const CHAMPION_OVERALL = [{ rank: 1, teamId: "k1", projectName: "Shamba Bot" }]
+  const CHAMPION_TRACK_WINNERS = [
+    { track: "Elimu: Mwalimu wa Grade 10", teamId: "e1", projectName: "Mwalimu AI", basis: "announced" as const },
+    { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
+  ]
+
+  it("the champion's own email: 'Overall champion' singular, not the plural podium table, and claims its overall rank", () => {
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: CHAMPION_TRACK_WINNERS,
+      placement: ranked(1),
+      rank: 1,
+    })
+    expect(html).toContain("Overall champion")
+    expect(html).not.toContain("Overall winners")
+    expect(html).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
+    expect(html).toContain(">1st overall<") // hero pill
+  })
+
+  it("an announced non-champion track winner: no 'Nth overall' claim, but keeps its track position and Winner hero", () => {
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: CHAMPION_TRACK_WINNERS,
+      // Elimu's own winner — announced for its track, but not the champion,
+      // so `placement.announced` is false (only Shamba Bot/k1 is in `overall`).
+      placement: { kind: "ranked", track: "Elimu: Mwalimu wa Grade 10", position: 1, of: 5, overallRank: 1, announced: false },
+      projectName: "Mwalimu AI",
+      rank: 1,
+    })
+    expect(html).toContain(">Winner<")
+    expect(html).not.toContain(">1st overall<")
+    expect(html).not.toMatch(/\d+(st|nd|rd|th) overall/)
+    expect(html).toContain("1st of 5 in Elimu: Mwalimu wa Grade 10")
+  })
+
+  it("a team ranked below the champion and every track winner: no overall claim, plain score-order track line", () => {
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: CHAMPION_TRACK_WINNERS,
+      placement: ranked(4, 4, 7, false),
+      rank: 7,
+    })
+    expect(html).not.toMatch(/\d+(st|nd|rd|th) overall/)
+    expect(html).toContain("4th of 4 in Kilimo: Nitapata?")
+  })
+
+  it("states one neutral sentence for how placings were decided, never 'top three' or 'follow the scores'", () => {
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: CHAMPION_TRACK_WINNERS,
+      placement: ranked(1),
+      rank: 1,
+    })
+    expect(html).toContain("The champion and each track&#x27;s winner were announced by the judging panel.")
+    expect(html).not.toContain("top three")
+    expect(html).not.toContain("follow the judging panel")
+  })
+})

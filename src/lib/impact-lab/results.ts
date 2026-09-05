@@ -12,8 +12,9 @@
  *    announcement is already public. Recomputing it would contradict what
  *    people were told to their faces. What was announced is not always a
  *    podium — see `ResultsInput.announcementMode`: an overall podium (ranks
- *    1-3) or one winner per track are both real shapes an event can produce,
- *    and the snapshot must say which happened rather than assume the first.
+ *    1-3), one winner per track, or a single champion plus one winner per
+ *    track are all real shapes an event can produce, and the snapshot must
+ *    say which happened rather than assume the first.
  * 2. Everyone else ranks below them by score. Scores order the list but are
  *    never printed in it — publishing them would place a 76.9 at 4th above a
  *    75.3 at 1st, which is the contradiction this ranking exists to remove.
@@ -99,12 +100,16 @@ export interface ResultsSnapshot {
    *
    * Optional because snapshots published before this field existed do not
    * carry it. Every reader must default a missing value to `"podium"` — the
-   * only shape that existed before `"tracks"` was added — rather than assume
-   * it is present; a stored snapshot is never recomputed, so the old shape is
-   * permanent. See `ResultsInput.announcementMode`.
+   * only shape that existed before `"tracks"` (and later `"champion"`) was
+   * added — rather than assume it is present; a stored snapshot is never
+   * recomputed, so the old shape is permanent. See `ResultsInput.announcementMode`.
    */
-  announcementMode?: "podium" | "tracks"
-  /** The overall podium, in `"podium"` mode. Always `[]` in `"tracks"` mode — there is no podium to hold. */
+  announcementMode?: "podium" | "tracks" | "champion"
+  /**
+   * The overall podium in `"podium"` mode, or the single champion (one entry,
+   * rank 1) in `"champion"` mode. Always `[]` in `"tracks"` mode — there is no
+   * overall placing to hold.
+   */
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
   ranking: RankedTeam[]
@@ -122,9 +127,10 @@ export interface ResultsSnapshot {
 export interface ResultsInput {
   publishedAt: string
   /**
-   * Whether `announcedTeamIds` names an overall podium or a set of per-track
-   * winners. Defaults to `"podium"` — the shape every cohort before this
-   * field existed actually used.
+   * Whether `announcedTeamIds` names an overall podium, a set of per-track
+   * winners, or a single champion (with `announcedTrackWinnerIds` naming the
+   * per-track winners announced alongside them). Defaults to `"podium"` — the
+   * shape every cohort before this field existed actually used.
    *
    * `"podium"`: `announcedTeamIds` is ranks 1-N of an overall podium (rank 1
    * is the champion).
@@ -133,13 +139,35 @@ export interface ResultsInput {
    * `buildSnapshot` leaves `overall` empty — and the full ranking stays pure
    * score order; each announced team instead leads its own track in
    * `buildTrackWinners`.
+   * `"champion"`: the panel announced one overall champion AND a winner for
+   * one or more tracks, in the same room, at the same time — neither reading
+   * alone (an overall podium, or per-track winners) can express both without
+   * either forcing the other track winners to read "by score" (false) or
+   * losing the champion. `announcedTeamIds` holds exactly the champion (one
+   * id); `announcedTrackWinnerIds` holds the announced track winners
+   * (the champion's own track winner may or may not repeat the champion's id
+   * — either way the champion leads its own track). `overall` holds just the
+   * champion at rank 1; every id in `announcedTrackWinnerIds` carries
+   * `basis: "announced"` in `buildTrackWinners`, same as the champion's own
+   * track.
    */
-  announcementMode?: "podium" | "tracks"
+  announcementMode?: "podium" | "tracks" | "champion"
   /**
-   * Announced winners. In `"podium"` mode, in announced (podium) order.
-   * In `"tracks"` mode, one team per track, order irrelevant. Empty is legal.
+   * Announced winners. In `"podium"` mode, in announced (podium) order. In
+   * `"tracks"` mode, one team per track, order irrelevant. In `"champion"`
+   * mode, exactly one team — the champion. Empty is legal in `"podium"` and
+   * `"tracks"` mode.
    */
   announcedTeamIds: string[]
+  /**
+   * The per-track winners announced alongside the champion, in `"champion"`
+   * mode only — ignored in `"podium"` and `"tracks"` mode. Order irrelevant.
+   * The champion's own track winner does not need to repeat the champion's
+   * id here: `buildSnapshot` unions this list with `announcedTeamIds` before
+   * handing it to `buildTrackWinners`, and the champion already leads its own
+   * track by virtue of ranking first (see `buildTrackWinners`'s first pass).
+   */
+  announcedTrackWinnerIds?: string[]
   standings: TeamStanding[]
   teams: Map<string, { projectName: string; track: string }>
   /** Teams scored from the written submission rather than a live demo. */
@@ -173,19 +201,24 @@ function metaOf(
 
 /**
  * `"podium"` mode: announced winners first in announced order, then everyone
- * else by average descending. `"tracks"` mode: pure score order throughout —
- * a per-track winner is not an overall placing, so it does not jump the
- * queue here (see `buildTrackWinners` for where it does apply). Ties break by
- * teamId so two loads never reorder themselves.
+ * else by average descending. `"champion"` mode ranks identically — a single
+ * announced team (the champion) first, then everyone else by score — the two
+ * modes differ only in what `buildSnapshot` does with `overall` and
+ * `trackWinners` afterwards, never in how this function orders rows.
+ * `"tracks"` mode: pure score order throughout — a per-track winner is not an
+ * overall placing, so it does not jump the queue here (see
+ * `buildTrackWinners` for where it does apply). Ties break by teamId so two
+ * loads never reorder themselves.
  */
 export function buildRanking(input: ResultsInput): RankedTeam[] {
   const mode = input.announcementMode ?? "podium"
+  const announcedFirst = mode === "podium" || mode === "champion"
   const announced = new Set(input.announcedTeamIds)
   const byTeam = new Map(input.standings.map((s) => [s.teamId, s]))
 
   const rows: RankedTeam[] = []
 
-  if (mode === "podium") {
+  if (announcedFirst) {
     for (const teamId of input.announcedTeamIds) {
       const meta = metaOf(input, teamId)
       rows.push({
@@ -200,7 +233,7 @@ export function buildRanking(input: ResultsInput): RankedTeam[] {
   }
 
   const rest = input.standings
-    .filter((s) => !(mode === "podium" && announced.has(s.teamId)))
+    .filter((s) => !(announcedFirst && announced.has(s.teamId)))
     .sort((a, b) => b.average - a.average || a.teamId.localeCompare(b.teamId))
 
   for (const s of rest) {
@@ -224,6 +257,29 @@ export function buildRanking(input: ResultsInput): RankedTeam[] {
   if (mode === "tracks") {
     for (const teamId of input.announcedTeamIds) {
       if (byTeam.has(teamId)) continue
+      const meta = metaOf(input, teamId)
+      rows.push({
+        rank: rows.length + 1,
+        teamId,
+        projectName: meta.projectName,
+        track: meta.track || trackOf(meta.projectName),
+        average: 0,
+        basis: "demo",
+      })
+    }
+  }
+
+  // Champion mode: the champion itself is already covered by the
+  // `announcedFirst` branch above (its `average ?? 0` fallback handles an
+  // unscored champion the same way podium mode does). A track winner named
+  // only in `announcedTrackWinnerIds` — never scored, so absent from
+  // `standings` — would otherwise never enter `rows` at all, and
+  // `buildTrackWinners` can only pick a winner from a row that exists here.
+  // Same tail-append `"tracks"` mode uses above, scoped to the ids
+  // `announcedFirst` did not already place.
+  if (mode === "champion") {
+    for (const teamId of input.announcedTrackWinnerIds ?? []) {
+      if (byTeam.has(teamId) || announced.has(teamId)) continue
       const meta = metaOf(input, teamId)
       rows.push({
         rank: rows.length + 1,
@@ -345,6 +401,14 @@ export interface MemberResultsPayload {
   published: boolean
   results?: {
     publishedAt: string
+    /**
+     * Not optional here the way it is on the stored snapshot: `buildMemberPayload`
+     * always defaults a missing snapshot value to `"podium"` before this
+     * payload is built (see `ResultsSnapshot.announcementMode`'s own doc
+     * comment), so every reader downstream — `ResultsView`, `resultsViewCopy.ts`
+     * — can rely on it being present rather than re-deriving the same default.
+     */
+    announcementMode: "podium" | "tracks" | "champion"
     overall: AnnouncedWinner[]
     trackWinners: ResultsTrackWinner[]
     ranking: PublicRankedTeam[]
@@ -405,6 +469,7 @@ export function buildMemberPayload(
     published: true,
     results: {
       publishedAt: snapshot.publishedAt,
+      announcementMode: snapshot.announcementMode ?? "podium",
       overall: snapshot.overall,
       trackWinners: snapshot.trackWinners,
       ranking: toPublicRanking(snapshot.ranking),
@@ -475,6 +540,19 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
   const ranking = buildRanking(input)
   const standingById = new Map(input.standings.map((s) => [s.teamId, s]))
 
+  // Which ids `buildTrackWinners` must treat as "the panel named this team
+  // for its track": in every mode but `"champion"` that is exactly
+  // `announcedTeamIds` (podium mode's champion already carries `basis:
+  // "announced"` on its own ranking row, so passing it again here is a
+  // harmless no-op; tracks mode's ids ARE the per-track announcements).
+  // `"champion"` mode is the one case where the two id lists differ: the
+  // champion (`announcedTeamIds`, one id) plus every other announced track
+  // winner (`announcedTrackWinnerIds`) both need `basis: "announced"`.
+  const trackWinnerAnnouncedIds =
+    mode === "champion"
+      ? new Set([...input.announcedTeamIds, ...(input.announcedTrackWinnerIds ?? [])])
+      : new Set(input.announcedTeamIds)
+
   const perTeam: Record<string, TeamCard> = {}
   for (const row of ranking) {
     const standing = standingById.get(row.teamId)
@@ -516,7 +594,7 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
             teamId,
             projectName: metaOf(input, teamId).projectName,
           })),
-    trackWinners: buildTrackWinners(ranking, new Set(input.announcedTeamIds)),
+    trackWinners: buildTrackWinners(ranking, trackWinnerAnnouncedIds),
     ranking,
     perTeam,
     unranked,

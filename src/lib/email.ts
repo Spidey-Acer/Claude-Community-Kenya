@@ -661,11 +661,21 @@ export function impactLabResultsEmail(data: {
   /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
   /**
+   * `"podium"` (an overall podium was announced), `"tracks"` (one winner per
+   * track, no overall podium), or `"champion"` (one overall champion AND a
+   * winner for one or more tracks, announced together). Drives the "how
+   * placings were decided" note and whether this team's own scores block may
+   * claim an overall rank — see `note` and `placingLine` below. Defaults to
+   * `"podium"` for legacy callers, matching every mode field's own default
+   * elsewhere in Impact Lab.
+   */
+  announcementMode?: "podium" | "tracks" | "champion"
+  /**
    * True when the panel's announced placings override the score order (see
    * `placingsFollowScores`). Decides whether the explanatory note says the
    * placings were decided after discussion or simply follow the scores.
    * Defaults to false: the claim of a deliberation is the one that must be
-   * earned.
+   * earned. Not consulted in `"champion"` mode — see `note` below.
    */
   panelOverrodeScores?: boolean
   criterionAverages: Record<string, number>
@@ -702,6 +712,7 @@ export function impactLabResultsEmail(data: {
    */
   rubric: JudgingRubric
 }): { subject: string; html: string } {
+  const mode = data.announcementMode ?? "podium"
   const podium = isPodium(data.placement)
   const ranked = data.placement?.kind === "ranked" ? data.placement : null
   const track = data.placement?.track ?? null
@@ -856,9 +867,18 @@ export function impactLabResultsEmail(data: {
   const rankColor = (rank: number): string =>
     rank === 1 ? DARK.rankGold : rank === 2 ? DARK.rankSilver : rank === 3 ? DARK.rankBronze : DARK.text
 
+  // A champion is one team, not a plural list with one row under it — the
+  // heading and the row both say so, with no ordinal cell (there is nothing
+  // to rank a single champion against). Podium mode keeps its plural table,
+  // ranks and all, however many winners were actually announced (a genuine
+  // 1-winner podium is still a podium, not a champion).
   const winnersSection =
-    data.overall.length > 0
+    mode === "champion" && data.overall.length > 0
       ? `
+            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">Overall champion</p>
+            <p style="margin:0 0 20px;font-family:${DISPLAY_FONT};font-size:16px;line-height:1.4;color:${DARK.text};">${esc(data.overall[0].projectName)}</p>`
+      : data.overall.length > 0
+        ? `
             <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">Overall winners</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
               ${data.overall
@@ -871,7 +891,7 @@ export function impactLabResultsEmail(data: {
                 )
                 .join("")}
             </table>`
-      : ""
+        : ""
 
   const trackSection =
     data.trackWinners.length > 0
@@ -903,7 +923,14 @@ export function impactLabResultsEmail(data: {
   // order may claim a deliberation. Otherwise the placings are the scores.
   const entitled = `Your scores are shown here in full because you&#x27;re entitled to see how your own work was assessed.`
   let note: string
-  if (data.overall.length === 0) {
+  if (mode === "champion") {
+    // Neither of the two sentences below fits: "the top three" is a count
+    // claim that is false for a single champion, and "follow the scores" is
+    // false whenever a track winner was genuinely announced rather than
+    // topping its track on average. One neutral sentence, true regardless of
+    // whether the scores happened to agree with the panel.
+    note = `The champion and each track&#x27;s winner were announced by the judging panel. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
+  } else if (data.overall.length === 0) {
     note = `Every project was ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
   } else if (data.panelOverrodeScores) {
     note = `The top three placings were decided by the judging panel after they had seen the demos and discussed the projects together. That conversation is what those placings reflect. Everyone else is ranked by score across ${criteriaPhrase} your team was judged on. ${entitled}`
@@ -927,14 +954,22 @@ export function impactLabResultsEmail(data: {
       ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${DARK.dim};">Score range across judges: ${data.low.toFixed(1)}&ndash;${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
-  // "Nth overall" only when an overall ranking was actually announced
-  // (`data.overall.length > 0`) — the same guard `winnersSection` and `note`
-  // already apply. `data.rank` is always populated (pure score-order in
-  // "tracks" mode too, see buildRanking), so without this guard a
-  // tracks-mode team read a claim about an overall placing that was never
-  // announced and does not exist as a published fact.
+  // "Nth overall" only when an overall ranking was actually announced. In
+  // "podium" mode that means any overall winner exists (`data.overall.length
+  // > 0`) — every scored team genuinely has a place in that same ordering,
+  // even a team whose own exact position was not individually called out. In
+  // "champion" mode it means more: only the champion itself has an overall
+  // placing (`ranked.announced`, true only for the team in `data.overall`) —
+  // an announced track winner who is not the champion was never given an
+  // overall rank, only a track one, and printing "Nth overall" for them would
+  // claim a placing exactly as false as podium mode's "(by score)" ranks were
+  // before this field existed. `data.rank` is always populated (pure
+  // score-order in every mode, see buildRanking), so without this guard a
+  // tracks- or champion-mode team would read a claim about an overall placing
+  // that was never announced and does not exist as a published fact.
+  const hasOverallPlacing = mode === "champion" ? ranked?.announced === true : data.overall.length > 0
   const placingLine = [
-    data.overall.length > 0 ? `${esc(resultsOrdinal(data.rank))} overall` : null,
+    hasOverallPlacing ? `${esc(resultsOrdinal(data.rank))} overall` : null,
     ranked ? `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in ${esc(ranked.track)}` : null,
   ]
     .filter((s): s is string => Boolean(s))

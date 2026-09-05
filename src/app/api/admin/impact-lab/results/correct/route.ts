@@ -40,7 +40,13 @@ import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 const bodySchema = z.object({
   cohort: z.string().max(60).optional(),
   announcedTeamIds: z.array(z.string().min(1).max(64)).max(20),
-  announcementMode: z.enum(["podium", "tracks"]).optional().default("podium"),
+  announcementMode: z.enum(["podium", "tracks", "champion"]).optional().default("podium"),
+  /**
+   * The track winners announced alongside the champion, in `"champion"` mode
+   * only — ignored in every other mode. See
+   * `ResultsInput.announcedTrackWinnerIds`.
+   */
+  announcedTrackWinnerIds: z.array(z.string().min(1).max(64)).max(20).optional().default([]),
   confirm: z.string(),
   /**
    * Overrides the `PODIUM_LOOKS_LIKE_TRACK_WINNERS` refusal below — same flag,
@@ -57,9 +63,28 @@ type CorrectOutcome =
   | { ok: false; status: number; error: string; code?: string }
 
 interface AnnouncementView {
-  announcementMode: "podium" | "tracks"
+  announcementMode: "podium" | "tracks" | "champion"
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
+}
+
+/**
+ * Comma-separated team ids from a query string — the shape `?announcedTeamIds=`
+ * and `?announcedTrackWinnerIds=` both use. Capped and de-duplicated before
+ * either ever reaches the snapshot builder, same as `publish/route.ts`'s own
+ * body-schema cap on these lists.
+ */
+function parseIdListParam(raw: string | null): string[] {
+  const trimmed = (raw ?? "").trim()
+  if (trimmed === "") return []
+  return [
+    ...new Set(
+      trimmed
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id !== "" && id.length <= 64)
+    ),
+  ].slice(0, 20)
 }
 
 /**
@@ -109,20 +134,16 @@ export async function GET(request: NextRequest) {
   // Comma-separated team ids — the same query-param shape preview-email uses
   // for its own `?announced=`. Capped and de-duplicated before it ever
   // reaches the snapshot builder.
-  const proposedParam = (request.nextUrl.searchParams.get("announcedTeamIds") ?? "").trim()
-  const proposedTeamIds =
-    proposedParam === ""
-      ? []
-      : [
-          ...new Set(
-            proposedParam
-              .split(",")
-              .map((id) => id.trim())
-              .filter((id) => id !== "" && id.length <= 64)
-          ),
-        ].slice(0, 20)
-  const proposedMode: "podium" | "tracks" =
-    request.nextUrl.searchParams.get("announcementMode") === "tracks" ? "tracks" : "podium"
+  const proposedTeamIds = parseIdListParam(request.nextUrl.searchParams.get("announcedTeamIds"))
+  // Champion mode's second id list — the announced track winners. Empty for
+  // every other mode; `buildSnapshot` ignores it outside `"champion"` mode
+  // anyway, so there is no need to gate the parse itself.
+  const proposedTrackWinnerIds = parseIdListParam(
+    request.nextUrl.searchParams.get("announcedTrackWinnerIds")
+  )
+  const modeParam = request.nextUrl.searchParams.get("announcementMode")
+  const proposedMode: "podium" | "tracks" | "champion" =
+    modeParam === "tracks" ? "tracks" : modeParam === "champion" ? "champion" : "podium"
 
   let proposed: AnnouncementView | null = null
   if (proposedTeamIds.length > 0) {
@@ -140,6 +161,7 @@ export async function GET(request: NextRequest) {
       publishedAt: run.resultsPublishedAt.toISOString(),
       announcementMode: proposedMode,
       announcedTeamIds: proposedTeamIds,
+      announcedTrackWinnerIds: proposedTrackWinnerIds,
     }
     const snapshot = buildSnapshot(input)
     proposed = {
@@ -302,14 +324,74 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Champion mode: exactly one champion, plus the track winners announced
+    // alongside it — identical validation to publish's own step 4c, so a
+    // correction can never announce a shape publish itself would refuse.
+    if (parsed.data.announcementMode === "champion") {
+      if (parsed.data.announcedTeamIds.length !== 1) {
+        return {
+          ok: false,
+          status: 400,
+          error: "Champion mode needs exactly one announced champion.",
+          code: "CHAMPION_COUNT",
+        }
+      }
+      const championId = parsed.data.announcedTeamIds[0]
+      const seenTrackWinners = new Set<string>()
+      for (const id of parsed.data.announcedTrackWinnerIds) {
+        if (seenTrackWinners.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${displayName(id)}" is listed twice as an announced track winner.`,
+            code: "DUPLICATE_TRACK_WINNER",
+          }
+        }
+        seenTrackWinners.add(id)
+        if (!teamIds.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${id}" is not a team in this run.`,
+            code: "UNKNOWN_TRACK_WINNER",
+          }
+        }
+        if (!submittedTeamIds.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${displayName(id)}" has no submission and cannot be announced as a track winner.`,
+            code: "TRACK_WINNER_NO_SUBMISSION",
+          }
+        }
+      }
+      const championTrack = inputBase.teams.get(championId)?.track
+      const announcedTracks = new Set(
+        parsed.data.announcedTrackWinnerIds.map((id) => inputBase.teams.get(id)?.track)
+      )
+      if (championTrack === undefined || !announcedTracks.has(championTrack)) {
+        return {
+          ok: false,
+          status: 400,
+          error: `The champion's own track (${championTrack ? `"${championTrack}"` : "unknown"}) is not among the announced track winners.`,
+          code: "CHAMPION_TRACK_NOT_ANNOUNCED",
+        }
+      }
+    }
+
     // Unscored submitted teams: judging closed the moment this run was
     // first published (`judgingClosedAt` was set then), so `scoredTeamIds`
     // cannot have grown since — whether an unscored team gets published at
     // all was already decided at publish time and is not this route's
     // decision to re-litigate. Any unscored, non-announced team is simply
     // excluded from the ranking here, exactly as `allowUnscored: true` would
-    // have applied when this run was first published.
-    const announced = new Set(parsed.data.announcedTeamIds)
+    // have applied when this run was first published. In champion mode that
+    // includes the announced track winners too — see publish/route.ts's own
+    // step 5 for the identical reasoning.
+    const announced = new Set([
+      ...parsed.data.announcedTeamIds,
+      ...(parsed.data.announcementMode === "champion" ? parsed.data.announcedTrackWinnerIds : []),
+    ])
     const unrankedTeamIds = [...submittedTeamIds]
       .filter((id) => !scoredTeamIds.has(id) && !announced.has(id))
       .sort()
@@ -322,6 +404,7 @@ export async function POST(request: NextRequest) {
       publishedAt: run.resultsPublishedAt.toISOString(),
       announcementMode: parsed.data.announcementMode,
       announcedTeamIds: parsed.data.announcedTeamIds,
+      announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       unrankedTeamIds,
     }
     const snapshot = buildSnapshot(input)
@@ -363,6 +446,7 @@ export async function POST(request: NextRequest) {
     entityId: runId,
     changes: {
       announcedTeamIds: parsed.data.announcedTeamIds,
+      announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       announcementMode: parsed.data.announcementMode,
       confirmPodium: parsed.data.confirmPodium,
     },

@@ -89,6 +89,72 @@ describe("buildSnapshot — tracks mode", () => {
   })
 })
 
+describe("buildSnapshot — champion mode", () => {
+  // Impact Lab 02's real shape: the panel announced Elimu Mtaani as overall
+  // champion AND named a winner for all three tracks (Elimu Mtaani leading
+  // its own track, plus Kazi kabla doc and Kilimo Nitapata for theirs) — the
+  // exact case podium/tracks mode each lose half of.
+  const input = baseInput({
+    announcementMode: "champion",
+    announcedTeamIds: ["team-elimu"],
+    announcedTrackWinnerIds: ["team-elimu", "team-kilimo", "team-kazi"],
+  })
+  const snapshot = buildSnapshot(input)
+
+  it("puts exactly one team — the champion — in overall, at rank 1", () => {
+    expect(snapshot.overall).toEqual([
+      { rank: 1, teamId: "team-elimu", projectName: "Elimu Mtaani" },
+    ])
+  })
+
+  it("marks every announced track winner 'announced', including the champion's own track", () => {
+    const byTrack = new Map(snapshot.trackWinners.map((w) => [w.track, w]))
+    expect(byTrack.get("Elimu")).toMatchObject({ teamId: "team-elimu", basis: "announced" })
+    expect(byTrack.get("Kilimo")).toMatchObject({ teamId: "team-kilimo", basis: "announced" })
+    expect(byTrack.get("Kazi")).toMatchObject({ teamId: "team-kazi", basis: "announced" })
+  })
+
+  it("does not let the higher-scoring team-fourth (Elimu, 79.0) outrank the champion in the Elimu track", () => {
+    const elimuWinner = snapshot.trackWinners.find((w) => w.track === "Elimu")
+    expect(elimuWinner?.teamId).toBe("team-elimu")
+  })
+
+  it("ranks the champion first, then everyone else by score — same order podium mode would give a lone winner", () => {
+    expect(snapshot.ranking[0]).toMatchObject({ teamId: "team-elimu", rank: 1, basis: "announced" })
+    // team-fourth (79.0) outscores team-kilimo (74.0) and team-kazi (71.5),
+    // so it lands 2nd despite winning no track — champion mode's ranking is
+    // pure score order once the champion is placed.
+    expect(snapshot.ranking[1]).toMatchObject({ teamId: "team-fourth", rank: 2 })
+  })
+
+  it("does not mark a non-champion track winner 'announced' on its own ranking row — only trackWinners carries that", () => {
+    const kazi = snapshot.ranking.find((r) => r.teamId === "team-kazi")
+    expect(kazi?.basis).not.toBe("announced")
+  })
+
+  it("stores the mode on the snapshot", () => {
+    expect(snapshot.announcementMode).toBe("champion")
+  })
+
+  it("gives an announced track winner with no score at all a rank rather than dropping it", () => {
+    const noScoreInput = baseInput({
+      announcementMode: "champion",
+      announcedTeamIds: ["team-elimu"],
+      announcedTrackWinnerIds: ["team-elimu", "team-unscored"],
+      teams: new Map([
+        ...TEAMS,
+        ["team-unscored", { projectName: "Late Entry", track: "Huduma" }],
+      ]),
+    })
+    const noScoreSnapshot = buildSnapshot(noScoreInput)
+    const row = noScoreSnapshot.ranking.find((r) => r.teamId === "team-unscored")
+    expect(row).toBeDefined()
+    expect(row?.average).toBe(0)
+    const huduma = noScoreSnapshot.trackWinners.find((w) => w.track === "Huduma")
+    expect(huduma).toMatchObject({ teamId: "team-unscored", basis: "announced" })
+  })
+})
+
 describe("buildRanking / buildSnapshot — legacy (no announcementMode)", () => {
   it("an input with no announcementMode ranks 1..n exactly like podium mode", () => {
     const withMode = buildRanking(

@@ -27,12 +27,19 @@ const bodySchema = z.object({
   cohort: z.string().max(60).optional(),
   announcedTeamIds: z.array(z.string().min(1).max(64)).max(20),
   /**
-   * Whether `announcedTeamIds` names an overall podium or one winner per
-   * track. Defaults to `"podium"` — the shape every publish before this
-   * field existed actually sent. See `ResultsInput.announcementMode` for
-   * what each value means to the snapshot builder.
+   * Whether `announcedTeamIds` names an overall podium, one winner per
+   * track, or a single champion (with `announcedTrackWinnerIds` naming the
+   * track winners announced alongside it). Defaults to `"podium"` — the
+   * shape every publish before this field existed actually sent. See
+   * `ResultsInput.announcementMode` for what each value means to the
+   * snapshot builder.
    */
-  announcementMode: z.enum(["podium", "tracks"]).optional().default("podium"),
+  announcementMode: z.enum(["podium", "tracks", "champion"]).optional().default("podium"),
+  /**
+   * The track winners announced alongside the champion, in `"champion"` mode
+   * only — ignored in every other mode. See `ResultsInput.announcedTrackWinnerIds`.
+   */
+  announcedTrackWinnerIds: z.array(z.string().min(1).max(64)).max(20).optional().default([]),
   confirm: z.string(),
   /**
    * Overrides the `PODIUM_LOOKS_LIKE_TRACK_WINNERS` refusal below. Off by
@@ -277,12 +284,75 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 4c. Champion mode: exactly one champion, plus the track winners
+    // announced alongside it — validated the same way as step 4's own
+    // per-id loop (real team, named once, has a submission), and the
+    // champion's own track must be represented among the announced track
+    // winners, or this is not really a "champion + track winners"
+    // announcement.
+    if (parsed.data.announcementMode === "champion") {
+      if (parsed.data.announcedTeamIds.length !== 1) {
+        return {
+          ok: false,
+          status: 400,
+          error: "Champion mode needs exactly one announced champion.",
+          code: "CHAMPION_COUNT",
+        }
+      }
+      const championId = parsed.data.announcedTeamIds[0]
+      const seenTrackWinners = new Set<string>()
+      for (const id of parsed.data.announcedTrackWinnerIds) {
+        if (seenTrackWinners.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${displayName(id)}" is listed twice as an announced track winner.`,
+            code: "DUPLICATE_TRACK_WINNER",
+          }
+        }
+        seenTrackWinners.add(id)
+        if (!teamIds.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${id}" is not a team in this run.`,
+            code: "UNKNOWN_TRACK_WINNER",
+          }
+        }
+        if (!submittedTeamIds.has(id)) {
+          return {
+            ok: false,
+            status: 400,
+            error: `"${displayName(id)}" has no submission and cannot be announced as a track winner.`,
+            code: "TRACK_WINNER_NO_SUBMISSION",
+          }
+        }
+      }
+      const championTrack = inputBase.teams.get(championId)?.track
+      const announcedTracks = new Set(
+        parsed.data.announcedTrackWinnerIds.map((id) => inputBase.teams.get(id)?.track)
+      )
+      if (championTrack === undefined || !announcedTracks.has(championTrack)) {
+        return {
+          ok: false,
+          status: 400,
+          error: `The champion's own track (${championTrack ? `"${championTrack}"` : "unknown"}) is not among the announced track winners.`,
+          code: "CHAMPION_TRACK_NOT_ANNOUNCED",
+        }
+      }
+    }
+
     // 5. The rest of the ResultsInput the pure snapshot builder needs.
     //
     // An announced winner is excluded from `unranked` even if it has no score
     // row: the panel called it in the room, so it holds a rank, and a team
-    // cannot be both ranked and "not scored" in the same snapshot.
-    const announced = new Set(parsed.data.announcedTeamIds)
+    // cannot be both ranked and "not scored" in the same snapshot. In
+    // champion mode that includes the announced track winners too — they
+    // were called out by name just as much as the champion was.
+    const announced = new Set([
+      ...parsed.data.announcedTeamIds,
+      ...(parsed.data.announcementMode === "champion" ? parsed.data.announcedTrackWinnerIds : []),
+    ])
     const unrankedTeamIds = unscoredIds.filter((id) => !announced.has(id)).sort()
 
     const publishedAt = new Date()
@@ -291,6 +361,7 @@ export async function POST(request: NextRequest) {
       publishedAt: publishedAt.toISOString(),
       announcementMode: parsed.data.announcementMode,
       announcedTeamIds: parsed.data.announcedTeamIds,
+      announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       unrankedTeamIds,
     }
     const snapshot = buildSnapshot(input)
@@ -360,6 +431,7 @@ export async function POST(request: NextRequest) {
     entityId: runId,
     changes: {
       announcedTeamIds: parsed.data.announcedTeamIds,
+      announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       announcementMode: parsed.data.announcementMode,
       confirmPodium: parsed.data.confirmPodium,
       recipients: outcome.recipients,

@@ -195,3 +195,107 @@ describe("POST /api/admin/impact-lab/results/correct — tracks mode", () => {
     expect(res.status).toBe(200)
   })
 })
+
+describe("POST /api/admin/impact-lab/results/correct — champion mode", () => {
+  it("corrects to a champion plus all three track winners, no PODIUM_LOOKS_LIKE_TRACK_WINNERS refusal", async () => {
+    // The exact Impact Lab 02 fingerprint shape (one team per track, ticked
+    // count equal to track count) that trips the podium-lookalike guard in
+    // "podium" mode — champion mode must never be subject to that guard, see
+    // the guard's own `mode === "podium"` scoping.
+    const res = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: ["team-elimu"],
+        announcedTrackWinnerIds: ["team-elimu", "team-kilimo", "team-kazi"],
+        confirm: "CORRECT",
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data.publishedAt).toBe(PUBLISHED_AT.toISOString())
+
+    const data = updateData as {
+      resultsSnapshot: {
+        overall: { rank: number; teamId: string }[]
+        trackWinners: { track: string; teamId: string; basis: string }[]
+      }
+    }
+    expect(data.resultsSnapshot.overall).toEqual([
+      { rank: 1, teamId: "team-elimu", projectName: "Elimu Mtaani" },
+    ])
+    expect(data.resultsSnapshot.trackWinners).toHaveLength(3)
+    expect(data.resultsSnapshot.trackWinners.every((w) => w.basis === "announced")).toBe(true)
+  })
+
+  it("refuses CHAMPION_COUNT when zero or more than one champion is announced", async () => {
+    const zero = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: [],
+        announcedTrackWinnerIds: ["team-elimu"],
+        confirm: "CORRECT",
+      })
+    )
+    expect(zero.status).toBe(400)
+    expect((await zero.json()).code).toBe("CHAMPION_COUNT")
+
+    const two = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: ["team-elimu", "team-kilimo"],
+        announcedTrackWinnerIds: ["team-elimu"],
+        confirm: "CORRECT",
+      })
+    )
+    expect(two.status).toBe(400)
+    expect((await two.json()).code).toBe("CHAMPION_COUNT")
+  })
+
+  it("refuses CHAMPION_TRACK_NOT_ANNOUNCED when the champion's own track is missing from the track winners", async () => {
+    const res = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: ["team-elimu"],
+        // Kilimo and Kazi named, but not Elimu — the champion's own track.
+        announcedTrackWinnerIds: ["team-kilimo", "team-kazi"],
+        confirm: "CORRECT",
+      })
+    )
+    expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe("CHAMPION_TRACK_NOT_ANNOUNCED")
+  })
+
+  it("refuses DUPLICATE_TRACK_WINNER when a team is listed twice as a track winner", async () => {
+    const res = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: ["team-elimu"],
+        announcedTrackWinnerIds: ["team-elimu", "team-elimu"],
+        confirm: "CORRECT",
+      })
+    )
+    expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe("DUPLICATE_TRACK_WINNER")
+  })
+
+  it("refuses UNKNOWN_TRACK_WINNER for a team id not in this run", async () => {
+    const res = await POST(
+      postRequest({
+        cohort: "impact-lab-2026-09",
+        announcementMode: "champion",
+        announcedTeamIds: ["team-elimu"],
+        announcedTrackWinnerIds: ["team-elimu", "team-nonexistent"],
+        confirm: "CORRECT",
+      })
+    )
+    expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe("UNKNOWN_TRACK_WINNER")
+  })
+})
