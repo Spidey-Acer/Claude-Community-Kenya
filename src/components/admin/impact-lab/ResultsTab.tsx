@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -2574,21 +2574,59 @@ function NotifyPanel({ cohort }: { cohort: string }) {
  * publication the exports carry the announced placings alongside the raw
  * score order; before it, there is only score order and the files say so.
  */
-/** Reads the server-set filename off Content-Disposition; falls back if absent or unparsable. */
-function filenameFromDisposition(header: string | null, fallback: string): string {
-  if (!header) return fallback
-  const match = header.match(/filename="?([^"；;]+)"?/)
-  return match ? match[1] : fallback
+/** One line of `export/stream/route.ts`'s newline-delimited JSON body. */
+type ExportStreamEvent =
+  | { type: "stage"; stage: string; label: string; percent: number }
+  | { type: "done"; filename: string; contentType: string; size: number; data: string }
+  | { type: "error"; message: string; status: number }
+
+/**
+ * Base64 (as the `done` frame carries the file) to raw bytes, for `Blob`.
+ * Backed by an explicit `ArrayBuffer` (not the `Uint8Array` constructor's
+ * default `ArrayBufferLike`) — `Blob`'s parts type stopped accepting the
+ * wider type once the DOM lib started distinguishing it from
+ * `SharedArrayBuffer`.
+ */
+function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(base64)
+  const buffer = new ArrayBuffer(binary.length)
+  const bytes = new Uint8Array(buffer)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
 }
+
+/**
+ * Export progress, one format at a time. `idle` between downloads; `failed`
+ * keeps the format so its button (not the other one) shows the error state.
+ * `lastEventAt` is what the stall warning below watches — a stage that never
+ * changes is not itself a failure (a big cohort's analysis phase can go
+ * quiet for several seconds between LLM calls), but a bar that has not moved
+ * in a very long time is the exact "waiting there as a fool" this panel
+ * exists to end.
+ */
+type ExportProgressState =
+  | { status: "idle" }
+  | {
+      status: "building"
+      format: "xlsx" | "pdf"
+      stage: string
+      label: string
+      percent: number
+      startedAt: number
+      lastEventAt: number
+    }
+  | { status: "failed"; format: "xlsx" | "pdf"; message: string }
+
+const STALL_THRESHOLD_MS = 30_000
 
 function ExportPanel({ cohort }: { cohort: string }) {
   const [published, setPublished] = useState<boolean | null>(null)
-  // Which export is currently being built server-side, so the trigger can
-  // show visible progress instead of the founder "waiting there as a fool" —
-  // an <a href> download gives no lifecycle to hook into, so this fetches the
-  // file itself and hands the browser a blob to save.
-  const [building, setBuilding] = useState<"xlsx" | "pdf" | null>(null)
-  const [exportError, setExportError] = useState<string | null>(null)
+  const [state, setState] = useState<ExportProgressState>({ status: "idle" })
+  // A tick purely to re-render the elapsed-time and stall-warning display
+  // while a build is in flight; the state above already carries every fact,
+  // this just forces the clock on screen to move between stage events.
+  const [now, setNow] = useState(() => Date.now())
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -2605,37 +2643,91 @@ function ExportPanel({ cohort }: { cohort: string }) {
     }
   }, [cohort])
 
+  useEffect(() => {
+    if (state.status !== "building") return
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [state.status])
+
+  // Cancels an in-flight build if the operator navigates away — the server
+  // side finds out via the aborted connection and stops paying for the LLM
+  // calls `generateTeamAnalyses` was mid-way through.
+  useEffect(() => () => abortRef.current?.abort(), [])
+
   async function download(format: "xlsx" | "pdf") {
-    setBuilding(format)
-    setExportError(null)
+    const startedAt = Date.now()
+    setState({ status: "building", format, stage: "loading", label: "Starting…", percent: 0, startedAt, lastEventAt: startedAt })
+    setNow(startedAt)
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
-      const res = await fetch(`/api/admin/impact-lab/results/export?cohort=${cohort}&format=${format}`)
-      if (!res.ok) {
+      const res = await fetch(
+        `/api/admin/impact-lab/results/export/stream?cohort=${cohort}&format=${format}`,
+        { signal: controller.signal }
+      )
+      if (!res.ok || !res.body) {
         const body = await res.json().catch(() => null)
         throw new Error(
           (body && typeof body.error === "string" && body.error) ||
             `Could not build the ${format === "xlsx" ? "Excel workbook" : "PDF"}.`
         )
       }
-      const blob = await res.blob()
-      const filename = filenameFromDisposition(
-        res.headers.get("Content-Disposition"),
-        `impact-lab-results-${cohort}.${format}`
-      )
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      URL.revokeObjectURL(url)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let carry = ""
+      let settled = false
+
+      while (!settled) {
+        const { value, done } = await reader.read()
+        if (done) break
+        carry += decoder.decode(value, { stream: true })
+
+        let newlineAt = carry.indexOf("\n")
+        while (newlineAt !== -1) {
+          const line = carry.slice(0, newlineAt)
+          carry = carry.slice(newlineAt + 1)
+          newlineAt = carry.indexOf("\n")
+          if (line.trim() === "") continue
+
+          const event = JSON.parse(line) as ExportStreamEvent
+          if (event.type === "stage") {
+            setState((prev) =>
+              prev.status === "building"
+                ? { ...prev, stage: event.stage, label: event.label, percent: event.percent, lastEventAt: Date.now() }
+                : prev
+            )
+          } else if (event.type === "done") {
+            settled = true
+            const blob = new Blob([base64ToBytes(event.data)], { type: event.contentType })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = url
+            link.download = event.filename
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            URL.revokeObjectURL(url)
+            setState({ status: "idle" })
+          } else {
+            settled = true
+            throw new Error(event.message)
+          }
+        }
+      }
     } catch (e) {
-      setExportError(e instanceof Error ? e.message : "Could not build that export.")
+      if (e instanceof DOMException && e.name === "AbortError") return
+      setState({
+        status: "failed",
+        format,
+        message: e instanceof Error ? e.message : "Could not build that export.",
+      })
     } finally {
-      setBuilding(null)
+      abortRef.current = null
     }
   }
+
+  const building = state.status === "building" ? state.format : null
 
   const exports = [
     {
@@ -2698,15 +2790,33 @@ function ExportPanel({ cohort }: { cohort: string }) {
         })}
       </div>
 
-      {building && (
-        <p role="status" className="text-[11px] font-mono text-[#888]">
-          Generating the full report from the judging records — usually takes about ten seconds.
-        </p>
+      {state.status === "building" && (
+        <div className="space-y-2 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-4" role="status">
+          <div className="flex items-center justify-between gap-3 text-[11px] font-mono text-[#e0e0e0]">
+            <span className="truncate">{state.label}</span>
+            <span className="shrink-0 text-[#888]">{state.percent}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#1e1e1e]">
+            <div
+              className="h-full rounded-full bg-[#00d4ff] transition-[width] duration-300"
+              style={{ width: `${state.percent}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 text-[10px] font-mono text-[#555]">
+            <span>Elapsed {Math.max(0, Math.round((now - state.startedAt) / 1000))}s</span>
+            {now - state.lastEventAt > STALL_THRESHOLD_MS && (
+              <span className="flex items-center gap-1 text-[#ffb000]">
+                <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                No progress for {Math.round((now - state.lastEventAt) / 1000)}s — may have stalled.
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
-      {exportError && (
+      {state.status === "failed" && (
         <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
-          {exportError}
+          {state.message}
         </p>
       )}
 
