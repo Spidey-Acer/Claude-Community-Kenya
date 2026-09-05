@@ -42,6 +42,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     impactLabParticipant: {
       findFirst: vi.fn(),
+      count: vi.fn(),
     },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(mockTx)),
   },
@@ -401,6 +402,74 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — closeJudging", () => {
     const res = await PATCH(patchRequest({ closeJudging: true }), { params })
     expect(res.status).toBe(200)
     expect(prisma.impactLabMatchRun.update).toHaveBeenCalled()
+  })
+})
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — checkedInRecorded", () => {
+  it("records the organiser's door count", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+    } as never)
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(159)
+    vi.mocked(prisma.impactLabMatchRun.update).mockResolvedValueOnce({} as never)
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      checkedInRecorded: 70,
+    } as never)
+
+    const res = await PATCH(patchRequest({ checkedInRecorded: 70 }), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(prisma.impactLabMatchRun.update).toHaveBeenCalledWith({
+      where: { id: "run-1" },
+      data: { checkedInRecorded: 70 },
+    })
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { checkedInRecorded: 70 } })
+    )
+  })
+
+  it("clears a recorded door count back to null", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+    } as never)
+    vi.mocked(prisma.impactLabMatchRun.update).mockResolvedValueOnce({} as never)
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      checkedInRecorded: null,
+    } as never)
+
+    const res = await PATCH(patchRequest({ checkedInRecorded: null }), { params })
+    expect(res.status).toBe(200)
+    // No registered-count check when clearing — nothing to validate against.
+    expect(prisma.impactLabParticipant.count).not.toHaveBeenCalled()
+    expect(prisma.impactLabMatchRun.update).toHaveBeenCalledWith({
+      where: { id: "run-1" },
+      data: { checkedInRecorded: null },
+    })
+  })
+
+  it("rejects a door count above the cohort's own registered participants and writes nothing", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+    } as never)
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(159)
+
+    const res = await PATCH(patchRequest({ checkedInRecorded: 200 }), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(400)
+    expect(json.error).toContain("159")
+    expect(prisma.impactLabMatchRun.update).not.toHaveBeenCalled()
+    expect(logAudit).not.toHaveBeenCalled()
   })
 })
 

@@ -64,6 +64,9 @@ const RUN_SELECT = {
   // So the admin desk can render the current close/reopen state without a
   // second round trip — see `handleCloseJudging`.
   judgingClosedAt: true,
+  // So the export panel can render the organiser's own door count without a
+  // second round trip — see `handleSetCheckedIn`.
+  checkedInRecorded: true,
 } as const
 
 export async function GET(
@@ -646,6 +649,58 @@ async function handleCloseJudging(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * Set (or clear) the organiser's own door count for this run's cohort — the
+ * field the export panel's "Checked in at the door (Luma)" input writes,
+ * and the value every export falls back to when its own `checkedIn=` query
+ * parameter is not given (see `results/export/route.ts`'s `checkedInRecorded`
+ * resolution). Rejected past the cohort's own registered participant count
+ * for the same reason the query-param override is: it ends up on the cover
+ * of a document built to be read by Anthropic, and a fat-fingered figure
+ * larger than the guest list must never land there unchallenged. A plain
+ * column, not part of the run's frozen `result` JSON, so no run lock is
+ * needed — mirrors `handleCloseJudging`'s direct-update shape.
+ */
+async function handleSetCheckedIn(
+  request: NextRequest,
+  runId: string,
+  cohort: string,
+  checkedInRecorded: number | null,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  if (checkedInRecorded !== null) {
+    const registered = await prisma.impactLabParticipant.count({ where: { cohort } })
+    if (checkedInRecorded > registered) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `checkedInRecorded (${checkedInRecorded}) cannot exceed the ${registered} registered participant(s).`,
+        },
+        { status: 400 }
+      )
+    }
+  }
+
+  await prisma.impactLabMatchRun.update({
+    where: { id: runId },
+    data: { checkedInRecorded },
+  })
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { checkedInRecorded },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -715,6 +770,11 @@ const updateSchema = z.object({
   // `false` is meaningful (reopen), so it needs the explicit `!== undefined`
   // check below rather than the truthy check most branches use.
   closeJudging: z.boolean().optional(),
+  // The organiser's own door count (e.g. from Luma) — see
+  // `handleSetCheckedIn`. Its own branch for the same reason `closeJudging`
+  // is: `null` is meaningful (clear a recorded count back to "none"), so it
+  // needs the explicit `!== undefined` check below.
+  checkedInRecorded: z.number().int().min(0).max(100000).nullable().optional(),
 })
 
 /**
@@ -791,6 +851,15 @@ export async function PATCH(
       id,
       validation.data.closeJudging,
       existing.resultsPublishedAt,
+      check.user
+    )
+  }
+  if (validation.data.checkedInRecorded !== undefined) {
+    return handleSetCheckedIn(
+      request,
+      id,
+      existing.cohort,
+      validation.data.checkedInRecorded,
       check.user
     )
   }
