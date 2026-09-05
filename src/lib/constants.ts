@@ -40,11 +40,16 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     ],
   },
   {
-    label: "Community",
+    // Labelled to match its own destination (same convention as "Events" ->
+    // /events and "Learn" -> /resources above) — /community IS the Tools &
+    // Prompts feed, so this is the only nav entry for that href. A second
+    // "Community" label used to point at the same URL; removed rather than
+    // renaming this one, since /join if that were the copy already exists on
+    // its own href for the join flow.
+    label: "Tools & Prompts",
     href: "/community",
     children: [
       { label: "Showcase", href: "/showcase", description: "What members are building right now — share yours." },
-      { label: "Tools & Prompts", href: "/community", description: "MCPs, prompts and workflows you can reuse." },
       { label: "Projects", href: "/projects", description: "Selected work from across the community." },
       { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
     ],
