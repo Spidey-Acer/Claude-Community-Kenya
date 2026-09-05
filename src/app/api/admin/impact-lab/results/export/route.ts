@@ -16,18 +16,32 @@ import { publishableReview } from "@/lib/impact-lab/reviews"
 import { generateTeamAnalyses, type TeamAnalysis } from "@/lib/impact-lab/export-analysis"
 
 /**
- * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf[&analyses=off]
+ * GET /api/admin/impact-lab/results/export?cohort=…&format=xlsx|pdf[&analyses=off][&contacts=off][&checkedIn=N]
  *
  * The complete results record — Excel workbook or PDF — generated on request
  * and streamed straight to the browser. Deliberately never persisted to disk
  * or a bucket: the workbook carries every participant's name and email, and
  * participant data has leaked from an artefact-on-disk before. (The PDF, the
- * artefact built for sharing, omits contact details entirely.)
+ * artefact built for sharing, omits contact details entirely, regardless of
+ * `contacts`.)
  *
  * Per-team project analyses are generated at export time from the teams' own
  * submissions (see export-analysis for the honesty rules) — pass
  * `analyses=off` for a fast pull without them. Generation failures degrade
  * to an export without the affected sections, never to an error artefact.
+ *
+ * `contacts=off` (xlsx only) omits every participant and judge email column,
+ * for a workbook that can be shared outside the organising team — sponsors,
+ * a co-organiser at another institution. Defaults to `on` so the existing
+ * organiser-facing behaviour is unchanged; ignored for `format=pdf`, which
+ * never carried contact details to begin with.
+ *
+ * `checkedIn=<positive integer>` records an organiser's own count (e.g. read
+ * off Luma at the door) alongside the system's own, when the two disagree —
+ * see `ExportSummary.participantsCheckedInRecorded`. Must be a whole number
+ * no greater than the number of registered participants; anything else is a
+ * 400, not a silently ignored or clamped value, because this figure ends up
+ * printed on the cover of a document built to be read by Anthropic.
  *
  * Gated on `edit` (not `view`): the file is built to leave the building —
  * sponsors, community — so producing it is treated as an organiser action,
@@ -45,6 +59,20 @@ export async function GET(request: NextRequest) {
       { success: false, error: "format must be xlsx or pdf" },
       { status: 400 }
     )
+  }
+
+  // A whole-number string only — `Number("1e2")` and `Number(" 5 ")` both
+  // pass `Number.isInteger`, and neither is what an organiser typed.
+  const checkedInParam = request.nextUrl.searchParams.get("checkedIn")
+  let checkedInRecorded: number | undefined
+  if (checkedInParam !== null) {
+    if (!/^[1-9]\d*$/.test(checkedInParam)) {
+      return NextResponse.json(
+        { success: false, error: "checkedIn must be a positive whole number." },
+        { status: 400 }
+      )
+    }
+    checkedInRecorded = Number(checkedInParam)
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
@@ -151,10 +179,23 @@ export async function GET(request: NextRequest) {
     tracks: event?.tracks ?? [],
   }
 
+  // Checked against the real registered count, not trusted from the query
+  // string alone — an organiser fat-fingering a door count into a figure
+  // larger than the guest list would otherwise land on the cover unchallenged.
+  if (checkedInRecorded !== undefined && checkedInRecorded > source.participants.length) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `checkedIn (${checkedInRecorded}) cannot exceed the ${source.participants.length} registered participant(s).`,
+      },
+      { status: 400 }
+    )
+  }
+
   // `resolveRubric`, not the code constant: an organiser-authored rubric for
   // this cohort must win, exactly as it does for the judging routes.
   const rubric = await resolveRubric(cohort)
-  const data = buildResultsExport(source, rubric)
+  const data = buildResultsExport(source, rubric, undefined, { checkedInRecorded })
   const stamp = data.generatedAt.toISOString().slice(0, 10)
 
   // One generation pass per export run — both builders read the same map.
@@ -164,7 +205,8 @@ export async function GET(request: NextRequest) {
     : new Map()
 
   if (format === "xlsx") {
-    const buffer = await buildResultsWorkbook(data, analyses)
+    const includeContacts = request.nextUrl.searchParams.get("contacts") !== "off"
+    const buffer = await buildResultsWorkbook(data, analyses, includeContacts)
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

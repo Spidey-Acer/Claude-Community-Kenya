@@ -200,8 +200,15 @@ const fmt1 = (value: number): string => value.toFixed(1)
  * Luma) when one disagrees with the system's own, else the system's count.
  * Shared by the cover tile and the event-in-numbers funnel line so the two
  * never print different numbers for the same fact.
+ *
+ * Exported so `export-pdf.test.ts` can hold the "159 BUILDERS" regression
+ * shut directly: the cover printed everyone who ever registered to a room
+ * where only a fraction checked in, because the tile once read
+ * `participantsRegistered` instead of this. `renderCover` must keep calling
+ * this function for its first tile rather than reading a summary field
+ * directly, or that bug is back.
  */
-function checkedInCount(data: ResultsExport): number {
+export function checkedInCount(data: ResultsExport): number {
   return data.summary.participantsCheckedInRecorded ?? data.summary.participantsCheckedIn
 }
 

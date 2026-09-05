@@ -12,7 +12,13 @@
  */
 
 import { describe, expect, it } from "vitest"
-import { buildResultsExport, type ExportSource, type SourceTeam } from "../export-data"
+import {
+  buildResultsExport,
+  formatDisplayName,
+  sortByTrailingNumber,
+  type ExportSource,
+  type SourceTeam,
+} from "../export-data"
 import { IMPACT_LAB_RUBRIC } from "../judging"
 
 const TRACKS = [
@@ -77,5 +83,48 @@ describe("buildResultsExport — track resolution", () => {
     ])
     const data = buildResultsExport(source, IMPACT_LAB_RUBRIC)
     expect(data.teams[0].track).toBe("Kazi")
+  })
+})
+
+describe("sortByTrailingNumber", () => {
+  it("orders 'Table N' labels numerically, not lexically", () => {
+    const teams = [{ label: "Table 33" }, { label: "Table 5" }, { label: "Table 7" }]
+    const sorted = sortByTrailingNumber(teams, (t) => t.label)
+    expect(sorted.map((t) => t.label)).toEqual(["Table 5", "Table 7", "Table 33"])
+  })
+
+  it("falls back to a plain locale sort when labels share no common prefix", () => {
+    const teams = [{ label: "Zebra" }, { label: "Apple" }, { label: "Mango" }]
+    const sorted = sortByTrailingNumber(teams, (t) => t.label)
+    expect(sorted.map((t) => t.label)).toEqual(["Apple", "Mango", "Zebra"])
+  })
+
+  it("falls back to a plain locale sort when a label carries no trailing number", () => {
+    const teams = [{ label: "Table 12" }, { label: "Team Rocket" }, { label: "Table 3" }]
+    const sorted = sortByTrailingNumber(teams, (t) => t.label)
+    // "Team Rocket" breaks the shared "Table " + digits shape, so the whole
+    // list falls back to `localeCompare` rather than a meaningless partial sort.
+    expect(sorted.map((t) => t.label)).toEqual(["Table 12", "Table 3", "Team Rocket"])
+  })
+})
+
+describe("formatDisplayName", () => {
+  it("capitalises a token typed entirely lowercase", () => {
+    expect(formatDisplayName("simon")).toBe("Simon")
+  })
+
+  it("capitalises each entirely-lowercase word in a multi-word name", () => {
+    expect(formatDisplayName("mark maati")).toBe("Mark Maati")
+  })
+
+  it("capitalises only the first letter of a lowercase name with an apostrophe", () => {
+    expect(formatDisplayName("ng'ang'a")).toBe("Ng'ang'a")
+  })
+
+  it("leaves a name with any existing capital untouched", () => {
+    expect(formatDisplayName("Ge0frey")).toBe("Ge0frey")
+    expect(formatDisplayName("Blu Chips")).toBe("Blu Chips")
+    expect(formatDisplayName("O'Donnell")).toBe("O'Donnell")
+    expect(formatDisplayName("McArthur")).toBe("McArthur")
   })
 })
