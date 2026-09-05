@@ -59,7 +59,7 @@ export function KaribuAbout({
           {/* Stats strip (preserved) */}
           <div className="mt-8 flex flex-wrap gap-x-12 gap-y-4">
             <Stat big={`${stats.eventsHeld}`} label="events hosted" />
-            <Stat big={`${stats.totalMembers}+`} label="members & growing" />
+            <Stat big={`${stats.totalMembers}+`} label="builders reached across our channels" />
             <Stat big={`${stats.citiesActive.length}`} label={stats.citiesActive.join(" · ")} />
           </div>
         </Reveal>
@@ -75,9 +75,9 @@ export function KaribuAbout({
             <p className="mb-4 font-inter text-[15.5px] leading-[1.7] text-ink-soft">
               It began with a handful of people in Nairobi swapping notes on what
               they were building with Claude. Word spread, the group filled up,
-              and meetups followed in Mombasa and beyond. Today CCK is{" "}
-              {stats.totalMembers}+ members strong — students, founders, marketers
-              and engineers at every level.
+              and meetups followed in Mombasa and beyond. Today CCK has reached{" "}
+              {stats.totalMembers}+ builders across WhatsApp, Discord and socials —
+              students, founders, marketers and engineers at every level.
             </p>
             <p className="font-inter text-[15.5px] leading-[1.7] text-ink-soft">
               We stayed free and volunteer-run on purpose. The point isn&apos;t to

@@ -85,7 +85,7 @@ export function KaribuHome({
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
   const memberLabel = communityStats?.totalMembers
-    ? `~${communityStats.totalMembers.toLocaleString()} members`
+    ? `~${communityStats.totalMembers.toLocaleString()} across WhatsApp, Discord & socials`
     : null;
 
   const marqueeItems = [
@@ -281,7 +281,7 @@ function TrustBar({
       ) : (
         "Growing"
       ),
-      small: "members & growing",
+      small: "builders reached across our channels",
     },
     {
       big: cities.length ? `${cities.length} ${cities.length === 1 ? "city" : "cities"}` : "Kenya",
