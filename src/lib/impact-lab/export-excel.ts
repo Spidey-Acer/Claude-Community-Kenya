@@ -154,6 +154,12 @@ function estimateRowHeight(cells: { text: string; width: number }[]): number {
  * `"Announced by judging panel"` branch below cannot fire for a tracks-mode
  * team by construction, not by convention. A tracks-mode track winner gets
  * its own label instead.
+ *
+ * `"champion"` mode is a hybrid of the two: the champion's own row DOES carry
+ * `finalRankBasis: "announced"` (it is an overall placing, same as podium
+ * mode), but an announced track winner who is not the champion is score
+ * order on its ranking row (see `results.ts`'s `buildRanking`) and needs the
+ * `trackWinnerBasis` check, same as tracks mode gives its own winners.
  */
 function placingBasisLabel(
   team: ExportTeam,
@@ -161,6 +167,15 @@ function placingBasisLabel(
   trackWinnerBasis: ExportTrackWinner["basis"] | undefined
 ): string {
   if (announcementMode === "tracks") {
+    if (trackWinnerBasis === "announced") return "Announced track winner"
+    return team.average !== null
+      ? team.scoredFromWriteup
+        ? "Score order (written submission)"
+        : "Score order (live demo)"
+      : ""
+  }
+  if (announcementMode === "champion") {
+    if (team.finalRankBasis === "announced") return "Announced champion"
     if (trackWinnerBasis === "announced") return "Announced track winner"
     return team.average !== null
       ? team.scoredFromWriteup
@@ -641,7 +656,9 @@ async function addSummarySheet(
     )
   } else if (data.announced.length > 0) {
     for (const winner of data.announced) {
-      fact(`#${winner.rank} (announced)`, `${winner.projectName} — ${winner.teamName}`)
+      const label =
+        data.announcementMode === "champion" ? "Champion (announced)" : `#${winner.rank} (announced)`
+      fact(label, `${winner.projectName} — ${winner.teamName}`)
     }
   } else {
     fact("Announced winners", "Results not yet published.")
@@ -722,10 +739,15 @@ async function addSummarySheet(
           "imply or reproduce which team led its track; “Score rank” is the same order restated. " +
           "Each row's “Placing basis” says whether that row is a declared track winner or plain " +
           "score order."
-      : "The judging panel deliberated and announced the podium; the raw score averages order the rest. " +
-          "“Final placing” is the published result (announced winners first), “Score rank” is the raw " +
-          "average order — the two columns disagree by design, and each row's “Placing basis” says " +
-          "which applies.",
+      : data.announcementMode === "champion"
+        ? "The judging panel announced a champion and a winner for each track; the raw score " +
+            "averages order everyone else. “Final placing” is the published result (the champion " +
+            "first, then score order), “Score rank” is the raw average order — the two columns " +
+            "disagree by design for the champion, and each row's “Placing basis” says which applies."
+        : "The judging panel deliberated and announced the podium; the raw score averages order the rest. " +
+            "“Final placing” is the published result (announced winners first), “Score rank” is the raw " +
+            "average order — the two columns disagree by design, and each row's “Placing basis” says " +
+            "which applies.",
     true
   )
   fact(

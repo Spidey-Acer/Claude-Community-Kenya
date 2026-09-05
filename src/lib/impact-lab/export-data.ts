@@ -291,13 +291,15 @@ export interface ResultsExport {
   published: boolean
   publishedAt: string | null
   /**
-   * `"podium"` (an overall podium was announced) or `"tracks"` (one winner
-   * per track, no overall podium) — from the stored snapshot's own field,
-   * defaulting to `"podium"` before publication or for a snapshot published
-   * before this field existed. Drives every renderer decision between "the
-   * winners" (podium) and "the track winners" (tracks) in the PDF and Excel.
+   * `"podium"` (an overall podium was announced), `"tracks"` (one winner per
+   * track, no overall podium), or `"champion"` (one overall champion AND a
+   * winner for one or more tracks, announced together) — from the stored
+   * snapshot's own field, defaulting to `"podium"` before publication or for
+   * a snapshot published before this field existed. Drives every renderer
+   * decision between "the winners" (podium), "the track winners" (tracks),
+   * and "the champion" (champion) in the PDF and Excel.
    */
-  announcementMode: "podium" | "tracks"
+  announcementMode: "podium" | "tracks" | "champion"
   /** The podium as announced in the room. Empty before publication or in `"tracks"` mode — there is no podium. */
   announced: ExportWinner[]
   trackWinners: ExportTrackWinner[]

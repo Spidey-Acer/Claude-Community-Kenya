@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
       fullName: "there",
       ...sampleCard(rubric),
       eventName,
+      announcementMode: run.snapshot.announcementMode ?? "podium",
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
@@ -317,6 +318,7 @@ export async function POST(request: NextRequest) {
       // Read off the frozen snapshot, like everything else in this email —
       // the same rows the leaderboard groups by track.
       placement: placementFor(run.snapshot, team.id),
+      announcementMode: run.snapshot.announcementMode ?? "podium",
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       shareUrl: resultCardUrl(APP_URL, run.runId, team.id),
       rank: card.rank,

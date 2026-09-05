@@ -538,9 +538,17 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   doc.moveDown(1.1)
 
   // 3 — How the winners were decided. This event may have announced an
-  // overall podium or one winner per track — never both, and never assumed;
-  // see `ResultsExport.announcementMode`.
-  kicker(doc, data.announcementMode === "tracks" ? "How the track winners were decided" : "How the winners were decided")
+  // overall podium, one winner per track, or a champion plus track winners
+  // together — never more than one shape, and never assumed; see
+  // `ResultsExport.announcementMode`.
+  kicker(
+    doc,
+    data.announcementMode === "tracks"
+      ? "How the track winners were decided"
+      : data.announcementMode === "champion"
+        ? "How the champion and track winners were decided"
+        : "How the winners were decided"
+  )
   doc
     .font(SANS)
     .fontSize(9)
@@ -553,10 +561,16 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
             "this document, each labelled as what it is: “announced” track winners are the " +
             "panel's decision; “score order” is the arithmetic. Neither is silently dressed as " +
             "the other."
-        : "The podium was decided by the judging panel in deliberation, after watching the demos — " +
-            "not by the raw score order, which it does not reproduce. Both orderings appear in this " +
-            "document, each labelled as what it is: “announced” placings are the panel's decision; " +
-            "“score order” is the arithmetic. Neither is silently dressed as the other.",
+        : data.announcementMode === "champion"
+          ? "The judging panel announced a champion and a winner for each track, after watching " +
+              "the demos and deliberating — neither is reproduced by the raw score order, which " +
+              "ranks every other team. Both appear in this document, each labelled as what it " +
+              "is: “announced” placings are the panel's decision; “score order” is the " +
+              "arithmetic. Neither is silently dressed as the other."
+          : "The podium was decided by the judging panel in deliberation, after watching the demos — " +
+              "not by the raw score order, which it does not reproduce. Both orderings appear in this " +
+              "document, each labelled as what it is: “announced” placings are the panel's decision; " +
+              "“score order” is the arithmetic. Neither is silently dressed as the other.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2.5 }
@@ -648,7 +662,9 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
       `previous page. Score charts show weighted averages out of ${denom}; ` +
       (data.announcementMode === "tracks"
         ? "the track winners were decided by the panel, not by these charts."
-        : "the podium was decided by the panel, not by these charts.")
+        : data.announcementMode === "champion"
+          ? "the champion and track winners were decided by the panel, not by these charts."
+          : "the podium was decided by the panel, not by these charts.")
   )
   markSection(doc, state, "The event in numbers")
 
@@ -799,7 +815,10 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       : data.announcementMode === "tracks"
         ? "One winner per track, as announced in the room by the judging panel after " +
           "deliberation. There was no overall podium at this event."
-        : "As announced in the room by the judging panel after deliberation."
+        : data.announcementMode === "champion"
+          ? "The champion and each track's winner, as announced in the room by the judging " +
+            "panel after deliberation."
+          : "As announced in the room by the judging panel after deliberation."
   )
   markSection(doc, state, "The winners")
   const denom = totalOutOf(data.rubric)
@@ -896,7 +915,10 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
     .text(
       (data.announcementMode === "tracks"
         ? "“Announced” track winners are the panel's declared winner for that track; "
-        : "“Announced” track winners follow from the podium (the champion leads its own track); ") +
+        : data.announcementMode === "champion"
+          ? "“Announced” track winners are the panel's declared winner for that track — the " +
+            "champion's own track winner is the champion; "
+          : "“Announced” track winners follow from the podium (the champion leads its own track); ") +
         "“by score” winners top their track on weighted average. An “organiser decision” means the " +
         "organisers assigned the award rather than taking score order: teams were matched into a " +
         "track before building and judged at that track's tables, so a team that built outside its " +
@@ -947,6 +969,13 @@ function rankingHeader(doc: Doc, cols: ReturnType<typeof rankCols>): void {
  */
 function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void {
   const tracksMode = data.announcementMode === "tracks"
+  const championMode = data.announcementMode === "champion"
+  // Keyed by track, not team name — same reasoning as export-excel.ts's own
+  // `trackWinnerByTrack`: a track has exactly one winner. Used below so a
+  // champion-mode track winner that is not the champion itself (its own
+  // ranking row is score order, not "announced" — see `results.ts`'s
+  // `buildRanking`) still reads "panel" here rather than "score".
+  const trackWinnerByTrack = new Map(data.trackWinners.map((w) => [w.track, w]))
   sectionOpener(
     doc,
     "Results",
@@ -955,9 +984,13 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       ? "The ranking below is raw score order throughout — there was no overall podium at this " +
         "event. The panel announced one winner per track separately; see “The winners”. The " +
         "averages are the archival record — they order this list, nothing here was announced."
-      : "Placings 1–3 were announced by the panel; every other scored team follows in raw score " +
-        "order. The averages are the archival record — they order this list, they did not decide " +
-        "the podium."
+      : championMode
+        ? "The champion was announced by the panel; every other scored team, including each " +
+          "track's own announced winner, follows in raw score order. The averages are the " +
+          "archival record — they order this list, they did not decide the champion."
+        : "Placings 1–3 were announced by the panel; every other scored team follows in raw score " +
+          "order. The averages are the archival record — they order this list, they did not decide " +
+          "the podium."
   )
   markSection(doc, state, "Full ranking")
   const cols = rankCols(totalOutOf(data.rubric))
@@ -967,6 +1000,8 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
   let anyScoredFromWriteup = false
   for (const team of ranked) {
     if (team.scoredFromWriteup) anyScoredFromWriteup = true
+    const isAnnouncedTrackWinner =
+      team.isTrackWinner && trackWinnerByTrack.get(team.track)?.basis === "announced"
     const cells = [
       team.finalRank !== null ? String(team.finalRank) : `(${team.scoreRank})`,
       team.projectDisplayName,
@@ -977,7 +1012,11 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
         ? `${fmt1(team.scoreLow)}–${fmt1(team.scoreHigh)}`
         : "—",
       String(team.judgeCount),
-      team.finalRankBasis === "announced" ? "panel" : team.scoredFromWriteup ? "score †" : "score",
+      team.finalRankBasis === "announced" || isAnnouncedTrackWinner
+        ? "panel"
+        : team.scoredFromWriteup
+          ? "score †"
+          : "score",
     ]
     doc.font(SANS).fontSize(8)
     const rowHeight =
@@ -992,12 +1031,16 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
     // In "tracks" mode no row is an announced overall placing — there is no
     // podium — so tinting on `finalRankBasis === "announced"` would tint
     // nothing here even though the honesty rule (a real result, marked) still
-    // applies. Track-winner rows carry that marking instead, in olive rather
-    // than clay, so the two tints never look interchangeable at a glance.
+    // applies. "champion" mode has both: the champion's own row IS an
+    // announced overall placing (clay, same as podium mode), but a track
+    // winner who is not the champion is score order on this row (see
+    // `results.ts`'s `buildRanking`) and needs the olive track-winner tint
+    // exactly like "tracks" mode gives its own winners — so both branches
+    // apply together here, not one or the other.
     if (!tracksMode && team.finalRankBasis === "announced") {
       doc.rect(MARGIN - 6, top - 3, CONTENT_WIDTH + 12, rowHeight).fillColor(CALLOUT_BG).fill()
       doc.rect(MARGIN - 6, top - 3, 2.5, rowHeight).fillColor(CLAY).fill()
-    } else if (tracksMode && team.isTrackWinner) {
+    } else if ((tracksMode || championMode) && team.isTrackWinner) {
       doc.rect(MARGIN - 6, top - 3, CONTENT_WIDTH + 12, rowHeight).fillColor(CALLOUT_BG).fill()
       doc.rect(MARGIN - 6, top - 3, 2.5, rowHeight).fillColor(OLIVE).fill()
     }
