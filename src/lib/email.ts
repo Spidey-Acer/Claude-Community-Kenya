@@ -535,9 +535,14 @@ export function impactLabAccountEmail(data: {
   return { to: data.to, subject: "Impact Lab: meet your team", html }
 }
 
-/** Matches the ordinal shown on the dashboard's results page (ResultsView.tsx) exactly. */
+/**
+ * Matches the ordinal shown on the dashboard's results page (ResultsView.tsx)
+ * exactly. Exported so preview-email/route.ts's publish-time headline (the
+ * one an organiser reads before confirming) can never phrase a placing
+ * differently from the email itself.
+ */
 const RESULTS_ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" }
-function resultsOrdinal(rank: number): string {
+export function resultsOrdinal(rank: number): string {
   return RESULTS_ORDINALS[rank] ?? `${rank}th`
 }
 
@@ -771,7 +776,13 @@ export function impactLabResultsEmail(data: {
     // there's no `<style>`/media-query in this template (email clients
     // ignore `<style>` blocks here, see the file-level note above), so
     // this is a single fixed size rather than a responsive one.
-    const overallPill = ranked.announced
+    // `ranked.announced` and `data.overall` both come from the same snapshot
+    // in every real caller, but this line is the one place in the hero that
+    // states an overall placing was announced — checking `data.overall.length`
+    // too, not `ranked.announced` alone, means a caller that ever passed the
+    // two out of sync (or an empty-overall "tracks" mode with a stale
+    // `Placement`) still cannot render an overall placing nobody announced.
+    const overallPill = ranked.announced && data.overall.length > 0
       ? `<p style="margin:14px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${variant.pillBorder};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${variant.pillText};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
       : ""
     hero = `
@@ -916,8 +927,14 @@ export function impactLabResultsEmail(data: {
       ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${DARK.dim};">Score range across judges: ${data.low.toFixed(1)}&ndash;${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
+  // "Nth overall" only when an overall ranking was actually announced
+  // (`data.overall.length > 0`) — the same guard `winnersSection` and `note`
+  // already apply. `data.rank` is always populated (pure score-order in
+  // "tracks" mode too, see buildRanking), so without this guard a
+  // tracks-mode team read a claim about an overall placing that was never
+  // announced and does not exist as a published fact.
   const placingLine = [
-    `${esc(resultsOrdinal(data.rank))} overall`,
+    data.overall.length > 0 ? `${esc(resultsOrdinal(data.rank))} overall` : null,
     ranked ? `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in ${esc(ranked.track)}` : null,
   ]
     .filter((s): s is string => Boolean(s))

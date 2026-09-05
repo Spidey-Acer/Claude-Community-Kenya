@@ -6,11 +6,14 @@
  *
  * Two rules carry all the weight:
  *
- * 1. The three winners announced in the room hold ranks 1-3, whatever the
+ * 1. Announced winners hold the placing the panel gave them, whatever the
  *    arithmetic says. The panel watched every demo and deliberated; no
  *    combination of the recorded scores reproduces their decision, and the
  *    announcement is already public. Recomputing it would contradict what
- *    people were told to their faces.
+ *    people were told to their faces. What was announced is not always a
+ *    podium — see `ResultsInput.announcementMode`: an overall podium (ranks
+ *    1-3) or one winner per track are both real shapes an event can produce,
+ *    and the snapshot must say which happened rather than assume the first.
  * 2. Everyone else ranks below them by score. Scores order the list but are
  *    never printed in it — publishing them would place a 76.9 at 4th above a
  *    75.3 at 1st, which is the contradiction this ranking exists to remove.
@@ -46,7 +49,10 @@ export interface ResultsTrackWinner {
   /**
    * How this track award was arrived at.
    *
-   * - `announced` — an overall winner leads the track; the panel called it.
+   * - `announced` — the panel called this team out by name: as the overall
+   *   podium in podium mode (the champion leads its own track), or as this
+   *   track's own declared winner in tracks mode. See
+   *   `ResultsInput.announcementMode`.
    * - `score` — the top score within that track's table group.
    * - `organiser` — an organiser assigned it, overriding score order. Teams
    *   were matched into a track before building and judged at that track's
@@ -88,6 +94,17 @@ export interface TeamCard {
 
 export interface ResultsSnapshot {
   publishedAt: string
+  /**
+   * What kind of announcement produced this snapshot.
+   *
+   * Optional because snapshots published before this field existed do not
+   * carry it. Every reader must default a missing value to `"podium"` — the
+   * only shape that existed before `"tracks"` was added — rather than assume
+   * it is present; a stored snapshot is never recomputed, so the old shape is
+   * permanent. See `ResultsInput.announcementMode`.
+   */
+  announcementMode?: "podium" | "tracks"
+  /** The overall podium, in `"podium"` mode. Always `[]` in `"tracks"` mode — there is no podium to hold. */
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
   ranking: RankedTeam[]
@@ -104,7 +121,24 @@ export interface ResultsSnapshot {
 
 export interface ResultsInput {
   publishedAt: string
-  /** Announced winners in announced order. Empty is legal; three is the case. */
+  /**
+   * Whether `announcedTeamIds` names an overall podium or a set of per-track
+   * winners. Defaults to `"podium"` — the shape every cohort before this
+   * field existed actually used.
+   *
+   * `"podium"`: `announcedTeamIds` is ranks 1-N of an overall podium (rank 1
+   * is the champion).
+   * `"tracks"`: `announcedTeamIds` is one declared winner per track, in no
+   * particular order relative to each other. There is no overall podium —
+   * `buildSnapshot` leaves `overall` empty — and the full ranking stays pure
+   * score order; each announced team instead leads its own track in
+   * `buildTrackWinners`.
+   */
+  announcementMode?: "podium" | "tracks"
+  /**
+   * Announced winners. In `"podium"` mode, in announced (podium) order.
+   * In `"tracks"` mode, one team per track, order irrelevant. Empty is legal.
+   */
   announcedTeamIds: string[]
   standings: TeamStanding[]
   teams: Map<string, { projectName: string; track: string }>
@@ -138,29 +172,35 @@ function metaOf(
 }
 
 /**
- * Announced winners first in announced order, then everyone else by average
- * descending. Ties break by teamId so two loads never reorder themselves.
+ * `"podium"` mode: announced winners first in announced order, then everyone
+ * else by average descending. `"tracks"` mode: pure score order throughout —
+ * a per-track winner is not an overall placing, so it does not jump the
+ * queue here (see `buildTrackWinners` for where it does apply). Ties break by
+ * teamId so two loads never reorder themselves.
  */
 export function buildRanking(input: ResultsInput): RankedTeam[] {
+  const mode = input.announcementMode ?? "podium"
   const announced = new Set(input.announcedTeamIds)
   const byTeam = new Map(input.standings.map((s) => [s.teamId, s]))
 
   const rows: RankedTeam[] = []
 
-  for (const teamId of input.announcedTeamIds) {
-    const meta = metaOf(input, teamId)
-    rows.push({
-      rank: rows.length + 1,
-      teamId,
-      projectName: meta.projectName,
-      track: meta.track || trackOf(meta.projectName),
-      average: byTeam.get(teamId)?.average ?? 0,
-      basis: "announced",
-    })
+  if (mode === "podium") {
+    for (const teamId of input.announcedTeamIds) {
+      const meta = metaOf(input, teamId)
+      rows.push({
+        rank: rows.length + 1,
+        teamId,
+        projectName: meta.projectName,
+        track: meta.track || trackOf(meta.projectName),
+        average: byTeam.get(teamId)?.average ?? 0,
+        basis: "announced",
+      })
+    }
   }
 
   const rest = input.standings
-    .filter((s) => !announced.has(s.teamId))
+    .filter((s) => !(mode === "podium" && announced.has(s.teamId)))
     .sort((a, b) => b.average - a.average || a.teamId.localeCompare(b.teamId))
 
   for (const s of rest) {
@@ -175,26 +215,76 @@ export function buildRanking(input: ResultsInput): RankedTeam[] {
     })
   }
 
+  // Tracks mode: a team the panel declared its track's winner may hold no
+  // score at all (nobody judged it) — podium mode still gives such a team a
+  // rank via `average ?? 0` above; pure score order does not, since a team
+  // with no standing never enters `rest`. Append it here, ranked last, with
+  // the same zero-average fallback, so a track's announced winner never
+  // vanishes from the ranking just because it was never scored.
+  if (mode === "tracks") {
+    for (const teamId of input.announcedTeamIds) {
+      if (byTeam.has(teamId)) continue
+      const meta = metaOf(input, teamId)
+      rows.push({
+        rank: rows.length + 1,
+        teamId,
+        projectName: meta.projectName,
+        track: meta.track || trackOf(meta.projectName),
+        average: 0,
+        basis: "demo",
+      })
+    }
+  }
+
   return rows
 }
 
 /**
- * One winner per track. An announced overall winner leads its own track — so
- * the champion never appears to lose its own category on the same page that
- * crowns it. Tracks with no announced winner go to their highest-ranked team.
+ * One winner per track. An announced overall winner (podium mode) or an
+ * announced track winner (tracks mode) leads its own track — so the champion
+ * never appears to lose its own category on the same page that crowns it,
+ * and a track's declared winner is never outranked by score inside its own
+ * table. Tracks with no announced winner go to their highest-ranked team.
+ *
+ * `announcedTeamIds` carries the tracks-mode announcements — `ranking`
+ * itself never marks those rows `basis: "announced"` (see `buildRanking`),
+ * so without this second signal a tracks-mode ranking would look identical
+ * to an unpublished one and every track would fall back to score order.
+ * Podium mode does not need it: those rows already carry `basis: "announced"`
+ * on `ranking`, so an empty default set changes nothing.
  */
-export function buildTrackWinners(ranking: RankedTeam[]): ResultsTrackWinner[] {
+export function buildTrackWinners(
+  ranking: RankedTeam[],
+  announcedTeamIds: ReadonlySet<string> = new Set()
+): ResultsTrackWinner[] {
   const best = new Map<string, ResultsTrackWinner>()
 
-  // `ranking` is already ordered with announced winners first, so the first
-  // sighting of a track is its winner.
+  // First pass: an announced winner leads its own track regardless of where
+  // it falls in `ranking` — podium mode already sorts those rows first, but
+  // tracks mode does not, since that ranking is pure score order throughout.
+  // Two announced teams landing in the same track cannot both lead it; the
+  // first one reached in `ranking` order wins.
+  for (const row of ranking) {
+    if (best.has(row.track)) continue
+    if (row.basis !== "announced" && !announcedTeamIds.has(row.teamId)) continue
+    best.set(row.track, {
+      track: row.track,
+      teamId: row.teamId,
+      projectName: row.projectName,
+      basis: "announced",
+    })
+  }
+
+  // Second pass: tracks with no announced winner go to their highest-ranked
+  // team — `ranking` is already ordered by score (or announced-then-score in
+  // podium mode), so the first sighting of a track here is its winner.
   for (const row of ranking) {
     if (best.has(row.track)) continue
     best.set(row.track, {
       track: row.track,
       teamId: row.teamId,
       projectName: row.projectName,
-      basis: row.basis === "announced" ? "announced" : "score",
+      basis: "score",
     })
   }
 
@@ -381,6 +471,7 @@ export function isResultsSnapshot(value: unknown): value is ResultsSnapshot {
 }
 
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
+  const mode = input.announcementMode ?? "podium"
   const ranking = buildRanking(input)
   const standingById = new Map(input.standings.map((s) => [s.teamId, s]))
 
@@ -414,12 +505,18 @@ export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
 
   return {
     publishedAt: input.publishedAt,
-    overall: input.announcedTeamIds.map((teamId, i) => ({
-      rank: i + 1,
-      teamId,
-      projectName: metaOf(input, teamId).projectName,
-    })),
-    trackWinners: buildTrackWinners(ranking),
+    announcementMode: mode,
+    // Tracks mode has no overall podium — publishing one anyway is exactly
+    // the bug this field exists to remove (see the module doc comment).
+    overall:
+      mode === "tracks"
+        ? []
+        : input.announcedTeamIds.map((teamId, i) => ({
+            rank: i + 1,
+            teamId,
+            projectName: metaOf(input, teamId).projectName,
+          })),
+    trackWinners: buildTrackWinners(ranking, new Set(input.announcedTeamIds)),
     ranking,
     perTeam,
     unranked,

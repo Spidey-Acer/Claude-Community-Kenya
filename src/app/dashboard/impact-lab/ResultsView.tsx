@@ -13,6 +13,7 @@ import type {
 } from "@/lib/impact-lab/results";
 import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
 import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
+import { decidedByNote, yourTeamOverallLabel } from "./resultsViewCopy";
 
 export interface ResultsViewProps {
   results: {
@@ -101,6 +102,15 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
     ? (results.ranking.find((r) => r.teamId === yourTeam.teamId)?.track ??
       (results.unranked ?? []).find((r) => r.teamId === yourTeam.teamId)?.track)
     : undefined;
+
+  // Whether an overall ranking was actually announced. `results.overall` is
+  // `[]` both in "tracks" mode (one winner per track, no overall podium —
+  // see `results.ts`'s own doc comment) and when a podium run announced zero
+  // winners — `yourTeam.card.rank` is still populated in both cases (pure
+  // score order), so a rank claim below has to be gated on this, not on
+  // whether a card exists.
+  const hasAnnouncedOverall = results.overall.length > 0;
+  const hasAnnouncedTrackWinner = results.trackWinners.some((w) => w.basis === "announced");
 
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[rubric.criteria.length] ?? rubric.criteria.length} criteria`;
   // "the demo criterion" only when this rubric actually has one keyed
@@ -202,8 +212,12 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
               {yourTeam.projectName}
             </h2>
             <span className="font-mono text-xs text-text-dim">
-              {yourTeam.card ? `${ordinal(yourTeam.card.rank)} overall` : "Took part"}
-              {yourTrack ? ` · ${yourTrack}` : ""}
+              {[
+                yourTeamOverallLabel(Boolean(yourTeam.card), hasAnnouncedOverall, yourTeam.card?.rank ?? 0),
+                yourTrack,
+              ]
+                .filter((part): part is string => Boolean(part))
+                .join(" · ")}
             </span>
           </div>
 
@@ -387,12 +401,7 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
             not see it presented, the project was reviewed from the written
             submission instead.
           </p>
-          <p>
-            The top three were decided by the judging panel after they had seen
-            the demos and discussed the projects together. That conversation is
-            what those placings reflect. Every other team is ranked below them
-            on score.
-          </p>
+          <p>{decidedByNote(hasAnnouncedOverall, hasAnnouncedTrackWinner)}</p>
           <p>
             Scores are shown in full because you are entitled to see how your
             own work was assessed.

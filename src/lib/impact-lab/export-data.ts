@@ -185,7 +185,14 @@ export interface ExportTeam {
    * outside the published ranking.
    */
   finalRank: number | null
-  /** Basis of `finalRank` — "announced" for the panel's podium picks. */
+  /**
+   * Basis of `finalRank` — "announced" for the panel's overall podium picks.
+   * Only ever set in `"podium"` announcement mode: `"tracks"` mode has no
+   * overall podium, so the full ranking there is pure score order and this
+   * is always "demo" or "submission" (see `ResultsExport.announcementMode`
+   * and `results.ts`'s `buildRanking`). A track-winner placing is carried by
+   * `isTrackWinner` instead, never by this field.
+   */
   finalRankBasis: PlacingBasis | null
   /** Position by raw weighted average alone. Null when never scored. */
   scoreRank: number | null
@@ -251,6 +258,14 @@ export interface ExportCoverageBucket {
 export interface ExportSummary {
   participantsRegistered: number
   participantsCheckedIn: number
+  /**
+   * An organiser-supplied check-in count, when it was given AND disagrees
+   * with `participantsCheckedIn` (see `buildResultsExport`'s `checkedInRecorded`
+   * option). Null means no override — the system count is the only figure,
+   * exactly as before this field existed. Never silently replaces
+   * `participantsCheckedIn`; both are kept when both exist.
+   */
+  participantsCheckedInRecorded: number | null
   teamsFormed: number
   teamsSubmitted: number
   teamsScored: number
@@ -275,7 +290,15 @@ export interface ResultsExport {
   /** Whether the announced result has been published (snapshot present). */
   published: boolean
   publishedAt: string | null
-  /** The podium as announced in the room. Empty before publication. */
+  /**
+   * `"podium"` (an overall podium was announced) or `"tracks"` (one winner
+   * per track, no overall podium) — from the stored snapshot's own field,
+   * defaulting to `"podium"` before publication or for a snapshot published
+   * before this field existed. Drives every renderer decision between "the
+   * winners" (podium) and "the track winners" (tracks) in the PDF and Excel.
+   */
+  announcementMode: "podium" | "tracks"
+  /** The podium as announced in the room. Empty before publication or in `"tracks"` mode — there is no podium. */
   announced: ExportWinner[]
   trackWinners: ExportTrackWinner[]
   /** Ordered: published placing first, then score order, then name. */
@@ -322,6 +345,63 @@ export function tableLabelOf(teamName: string): string {
   return head || teamName
 }
 
+const TRAILING_NUMBER = /^(.*?)(\d+)$/
+
+/**
+ * Sorts items by the trailing integer in their label when every label in
+ * the list shares the same non-numeric prefix — "Table 5", "Table 33" reads
+ * as 5, 33, not the "…33 · …5 · …7" a plain string sort produces. Falls back
+ * to `localeCompare` on the full label otherwise: team names are not always
+ * "Table N" (other cohorts use real project or team names), and a
+ * trailing-number sort applied to those would be meaningless at best.
+ */
+export function sortByTrailingNumber<T>(items: readonly T[], labelOf: (item: T) => string): T[] {
+  const labels = items.map(labelOf)
+  const matches = labels.map((label) => label.match(TRAILING_NUMBER))
+  const prefix = matches[0]?.[1]
+  const sameShape =
+    items.length > 0 && matches.every((m): m is RegExpMatchArray => m !== null && m[1] === prefix)
+
+  const sorted = [...items]
+  if (sameShape) {
+    sorted.sort(
+      (a, b) =>
+        Number(labelOf(a).match(TRAILING_NUMBER)![2]) -
+        Number(labelOf(b).match(TRAILING_NUMBER)![2])
+    )
+  } else {
+    sorted.sort((a, b) => labelOf(a).localeCompare(labelOf(b)))
+  }
+  return sorted
+}
+
+/**
+ * Render-time display casing for a raw participant name. Registration data
+ * holds names typed however the person happened to type them ("simon",
+ * "christian ng'ang'a") — this fixes the one shape that is safe to fix
+ * without guessing: a token typed ENTIRELY lowercase gets its first
+ * character upper-cased. Any other token — "Ge0frey", "Blu Chips",
+ * "O'Donnell", "McArthur", "Pompompurin" — is left completely untouched,
+ * because "entirely lowercase" is the only signal honest enough to act on;
+ * anything with a capital already in it, or none of the letters a name has
+ * at all, is a name we do not get to correct.
+ *
+ * Render time only — never mutates the stored value, and never applied to
+ * the Excel workbook, which is the operational record and must show what
+ * was actually typed.
+ */
+export function formatDisplayName(name: string): string {
+  return name
+    .split(/(\s+)/)
+    .map((token) => {
+      if (/^\s*$/.test(token)) return token
+      const isEntirelyLowercase = token === token.toLowerCase() && token !== token.toUpperCase()
+      if (!isEntirelyLowercase) return token
+      return token.charAt(0).toUpperCase() + token.slice(1)
+    })
+    .join("")
+}
+
 function toMember(p: SourceParticipant, leaderId: string | null | undefined): ExportMember {
   return {
     fullName: p.fullName,
@@ -364,7 +444,14 @@ function toJudgeScore(score: SourceScore, rubric: JudgingRubric): ExportJudgeSco
 export function buildResultsExport(
   source: ExportSource,
   rubric: JudgingRubric,
-  now: Date = new Date()
+  now: Date = new Date(),
+  options: {
+    /**
+     * An organiser-recorded check-in count (e.g. from Luma) that disagrees
+     * with the system's own count. See `ExportSummary.participantsCheckedInRecorded`.
+     */
+    checkedInRecorded?: number
+  } = {}
 ): ResultsExport {
   const participantById = new Map(source.participants.map((p) => [p.id, p]))
   const submissionByTeam = new Map(source.submissions.map((s) => [s.teamId, s]))
@@ -401,10 +488,18 @@ export function buildResultsExport(
   const labelByKey = trackLabelIndex(source.tracks ?? [])
   const trackById = new Map(source.teams.map((t) => [t.id, resolveTeamTrack(t, labelByKey)]))
 
+  // Legacy snapshots (published before this field existed) carry no
+  // `announcementMode` at all — they are always `"podium"`, the only shape
+  // that could have been published then.
+  const announcementMode = snapshot?.announcementMode ?? "podium"
+
   // Overall winners: the published snapshot is the record once it exists.
-  // Before publication, fall back to score order for the champion. Track
-  // winners are handled separately, further below, once every team's
-  // corrected track and final rank are known — see the comment there.
+  // Before publication, fall back to score order for the champion.
+  // `"tracks"` mode has no overall podium — `snapshot.overall` is already
+  // `[]` there, so `announced` and `championTeamId` fall out empty/null with
+  // no extra branching. Track winners are handled separately, further
+  // below, once every team's corrected track and final rank are known — see
+  // the comment there.
   let announced: ExportWinner[] = []
   let championTeamId: string | null = null
 
@@ -513,14 +608,27 @@ export function buildResultsExport(
   // wholesale — that array (like the old ranking order) was frozen before
   // organiser track assignments existed, so its `track` values can lie. Feed
   // `buildTrackWinners` the same corrected order the tail re-sort just
-  // produced (announced podium first) so "the champion leads its own track"
-  // still holds, and only scored, ranked teams are considered, so a track
-  // with nobody scored produces no winner line (and no divide-by-zero below).
+  // produced (announced podium first, in podium mode) so "the champion
+  // leads its own track" still holds, and only scored, ranked teams are
+  // considered, so a track with nobody scored produces no winner line (and
+  // no divide-by-zero below).
   //
+  // `"tracks"` mode never marks a `finalRankBasis` "announced" (the whole
+  // point of that mode is a pure-score-order ranking — see `buildRanking`),
+  // so `rankedForTracks` alone cannot say which team was declared each
+  // track's winner. The snapshot's own `trackWinners` already recorded that,
+  // written once at publish time by `buildSnapshot` from the real
+  // `announcedTeamIds` — reading it back here is the same pattern already
+  // used for an `organiser` override two lines below, applied to `announced`
+  // too.
+  const announcedForTracks = new Set(
+    (snapshot?.trackWinners ?? []).filter((w) => w.basis === "announced").map((w) => w.teamId)
+  )
+
   // A hand-authored `organiser` override in the snapshot is a human
   // correction — an organiser deciding a team built outside its matched
   // track — that recomputation cannot reproduce, so it still wins for its
-  // own track, the same reasoning that pins the announced podium.
+  // own track, the same reasoning that pins an announced winner.
   const teamById = new Map(teams.map((t) => [t.teamId, t]))
   const rankedForTracks: RankedTeam[] = teams
     .filter((t) => t.finalRank !== null)
@@ -534,7 +642,7 @@ export function buildResultsExport(
       basis: t.finalRankBasis ?? "demo",
     }))
   const winnersByTrack = new Map<string, ResultsTrackWinner>(
-    buildTrackWinners(rankedForTracks).map((w) => [w.track, w])
+    buildTrackWinners(rankedForTracks, announcedForTracks).map((w) => [w.track, w])
   )
   for (const w of snapshot?.trackWinners ?? []) {
     if (w.basis === "organiser") winnersByTrack.set(w.track, w)
@@ -633,12 +741,22 @@ export function buildResultsExport(
       ) / 10
     : null
 
+  const participantsCheckedIn = source.participants.filter((p) => p.checkedIn).length
+  // Only a real disagreement counts as an override — an organiser count that
+  // happens to match the system's own is not a second fact worth carrying,
+  // it is the same fact twice (see `ExportSummary.participantsCheckedInRecorded`).
+  const participantsCheckedInRecorded =
+    options.checkedInRecorded !== undefined && options.checkedInRecorded !== participantsCheckedIn
+      ? options.checkedInRecorded
+      : null
+
   return {
     cohort: source.cohort,
     generatedAt: now,
     rubric,
     published: snapshot !== null,
     publishedAt: snapshot?.publishedAt ?? source.publishedAt,
+    announcementMode,
     announced,
     trackWinners: exportTrackWinners,
     teams,
@@ -648,7 +766,8 @@ export function buildResultsExport(
     coverage,
     summary: {
       participantsRegistered: source.participants.length,
-      participantsCheckedIn: source.participants.filter((p) => p.checkedIn).length,
+      participantsCheckedIn,
+      participantsCheckedInRecorded,
       teamsFormed: source.teams.length,
       teamsSubmitted: source.submissions.length,
       teamsScored: scoredTeams.length,

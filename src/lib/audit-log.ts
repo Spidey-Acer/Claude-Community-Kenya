@@ -5,6 +5,7 @@ export type AuditAction =
   | "UPDATE"
   | "DELETE"
   | "PUBLISH"
+  | "CORRECT"
   | "LOGIN"
   | "LOGOUT"
   | "REGISTER"

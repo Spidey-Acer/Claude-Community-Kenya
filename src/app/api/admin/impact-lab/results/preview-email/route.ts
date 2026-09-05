@@ -5,9 +5,48 @@ import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-sto
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
-import { placementFor, placingsFollowScores, resultCardUrl } from "@/lib/impact-lab/result-card"
+import {
+  placementFor,
+  placementTitle,
+  placingsFollowScores,
+  resultCardUrl,
+  type Placement,
+} from "@/lib/impact-lab/result-card"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
-import { APP_URL, impactLabResultsEmail } from "@/lib/email"
+import { APP_URL, impactLabResultsEmail, resultsOrdinal } from "@/lib/email"
+
+/**
+ * The one-line sentence an organiser reads before confirming a publish or a
+ * correction — "ElimuTayari will be told: Runner-up, 3rd overall." This is
+ * the fix for Impact Lab 02 (3 September 2026): three teams were ticked, the
+ * panel's actual per-track calls, and published as an overall 1-2-3 naming a
+ * team that had won nothing — caught two days later by reading the PDF. A
+ * plain sentence, read before the click, is meant to be the thing that makes
+ * an operator stop.
+ *
+ * Built from the same `Placement` the email itself renders from
+ * (`placementFor`/`placementTitle`), so this sentence and the email an
+ * organiser is being warned about can never disagree with each other.
+ */
+export function announcementHeadline(
+  placement: Placement | null,
+  mode: "podium" | "tracks"
+): string {
+  if (!placement) return "Not part of the published result."
+  if (placement.kind === "participant") return "Took part — not scored in the finals."
+  const title = placementTitle(placement)
+  if (mode === "tracks") {
+    // No overall podium exists in this mode — every headline is phrased by
+    // track position, never "Nth overall", so it cannot imply a podium that
+    // was never announced.
+    return title === "Built"
+      ? `Finished ${resultsOrdinal(placement.position)} of ${placement.of} in the ${placement.track} track.`
+      : `${title} of the ${placement.track} track.`
+  }
+  return placement.announced
+    ? `${title} — ${resultsOrdinal(placement.overallRank)} overall.`
+    : `Finished ${resultsOrdinal(placement.position)} of ${placement.of} in the ${placement.track} track (by score).`
+}
 
 /**
  * Render one team's real results email. Preview only — never sends, never
@@ -49,6 +88,15 @@ import { APP_URL, impactLabResultsEmail } from "@/lib/email"
  *    trusted.
  * `data.published` tells the caller which path rendered the response, so the
  * UI can say so on screen.
+ *
+ * Pre-publish, `?announcementMode=podium|tracks` (default `podium`) is
+ * threaded into the same `ResultsInput` `publish/route.ts` and
+ * `results/correct/route.ts` build from `announcedTeamIds` — a tracks-mode
+ * proposal previewed under the podium default would show a headline no team
+ * is actually about to receive. `data.headline` is the one-line sentence the
+ * publish and correction dialogs read back before confirming (see
+ * `announcementHeadline` above) — computed from the same `Placement` the
+ * email itself renders from, never a second description of it.
  */
 export async function GET(request: NextRequest) {
   const check = await checkApiPermission("impact-lab", "edit")
@@ -70,9 +118,12 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Comma-separated team ids, in announced order. Capped and de-duplicated:
-  // this only ever feeds a render, but an unbounded list from a query string
-  // has no business reaching the snapshot builder.
+  // Comma-separated team ids. Capped and de-duplicated: this only ever feeds
+  // a render, but an unbounded list from a query string has no business
+  // reaching the snapshot builder. Capped at 20 to match `publish/route.ts`
+  // and `results/correct/route.ts`'s own `announcedTeamIds` limit — a
+  // 3-team cap (the old podium-only limit) would silently truncate a
+  // tracks-mode proposal with more than three tracks.
   const announcedParam = (request.nextUrl.searchParams.get("announced") ?? "").trim()
   const requestedAnnounced = announcedParam === ""
     ? []
@@ -81,7 +132,9 @@ export async function GET(request: NextRequest) {
           .split(",")
           .map((id) => id.trim())
           .filter((id) => id !== "" && id.length <= 64)
-      )].slice(0, 3)
+      )].slice(0, 20)
+  const announcementMode: "podium" | "tracks" =
+    request.nextUrl.searchParams.get("announcementMode") === "tracks" ? "tracks" : "podium"
 
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort, isFinal: true },
@@ -151,6 +204,7 @@ export async function GET(request: NextRequest) {
     const input: ResultsInput = {
       ...inputBase,
       publishedAt: new Date().toISOString(),
+      announcementMode,
       // Filter to scored teams — the same eligibility publish enforces, so a
       // stale selection left in the form cannot make this preview show a
       // winner that publishing would then refuse.
@@ -177,6 +231,12 @@ export async function GET(request: NextRequest) {
   // absent here precisely because it would be absent from the real send.
   const feedback = (await loadTeamFeedback(prisma, run.id, [teamId])).get(teamId)
 
+  // The published snapshot's own recorded mode wins once it exists — a
+  // published run is never re-read through the query string's mode, only a
+  // pre-publish proposal is. See `ResultsSnapshot.announcementMode`.
+  const effectiveMode = published ? (snapshot.announcementMode ?? "podium") : announcementMode
+  const placement = placementFor(snapshot, teamId)
+
   const dashboardUrl = `${APP_URL}/dashboard/impact-lab`
   const built = impactLabResultsEmail({
     // The batch send personalises this per recipient; a team's email is
@@ -189,7 +249,7 @@ export async function GET(request: NextRequest) {
     teamName,
     table,
     eventName: event?.name ?? "Impact Lab",
-    placement: placementFor(snapshot, teamId),
+    placement,
     panelOverrodeScores: !placingsFollowScores(snapshot),
     // The real card URL, so the organiser can click through from the preview.
     // Before publish the page 404s (the run is not published yet) — the link
@@ -217,6 +277,9 @@ export async function GET(request: NextRequest) {
       projectName: rankingRow.projectName,
       recipientCount,
       published,
+      // The publish/correction dialogs' pre-confirm sentence — see
+      // `announcementHeadline`'s own doc comment for why it exists.
+      headline: announcementHeadline(placement, effectiveMode),
     },
   })
 }
