@@ -44,13 +44,11 @@ export function ConditionalLayout({
   // Karibu (warm-light) is the default identity. Routes still on the Terminal
   // Noir chrome are listed here and removed as they get converted — unknown
   // paths (404s) fall through to Karibu so dead links stay on-brand.
-  // /login, /signup, and /resources/* were removed from this list: their
-  // page content renders independently of the surrounding chrome, so moving
-  // them to Karibu just swaps in KaribuNav/KaribuFooter (and the theme
-  // toggle) — the other auth routes (forgot/reset password, verify-email)
-  // still need the same treatment in a follow-up pass. /resources (the hub,
-  // no trailing slash) was already Karibu; only its guide sub-pages were on
-  // legacy chrome.
+  // /login and /signup were removed from this list: their form content
+  // renders its own centered, self-contained card regardless of chrome, so
+  // moving them to Karibu just swaps in KaribuNav/KaribuFooter (and the
+  // theme toggle) — the other auth routes (forgot/reset password,
+  // verify-email) still need the same treatment in a follow-up pass.
   const legacyPrefixes = [
     "/account",
     "/chat",
@@ -60,6 +58,7 @@ export function ConditionalLayout({
     "/reset-password",
     "/verify-email",
     "/dashboard",
+    "/resources/",
     "/blog/",
   ];
   const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
