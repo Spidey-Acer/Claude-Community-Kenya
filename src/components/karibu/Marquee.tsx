@@ -2,9 +2,12 @@
  * Marquee — scrolling clay band under the nav for the Karibu identity.
  *
  * Dumb/presentational: caller supplies the item strings (built from real
- * community stats). The track is duplicated for a seamless CSS loop; the
- * global reduced-motion reset pauses it for users who opt out. Separators use
- * the official Claude mark.
+ * community stats). The track is duplicated for a seamless CSS loop (six
+ * copies of each phrase between the two halves), so the whole animated track
+ * is `aria-hidden` and a screen reader instead gets a single `sr-only` copy of
+ * the phrases — the content once, not six times. The global reduced-motion
+ * reset pauses the visible loop for users who opt out. Separators use the
+ * official Claude mark.
  */
 
 import { ClaudeMark } from "@/components/karibu/ClaudeMark";
@@ -35,15 +38,15 @@ export function Marquee({ items }: MarqueeProps) {
   );
 
   return (
-    <div
-      data-marquee
-      className="overflow-hidden border-b border-clay-dark bg-clay"
-      aria-hidden="true"
-    >
+    <div data-marquee className="overflow-hidden border-b border-clay-dark bg-clay">
+      {/* Screen readers get the phrase list once; the scrolling track below is
+       * a purely decorative, six-times-duplicated loop. */}
+      <span className="sr-only">{items.join(" · ")}</span>
       <div
         data-mq-track
         className="flex w-max"
         style={{ animation: "karibu-marquee 26s linear infinite" }}
+        aria-hidden="true"
       >
         <Half />
         <Half />
