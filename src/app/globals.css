@@ -226,19 +226,25 @@
   --text-dim: #9a9890;
 }
 
-/* Pro: refined typography — display serif for headlines, sans for body */
-.persona-pro h1,
-.persona-pro h2,
-.persona-pro h3 {
+/* Pro: refined typography — display serif for headlines, sans for body.
+ *
+ * `persona-pro` sits on <html>, so these element-scoped rules outrank the
+ * `.font-newsreader` / `.font-inter` utilities a Karibu component asks for
+ * (0,1,1 beats 0,1,0) and every Karibu heading rendered in Fraunces instead
+ * of Newsreader. Karibu owns its own display type, so the legacy rules are
+ * held out of the `.karibu` subtree and each component's own utility wins. */
+.persona-pro h1:not(.karibu *),
+.persona-pro h2:not(.karibu *),
+.persona-pro h3:not(.karibu *) {
   font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   font-weight: 500;
   letter-spacing: -0.025em;
   font-feature-settings: "ss01", "ss02";
 }
 
-.persona-pro h4,
-.persona-pro h5,
-.persona-pro h6 {
+.persona-pro h4:not(.karibu *),
+.persona-pro h5:not(.karibu *),
+.persona-pro h6:not(.karibu *) {
   font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -393,8 +399,19 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── Typography ─── */
-h1, h2, h3, h4, h5, h6 {
+/* ─── Typography ───
+ *
+ * Terminal Noir's heading defaults. These are unlayered, so they beat the
+ * Tailwind `font-*` utilities (which live in @layer utilities) no matter how
+ * specific the utility is — cascade layers lose to unlayered rules. Inside
+ * `.karibu` each component picks its own face (`font-newsreader` for display,
+ * `font-inter` for body), so the subtree is held out and the utilities win. */
+h1:not(.karibu *),
+h2:not(.karibu *),
+h3:not(.karibu *),
+h4:not(.karibu *),
+h5:not(.karibu *),
+h6:not(.karibu *) {
   font-family: var(--font-mono);
   font-weight: 700;
   letter-spacing: -0.02em;
