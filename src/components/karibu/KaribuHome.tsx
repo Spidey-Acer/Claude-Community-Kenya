@@ -431,7 +431,7 @@ function TwoTracks() {
           title="Software engineers"
           body="Backend, frontend, mobile, ML. Agentic patterns, multi-instance Claude Code, and hackathons that ship."
           cta="See engineering events →"
-          href="/events?type=workshops,hackathons"
+          href="/events?type=hackathon"
         />
         <TrackCard
           title="Builders & vibe coders"
