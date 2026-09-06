@@ -13,6 +13,8 @@ import { Calendar, Clock, User } from "lucide-react";
 import type { BlogPostView } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -109,22 +111,16 @@ export function KaribuBlog({ posts }: { posts: readonly BlogPostView[] }) {
 
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Blog header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Blog</div>
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Notes from the <span className="italic text-clay">community.</span>
-          </h1>
-          <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Tutorials, meetup recaps and developer stories from Kenya&apos;s Claude
-            community — written by the people building with it.
-          </p>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/presenting.webp"
+        imageAlt="A member presenting at a CCK event"
+        crumbs={["Home", "Blog"]}
+        title="Notes from the community."
+        subtitle="Tutorials, meetup recaps and developer stories from Kenya's Claude community — written by the people building with it."
+      />
 
       {posts.length === 0 ? (
-        <section className={`${WRAP} py-10`} aria-label="No posts yet">
+        <section className={`${WRAP} pb-10 pt-10`} aria-label="No posts yet">
           <Reveal>
             <div className="rounded-2xl border border-dashed border-sand-2 bg-paper-card p-10 text-center">
               <p className="font-newsreader text-2xl text-ink">No posts yet — karibu tena.</p>
@@ -137,7 +133,7 @@ export function KaribuBlog({ posts }: { posts: readonly BlogPostView[] }) {
       ) : (
         <>
           {featured && (
-            <section className={`${WRAP} py-5`} aria-label="Featured post">
+            <section className={`${WRAP} pb-5 pt-10`} aria-label="Featured post">
               <Reveal>
                 <FeaturedCard post={featured} />
               </Reveal>
@@ -145,7 +141,7 @@ export function KaribuBlog({ posts }: { posts: readonly BlogPostView[] }) {
           )}
 
           {rest.length > 0 && (
-            <section className={`${WRAP} py-5 pb-16`} aria-label="More posts">
+            <section className={`${WRAP} py-5`} aria-label="More posts">
               <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {rest.map((post) => (
                   <PostCard key={post.slug} post={post} />
@@ -155,6 +151,10 @@ export function KaribuBlog({ posts }: { posts: readonly BlogPostView[] }) {
           )}
         </>
       )}
+
+      <section className={`${WRAP} pb-16 pt-6`} aria-label="Join CTA">
+        <CtaBand />
+      </section>
     </>
   );
 }
