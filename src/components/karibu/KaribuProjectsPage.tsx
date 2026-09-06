@@ -11,9 +11,10 @@ import Link from "next/link";
 import { ExternalLink, Github, Plus } from "lucide-react";
 import type { ProjectView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 function statusLabel(status: string): string {
   return status
@@ -24,21 +25,16 @@ function statusLabel(status: string): string {
 export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
   return (
     <>
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Projects header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Projects</div>
-          <h1 className="mb-4 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
-            Built with Claude, in Kenya.
-          </h1>
-          <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Real projects shipped by community members — tools, bots, apps and
-            experiments. See what&apos;s possible with AI-assisted development.
-          </p>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/audience.webp"
+        imageAlt="An engaged audience at a CCK meetup"
+        crumbs={["Home", "Projects"]}
+        title="Built with Claude, in Kenya."
+        subtitle="Real projects shipped by community members — tools, bots, apps and experiments. See what's possible with AI-assisted development."
+      />
 
       {/* Submit CTA */}
-      <section className={`${WRAP} py-4`}>
+      <section className={`${WRAP} pb-4 pt-10`}>
         <Reveal>
           <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-clay/30 bg-paper-card p-7 text-center sm:flex-row sm:text-left">
             <div>
@@ -104,6 +100,10 @@ export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
             </Link>
           </div>
         )}
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );
