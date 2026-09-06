@@ -254,6 +254,21 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   return rows.map(mapPrismaEvent)
 }
 
+/**
+ * The most recently completed event — powers the hero's "Last" chip and the
+ * home "Next up / Last event" strip's fallback state when nothing is
+ * scheduled. Same date-over-status reasoning as getUpcomingEvents: an event
+ * left marked UPCOMING past its own date is still the most recent one that
+ * actually happened.
+ */
+export async function getLatestPastEvent(): Promise<Event | null> {
+  const row = await prisma.event.findFirst({
+    where: { date: { lt: startOfTodayEAT() } },
+    orderBy: { date: "desc" },
+  })
+  return row ? mapPrismaEvent(row) : null
+}
+
 export async function getBlogPosts(): Promise<BlogPostView[]> {
   const rows = await prisma.blogPost.findMany({
     where: { status: "PUBLISHED" },

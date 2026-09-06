@@ -13,6 +13,9 @@ export interface Supporter {
   /** Optional logo image. Falls back to a serif wordmark when absent. */
   logo?: string;
   href?: string;
+  /** True for a dark-on-transparent mark (Anthropic's) that needs the
+   * `.anthropic-mark` dark-theme invert filter from globals.css. */
+  invertInDark?: boolean;
 }
 
 interface SupporterWallProps {
@@ -45,7 +48,14 @@ export function SupporterWall({ supporters, caption, className }: SupporterWallP
 
 function Cell({ supporter }: { supporter: Supporter }) {
   const inner = supporter.logo ? (
-    <Image src={supporter.logo} alt={supporter.name} width={140} height={32} className="h-[22px] w-auto object-contain" />
+    <Image
+      src={supporter.logo}
+      alt={supporter.name}
+      width={140}
+      height={32}
+      style={{ width: "auto", height: "22px" }}
+      className={`object-contain ${supporter.invertInDark ? "anthropic-mark" : ""}`}
+    />
   ) : (
     <span className="text-center font-newsreader text-[16px] leading-[1.15] tracking-[0.01em] text-ink">
       {supporter.name}
