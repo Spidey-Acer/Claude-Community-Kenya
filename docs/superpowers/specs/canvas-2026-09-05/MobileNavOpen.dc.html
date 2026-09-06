@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #23201B; font-family: Inter, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #23201B; }
+    a { color: #A84E2D; text-decoration: none; } a:hover { color: #8F4023; }
+    .page { background: #F4EEE3; color: #23201B; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+    .serif { font-family: Newsreader, Georgia, "Times New Roman", serif; font-weight: 400; }
+    .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #A84E2D; }
+    .h2 { font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 40px; line-height: 1.1; letter-spacing: -0.015em; color: #23201B; margin: 0; }
+    .h2 em { font-style: italic; color: #A84E2D; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; padding: 15px 26px; font-size: 15.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+    .btn-clay { background: #A84E2D; color: #FBF7F0; } .btn-clay:hover { background: #8F4023; color: #FBF7F0; }
+    .btn-outline { border: 1px solid #DDD3C2; color: #23201B; } .btn-outline:hover { border-color: #23201B; color: #23201B; }
+    .card { background: #FBF7F0; border: 1px solid #E4DAC8; border-radius: 16px; }
+    .link { font-size: 15px; font-weight: 600; color: #A84E2D; } .link:hover { color: #8F4023; }
+    .slot { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #756a5c; border: 1px dashed #DDD3C2; border-radius: 999px; padding: 3px 8px; background: #FBF7F0; }
+    .muted { color: #6A6155; } .soft { color: #5C5349; }
+    .cover { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+    .cover .motif { position: absolute; inset: 0; opacity: 0.16; }
+    .cover .eyebrow { position: relative; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #A84E2D; }
+    .cover .ct { position: relative; font-family: Newsreader, Georgia, serif; font-weight: 400; color: #23201B; line-height: 1.12; letter-spacing: -0.01em; margin: 0; }
+    .tone-a { background: linear-gradient(135deg, #F5EBE1, #EFE7D8); }
+    .tone-b { background: linear-gradient(135deg, #E4DAC8, #E6DED0); }
+    .tone-c { background: linear-gradient(135deg, #E5D2C0, #FBF7F0); }
+    .tone-d { background: linear-gradient(135deg, #EFE7D8, #EAE1D2); }
+    .m-meetup { background: repeating-radial-gradient(circle at 88% 120%, #A84E2D 0 1px, transparent 1px 20px); }
+    .m-workshop { background: repeating-linear-gradient(0deg, #A84E2D 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, #A84E2D 0 1px, transparent 1px 16px); }
+    .m-talk { background: repeating-linear-gradient(0deg, #A84E2D 0 1.5px, transparent 1.5px 13px); }
+    .m-hack { background: repeating-linear-gradient(135deg, #A84E2D 0 2px, transparent 2px 11px); }
+    .m-conv { background: repeating-radial-gradient(circle at 12% -20%, #A84E2D 0 1px, transparent 1px 18px); }
+    .footer { background: #23201B; color: #E9E0D2; }
+    .footer a { color: #C7BEB0; } .footer a:hover { color: #E6906F; }
+    .footer .fh { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #8A7F6E; margin-bottom: 18px; }
+    .ticker { background: #A84E2D; color: #FBF7F0; font-size: 12.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; overflow: hidden; white-space: nowrap; }
+    .ticker span { display: inline-flex; align-items: center; gap: 22px; padding: 0 11px; }
+    .cta-band { background: #A84E2D; color: #FBF7F0; border-radius: 24px; }
+    .ticker .star { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #E6906F; }
+
+    .btn { padding: 15px 22px; font-size: 15px; min-height: 48px; }
+    .btn-full { width: 100%; box-sizing: border-box; }
+    .ib { width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .top { font-family: Newsreader, Georgia, serif; font-size: 30px; line-height: 1.05; letter-spacing: -0.015em; color: #23201B; display: flex; justify-content: space-between; align-items: baseline; }
+    .top .cnt { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #756a5c; text-transform: uppercase; }
+    .sub { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; }
+    .sub a { font-size: 14.5px; font-weight: 500; color: #5C5349; padding: 4px 0; min-height: 28px; display: inline-flex; align-items: center; }
+    .sub a:hover { color: #A84E2D; }
+    .grp { padding: 14px 0; border-bottom: 1px solid #E4DAC8; }
+    .city { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid #DDD3C2; background: #FBF7F0; padding: 9px 14px; font-size: 13.5px; font-weight: 600; color: #23201B; min-height: 40px; box-sizing: border-box; }
+    .city.on { background: #23201B; color: #F4EEE3; border-color: #23201B; }
+  </style>
+</helmet>
+<div class="page" style="width: 390px; height: 844px; position: relative; overflow: hidden;">
+
+  <!-- page underneath, blurred through the sheet -->
+  <div style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="ticker" style="height: 32px; display: flex; align-items: center; font-size: 11.5px;"><span>Nairobi<i class="star"></i>Mombasa<i class="star"></i>Kisumu<i class="star"></i>Free &amp; volunteer-run</span></div>
+    <div style="height: 56px; border-bottom: 1px solid #E4DAC8;"></div>
+    <img src="hero-crowd.jpg" alt="" style="width: 100%; height: 700px; object-fit: cover; object-position: 60% 40%; display: block;">
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(244,238,227,0.88); backdrop-filter: blur(22px);"></div>
+
+  <!-- sheet -->
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+    <div style="height: 56px; padding: 0 8px 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E4DAC8; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="cck-logo.png" alt="" style="width: 30px; height: 30px; border-radius: 50%;">
+        <span class="serif" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: #23201B; white-space: nowrap;">Claude Community Kenya</span>
+      </div>
+      <div style="display: flex; align-items: center;">
+        <span class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#23201B" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></span>
+        <span class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#23201B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path></svg></span>
+        <span class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#23201B" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; padding: 4px 20px 0; overflow: hidden;">
+      <div class="grp" style="padding-top: 16px;"><div class="top"><a href="#" style="color: #A84E2D;">Home</a></div></div>
+      <div class="grp">
+        <div class="top"><a href="#" style="color: #23201B;">Events</a><span class="cnt">12 so far</span></div>
+        <div class="sub"><a href="#">All events</a><a href="#">Gallery</a></div>
+      </div>
+      <div class="grp">
+        <div class="top"><a href="#" style="color: #23201B;">Learn</a></div>
+        <div class="sub"><a href="#">Resources</a><a href="#">Blog</a><a href="#">Newsletter</a><a href="#">FAQ</a></div>
+      </div>
+      <div class="grp">
+        <div class="top"><a href="#" style="color: #23201B;">Community</a></div>
+        <div class="sub"><a href="#">Showcase</a><a href="#">Tools &amp; Prompts</a><a href="#">Projects</a><a href="#">Team</a></div>
+      </div>
+      <div class="grp" style="border-bottom: 0;"><div class="top"><a href="#" style="color: #23201B;">About</a></div></div>
+
+      <div style="margin-top: 10px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #756a5c; margin-bottom: 10px;">Your city</div>
+        <div style="display: flex; gap: 8px;">
+          <span class="city on">Nairobi</span><span class="city">Mombasa</span><span class="city">Kisumu</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-shrink: 0; padding: 14px 20px 18px; border-top: 1px solid #E4DAC8; background: rgba(251,247,240,0.97); display: flex; flex-direction: column; gap: 10px;">
+      <a class="btn btn-full" href="#" style="background: #A84E2D; color: #FBF7F0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBF7F0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-13.4 7.8L3 21l1.3-4.4A9 9 0 1 1 21 12z"></path></svg>Join on WhatsApp</a>
+      <a class="btn btn-full btn-outline" href="#">Join Discord</a>
+      <a href="#" style="align-self: center; font-size: 14px; font-weight: 600; color: #5C5349; padding: 8px 12px; min-height: 40px; display: inline-flex; align-items: center;">Sign in</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
