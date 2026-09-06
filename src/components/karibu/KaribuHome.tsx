@@ -142,9 +142,15 @@ function Hero({ latestPastEvent }: { latestPastEvent: Event | null }) {
     <HeroMedia
       posterSrc={HERO_PHOTO}
       posterAlt="Claude Community Kenya members at a meetup"
-      className="h-[560px] sm:h-[620px] lg:h-[680px]"
     >
-      <div className={`${WRAP} relative flex h-full flex-col justify-end pb-16 sm:pb-20 lg:pb-[92px]`}>
+      {/* The hero sizes to its content, with a floor, rather than a fixed
+       * height: the ticker now sits above the sticky nav, and at 390px the
+       * copy stack is taller than a fixed 560px box, so the headline ran up
+       * behind the nav. `pt` reserves the ticker + nav band; the min heights
+       * keep the intended proportions once the copy fits. */}
+      <div
+        className={`${WRAP} relative flex min-h-[560px] flex-col justify-end pb-16 pt-[124px] sm:min-h-[620px] sm:pb-20 sm:pt-28 lg:min-h-[680px] lg:pb-[92px]`}
+      >
         <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-scrim/35 py-1.5 pl-2.5 pr-3.5 backdrop-blur-sm">
           <span className="h-[7px] w-[7px] rounded-full bg-clay-light" aria-hidden="true" />
           <span className="font-inter text-xs font-semibold uppercase tracking-[0.18em] text-scrim-text">

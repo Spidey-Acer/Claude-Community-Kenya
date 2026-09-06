@@ -86,9 +86,14 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
       window.addEventListener("scroll", onScroll, { passive: true });
       return () => window.removeEventListener("scroll", onScroll);
     }
-    const observer = new IntersectionObserver(([entry]) => setPastHero(!entry.isIntersecting), {
-      rootMargin: "-56px 0px 0px 0px",
-    });
+    // Direction matters: a sentinel that has not been reached yet is also
+    // "not intersecting", so testing that alone showed the bar at the top of
+    // the page. Only a sentinel that has scrolled ABOVE the viewport means
+    // the hero is behind us.
+    const observer = new IntersectionObserver(
+      ([entry]) => setPastHero(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { rootMargin: "-56px 0px 0px 0px" },
+    );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [pathname]);
