@@ -30,6 +30,7 @@ import { StatsCard } from "@/components/karibu/StatsCard";
 import { FramedPhoto } from "@/components/karibu/FramedPhoto";
 import { PhotoGrid } from "@/components/karibu/PhotoGrid";
 import { SupporterWall } from "@/components/karibu/SupporterWall";
+import { SUPPORTERS } from "@/components/karibu/supporters";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import {
@@ -519,14 +520,6 @@ function FacesOfTheCommunity() {
 }
 
 /* ─────────────────────────── Supported by ─────────────────────────── */
-
-const SUPPORTERS = [
-  { name: "Anthropic", logo: "/images/anthropic-wordmark.webp", href: "https://anthropic.com", invertInDark: true },
-  { name: "Hackhouse Africa" },
-  { name: "Blockchain Centre" },
-  { name: "Zone01 Kisumu" },
-  { name: "Technical University of Mombasa" },
-];
 
 function SupportedBy() {
   return (

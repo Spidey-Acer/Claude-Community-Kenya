@@ -12,10 +12,16 @@ import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { Github, Linkedin, Twitter, Globe } from "lucide-react";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
 import type { TeamMemberView } from "@/lib/data";
-import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
+import { FramedPhoto } from "@/components/karibu/FramedPhoto";
+import { StatsCard } from "@/components/karibu/StatsCard";
+import { SupporterWall } from "@/components/karibu/SupporterWall";
+import { SUPPORTERS } from "@/components/karibu/supporters";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -42,31 +48,31 @@ export function KaribuAbout({
   team: TeamMemberView[];
   timelineEntries: TimelineEntry[];
 }) {
-  const { whatsapp } = useSocialLinks();
   const activeTeam = team.filter((m) => m.active !== false);
 
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-8 pt-16`} aria-label="About hero">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>About</div>
-          <h1 className="max-w-[880px] font-newsreader text-[38px] font-normal leading-[1.12] tracking-[-0.02em] text-ink sm:text-[52px]">
-            We&apos;re a free, founder-led community for anyone in Kenya{" "}
-            <span className="italic text-clay">learning and building</span> with
-            Claude — and we mean anyone.
-          </h1>
-          {/* Stats strip (preserved) */}
-          <div className="mt-8 flex flex-wrap gap-x-12 gap-y-4">
-            <Stat big={`${stats.eventsHeld}`} label="events hosted" />
-            <Stat big={`${stats.totalMembers}+`} label="builders reached across our channels" />
-            <Stat big={`${stats.citiesActive.length}`} label={stats.citiesActive.join(" · ")} />
-          </div>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/founder-talk.webp"
+        imageAlt="Peter Kibet speaking at a CCK event"
+        crumbs={["Home", "About"]}
+        title="We're a free, founder-led community."
+        subtitle="Anyone in Kenya learning and building with Claude — and we mean anyone."
+      />
+
+      {/* Stats (overlaps the banner's bottom edge, matching the home hero) */}
+      <div className={`${WRAP} relative z-[2] -mt-6 sm:-mt-12`}>
+        <StatsCard
+          eventsHosted={stats.eventsHeld}
+          buildersReached={stats.totalMembers}
+          cities={stats.citiesActive.length ? stats.citiesActive : ["Nairobi", "Mombasa", "Kisumu"]}
+          sinceLabel="Jan '26"
+          sinceDetail="first meetup, Westlands"
+        />
+      </div>
 
       {/* How CCK started + photo */}
-      <section className={`${WRAP} border-t border-sand py-10`} aria-label="Our story">
+      <section className={`${WRAP} py-10 pt-14 sm:pt-16`} aria-label="Our story">
         <Reveal className="grid gap-12 md:grid-cols-2">
           <div>
             <h2 className="mb-3.5 font-newsreader text-[26px] font-medium text-ink">
@@ -85,16 +91,12 @@ export function KaribuAbout({
               curious about AI, there&apos;s a warm, capable room waiting for you.
             </p>
           </div>
-          <div className="relative h-[280px] overflow-hidden rounded-[14px] border border-sand-2 md:h-[320px]">
-            <Image
-              src="/images/community/first-meetup.webp"
-              alt="A Claude Community Kenya founding meetup"
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 560px"
-              className="object-cover"
-            />
-          </div>
+          <FramedPhoto
+            src="/images/community/first-meetup.webp"
+            alt="A Claude Community Kenya founding meetup"
+            caption="First meetup · Jan 2026"
+            priority
+          />
         </Reveal>
       </section>
 
@@ -132,7 +134,7 @@ export function KaribuAbout({
         </Reveal>
       </section>
 
-      {/* The people (real team) */}
+      {/* The people (real team) — staggered grid, per-person social row */}
       {activeTeam.length > 0 && (
         <section className={`${WRAP} py-10`} aria-label="Our team">
           <Reveal>
@@ -142,7 +144,9 @@ export function KaribuAbout({
           </Reveal>
           <Reveal className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {activeTeam.slice(0, 8).map((m, i) => (
-              <TeamCard key={m.slug ?? `${m.name}-${i}`} member={m} />
+              <div key={m.slug ?? `${m.name}-${i}`} className={i % 2 === 1 ? "lg:translate-y-8" : ""}>
+                <TeamCard member={m} />
+              </div>
             ))}
           </Reveal>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">
@@ -167,36 +171,23 @@ export function KaribuAbout({
         </section>
       )}
 
+      {/* Supported by */}
+      <section className={`${WRAP} py-10`} aria-label="Supported by">
+        <Reveal>
+          <SupporterWall
+            supporters={SUPPORTERS}
+            caption="Anthropic, via the Claude Community Ambassadors program · and the venues that open their doors to us"
+          />
+        </Reveal>
+      </section>
+
       {/* CTA */}
       <section className={`${WRAP} pb-16 pt-6`} aria-label="Join CTA">
         <Reveal>
-          <div className="rounded-2xl bg-clay p-11 text-center text-paper-card">
-            <h2 className="mb-5 font-newsreader text-[32px] font-normal sm:text-[36px]">
-              Come build with us.
-            </h2>
-            {whatsapp && (
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex rounded-full bg-ink px-8 py-4 font-inter text-[15.5px] font-semibold text-paper transition-colors hover:bg-black"
-              >
-                Join on WhatsApp
-              </a>
-            )}
-          </div>
+          <CtaBand />
         </Reveal>
       </section>
     </>
-  );
-}
-
-function Stat({ big, label }: { big: string; label: string }) {
-  return (
-    <div>
-      <div className="font-newsreader text-[32px] font-medium text-ink">{big}</div>
-      <div className="font-inter text-[13.5px] text-ink-muted">{label}</div>
-    </div>
   );
 }
 
@@ -268,6 +259,36 @@ function TeamCard({ member }: { member: TeamMemberView }) {
       </div>
       <div className="font-inter text-[14.5px] font-semibold text-ink">{member.name}</div>
       <div className="font-inter text-[12.5px] text-ink-muted">{member.role}</div>
+      <div className="mt-2 flex items-center gap-2.5 text-ink-muted">
+        {member.github && (
+          <SocialLink href={member.github} label={`${member.name} on GitHub`}>
+            <Github className="h-3.5 w-3.5" />
+          </SocialLink>
+        )}
+        {member.linkedIn && (
+          <SocialLink href={member.linkedIn} label={`${member.name} on LinkedIn`}>
+            <Linkedin className="h-3.5 w-3.5" />
+          </SocialLink>
+        )}
+        {member.twitter && (
+          <SocialLink href={member.twitter} label={`${member.name} on Twitter`}>
+            <Twitter className="h-3.5 w-3.5" />
+          </SocialLink>
+        )}
+        {member.website && (
+          <SocialLink href={member.website} label={`${member.name} website`}>
+            <Globe className="h-3.5 w-3.5" />
+          </SocialLink>
+        )}
+      </div>
     </div>
+  );
+}
+
+function SocialLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="transition-colors hover:text-clay">
+      {children}
+    </a>
   );
 }
