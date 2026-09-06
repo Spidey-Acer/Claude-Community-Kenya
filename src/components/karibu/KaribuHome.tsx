@@ -21,7 +21,6 @@ import type { AudienceState } from "@/contexts/AudienceContext";
 import type { ProjectView } from "@/lib/data";
 import { rank, type Recommendable } from "@/lib/recommendations";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
-import { Marquee } from "@/components/karibu/Marquee";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
@@ -84,23 +83,10 @@ export function KaribuHome({
   projectOfTheWeek,
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
-  const memberLabel = communityStats?.totalMembers
-    ? `~${communityStats.totalMembers.toLocaleString()} across WhatsApp, Discord & socials`
-    : null;
-
-  const marqueeItems = [
-    memberLabel,
-    ...cities,
-    "Free & founder-led",
-    "Anthropic-supported via the Claude Community Ambassadors program",
-    "Everyone welcome",
-  ].filter(Boolean) as string[];
-
   const nextEvent = upcomingEvents[0];
 
   return (
     <>
-      <Marquee items={marqueeItems} />
       <Hero nextEvent={nextEvent} />
       <TrustBar stats={communityStats} cities={cities} />
       <MadeForYouLight audienceState={audienceState} items={recommendables} />

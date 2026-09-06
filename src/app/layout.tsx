@@ -198,6 +198,25 @@ export default async function RootLayout({
 
   const showKaribu = canaryHit && !hasCompletedKaribu && audienceCookie !== "skipped";
 
+  // ─── Sitewide ticker (Peter's canvas feedback, 2026-09-05: the clay ticker
+  // strip moves above the nav on every page) ───────────────────────────────
+  const tickerSettings = await prisma.siteSettings
+    .findUnique({ where: { id: "default" }, select: { citiesActive: true, eventsHeld: true } })
+    .catch(() => null);
+  const citiesActive = tickerSettings
+    ? Array.isArray(tickerSettings.citiesActive)
+      ? (tickerSettings.citiesActive as string[])
+      : (JSON.parse(tickerSettings.citiesActive as string) as string[])
+    : ["Nairobi", "Mombasa", "Kisumu"];
+  const eventsHeld = tickerSettings?.eventsHeld ?? 0;
+  const tickerItems = [
+    ...citiesActive,
+    "Free & volunteer-run",
+    "Anthropic-supported via the Claude Community Ambassadors program",
+    "Everyone welcome",
+    "Beginners welcome",
+  ];
+
   const audienceState: AudienceState = hasCompletedKaribu && session
     ? {
         audience: session.audience,
@@ -244,7 +263,13 @@ export default async function RootLayout({
       <body className="antialiased">
         <GoogleAnalytics />
         <WebVitals />
-        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu} socialLinks={socialLinks}>
+        <ConditionalLayout
+          audienceState={audienceState}
+          showKaribu={showKaribu}
+          socialLinks={socialLinks}
+          tickerItems={tickerItems}
+          eventsHeld={eventsHeld}
+        >
           {children}
         </ConditionalLayout>
       </body>

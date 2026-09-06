@@ -31,12 +31,12 @@ const REPEATS_PER_HALF = 3;
  */
 function MarqueeHalf({ items, halfKey }: { items: string[]; halfKey: string }) {
   return (
-    <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-[#FBF0E8] whitespace-nowrap">
+    <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-on-band whitespace-nowrap">
       {Array.from({ length: REPEATS_PER_HALF }).flatMap((_, r) =>
         items.map((item, i) => (
           <span key={`${halfKey}-${r}-${i}`} className="flex items-center gap-[26px]">
             <span>{item}</span>
-            <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
+            <ClaudeMark className="h-3 w-3 text-on-band-light" />
           </span>
         )),
       )}
@@ -46,7 +46,7 @@ function MarqueeHalf({ items, halfKey }: { items: string[]; halfKey: string }) {
 
 export function Marquee({ items }: MarqueeProps) {
   return (
-    <div data-marquee className="overflow-hidden border-b border-clay-dark bg-clay">
+    <div data-marquee className="overflow-hidden border-b border-band-bg-hover bg-band-bg">
       {/* Screen readers get the phrase list once; the scrolling track below is
        * a purely decorative, six-times-duplicated loop. */}
       <span className="sr-only">{items.join(" · ")}</span>

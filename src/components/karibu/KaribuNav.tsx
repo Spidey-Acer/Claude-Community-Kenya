@@ -41,8 +41,11 @@ export function KaribuNav() {
   }, []);
 
   // Shrink + firm up the bar once the visitor scrolls past the hero band.
+  // Threshold is past the ticker's own height (36px desktop / 32px mobile)
+  // now that the ticker sits above this nav — otherwise the nav "firms up"
+  // before the ticker has even scrolled away.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);

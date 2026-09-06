@@ -98,6 +98,17 @@
   --footer-accent-bg-hover: #8F4023;
   --footer-cta-text: #FBF7F0;
 
+  /* Fixed brand bands (ticker, CTA band, the clay "03" card): stay clay in
+   * every theme, same reasoning as --footer-*. `--clay` flips to a lighter
+   * #d2704a in dark mode for text/borders on the paper background, which
+   * would wash out a solid clay surface — these three surfaces are brand
+   * chrome, not page content, so they pin their own pair instead. */
+  --band-bg: #A84E2D;
+  --band-bg-hover: #8F4023;
+  --on-band: #FBF7F0;
+  --on-band-soft: #F1E6D8;
+  --on-band-light: #E6906F;
+
   --font-newsreader-stack: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-inter-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
@@ -175,6 +186,11 @@
   --color-footer-accent-bg: var(--footer-accent-bg);
   --color-footer-accent-bg-hover: var(--footer-accent-bg-hover);
   --color-footer-cta-text: var(--footer-cta-text);
+  --color-band-bg: var(--band-bg);
+  --color-band-bg-hover: var(--band-bg-hover);
+  --color-on-band: var(--on-band);
+  --color-on-band-soft: var(--on-band-soft);
+  --color-on-band-light: var(--on-band-light);
 
   --font-newsreader: var(--font-newsreader-stack);
   --font-inter: var(--font-inter-stack);

@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { KaribuNav } from "@/components/karibu/KaribuNav";
 import { KaribuFooter } from "@/components/karibu/KaribuFooter";
+import { Marquee } from "@/components/karibu/Marquee";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -29,11 +30,17 @@ export function ConditionalLayout({
   audienceState,
   showKaribu,
   socialLinks,
+  tickerItems,
+  eventsHeld,
 }: {
   children: React.ReactNode;
   audienceState: AudienceState;
   showKaribu: boolean;
   socialLinks: SocialLinks;
+  /** Real cities + community facts for the sitewide ticker strip. */
+  tickerItems: string[];
+  /** SiteSettings.eventsHeld — also feeds the mobile nav's "N so far" count. */
+  eventsHeld: number;
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
@@ -84,6 +91,10 @@ export function ConditionalLayout({
               <a href="#main-content" className="skip-nav">
                 Skip to main content
               </a>
+              {/* Ticker sits above the nav on every Karibu page (Peter's
+               * canvas feedback, 2026-09-05) — previously home-only and
+               * below the nav. */}
+              {isKaribu && <Marquee items={tickerItems} />}
               {isKaribu ? <KaribuNav /> : <Navbar />}
               <LoadingBar />
               <main id="main-content">
