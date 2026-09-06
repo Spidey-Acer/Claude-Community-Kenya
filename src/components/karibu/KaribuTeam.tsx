@@ -11,35 +11,37 @@ import Image from "next/image";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
 import type { TeamMemberView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
   const active = members.filter((m) => m.active !== false);
   return (
     <>
-      <section className={`${WRAP} pb-8 pt-16 text-center`} aria-label="Team header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>The team</div>
-          <h1 className="mx-auto mb-4 max-w-[760px] font-newsreader text-[42px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[56px]">
-            The people behind CCK
-          </h1>
-          <p className="mx-auto max-w-[560px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Organisers, ambassadors and contributors who keep the rooms warm and
-            the community moving.
-          </p>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/group-standing.webp"
+        imageAlt="A CCK community group photo"
+        crumbs={["Home", "Team"]}
+        title="The people behind CCK."
+        subtitle="Organisers, ambassadors and contributors who keep the rooms warm and the community moving."
+      />
 
-      <section className={`${WRAP} pb-16`} aria-label="Team">
+      <section className={`${WRAP} py-16`} aria-label="Team">
         {active.length > 0 ? (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {active.map((m, i) => (
               // Keyed by slug, not name: two rows can share a name (production
               // rendered "Peter Kibet" twice until 2026-07-20) and duplicate
               // keys make React reuse the wrong card. See commit e8707cf.
-              <Reveal key={m.slug ?? `${m.name}-${i}`} index={i}>
+              // Staggered grid (borrows africahackon's team-grid structure):
+              // every other column shifts down at desktop width.
+              <Reveal
+                key={m.slug ?? `${m.name}-${i}`}
+                index={i}
+                className={i % 2 === 1 ? "lg:translate-y-8" : undefined}
+              >
                 <TeamCard member={m} />
               </Reveal>
             ))}
@@ -49,6 +51,10 @@ export function KaribuTeam({ members }: { members: TeamMemberView[] }) {
           // an empty state.
           <p className="text-center font-inter text-ink-muted">Team coming soon.</p>
         )}
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );
