@@ -58,7 +58,13 @@ export function ConditionalLayout({
     "/resources/",
     "/blog/",
   ];
-  const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
+  // Routes whose page body has already been converted to Karibu, even though
+  // their prefix is still listed above. Without this, a converted page renders
+  // paper-coloured cards inside the dark legacy nav and footer.
+  const convertedRoutes = ["/resources/links"];
+  const isKaribu =
+    convertedRoutes.includes(pathname) ||
+    !legacyPrefixes.some((p) => pathname.startsWith(p));
 
   if (isAdmin || isBareDisplay) {
     return (
