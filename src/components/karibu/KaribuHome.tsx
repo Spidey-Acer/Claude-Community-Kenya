@@ -203,6 +203,10 @@ function Hero({ latestPastEvent }: { latestPastEvent: Event | null }) {
           </span>
         </div>
       </div>
+      {/* Marks where the hero ends, for KaribuNav's pinned mobile bottom bar
+       * (shows once this scrolls out of view). Zero-size — purely a scroll
+       * marker, never rendered visibly. */}
+      <div data-hero-sentinel aria-hidden="true" />
     </HeroMedia>
   );
 }

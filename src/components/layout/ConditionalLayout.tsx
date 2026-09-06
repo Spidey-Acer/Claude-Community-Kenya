@@ -95,7 +95,7 @@ export function ConditionalLayout({
                * canvas feedback, 2026-09-05) — previously home-only and
                * below the nav. */}
               {isKaribu && <Marquee items={tickerItems} />}
-              {isKaribu ? <KaribuNav /> : <Navbar />}
+              {isKaribu ? <KaribuNav eventsHeld={eventsHeld} /> : <Navbar />}
               <LoadingBar />
               <main id="main-content">
                 <PageTransition>{children}</PageTransition>
