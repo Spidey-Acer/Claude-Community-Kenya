@@ -834,10 +834,6 @@ body::before {
   border-radius: 2px;
 }
 
-@keyframes karibu-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @keyframes karibu-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -846,10 +842,6 @@ body::before {
   from { background-position: 0 0; }
   to { background-position: 480px 0; }
 }
-.karibu [data-marquee]:hover [data-mq-track] {
-  animation-play-state: paused;
-}
-
 /* ─── CountUp reveal ─────────────────────────────────────────────────────
  * The number itself is always the final, server-rendered value (see
  * CountUp.tsx) — this only fades/rises it in on first paint. Pure CSS: no

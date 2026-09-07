@@ -1,63 +1,37 @@
 /**
- * Marquee — scrolling clay band under the nav for the Karibu identity.
+ * Marquee — the clay band that sits above the nav on every Karibu page.
  *
- * Dumb/presentational: caller supplies the item strings (built from real
- * community stats). The track is duplicated for a seamless CSS loop (six
- * copies of each phrase between the two halves), so the whole animated track
- * is `aria-hidden` and a screen reader instead gets a single `sr-only` copy of
- * the phrases — the content once, not six times. The global reduced-motion
- * reset pauses the visible loop for users who opt out. Separators use the
- * official Claude mark.
+ * Static, despite the name (kept so the import sites don't churn). It used to
+ * scroll on an infinite CSS loop; Peter's ruling on 2026-09-06 was that a
+ * moving strip reads as amateur, so the band now holds still and the phrase
+ * list was cut to what is not already said elsewhere on the page.
+ *
+ * Because nothing is duplicated any more, the content is read once by
+ * assistive tech directly — no `sr-only` copy, no `aria-hidden` clone track.
+ * Separators use the official Claude mark and are decorative.
  */
 
+import { Fragment } from "react";
 import { ClaudeMark } from "@/components/karibu/ClaudeMark";
 
 interface MarqueeProps {
-  /** Ordered list of short phrases to scroll. Built from live data by caller. */
+  /** Ordered list of short phrases. Built from live data by the caller. */
   items: string[];
 }
 
-// Repeats of the phrase set per half. The track is two identical halves and
-// the animation translates by exactly one half (-50%), so the loop is seamless
-// ONLY if one half is at least as wide as the viewport. Repeating the set a few
-// times per half guarantees that even on ultra-wide screens (no visible gap).
-const REPEATS_PER_HALF = 3;
-
-/**
- * One half of the scrolling track. Hoisted to module scope (rather than
- * declared inside Marquee's render) so React doesn't treat it as a new
- * component type on every render — a component created during render loses
- * its state and remounts each time its parent re-renders.
- */
-function MarqueeHalf({ items, halfKey }: { items: string[]; halfKey: string }) {
-  return (
-    <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-on-band whitespace-nowrap">
-      {Array.from({ length: REPEATS_PER_HALF }).flatMap((_, r) =>
-        items.map((item, i) => (
-          <span key={`${halfKey}-${r}-${i}`} className="flex items-center gap-[26px]">
-            <span>{item}</span>
-            <ClaudeMark className="h-3 w-3 text-on-band-light" />
-          </span>
-        )),
-      )}
-    </div>
-  );
-}
-
 export function Marquee({ items }: MarqueeProps) {
+  if (items.length === 0) return null;
+
   return (
-    <div data-marquee className="overflow-hidden border-b border-band-bg-hover bg-band-bg">
-      {/* Screen readers get the phrase list once; the scrolling track below is
-       * a purely decorative, six-times-duplicated loop. */}
-      <span className="sr-only">{items.join(" · ")}</span>
-      <div
-        data-mq-track
-        className="flex w-max"
-        style={{ animation: "karibu-marquee 26s linear infinite" }}
-        aria-hidden="true"
-      >
-        <MarqueeHalf items={items} halfKey="a" />
-        <MarqueeHalf items={items} halfKey="b" />
+    <div data-marquee className="border-b border-band-bg-hover bg-band-bg">
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-[26px] gap-y-1 px-6 py-[11px] font-inter text-[12.5px] font-semibold uppercase tracking-[0.12em] text-on-band md:px-10">
+        {items.map((item, i) => (
+          <Fragment key={item}>
+            {/* ClaudeMark carries its own aria-hidden + focusable="false". */}
+            {i > 0 && <ClaudeMark className="h-3 w-3 shrink-0 text-on-band-light" />}
+            <span>{item}</span>
+          </Fragment>
+        ))}
       </div>
     </div>
   );

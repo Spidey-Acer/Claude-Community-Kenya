@@ -209,12 +209,14 @@ export default async function RootLayout({
       : (JSON.parse(tickerSettings.citiesActive as string) as string[])
     : ["Nairobi", "Mombasa", "Kisumu"];
   const eventsHeld = tickerSettings?.eventsHeld ?? 0;
+  // Kept deliberately short. "Beginners welcome" said the same thing as
+  // "Everyone welcome", and the Anthropic Ambassadors credit is carried in
+  // full — and more accurately — by the footer disclaimer and the home page's
+  // "Supported by" section, so repeating a clipped version here was noise.
   const tickerItems = [
-    ...citiesActive,
+    citiesActive.join(" · "),
     "Free & volunteer-run",
-    "Anthropic-supported via the Claude Community Ambassadors program",
     "Everyone welcome",
-    "Beginners welcome",
   ];
 
   const audienceState: AudienceState = hasCompletedKaribu && session
