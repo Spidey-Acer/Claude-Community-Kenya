@@ -57,6 +57,10 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
   const [pastHero, setPastHero] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  // True once the sheet has actually been opened, so the close branch of the
+  // focus trap only fires on a real close — not on first mount, where it would
+  // steal focus to the hamburger on every page load.
+  const sheetWasOpenRef = useRef(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -117,9 +121,13 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
   // it, and hand focus back to the toggle button on close.
   useEffect(() => {
     if (!mobileOpen) {
-      menuButtonRef.current?.focus();
+      if (sheetWasOpenRef.current) {
+        sheetWasOpenRef.current = false;
+        menuButtonRef.current?.focus();
+      }
       return;
     }
+    sheetWasOpenRef.current = true;
     const sheet = sheetRef.current;
     if (!sheet) return;
     const focusables = Array.from(sheet.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
