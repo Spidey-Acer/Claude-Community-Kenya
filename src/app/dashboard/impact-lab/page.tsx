@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/email-verification";
 import { validCohort, pickMemberEvent } from "@/lib/impact-lab/event-lifecycle";
 import { openRegistrationEvent, resolveMemberEvents } from "@/lib/impact-lab/event-store";
+import { resolveRubric } from "@/lib/impact-lab/rubric-store";
+import { totalOutOf } from "@/lib/impact-lab/judging";
 import { getConversationsReportForEvent } from "@/lib/conversations/queries";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
 import { ImpactLabClient } from "./ImpactLabClient";
@@ -57,10 +59,31 @@ export default async function ImpactLabPage({
   const conversationsReport = activeEvent?.conversationsEventId
     ? await getConversationsReportForEvent(activeEvent.conversationsEventId)
     : null;
+  // What the side rail shows a team during the build, all off the event
+  // record so the next event needs no code change. The rubric is reduced to
+  // label, points at full marks and the denominator: `weight` is the points a
+  // criterion contributes, which under "normalized" scoring is not `max`
+  // (a 1 to 5 scale worth 25 points) and under "points" scoring equals it.
+  const eventInfo = activeEvent
+    ? {
+        formatNote: activeEvent.formatNote,
+        groundRules: activeEvent.groundRules,
+        location: activeEvent.location,
+        dates: activeEvent.dates,
+      }
+    : null;
+  const fullRubric = activeEvent ? await resolveRubric(activeEvent.cohort) : null;
+  const rubric = fullRubric
+    ? {
+        label: fullRubric.label,
+        criteria: fullRubric.criteria.map((c) => ({ key: c.key, label: c.label, max: c.weight })),
+        totalOutOf: totalOutOf(fullRubric),
+      }
+    : null;
 
   return (
     <main className="min-h-[calc(100dvh-4rem)] bg-bg-primary pt-6 pb-16 sm:pt-12 sm:pb-24">
-      <div className="mx-auto max-w-3xl px-4">
+      <div className="mx-auto max-w-6xl px-4">
         <header className="mb-8 border-b border-border-default/60 pb-6">
           <Link
             href="/dashboard"
@@ -72,8 +95,10 @@ export default async function ImpactLabPage({
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-green-primary mb-2">
             $ cat ./impact-lab
           </p>
+          {/* The event's own name while it runs; the generic title once it
+              has wrapped, when this page is a record rather than a venue. */}
           <h1 className="font-mono text-3xl font-bold text-text-primary sm:text-4xl">
-            Impact Lab Hackathon
+            {cohortActive && activeEvent?.name ? activeEvent.name : "Impact Lab Hackathon"}
           </h1>
           <p className="mt-2 font-mono text-sm text-text-dim">
             {cohortActive
@@ -137,6 +162,8 @@ export default async function ImpactLabPage({
               inviteEvent ? { cohort: inviteEvent.cohort, name: inviteEvent.name } : null
             }
             conversationsReport={conversationsReport}
+            eventInfo={eventInfo}
+            rubric={rubric}
           />
         )}
       </div>

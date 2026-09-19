@@ -16,8 +16,48 @@ import { JUDGE_KIND_LABEL, judgeInitials, type Judge } from "@/lib/impact-lab/ro
 /** Body copy: slightly larger on phones, which is where this is read. */
 const BODY = "text-[15px] sm:text-sm leading-relaxed text-text-secondary";
 
-export function JudgesPanel({ judges }: { judges: Judge[] }) {
+export function JudgesPanel({
+  judges,
+  variant = "card",
+}: {
+  judges: Judge[];
+  /**
+   * `card` is the stand-alone section under the team card. `rail` is the
+   * quieter list the revealed-phase side rail embeds under its own "Judges"
+   * heading: no card per judge, smaller avatars, hairline separators, so the
+   * panel reads as reference rather than competing with the team card.
+   */
+  variant?: "card" | "rail";
+}) {
   if (judges.length === 0) return null;
+
+  if (variant === "rail") {
+    return (
+      <ul className="divide-y divide-border-default/60">
+        {judges.map((judge) => (
+          <li key={judge.id} className="py-3 first:pt-0 last:pb-0">
+            <div className="flex items-start gap-3">
+              <Avatar judge={judge} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[13px] font-semibold leading-snug text-text-primary break-words">
+                  {judge.name}
+                </p>
+                <p className="mt-0.5 font-mono text-[13px] leading-relaxed text-text-dim break-words lg:text-xs">
+                  {judge.title}
+                  {judge.organisation ? `, ${judge.organisation}` : ""}
+                </p>
+              </div>
+            </div>
+            {judge.bio && (
+              <p className="mt-2 font-mono text-[13px] leading-relaxed text-text-secondary break-words lg:text-xs">
+                {judge.bio}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <section
@@ -65,27 +105,30 @@ export function JudgesPanel({ judges }: { judges: Judge[] }) {
 }
 
 /**
- * A 48px circle: the judge's headshot when they supplied one, their initials
- * otherwise. A plain `<img>` rather than `next/image` because a headshot URL
+ * A 48px circle (36px on the rail): the judge's headshot when they supplied
+ * one, their initials otherwise. A plain `<img>` rather than `next/image` because a headshot URL
  * is typed in by an organiser and can point at any host — `next/image` refuses
  * a src whose hostname is not in `next.config.ts`, which would blank the
  * avatar at the worst possible moment.
  */
-function Avatar({ judge }: { judge: Judge }) {
+function Avatar({ judge, size = "md" }: { judge: Judge; size?: "md" | "sm" }) {
+  const dims = size === "sm" ? "h-9 w-9" : "h-12 w-12";
   if (judge.photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- organiser-supplied URL on an arbitrary host; next/image would reject it
       <img
         src={judge.photoUrl}
         alt=""
-        className="h-12 w-12 shrink-0 rounded-full border border-border-default object-cover"
+        className={`${dims} shrink-0 rounded-full border border-border-default object-cover`}
       />
     );
   }
   return (
     <span
       aria-hidden="true"
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-green-primary/30 bg-green-primary/10 font-mono text-sm font-bold text-green-primary"
+      className={`flex ${dims} shrink-0 items-center justify-center rounded-full border border-green-primary/30 bg-green-primary/10 font-mono ${
+        size === "sm" ? "text-xs" : "text-sm"
+      } font-bold text-green-primary`}
     >
       {judgeInitials(judge.name)}
     </span>
