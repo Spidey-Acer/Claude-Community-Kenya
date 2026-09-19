@@ -34,7 +34,7 @@ const TESTIMONIALS: Testimonial[] = [
     quote:
       "The CCK sessions changed how I work. I've been able to scale what I build and bring real AI leverage into my company.",
     name: "Billy Mwangi",
-    role: "Building with Claude · Nairobi",
+    role: "Claude Community Ambassador · Nairobi",
     initials: "BM",
   },
   {
