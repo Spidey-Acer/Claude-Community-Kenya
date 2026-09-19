@@ -49,6 +49,15 @@ describe("submissionRequirementsForCohort", () => {
     expect(req.labels.slidesUrl).toMatch(/only if you used any/)
   })
 
+  it("returns the Build Day profile's required fields and track select", () => {
+    const req = submissionRequirementsForCohort("build-day-2026-09")
+    expect([...req.required].sort()).toEqual(
+      ["projectName", "pitch", "track", "worksVsMocked", "claudeUsage", "repoUrl"].sort()
+    )
+    expect(req.trackSelect).toBe(true)
+    expect(req.labels.slidesUrl).toMatch(/only if you used any/)
+  })
+
   it("toRequirementsView produces a JSON-safe array, not a Set", () => {
     const view = toRequirementsView(submissionRequirementsForCohort("impact-lab-2026-09"))
     expect(Array.isArray(view.required)).toBe(true)

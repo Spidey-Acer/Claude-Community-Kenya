@@ -48,6 +48,35 @@ const IMPACT_LAB_2026_09_LABELS: Partial<Record<keyof SubmissionInput, string>> 
   slidesUrl: "Slides, only if you used any; the demo is live",
 }
 
+/**
+ * Build Day (19-20 Sep 2026, Anthropic Fable 5.1) is a live-demo event: teams
+ * are judged on New Capability, It Works, Keep or Share and Clarity of Demo,
+ * all read off the screen during the pitch, not off a deck. Slides cannot be
+ * the only required field here for the same reason they weren't for the 2
+ * Sep cohort: a deck is not the evidence, the demo is. repoUrl stays
+ * required so judges can check worksVsMocked against the source instead of
+ * the claim.
+ */
+const BUILD_DAY_2026_09_REQUIRED: ReadonlySet<keyof SubmissionInput> = new Set([
+  "projectName",
+  "pitch",
+  "track",
+  "worksVsMocked",
+  "claudeUsage",
+  "repoUrl",
+])
+
+const BUILD_DAY_2026_09_LABELS: Partial<Record<keyof SubmissionInput, string>> = {
+  pitch: "One sentence: what it does and who it is for",
+  worksVsMocked: "What works live, and what is mocked. Be exact; judges check.",
+  claudeUsage:
+    "What Fable 5.1 does here that the previous model could not (the New Capability criterion)",
+  repoUrl: "Repository link",
+  demoUrl: "Live link, if it is deployed",
+  videoUrl: "Backup video (90 seconds, phone), optional",
+  slidesUrl: "Slides, only if you used any; the demo is live",
+}
+
 /** Default profile: today's behaviour, unchanged for every other cohort. */
 const DEFAULT_REQUIREMENTS: SubmissionRequirements = {
   required: new Set(["slidesUrl"]),
@@ -59,6 +88,11 @@ const REQUIREMENTS_BY_COHORT: Readonly<Record<string, SubmissionRequirements>> =
   "impact-lab-2026-09": {
     required: IMPACT_LAB_2026_09_REQUIRED as Set<keyof SubmissionInput>,
     labels: IMPACT_LAB_2026_09_LABELS,
+    trackSelect: true,
+  },
+  "build-day-2026-09": {
+    required: BUILD_DAY_2026_09_REQUIRED as Set<keyof SubmissionInput>,
+    labels: BUILD_DAY_2026_09_LABELS,
     trackSelect: true,
   },
 }
