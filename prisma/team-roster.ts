@@ -5,13 +5,11 @@
  * (team-only sync, safe to run against production). One list, two consumers,
  * so the two can never drift.
  *
- * Co-organiser bios are deliberately one neutral line each: these are real
- * people, and anything beyond "helps run CCK" would be invention. Peter
- * confirmed the roster and titles on 2026-07-20; co-organisers fill in their
- * own bio, tagline and links from /admin/team.
- *
- * Their other venture (Fluent) is a separate business and is intentionally not
- * referenced here — this page describes the community, not the company.
+ * Titles confirmed by Peter on 2026-09-19: Billy is a Claude Community
+ * Ambassador (EMEA cohort, Cassie's roundup of 10 Sep 2026); Sam is a
+ * volunteer. Taglines and the ventures named in bios are lifted from each
+ * person's own public LinkedIn headline, on Peter's instruction, so nothing
+ * here is invented. Event roles come from EVENTS.md.
  */
 
 export const TEAM_ROSTER = [
@@ -35,8 +33,10 @@ export const TEAM_ROSTER = [
   {
     slug: "sam-kyalo",
     name: "Sam Kyalo",
-    role: "Co-organizer",
-    bio: "Co-organizer at Claude Community Kenya.",
+    role: "Volunteer",
+    tagline: "It offends me that most businesses in Africa are held together by WhatsApp threads and Excel prayers. I'm changing that.",
+    location: "Nairobi, Kenya",
+    bio: "Volunteer at Claude Community Kenya. Co-hosted Claude for Everyone, and ran hosting, check-in and the live build demo at Impact Lab: AI Mashinani.",
     linkedIn: "https://www.linkedin.com/in/samuelkyalo",
     avatar: "/images/team/sam-kyalo.jpg",
     order: 1,
@@ -45,8 +45,10 @@ export const TEAM_ROSTER = [
   {
     slug: "billy-mwangi",
     name: "Billy Mwangi",
-    role: "Co-organizer",
-    bio: "Co-organizer at Claude Community Kenya.",
+    role: "Claude Community Ambassador",
+    tagline: "Founder, Hekima Labs · Co-founder, Fluent.ke · Full-stack engineer",
+    location: "Nairobi, Kenya",
+    bio: "Claude Community Ambassador for Nairobi, in the EMEA cohort, from September 2026. Full-stack engineer, founder of Hekima Labs and co-founder of Fluent.ke. Co-hosted Claude for Everyone, and ran the beneficiary wall, clock and capture at Impact Lab: AI Mashinani.",
     linkedIn: "https://www.linkedin.com/in/billy-mwangi-5b6b5926a",
     avatar: "/images/team/billy-mwangi.jpg",
     order: 2,
