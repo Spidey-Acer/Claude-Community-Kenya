@@ -12,9 +12,12 @@ import { TimerCountdown } from "./TimerCountdown";
  * difference between fixing the clock in ten seconds and fixing it in ten
  * minutes. With no `?at=` the page says there is no session rather than
  * inventing one.
+ *
+ * The eyebrow comes from `?title=` for the same reason: the page serves every
+ * event, so no event's name is hardcoded in it.
  */
 export const metadata: Metadata = {
-  title: "Time remaining | Impact Lab",
+  title: "Time remaining | Claude Community Kenya",
   description: "Countdown to submissions close.",
   robots: { index: false, follow: false },
 };
@@ -51,22 +54,37 @@ function resolveDeadline(at: string | undefined): string | null {
 export default async function TimerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ at?: string; label?: string }>;
+  searchParams: Promise<{ at?: string; label?: string; title?: string }>;
 }) {
-  const { at, label } = await searchParams;
+  const { at, label, title } = await searchParams;
   const deadlineIso = resolveDeadline(at);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 py-16">
-      <div className="mb-10 flex items-center gap-3">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg-primary px-6 py-16">
+      {/*
+        The kit's hand-drawn globe, turning behind the clock. Drawn in black on
+        transparent, so it is inverted to read on the dark room background and
+        held faint enough that the digits stay the only thing the room reads.
+        A GIF cannot pause, so reduced-motion viewers get no globe at all.
+      */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF; next/image would freeze it */}
+      <img
+        src="/images/event-globe.gif"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[min(110vh,110vw)] w-auto max-w-none -translate-x-1/2 -translate-y-1/2 opacity-[0.14] invert select-none motion-reduce:hidden"
+      />
+
+      <div className="relative z-10 mb-10 flex items-center gap-3">
         {deadlineIso && (
           <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-green-primary" />
         )}
         <span className="font-mono text-xs uppercase tracking-[0.3em] text-text-dim sm:text-sm">
-          Impact Lab · AI Mashinani
+          {title?.slice(0, 80) || "Claude Community Kenya"}
         </span>
       </div>
 
+      <div className="relative z-10 flex flex-col items-center">
       {deadlineIso ? (
         <TimerCountdown
           deadlineIso={deadlineIso}
@@ -83,8 +101,9 @@ export default async function TimerPage({
           </p>
         </div>
       )}
+      </div>
 
-      <footer className="mt-16 font-mono text-[11px] uppercase tracking-[0.3em] text-text-dim">
+      <footer className="relative z-10 mt-16 font-mono text-[11px] uppercase tracking-[0.3em] text-text-dim">
         Claude Community Kenya
       </footer>
     </main>
