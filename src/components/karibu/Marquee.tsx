@@ -1,52 +1,37 @@
 /**
- * Marquee — scrolling clay band under the nav for the Karibu identity.
+ * Marquee — the clay band that sits above the nav on every Karibu page.
  *
- * Dumb/presentational: caller supplies the item strings (built from real
- * community stats). The track is duplicated for a seamless CSS loop; the
- * global reduced-motion reset pauses it for users who opt out. Separators use
- * the official Claude mark.
+ * Static, despite the name (kept so the import sites don't churn). It used to
+ * scroll on an infinite CSS loop; Peter's ruling on 2026-09-06 was that a
+ * moving strip reads as amateur, so the band now holds still and the phrase
+ * list was cut to what is not already said elsewhere on the page.
+ *
+ * Because nothing is duplicated any more, the content is read once by
+ * assistive tech directly — no `sr-only` copy, no `aria-hidden` clone track.
+ * Separators use the official Claude mark and are decorative.
  */
 
+import { Fragment } from "react";
 import { ClaudeMark } from "@/components/karibu/ClaudeMark";
 
 interface MarqueeProps {
-  /** Ordered list of short phrases to scroll. Built from live data by caller. */
+  /** Ordered list of short phrases. Built from live data by the caller. */
   items: string[];
 }
 
-// Repeats of the phrase set per half. The track is two identical halves and
-// the animation translates by exactly one half (-50%), so the loop is seamless
-// ONLY if one half is at least as wide as the viewport. Repeating the set a few
-// times per half guarantees that even on ultra-wide screens (no visible gap).
-const REPEATS_PER_HALF = 3;
-
 export function Marquee({ items }: MarqueeProps) {
-  const Half = () => (
-    <div className="flex items-center gap-[26px] py-[11px] font-inter text-[13px] font-semibold uppercase tracking-[0.12em] text-[#FBF0E8] whitespace-nowrap">
-      {Array.from({ length: REPEATS_PER_HALF }).flatMap((_, r) =>
-        items.map((item, i) => (
-          <span key={`${r}-${i}`} className="flex items-center gap-[26px]">
-            <span>{item}</span>
-            <ClaudeMark className="h-3 w-3 text-[#F0B49B]" />
-          </span>
-        )),
-      )}
-    </div>
-  );
+  if (items.length === 0) return null;
 
   return (
-    <div
-      data-marquee
-      className="overflow-hidden border-b border-clay-dark bg-clay"
-      aria-hidden="true"
-    >
-      <div
-        data-mq-track
-        className="flex w-max"
-        style={{ animation: "karibu-marquee 26s linear infinite" }}
-      >
-        <Half />
-        <Half />
+    <div data-marquee className="border-b border-band-bg-hover bg-band-bg">
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-[26px] gap-y-1 px-6 py-[11px] font-inter text-[12.5px] font-semibold uppercase tracking-[0.12em] text-on-band md:px-10">
+        {items.map((item, i) => (
+          <Fragment key={item}>
+            {/* ClaudeMark carries its own aria-hidden + focusable="false". */}
+            {i > 0 && <ClaudeMark className="h-3 w-3 shrink-0 text-on-band-light" />}
+            <span>{item}</span>
+          </Fragment>
+        ))}
       </div>
     </div>
   );

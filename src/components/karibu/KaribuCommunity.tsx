@@ -14,9 +14,10 @@ import { ArrowUp, ExternalLink, Github, Plus } from "lucide-react";
 import type { CommunitySubmissionView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 const TYPES = [
   { key: "", label: "All" },
@@ -68,26 +69,24 @@ export function KaribuCommunity({
 
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Community hub header">
+      <PageBanner
+        image="/images/community/duo.webp"
+        imageAlt="Two members working together at a CCK event"
+        crumbs={["Home", "Tools & Prompts"]}
+        title="Built & shared by the community."
+        subtitle="MCPs, prompts, workflows and tools made by CCK members. Try them, remix them, and share your own."
+      />
+
+      {/* Submit CTA */}
+      <section className={`${WRAP} pb-6 pt-10`} aria-label="Share something">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className={`${KICKER} mb-4`}>Community</div>
-              <h1 className="mb-3 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
-                Built &amp; shared by the community.
-              </h1>
-              <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-                MCPs, prompts, workflows and tools made by CCK members. Try them,
-                remix them, and share your own.
-              </p>
-              <p className="mt-2 font-inter text-[14px] text-ink-muted">
-                Sharing a whole project instead?{" "}
-                <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
-                  Head to the Showcase
-                </Link>
-              </p>
-            </div>
+            <p className="font-inter text-[14px] text-ink-muted">
+              Sharing a whole project instead?{" "}
+              <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
+                Head to the Showcase
+              </Link>
+            </p>
             <Link
               href="/community/submit"
               className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
@@ -186,6 +185,10 @@ export function KaribuCommunity({
             </Link>
           </div>
         )}
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

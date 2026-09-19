@@ -7,10 +7,16 @@
  * faithful paraphrases of what he described; NAMES + SPELLINGS + wording are
  * pending his sign-off before merge (Billy Mwangi surname, Samuel surname,
  * "Toili"/"Tuigoin" spellings). Do not treat as final copy.
+ *
+ * A fifth testimonial attributed to "James Lloyd" was dropped 2026-09-06
+ * (structure-redesign spec, §6: "remove or correct 'James Lloyd'") — that
+ * name does not match anyone in Peter's dictated list and there is no
+ * sign-off to correct it against. Re-add only with a verified name.
  */
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface Testimonial {
@@ -48,13 +54,6 @@ const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      "Claude has made research so much easier. What used to take days of digging now takes an afternoon.",
-    name: "James Lloyd",
-    role: "Research",
-    initials: "JL",
-  },
-  {
-    quote:
       "I teach in Tuigoin, a small village. Claude helps me plan lessons, organise my week, and manage my classroom. It has changed how I teach.",
     name: "Isaac Toili",
     role: "Teacher · Tuigoin",
@@ -80,7 +79,7 @@ export function KaribuTestimonials() {
 
   return (
     <div className="flex h-full flex-col justify-center rounded-2xl border border-sand bg-paper-card p-8 sm:p-10">
-      <div className="min-h-[210px]">
+      <div className="min-h-[210px]" aria-live="polite">
         <AnimatePresence mode="wait">
           <motion.blockquote
             key={current}
@@ -117,24 +116,44 @@ export function KaribuTestimonials() {
         </AnimatePresence>
       </div>
 
-      <div className="mt-1 flex items-center">
-        {TESTIMONIALS.map((item, i) => (
+      <div className="mt-1 flex items-center justify-between border-t border-sand pt-[22px]">
+        <div className="flex items-center">
+          {TESTIMONIALS.map((item, i) => (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => go(i)}
+              aria-label={`Show testimonial from ${item.name}`}
+              aria-current={i === current}
+              className="group flex h-11 w-8 items-center justify-center"
+            >
+              <span
+                aria-hidden="true"
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === current ? "w-5 bg-clay" : "w-1.5 bg-sand-2 group-hover:bg-ink-muted/50"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
           <button
-            key={item.name}
             type="button"
-            onClick={() => go(i)}
-            aria-label={`Show testimonial from ${item.name}`}
-            aria-current={i === current}
-            className="group flex h-11 w-8 items-center justify-center"
+            onClick={() => go(current - 1)}
+            aria-label="Previous testimonial"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-sand-2 text-ink transition-colors hover:border-ink"
           >
-            <span
-              aria-hidden="true"
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === current ? "w-5 bg-clay" : "w-1.5 bg-sand-2 group-hover:bg-ink-muted/50"
-              }`}
-            />
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => go(current + 1)}
+            aria-label="Next testimonial"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-sand-2 text-ink transition-colors hover:border-ink"
+          >
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   );

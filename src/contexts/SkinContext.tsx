@@ -1,75 +1,41 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 export type Skin = "dev" | "pro";
 
 interface SkinContextValue {
-  skin: Skin | null;
-  setSkin: (s: Skin) => void;
+  skin: Skin;
   isLoaded: boolean;
 }
 
-const SkinContext = createContext<SkinContextValue>({
-  skin: null,
-  setSkin: () => {},
-  isLoaded: false,
-});
-
-const STORAGE_KEY = "cck-skin";
-const LEGACY_KEY = "cck-persona";
-
 /**
- * React context provider for the visual skin (Dev/Pro mood).
- * Reads localStorage on mount; migrates legacy `cck-persona` value.
+ * The visual skin used to be user-selectable: a discrete footer button and a
+ * mobile-menu toggle (both since removed) let a visitor flip between this
+ * "pro" skin and a Terminal Noir "dev" skin, persisted to localStorage as
+ * `cck-skin` (migrated from an even older `cck-persona` key) and mirrored
+ * onto <html> as a `persona-pro` class.
+ *
+ * Both writers are gone — Karibu is the site's one public identity now — so
+ * this always resolves to "pro". No localStorage read or write, no <html>
+ * class mutation: layout.tsx already sets `persona-pro` statically at the
+ * server, which is now simply always correct.
+ *
+ * Kept as a context (rather than deleted outright) because dozens of
+ * components on the still-not-yet-converted legacy routes read `useSkin()`
+ * to pick their "pro" rendering branch; every one of them now always takes
+ * that branch. Retiring the hook itself — and the now-unreachable "dev"
+ * branches it guards — is a larger follow-up, not this fix.
  */
+const FIXED_VALUE: SkinContextValue = { skin: "pro", isLoaded: true };
+
+const SkinContext = createContext<SkinContextValue>(FIXED_VALUE);
+
 export function SkinProvider({ children }: { children: ReactNode }) {
-  const [skin, setSkinState] = useState<Skin | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Skin | null;
-    if (stored === "dev" || stored === "pro") {
-      setSkinState(stored);
-    } else {
-      const legacy = localStorage.getItem(LEGACY_KEY) as Skin | null;
-      if (legacy === "dev" || legacy === "pro") {
-        setSkinState(legacy);
-        localStorage.setItem(STORAGE_KEY, legacy);
-      } else {
-        // First visit: default to pro skin — premium experience for new visitors.
-        // Dev skin remains available via the discrete footer toggle.
-        setSkinState("pro");
-        localStorage.setItem(STORAGE_KEY, "pro");
-      }
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (skin === "pro") {
-      document.documentElement.classList.add("persona-pro");
-    } else {
-      document.documentElement.classList.remove("persona-pro");
-    }
-  }, [skin]);
-
-  const setSkin = useCallback((s: Skin) => {
-    setSkinState(s);
-    localStorage.setItem(STORAGE_KEY, s);
-  }, []);
-
-  return (
-    <SkinContext.Provider value={{ skin, setSkin, isLoaded }}>
-      {children}
-    </SkinContext.Provider>
-  );
+  return <SkinContext.Provider value={FIXED_VALUE}>{children}</SkinContext.Provider>;
 }
 
-/**
- * Hook to read the current skin and set a new one.
- * Throws if used outside SkinProvider.
- */
+/** Hook to read the (now fixed) skin. Throws if used outside SkinProvider. */
 export function useSkin() {
   const context = useContext(SkinContext);
   if (!context) {

@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #23201B; font-family: Inter, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #23201B; }
+    a { color: #A84E2D; text-decoration: none; } a:hover { color: #8F4023; }
+    .page { background: #F4EEE3; color: #23201B; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+    .serif { font-family: Newsreader, Georgia, "Times New Roman", serif; font-weight: 400; }
+    .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #A84E2D; }
+    .h2 { font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 40px; line-height: 1.1; letter-spacing: -0.015em; color: #23201B; margin: 0; }
+    .h2 em { font-style: italic; color: #A84E2D; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; padding: 15px 26px; font-size: 15.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+    .btn-clay { background: #A84E2D; color: #FBF7F0; } .btn-clay:hover { background: #8F4023; color: #FBF7F0; }
+    .btn-outline { border: 1px solid #DDD3C2; color: #23201B; } .btn-outline:hover { border-color: #23201B; color: #23201B; }
+    .card { background: #FBF7F0; border: 1px solid #E4DAC8; border-radius: 16px; }
+    .link { font-size: 15px; font-weight: 600; color: #A84E2D; } .link:hover { color: #8F4023; }
+    .slot { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #756a5c; border: 1px dashed #DDD3C2; border-radius: 999px; padding: 3px 8px; background: #FBF7F0; }
+    .muted { color: #6A6155; } .soft { color: #5C5349; }
+    .cover { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+    .cover .motif { position: absolute; inset: 0; opacity: 0.16; }
+    .cover .eyebrow { position: relative; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #A84E2D; }
+    .cover .ct { position: relative; font-family: Newsreader, Georgia, serif; font-weight: 400; color: #23201B; line-height: 1.12; letter-spacing: -0.01em; margin: 0; }
+    .tone-a { background: linear-gradient(135deg, #F5EBE1, #EFE7D8); }
+    .tone-b { background: linear-gradient(135deg, #E4DAC8, #E6DED0); }
+    .tone-c { background: linear-gradient(135deg, #E5D2C0, #FBF7F0); }
+    .tone-d { background: linear-gradient(135deg, #EFE7D8, #EAE1D2); }
+    .m-meetup { background: repeating-radial-gradient(circle at 88% 120%, #A84E2D 0 1px, transparent 1px 20px); }
+    .m-workshop { background: repeating-linear-gradient(0deg, #A84E2D 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, #A84E2D 0 1px, transparent 1px 16px); }
+    .m-talk { background: repeating-linear-gradient(0deg, #A84E2D 0 1.5px, transparent 1.5px 13px); }
+    .m-hack { background: repeating-linear-gradient(135deg, #A84E2D 0 2px, transparent 2px 11px); }
+    .m-conv { background: repeating-radial-gradient(circle at 12% -20%, #A84E2D 0 1px, transparent 1px 18px); }
+    .footer { background: #23201B; color: #E9E0D2; }
+    .footer a { color: #C7BEB0; } .footer a:hover { color: #E6906F; }
+    .footer .fh { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #8A7F6E; margin-bottom: 18px; }
+    .ticker { background: #A84E2D; color: #FBF7F0; font-size: 12.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; overflow: hidden; white-space: nowrap; }
+    .ticker span { display: inline-flex; align-items: center; gap: 22px; padding: 0 11px; }
+    .cta-band { background: #A84E2D; color: #FBF7F0; border-radius: 24px; }
+    .ticker .star { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #E6906F; }
+
+    .nav a.nl { color: #5C5349; font-size: 15px; font-weight: 500; } .nav a.nl:hover { color: #23201B; }
+    .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 9px 16px; font-size: 13.5px; font-weight: 500; color: #5C5349; border: 1px solid #DDD3C2; background: #FBF7F0; }
+    .chip.on { background: #23201B; color: #F4EEE3; border-color: #23201B; font-weight: 600; }
+    .ecard { display: flex; flex-direction: column; gap: 0; }
+    .ecard .cover { aspect-ratio: 1 / 1; border-radius: 14px; border: 1px solid #E4DAC8; padding: 22px; }
+    .ecard .ct { font-size: 28px; }
+    .ecard .meta { font-size: 12.5px; color: #6A6155; margin-top: 14px; }
+    .ecard .title { font-family: Newsreader, Georgia, serif; font-size: 20px; line-height: 1.25; color: #23201B; margin-top: 6px; }
+    .poster { position: relative; aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; background: #E6906F; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 22px; box-sizing: border-box; }
+    .poster .arc { font-size: 11px; font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; color: #23201B; }
+    .poster .city { font-family: Newsreader, Georgia, serif; font-size: 58px; line-height: 1; color: #23201B; margin: 14px 0 10px; letter-spacing: -0.02em; }
+    .poster .kind { font-size: 15px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #FBF7F0; }
+    .poster .when { font-size: 12px; color: #23201B; margin-top: 8px; }
+    .stat-l { font-size: 13.5px; color: #6A6155; }
+  </style>
+</helmet>
+<div class="page" style="width: 1440px; min-height: 100%;">
+
+  <!-- TICKER -->
+  <div class="ticker" style="height: 36px; display: flex; align-items: center;">
+    <span>Nairobi<i class="star"></i>Mombasa<i class="star"></i>Kisumu<i class="star"></i>Free &amp; volunteer-run<i class="star"></i>Anthropic-supported via the Claude Community Ambassadors program<i class="star"></i>Everyone welcome<i class="star"></i>Beginners welcome<i class="star"></i>Nairobi<i class="star"></i>Mombasa<i class="star"></i>Kisumu</span>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav" style="position: sticky; top: 0; z-index: 10; background: rgba(244,238,227,0.92); border-bottom: 1px solid #E4DAC8; backdrop-filter: blur(12px);">
+    <div class="wrap" style="height: 64px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="cck-logo.png" alt="" style="width: 38px; height: 38px; border-radius: 50%;">
+        <span class="serif" style="font-size: 20px; font-weight: 500; letter-spacing: -0.01em; color: #23201B;">Claude Community Kenya</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 28px;">
+        <a class="nl" href="#">Home</a>
+        <a class="nl" href="#">About</a>
+        <a class="nl" href="#" style="color: #23201B; border-bottom: 1.5px solid #A84E2D; padding-bottom: 2px;">Events</a>
+        <a class="nl" href="#">Learn</a>
+        <a class="nl" href="#">Community</a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path></svg>
+        <a class="nl" href="#">Sign in</a>
+        <a class="btn btn-clay" href="#" style="padding: 11px 20px; font-size: 14.5px;">Join</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE BANNER -->
+  <div style="position: relative; height: 340px; overflow: hidden; background: #23201B;">
+    <img src="workshop-room.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 55%;">
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(35,32,27,0.45) 0%, rgba(35,32,27,0.7) 100%);"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(168,78,45,0.35) 0%, rgba(35,32,27,0) 60%);"></div>
+    <div class="wrap" style="position: relative; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 48px;">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #E6906F; margin-bottom: 16px;"><span style="color: #C7BEB0;">Home</span><span style="color: #8A7F6E;">/</span><span>Events</span></div>
+      <h1 class="serif" style="font-size: 62px; line-height: 1.02; letter-spacing: -0.022em; color: #FBF7F0; margin: 0 0 14px;">Where we meet.</h1>
+      <p style="font-size: 18px; line-height: 1.55; color: #E9E0D2; max-width: 560px; margin: 0;">Free, in-person gatherings across Kenya. Everyone welcome. Bring a laptop and your curiosity.</p>
+    </div>
+    <span style="position: absolute; right: 40px; bottom: 20px; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #C7BEB0;">Banner slot · from the gallery bucket</span>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="wrap" style="padding: 40px 40px 0; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <span class="chip on">All</span><span class="chip">Nairobi</span><span class="chip">Mombasa</span><span class="chip">Kisumu</span><span class="chip">Hackathons</span><span class="chip">Meetups</span><span class="chip">Workshops</span><span class="chip">Career talks</span>
+    </div>
+    <span class="stat-l">12 events · 3 cities</span>
+  </div>
+
+  <!-- UPCOMING (designed empty state) -->
+  <div class="wrap" style="padding: 48px 40px 0;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #E4DAC8; padding-bottom: 12px; margin-bottom: 20px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #756a5c;">Upcoming</span>
+      <span class="stat-l">0 scheduled</span>
+    </div>
+    <div class="card" style="display: grid; grid-template-columns: 200px 1fr auto; gap: 40px; align-items: center; padding: 36px 44px 36px 36px; background: linear-gradient(135deg, rgba(168,78,45,0.07), #FBF7F0);">
+      <div style="position: relative; width: 200px; height: 160px;">
+        <svg width="200" height="160" viewBox="0 0 200 160" fill="none" stroke="#A84E2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="28" width="140" height="112" rx="10" fill="#FBF7F0"></rect>
+          <path d="M30 56h140M62 18v20M138 18v20"></path>
+          <g stroke="#DDD3C2"><path d="M54 78h16M86 78h16M118 78h16M54 104h16M86 104h16"></path></g>
+          <circle cx="126" cy="104" r="14" fill="#A84E2D" stroke="#A84E2D"></circle>
+          <path d="M120 104l4 4 8-8" stroke="#FBF7F0" stroke-width="2"></path>
+          <path d="M8 148c30-20 60-20 90 0" stroke="#DDD3C2" stroke-dasharray="3 5"></path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="serif" style="font-size: 34px; line-height: 1.1; letter-spacing: -0.015em; color: #23201B; margin: 0 0 10px;">Nothing on the calendar <em style="color: #A84E2D;">yet.</em></h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #5C5349; margin: 0; max-width: 520px;">The next one is being planned. Get a heads-up on WhatsApp the moment it's live, or see what happened at Impact Lab 02 on 2 September.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 220px;">
+        <a class="btn btn-clay" href="#">Get a heads-up</a>
+        <a class="btn btn-outline" href="#">Read the last recap</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAST -->
+  <div class="wrap" style="padding: 64px 40px 96px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #E4DAC8; padding-bottom: 12px; margin-bottom: 24px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #756a5c;">Past</span>
+      <span class="stat-l">12 events</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 24px;">
+
+      <div class="ecard">
+        <div class="poster"><span class="arc">Claude Community</span><span class="city">Nairobi</span><span class="kind">Impact Lab</span><span class="when">Wed 2 Sept · Hackhouse Africa</span><span class="slot" style="position: absolute; left: 12px; top: 12px;">Uploaded poster</span></div>
+        <div class="meta">Sep 2026 · Nairobi · Hackathon</div>
+        <div class="title">Nairobi | Claude Impact Lab · AI Mashinani 02</div>
+      </div>
+
+      <div class="ecard">
+        <div class="poster"><span class="arc">Claude Community</span><span class="city">Nairobi</span><span class="kind">Conversation</span><span class="when">Sat 29 Aug · Blockchain Centre</span><span class="slot" style="position: absolute; left: 12px; top: 12px;">Uploaded poster</span></div>
+        <div class="meta">Aug 2026 · Nairobi · Conversations</div>
+        <div class="title">Nairobi | Claude Conversations</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-a"><div class="motif m-workshop"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Nairobi · Aug 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude in Production Workshop</h3><span class="slot" style="position: absolute; right: 12px; bottom: 12px;">Generated cover</span></div>
+        <div class="meta">Aug 2026 · Nairobi · Workshop</div>
+        <div class="title">Nairobi | Claude in Production Workshop</div>
+      </div>
+
+      <div class="ecard">
+        <div class="poster"><span class="arc">Claude Community</span><span class="city">Nairobi</span><span class="kind">Impact Lab</span><span class="when">25–26 July · Hackhouse Africa</span><span class="slot" style="position: absolute; left: 12px; top: 12px;">Uploaded poster</span></div>
+        <div class="meta">Jul 2026 · Nairobi · Hackathon</div>
+        <div class="title">Impact Lab: AI Mashinani</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-b"><div class="motif m-hack"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Kisumu · May 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude for Developers Mini-Hackathon</h3></div>
+        <div class="meta">May 2026 · Kisumu · Hackathon</div>
+        <div class="title">Kisumu | Claude for Developers Mini-Hackathon</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-c"><div class="motif m-workshop"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Nairobi · Apr 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude Code Workshop for Developers</h3></div>
+        <div class="meta">Apr 2026 · Nairobi · Workshop</div>
+        <div class="title">Claude Code Workshop for Developers – Nairobi</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-d"><div class="motif m-talk"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Nairobi · Apr 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude for Everyone</h3></div>
+        <div class="meta">Apr 2026 · Nairobi · Workshop</div>
+        <div class="title">Claude for Everyone – Nairobi</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-a"><div class="motif m-meetup"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Nairobi · Mar 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude for Everyone (Recap)</h3></div>
+        <div class="meta">Mar 2026 · Nairobi · Meetup</div>
+        <div class="title">Claude for Everyone – Nairobi (Recap)</div>
+      </div>
+
+      <div class="ecard">
+        <div class="cover tone-b"><div class="motif m-conv"></div><div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;"><span class="eyebrow">Nairobi · Mar 2026</span><img src="cck-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 50%;"></div><h3 class="ct">Claude for everyone</h3></div>
+        <div class="meta">Mar 2026 · Nairobi · Meetup</div>
+        <div class="title">Nairobi | Claude for everyone</div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: center; margin-top: 40px;"><a class="btn btn-outline" href="#">Show 3 more</a></div>
+  </div>
+
+  <!-- CTA BAND -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div class="cta-band" style="padding: 72px 64px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 48px; position: relative; overflow: hidden;">
+      <div style="position: absolute; right: -60px; top: -80px; width: 360px; height: 360px; border-radius: 50%; border: 1px solid rgba(251,247,240,0.14);"></div>
+      <div style="position: absolute; right: 40px; bottom: -140px; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(251,247,240,0.1);"></div>
+      <div style="position: relative;">
+        <h2 class="serif" style="font-size: 52px; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 14px; color: #FBF7F0;">Come build with us.</h2>
+        <p style="font-size: 17px; line-height: 1.55; color: #F1E6D8; margin: 0; max-width: 520px;">No fees, no application. Say hi, tell us your city and what you're curious about, and come to the next meetup.</p>
+      </div>
+      <div style="position: relative; display: flex; gap: 12px;">
+        <a class="btn" href="#" style="background: #FBF7F0; color: #23201B;">Join on WhatsApp</a>
+        <a class="btn" href="#" style="border: 1px solid rgba(251,247,240,0.5); color: #FBF7F0;">Join Discord</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="wrap" style="padding: 64px 40px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1.4fr; gap: 40px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;"><img src="cck-logo.png" alt="" style="width: 36px; height: 36px; border-radius: 50%;"><span class="serif" style="font-size: 19px; font-weight: 500; color: #FBF7F0;">Claude Community Kenya</span></div>
+        <p style="font-size: 14px; line-height: 1.6; color: #C7BEB0; margin: 0 0 20px; max-width: 280px;">The free, volunteer-run community for people in Kenya learning and building with Claude. Karibu.</p>
+        <a class="btn" href="#" style="background: #A84E2D; color: #FBF7F0; padding: 12px 22px; font-size: 14px;">Join the community</a>
+      </div>
+      <div><div class="fh">Explore</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">Home</a><a href="#">Events</a><a href="#">Learn</a><a href="#">Showcase</a><a href="#">Community</a><a href="#">About</a></div></div>
+      <div><div class="fh">Community</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">WhatsApp</a><a href="#">Discord</a><a href="#">Twitter / X</a><a href="#">LinkedIn</a><a href="#">Instagram</a></div></div>
+      <div><div class="fh">Cities</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">Nairobi</a><a href="#">Mombasa</a><a href="#">Kisumu</a></div></div>
+      <div>
+        <div class="fh">Newsletter</div>
+        <p style="font-size: 14px; line-height: 1.55; color: #C7BEB0; margin: 0 0 14px;">One email when a meetup is announced. Nothing else.</p>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex-grow: 1; height: 44px; border-radius: 999px; border: 1px solid #3B352D; background: #2B2620; display: flex; align-items: center; padding: 0 16px; font-size: 14px; color: #8A7F6E;">you@example.com</div>
+          <span class="btn" style="background: #E6906F; color: #23201B; padding: 0 18px; height: 44px; font-size: 14px;">Subscribe</span>
+        </div>
+      </div>
+    </div>
+    <div class="wrap" style="padding: 0 40px 40px;">
+      <div style="border-top: 1px solid #3B352D; padding-top: 24px; display: flex; justify-content: space-between; font-size: 12.5px; color: #8A7F6E; line-height: 1.6;">
+        <span>Independently operated. Anthropic-supported via the Claude Community Ambassadors program (event funding + API credits).<br>Views expressed here are community-held, not official Anthropic positions. “Claude” is a trademark of Anthropic PBC.</span>
+        <span style="text-align: right;">© 2026 Claude Community Kenya · A community, not a product.<br>Built by the community, for the community.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

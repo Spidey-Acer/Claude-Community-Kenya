@@ -5,66 +5,27 @@
  *
  * Preserves every question/answer from src/data/faq.ts, grouped by category,
  * plus a search box, a floating "Ask on Discord" CTA, and a closing
- * still-have-questions panel with Discord + email contact options.
+ * still-have-questions panel with Discord + email contact options. Renders
+ * each group through the shared FaqAccordion rather than a second inline
+ * accordion implementation.
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ChevronDown, MessageSquare, Search, X } from "lucide-react";
+import { MessageSquare, Search, X } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
+import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import type { FAQ } from "@/data/faq";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 export interface FaqCategory {
   key: string;
   label: string;
   command: string;
-}
-
-function FaqItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggle: () => void }) {
-  const reduce = useReducedMotion();
-  return (
-    <div className="overflow-hidden rounded-2xl border border-sand bg-paper-card">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        aria-controls={`faq-answer-${faq.id}`}
-        id={`faq-question-${faq.id}`}
-        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-paper-alt/40"
-      >
-        <span className="font-newsreader text-[19px] leading-snug text-ink">{faq.question}</span>
-        <ChevronDown
-          className={`h-5 w-5 flex-shrink-0 text-clay transition-transform duration-300 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="content"
-            id={`faq-answer-${faq.id}`}
-            role="region"
-            aria-labelledby={`faq-question-${faq.id}`}
-            initial={reduce ? { height: "auto" } : { height: 0, opacity: 0 }}
-            animate={reduce ? { height: "auto" } : { height: "auto", opacity: 1 }}
-            exit={reduce ? { height: "auto" } : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
-          >
-            <p className="px-6 pb-6 font-inter text-[15px] leading-[1.65] text-ink-soft">
-              {faq.answer}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
 }
 
 function FloatingDiscordCta({ discordUrl }: { discordUrl: string | null }) {
@@ -106,7 +67,6 @@ function FloatingDiscordCta({ discordUrl }: { discordUrl: string | null }) {
 
 export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCategory[] }) {
   const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
   const { discord } = useSocialLinks();
 
   const filtered = useMemo(() => {
@@ -117,28 +77,18 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
     );
   }, [query, faqs]);
 
-  function toggle(id: string) {
-    setOpenId((current) => (current === id ? null : id));
-  }
-
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="FAQ header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>FAQ</div>
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Questions, <span className="italic text-clay">answered.</span>
-          </h1>
-          <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Everything you need to know about Claude Community Kenya — who we
-            are, how our events work, and getting started with Claude.
-          </p>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/mic-question.webp"
+        imageAlt="A member asking a question at a CCK event"
+        crumbs={["Home", "FAQ"]}
+        title="Questions, answered."
+        subtitle="Everything you need to know about Claude Community Kenya — who we are, how our events work, and getting started with Claude."
+      />
 
       {/* Search */}
-      <section className={`${WRAP} py-5`} aria-label="Search FAQ">
+      <section className={`${WRAP} pb-5 pt-10`} aria-label="Search FAQ">
         <Reveal className="mx-auto max-w-xl">
           <div className="relative">
             <Search
@@ -175,7 +125,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
       {/* FAQ list */}
       <section className={`${WRAP} py-6`} aria-label="Frequently asked questions">
         {filtered !== null ? (
-          <Reveal className="mx-auto max-w-3xl space-y-4">
+          <Reveal className="mx-auto max-w-3xl">
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-sand bg-paper-card px-6 py-12 text-center">
                 <p className="font-inter text-[15px] text-ink-soft">No matching questions found.</p>
@@ -184,9 +134,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
                 </p>
               </div>
             ) : (
-              filtered.map((faq) => (
-                <FaqItem key={faq.id} faq={faq} isOpen={openId === faq.id} onToggle={() => toggle(faq.id)} />
-              ))
+              <FaqAccordion items={filtered} variant="card" />
             )}
           </Reveal>
         ) : (
@@ -203,16 +151,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
                         ({items.length})
                       </span>
                     </h2>
-                    <div className="space-y-4">
-                      {items.map((faq) => (
-                        <FaqItem
-                          key={faq.id}
-                          faq={faq}
-                          isOpen={openId === faq.id}
-                          onToggle={() => toggle(faq.id)}
-                        />
-                      ))}
-                    </div>
+                    <FaqAccordion items={items} variant="card" />
                   </div>
                 </Reveal>
               );
@@ -251,6 +190,10 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
             </div>
           </div>
         </Reveal>
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

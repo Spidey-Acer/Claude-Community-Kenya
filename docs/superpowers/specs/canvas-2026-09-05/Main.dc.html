@@ -1,0 +1,383 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #23201B; font-family: Inter, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #23201B; }
+    a { color: #A84E2D; text-decoration: none; } a:hover { color: #8F4023; }
+    .page { background: #F4EEE3; color: #23201B; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+    .serif { font-family: Newsreader, Georgia, "Times New Roman", serif; font-weight: 400; }
+    .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #A84E2D; }
+    .h2 { font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 40px; line-height: 1.1; letter-spacing: -0.015em; color: #23201B; margin: 0; }
+    .h2 em { font-style: italic; color: #A84E2D; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; padding: 15px 26px; font-size: 15.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+    .btn-clay { background: #A84E2D; color: #FBF7F0; } .btn-clay:hover { background: #8F4023; color: #FBF7F0; }
+    .btn-outline { border: 1px solid #DDD3C2; color: #23201B; } .btn-outline:hover { border-color: #23201B; color: #23201B; }
+    .card { background: #FBF7F0; border: 1px solid #E4DAC8; border-radius: 16px; }
+    .link { font-size: 15px; font-weight: 600; color: #A84E2D; } .link:hover { color: #8F4023; }
+    .slot { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #756a5c; border: 1px dashed #DDD3C2; border-radius: 999px; padding: 3px 8px; background: #FBF7F0; }
+    .muted { color: #6A6155; } .soft { color: #5C5349; }
+    .cover { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+    .cover .motif { position: absolute; inset: 0; opacity: 0.16; }
+    .cover .eyebrow { position: relative; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #A84E2D; }
+    .cover .ct { position: relative; font-family: Newsreader, Georgia, serif; font-weight: 400; color: #23201B; line-height: 1.12; letter-spacing: -0.01em; margin: 0; }
+    .tone-a { background: linear-gradient(135deg, #F5EBE1, #EFE7D8); }
+    .tone-b { background: linear-gradient(135deg, #E4DAC8, #E6DED0); }
+    .tone-c { background: linear-gradient(135deg, #E5D2C0, #FBF7F0); }
+    .tone-d { background: linear-gradient(135deg, #EFE7D8, #EAE1D2); }
+    .m-meetup { background: repeating-radial-gradient(circle at 88% 120%, #A84E2D 0 1px, transparent 1px 20px); }
+    .m-workshop { background: repeating-linear-gradient(0deg, #A84E2D 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, #A84E2D 0 1px, transparent 1px 16px); }
+    .m-talk { background: repeating-linear-gradient(0deg, #A84E2D 0 1.5px, transparent 1.5px 13px); }
+    .m-hack { background: repeating-linear-gradient(135deg, #A84E2D 0 2px, transparent 2px 11px); }
+    .m-conv { background: repeating-radial-gradient(circle at 12% -20%, #A84E2D 0 1px, transparent 1px 18px); }
+    .footer { background: #23201B; color: #E9E0D2; }
+    .footer a { color: #C7BEB0; } .footer a:hover { color: #E6906F; }
+    .footer .fh { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #8A7F6E; margin-bottom: 18px; }
+    .ticker { background: #A84E2D; color: #FBF7F0; font-size: 12.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; overflow: hidden; white-space: nowrap; }
+    .ticker span { display: inline-flex; align-items: center; gap: 22px; padding: 0 11px; }
+    .cta-band { background: #A84E2D; color: #FBF7F0; border-radius: 24px; }
+    .ticker .star { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #E6906F; }
+
+    .nav a.nl { color: #5C5349; font-size: 15px; font-weight: 500; } .nav a.nl:hover { color: #23201B; }
+    .stat-n { font-family: Newsreader, Georgia, serif; font-size: 44px; line-height: 1; letter-spacing: -0.02em; color: #23201B; }
+    .stat-l { font-size: 13.5px; color: #6A6155; margin-top: 10px; line-height: 1.4; }
+    .wcard { padding: 28px 28px 26px; display: flex; flex-direction: column; gap: 12px; min-height: 250px; }
+    .wcard .n { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.06em; color: #A84E2D; }
+    .wcard h3 { font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 25px; line-height: 1.15; margin: 4px 0 0; color: #23201B; }
+    .wcard p { margin: 0; font-size: 15px; line-height: 1.55; color: #5C5349; flex-grow: 1; }
+    .faq-q { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0; border-top: 1px solid #E4DAC8; font-size: 17px; font-weight: 500; color: #23201B; }
+    .faq-a { font-size: 15px; line-height: 1.6; color: #5C5349; padding: 0 0 22px; max-width: 560px; }
+    .tile { border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; background: #EFE7D8; }
+    .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .logo-cell { height: 84px; padding: 0 14px; box-sizing: border-box; text-align: center; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #FBF7F0; border: 1px solid #E4DAC8; filter: grayscale(1); opacity: 0.78; }
+    .logo-cell:hover { filter: none; opacity: 1; }
+    .wordmark { font-family: Newsreader, Georgia, serif; font-size: 20px; letter-spacing: 0.02em; color: #23201B; }
+  </style>
+</helmet>
+<div class="page" style="width: 1440px; min-height: 100%;">
+
+  <!-- TICKER -->
+  <div class="ticker" style="height: 36px; display: flex; align-items: center;">
+    <span>Nairobi<i class="star"></i>Mombasa<i class="star"></i>Kisumu<i class="star"></i>Free &amp; volunteer-run<i class="star"></i>Anthropic-supported via the Claude Community Ambassadors program<i class="star"></i>Everyone welcome<i class="star"></i>Beginners welcome<i class="star"></i>Nairobi<i class="star"></i>Mombasa<i class="star"></i>Kisumu</span>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav" style="position: sticky; top: 0; z-index: 10; background: rgba(244,238,227,0.92); border-bottom: 1px solid #E4DAC8; backdrop-filter: blur(12px);">
+    <div class="wrap" style="height: 64px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="cck-logo.png" alt="" style="width: 38px; height: 38px; border-radius: 50%;">
+        <span class="serif" style="font-size: 20px; font-weight: 500; letter-spacing: -0.01em; color: #23201B;">Claude Community Kenya</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 28px;">
+        <a class="nl" href="#" style="color: #23201B; border-bottom: 1.5px solid #A84E2D; padding-bottom: 2px;">Home</a>
+        <a class="nl" href="#">About</a>
+        <a class="nl" href="#">Events</a>
+        <a class="nl" href="#">Learn</a>
+        <a class="nl" href="#">Community</a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path></svg>
+        <a class="nl" href="#">Sign in</a>
+        <a class="btn btn-clay" href="#" style="padding: 11px 20px; font-size: 14.5px;">Join</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO (video poster) -->
+  <div style="position: relative; height: 680px; overflow: hidden; background: #23201B;">
+    <img src="hero-crowd.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%;">
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(35,32,27,0.18) 0%, rgba(35,32,27,0.42) 45%, rgba(35,32,27,0.86) 100%);"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(35,32,27,0.55) 0%, rgba(35,32,27,0.15) 55%, rgba(35,32,27,0) 100%);"></div>
+    <div style="position: absolute; top: 20px; right: 40px; display: flex; gap: 8px;">
+      <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #E9E0D2; border: 1px solid rgba(255,255,255,0.18); background: rgba(35,32,27,0.55); border-radius: 999px; padding: 6px 11px; backdrop-filter: blur(8px);">Video slot · 10 s silent loop · poster on data saver</span>
+    </div>
+    <div class="wrap" style="position: relative; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 140px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; border: 1px solid rgba(251,247,240,0.28); background: rgba(35,32,27,0.35); backdrop-filter: blur(8px); border-radius: 999px; padding: 7px 14px 7px 10px; margin-bottom: 26px;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #E6906F;"></span>
+        <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #FBF7F0;">Karibu · Kenya's Claude community</span>
+      </div>
+      <h1 class="serif" style="font-size: 66px; line-height: 1.02; letter-spacing: -0.022em; color: #FBF7F0; margin: 0 0 24px; max-width: 760px; text-wrap: balance;">A free community for Kenyans <em style="color: #E6906F;">learning &amp; building</em> with Claude.</h1>
+      <p style="font-size: 18px; line-height: 1.6; color: #E9E0D2; max-width: 600px; margin: 0 0 34px; text-wrap: pretty;">Free meetups in Nairobi, Mombasa and Kisumu. Workshops, build days and a room that answers questions. Beginners welcome.</p>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a class="btn btn-clay" href="#" style="background: #A84E2D; color: #FBF7F0;">Join the community</a>
+        <a class="btn" href="#" style="border: 1px solid rgba(251,247,240,0.45); color: #FBF7F0;">See what we've built <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></a>
+      </div>
+    </div>
+    <div class="wrap" style="position: absolute; left: 0; right: 0; bottom: 72px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none;">
+      <a href="#" style="pointer-events: auto; display: inline-flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(35,32,27,0.62); backdrop-filter: blur(10px); border-radius: 12px; padding: 10px 14px; color: #FBF7F0;">
+        <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #E6906F;">Last</span>
+        <span style="font-size: 14px; font-weight: 600; color: #FBF7F0;">Impact Lab 02 · 2 Sep</span>
+        <span style="font-size: 14px; color: #E9E0D2;">· recap →</span>
+      </a>
+      <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #C7BEB0;">Poster: Mombasa AI &amp; Career Talk</span>
+    </div>
+  </div>
+
+  <!-- IMPACT CARD (overlaps hero by 48px) -->
+  <div class="wrap" style="position: relative; z-index: 2; margin-top: -48px;">
+    <div class="card" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 34px 8px; box-shadow: 0 24px 48px -24px rgba(35,32,27,0.35);">
+      <div style="padding: 0 32px; border-right: 1px solid #E4DAC8;"><div class="stat-n">12</div><div class="stat-l">Events hosted</div></div>
+      <div style="padding: 0 32px; border-right: 1px solid #E4DAC8;"><div class="stat-n">~2,600</div><div class="stat-l">Builders reached<br>across WhatsApp, Discord &amp; socials</div></div>
+      <div style="padding: 0 32px; border-right: 1px solid #E4DAC8;"><div class="stat-n">3</div><div class="stat-l">Cities<br>Nairobi · Mombasa · Kisumu</div></div>
+      <div style="padding: 0 32px;"><div class="stat-n">Jan '26</div><div class="stat-l">Since<br>first meetup, Westlands</div></div>
+    </div>
+  </div>
+
+  <!-- WHO WE ARE -->
+  <div class="wrap" style="padding: 112px 40px 96px; display: grid; grid-template-columns: 500px 1fr; gap: 88px; align-items: center;">
+    <div style="position: relative; padding: 0 16px 16px 0;">
+      <div style="position: absolute; left: 16px; top: 16px; right: 0; bottom: 0; background: #E4DAC8; border-radius: 16px;"></div>
+      <div style="position: relative; border: 1px solid #A84E2D; border-radius: 16px; overflow: hidden; aspect-ratio: 4 / 3; background: #EFE7D8;">
+        <img src="first-meetup.jpg" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        <span style="position: absolute; left: 14px; top: 14px; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #E9E0D2; background: rgba(35,32,27,0.7); border-radius: 999px; padding: 5px 10px;">First meetup · Jan 2026</span>
+      </div>
+    </div>
+    <div>
+      <div class="kicker" style="margin-bottom: 18px;">Who we are</div>
+      <h2 class="h2" style="margin-bottom: 22px;">How CCK <em>started</em></h2>
+      <p style="font-size: 17px; line-height: 1.65; color: #5C5349; margin: 0 0 16px;">It began with a handful of people in Nairobi swapping notes on what they were building with Claude. Word spread, the group filled up, and meetups followed in Mombasa and Kisumu. Today it's students, founders, marketers and engineers at every level.</p>
+      <p style="font-size: 17px; line-height: 1.65; color: #5C5349; margin: 0 0 28px;">We stayed free and volunteer-run on purpose. The point isn't to sell anything. It's to make sure that if you're in Kenya and curious about AI, there's a warm, capable room waiting for you.</p>
+      <a class="link" href="#">Read our story →</a>
+    </div>
+  </div>
+
+  <!-- LAST EVENT STRIP -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+      <div class="kicker">Last event <span style="color: #756a5c; letter-spacing: 0.1em;">· becomes “Next up” when one is scheduled</span></div>
+      <a class="link" href="#">All events →</a>
+    </div>
+    <div class="card" style="display: grid; grid-template-columns: 380px 1fr; overflow: hidden;">
+      <div class="cover tone-c" style="aspect-ratio: 1 / 1; border-right: 1px solid #E4DAC8; padding: 26px;">
+        <div class="motif m-hack"></div>
+        <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; flex-grow: 1;">
+          <span class="eyebrow">Nairobi · Sep 2026</span>
+          <img src="cck-logo.png" alt="" style="width: 30px; height: 30px; border-radius: 50%; opacity: 0.9;">
+        </div>
+        <h3 class="ct" style="font-size: 36px;">Claude Impact Lab · AI Mashinani 02</h3>
+      </div>
+      <div style="padding: 40px 44px; display: flex; flex-direction: column; justify-content: center; gap: 14px;">
+        <span style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A84E2D; background: rgba(168,78,45,0.07); border-radius: 999px; padding: 6px 11px;">Hackathon · Recap</span>
+        <h3 class="serif" style="font-size: 34px; line-height: 1.1; letter-spacing: -0.015em; margin: 6px 0 0; color: #23201B;">[Recap headline from the Impact Lab 02 post]</h3>
+        <div style="display: flex; gap: 26px; font-size: 15px; color: #5C5349; margin-top: 6px;">
+          <span style="display: inline-flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Wed 2 Sep · 8:30 AM – 6:30 PM</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-11a7 7 0 1 0-14 0c0 4.5 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>Hackhouse Africa, Nairobi</span>
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <a class="btn btn-clay" href="#">Read the recap</a>
+          <a class="btn btn-outline" href="#">Get a heads-up for the next one</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT WE DO -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div class="kicker" style="margin-bottom: 18px;">What we do</div>
+    <h2 class="h2" style="max-width: 620px; margin-bottom: 40px;">Four ways we learn and build <em>together.</em></h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+      <div class="card wcard"><div class="n">01</div><h3>Events &amp; meetups</h3><p>Regular in-person gatherings across our cities. Live demos, project showcases, and the hallway conversations that start real projects.</p><a class="link" href="#" style="font-size: 14px;">See events →</a></div>
+      <div class="card wcard"><div class="n">02</div><h3>Hands-on workshops</h3><p>Deep dives on Claude Code, agentic patterns and shipping real apps.</p><a class="link" href="#" style="font-size: 14px;">Explore resources →</a></div>
+      <div class="card wcard" style="background: #A84E2D; border-color: #A84E2D;"><div class="n" style="color: #E6906F;">03</div><h3 style="color: #FBF7F0;">Online community</h3><p style="color: #F1E6D8;">WhatsApp &amp; Discord. Questions answered daily, wins shared nightly.</p><a class="link" href="#" style="font-size: 14px; color: #FBF7F0;">Join the room →</a></div>
+      <div class="card wcard"><div class="n">04</div><h3>Learn with Claude</h3><p>Shared guides, prompts and starter projects pitched for every level, from your first prompt to production.</p><a class="link" href="#" style="font-size: 14px;">Explore resources →</a></div>
+    </div>
+  </div>
+
+  <!-- TWO TRACKS -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div class="kicker" style="margin-bottom: 18px;">Two tracks · one community</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+      <div class="card" style="padding: 32px;">
+        <h3 class="serif" style="font-size: 28px; margin: 0 0 12px; color: #23201B;">Software engineers</h3>
+        <p style="font-size: 16px; line-height: 1.55; color: #5C5349; margin: 0 0 22px;">Backend, frontend, mobile, ML. Agentic patterns, multi-instance Claude Code, and hackathons that ship.</p>
+        <a class="link" href="#">See engineering events →</a>
+      </div>
+      <div class="card" style="padding: 32px;">
+        <h3 class="serif" style="font-size: 28px; margin: 0 0 12px; color: #23201B;">Builders &amp; vibe coders</h3>
+        <p style="font-size: 16px; line-height: 1.55; color: #5C5349; margin: 0 0 22px;">Founders, PMs, designers, students and the AI-curious. Skip the theory. Ship the thing.</p>
+        <a class="link" href="#">Start here →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MADE IN KENYA -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 36px;">
+      <div><div class="kicker" style="margin-bottom: 18px;">Built by the community</div><h2 class="h2">Made with Claude, <em>in Kenya.</em></h2></div>
+      <a class="link" href="#">All projects →</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+      <div class="card" style="padding: 26px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="tile" style="aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;"><span class="slot">Screenshot slot</span></div>
+        <h3 class="serif" style="font-size: 24px; margin: 6px 0 0; color: #23201B;">[Member project]</h3>
+        <div style="font-size: 13.5px; color: #6A6155;">by [Member name] · Nairobi</div>
+        <p style="font-size: 15px; line-height: 1.55; color: #5C5349; margin: 0;">[One line on what it does and who uses it.]</p>
+        <div style="display: flex; gap: 8px; margin-top: 4px;"><span style="font-size: 12px; font-weight: 600; color: #6A6155; background: #EFE7D8; border-radius: 999px; padding: 5px 10px;">Next.js</span><span style="font-size: 12px; font-weight: 600; color: #6A6155; background: #EFE7D8; border-radius: 999px; padding: 5px 10px;">Claude API</span></div>
+      </div>
+      <div class="card" style="padding: 26px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="tile" style="aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;"><span class="slot">Screenshot slot</span></div>
+        <h3 class="serif" style="font-size: 24px; margin: 6px 0 0; color: #23201B;">[Member project]</h3>
+        <div style="font-size: 13.5px; color: #6A6155;">by [Member name] · Kisumu</div>
+        <p style="font-size: 15px; line-height: 1.55; color: #5C5349; margin: 0;">[One line on what it does and who uses it.]</p>
+        <div style="display: flex; gap: 8px; margin-top: 4px;"><span style="font-size: 12px; font-weight: 600; color: #6A6155; background: #EFE7D8; border-radius: 999px; padding: 5px 10px;">Python</span><span style="font-size: 12px; font-weight: 600; color: #6A6155; background: #EFE7D8; border-radius: 999px; padding: 5px 10px;">M-Pesa</span></div>
+      </div>
+      <div style="border: 1.5px dashed #A84E2D; border-radius: 16px; padding: 26px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 14px; background: rgba(168,78,45,0.07);">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#A84E2D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <h3 class="serif" style="font-size: 26px; line-height: 1.15; margin: 0; color: #23201B;">Built something with Claude?</h3>
+        <p style="font-size: 15px; line-height: 1.55; color: #5C5349; margin: 0;">Side project, client work, a bot for your chama. Doesn't have to be finished. This shelf is for your work, not ours.</p>
+        <a class="link" href="#">Share yours →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMUNITY IN ACTION -->
+  <div style="background: #EFE7D8; border-top: 1px solid #E4DAC8; border-bottom: 1px solid #E4DAC8;">
+    <div class="wrap" style="padding: 96px 40px; display: grid; grid-template-columns: 300px 1fr; gap: 88px; align-items: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div style="position: relative; width: 280px; height: 580px; border-radius: 40px; background: #23201B; padding: 10px; box-shadow: 0 30px 60px -30px rgba(35,32,27,0.6), 0 0 0 1px rgba(0,0,0,0.25);">
+          <div style="position: relative; width: 100%; height: 100%; border-radius: 32px; overflow: hidden; background: #23201B;">
+            <img src="mural-laptops.jpg" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(35,32,27,0) 40%, rgba(35,32,27,0.8) 100%);"></div>
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 72px; height: 72px; border-radius: 50%; background: rgba(251,247,240,0.92); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.35);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="#A84E2D"><path d="M8 5.5v13l11-6.5z"></path></svg>
+            </div>
+            <div style="position: absolute; left: 18px; right: 18px; bottom: 22px; color: #FBF7F0;">
+              <div style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #E6906F;">Impact Lab 02 · winners reel</div>
+              <div style="font-size: 14px; font-weight: 600; margin-top: 4px;">60 s · sound on · captions</div>
+            </div>
+          </div>
+          <div style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 84px; height: 24px; border-radius: 12px; background: #23201B;"></div>
+        </div>
+        <span class="slot">Reel slot · poster + tap to play</span>
+      </div>
+      <div>
+        <div class="kicker" style="margin-bottom: 18px;">Community in action</div>
+        <h2 class="h2" style="margin-bottom: 36px;">In their <em>own words.</em></h2>
+        <div class="card" style="padding: 40px 44px 32px; position: relative;">
+          <svg width="40" height="32" viewBox="0 0 40 32" fill="#DDD3C2"><path d="M0 32V19.2C0 8.6 6.4 1.9 17 0l1.4 4.2C11.8 6 8.4 10 8 15h8v17H0zm24 0V19.2C24 8.6 30.4 1.9 41 0l1.4 4.2C35.8 6 32.4 10 32 15h8v17H24z"></path></svg>
+          <p class="serif" style="font-style: italic; font-size: 28px; line-height: 1.35; letter-spacing: -0.01em; color: #23201B; margin: 18px 0 28px;">“The CCK sessions changed how I work. I've been able to scale what I build and bring real AI leverage into my company.”</p>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <img src="billy-mwangi.jpg" alt="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+            <div><div style="font-size: 15.5px; font-weight: 600; color: #23201B;">Billy Mwangi</div><div style="font-size: 13.5px; color: #6A6155;">Building with Claude · Nairobi</div></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 22px; border-top: 1px solid #E4DAC8;">
+            <div style="display: flex; gap: 8px; align-items: center;"><span style="width: 22px; height: 5px; border-radius: 3px; background: #A84E2D;"></span><span style="width: 5px; height: 5px; border-radius: 50%; background: #DDD3C2;"></span><span style="width: 5px; height: 5px; border-radius: 50%; background: #DDD3C2;"></span><span style="width: 5px; height: 5px; border-radius: 50%; background: #DDD3C2;"></span><span style="width: 5px; height: 5px; border-radius: 50%; background: #DDD3C2;"></span></div>
+            <div style="display: flex; gap: 8px;">
+              <span style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #DDD3C2; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#23201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></span>
+              <span style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #DDD3C2; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#23201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 13px; color: #756a5c; margin-top: 14px;">5 slides · names appear only after sign-off.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACES -->
+  <div class="wrap" style="padding: 96px 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 36px;">
+      <div><div class="kicker" style="margin-bottom: 18px;">Faces of the community</div><h2 class="h2">The rooms we've <em>filled.</em></h2></div>
+      <a class="link" href="#">See all photos →</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+      <div class="tile"><img src="audience.jpg" alt=""></div>
+      <div class="tile"><img src="laptops.jpg" alt=""></div>
+      <div class="tile"><img src="group-standing.jpg" alt=""></div>
+      <div class="tile"><img src="mombasa-1.jpg" alt=""></div>
+      <div class="tile"><img src="presenting.jpg" alt=""></div>
+      <div class="tile"><img src="workshop-room.jpg" alt=""></div>
+      <div class="tile"><img src="networking.jpg" alt=""></div>
+      <div class="tile"><img src="duo.jpg" alt=""></div>
+      <div class="tile"><img src="mic-question.jpg" alt=""></div>
+      <div class="tile"><img src="crowd-nairobi.jpg" alt=""></div>
+      <div class="tile"><img src="founder-talk.jpg" alt=""></div>
+      <div class="tile"><img src="mombasa-2.jpg" alt=""></div>
+    </div>
+  </div>
+
+  <!-- SUPPORTED BY -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div style="text-align: center; margin-bottom: 28px;"><div class="kicker" style="color: #6A6155;">Supported by</div></div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
+      <div class="logo-cell"><img src="anthropic-wordmark.png" alt="Anthropic" style="height: 22px; width: auto; "></div>
+      <div class="logo-cell" style="flex-direction: column; gap: 4px;"><span class="wordmark">Hackhouse Africa</span><span class="slot" style="border: 0; padding: 0; background: transparent;">logo slot</span></div>
+      <div class="logo-cell" style="flex-direction: column; gap: 4px;"><span class="wordmark">Blockchain Centre</span><span class="slot" style="border: 0; padding: 0; background: transparent;">logo slot</span></div>
+      <div class="logo-cell" style="flex-direction: column; gap: 4px;"><span class="wordmark">Zone01 Kisumu</span><span class="slot" style="border: 0; padding: 0; background: transparent;">logo slot</span></div>
+      <div class="logo-cell" style="flex-direction: column; gap: 4px;"><span class="wordmark" style="font-size: 16px; line-height: 1.15; text-align: center;">Technical University of Mombasa</span><span class="slot" style="border: 0; padding: 0; background: transparent;">logo slot</span></div>
+    </div>
+    <div style="text-align: center; font-size: 13.5px; color: #6A6155; margin-top: 18px;">Anthropic, via the Claude Community Ambassadors program · and the venues that open their doors to us</div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="wrap" style="padding: 0 40px 96px; display: grid; grid-template-columns: 380px 1fr; gap: 88px;">
+    <div>
+      <div class="kicker" style="margin-bottom: 18px;">Questions</div>
+      <h2 class="h2" style="margin-bottom: 20px;">Before you <em>come.</em></h2>
+      <p style="font-size: 16px; line-height: 1.6; color: #5C5349; margin: 0 0 22px;">The things people ask in the WhatsApp group before their first meetup.</p>
+      <a class="link" href="#">All questions →</a>
+    </div>
+    <div>
+      <div class="faq-q" style="border-top: 0;">What is Claude Community Kenya?<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A84E2D" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></div>
+      <div class="faq-a">A free, volunteer-run community for anyone in Kenya learning or building with Claude. We meet in person in Nairobi, Mombasa and Kisumu, and talk every day on WhatsApp and Discord.</div>
+      <div class="faq-q">Who can join the community?<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+      <div class="faq-q">Is it free to join?<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+      <div class="faq-q">What cities do you operate in?<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+      <div class="faq-q" style="border-bottom: 1px solid #E4DAC8;">How is this related to Anthropic?<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6A6155" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+    </div>
+  </div>
+
+  <!-- CTA BAND -->
+  <div class="wrap" style="padding: 0 40px 96px;">
+    <div class="cta-band" style="padding: 72px 64px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 48px; position: relative; overflow: hidden;">
+      <div style="position: absolute; right: -60px; top: -80px; width: 360px; height: 360px; border-radius: 50%; border: 1px solid rgba(251,247,240,0.14);"></div>
+      <div style="position: absolute; right: 40px; bottom: -140px; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(251,247,240,0.1);"></div>
+      <div style="position: relative;">
+        <h2 class="serif" style="font-size: 52px; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 14px; color: #FBF7F0;">Come build with us.</h2>
+        <p style="font-size: 17px; line-height: 1.55; color: #F1E6D8; margin: 0; max-width: 520px;">No fees, no application. Say hi, tell us your city and what you're curious about, and come to the next meetup.</p>
+      </div>
+      <div style="position: relative; display: flex; gap: 12px;">
+        <a class="btn" href="#" style="background: #FBF7F0; color: #23201B;">Join on WhatsApp</a>
+        <a class="btn" href="#" style="border: 1px solid rgba(251,247,240,0.5); color: #FBF7F0;">Join Discord</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="wrap" style="padding: 64px 40px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1.4fr; gap: 40px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;"><img src="cck-logo.png" alt="" style="width: 36px; height: 36px; border-radius: 50%;"><span class="serif" style="font-size: 19px; font-weight: 500; color: #FBF7F0;">Claude Community Kenya</span></div>
+        <p style="font-size: 14px; line-height: 1.6; color: #C7BEB0; margin: 0 0 20px; max-width: 280px;">The free, volunteer-run community for people in Kenya learning and building with Claude. Karibu.</p>
+        <a class="btn" href="#" style="background: #A84E2D; color: #FBF7F0; padding: 12px 22px; font-size: 14px;">Join the community</a>
+      </div>
+      <div><div class="fh">Explore</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">Home</a><a href="#">Events</a><a href="#">Learn</a><a href="#">Showcase</a><a href="#">Community</a><a href="#">About</a></div></div>
+      <div><div class="fh">Community</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">WhatsApp</a><a href="#">Discord</a><a href="#">Twitter / X</a><a href="#">LinkedIn</a><a href="#">Instagram</a></div></div>
+      <div><div class="fh">Cities</div><div style="display: flex; flex-direction: column; gap: 11px; font-size: 14.5px;"><a href="#">Nairobi</a><a href="#">Mombasa</a><a href="#">Kisumu</a></div></div>
+      <div>
+        <div class="fh">Newsletter</div>
+        <p style="font-size: 14px; line-height: 1.55; color: #C7BEB0; margin: 0 0 14px;">One email when a meetup is announced. Nothing else.</p>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex-grow: 1; height: 44px; border-radius: 999px; border: 1px solid #3B352D; background: #2B2620; display: flex; align-items: center; padding: 0 16px; font-size: 14px; color: #8A7F6E;">you@example.com</div>
+          <span class="btn" style="background: #E6906F; color: #23201B; padding: 0 18px; height: 44px; font-size: 14px;">Subscribe</span>
+        </div>
+      </div>
+    </div>
+    <div class="wrap" style="padding: 0 40px 40px;">
+      <div style="border-top: 1px solid #3B352D; padding-top: 24px; display: flex; justify-content: space-between; font-size: 12.5px; color: #8A7F6E; line-height: 1.6;">
+        <span>Independently operated. Anthropic-supported via the Claude Community Ambassadors program (event funding + API credits).<br>Views expressed here are community-held, not official Anthropic positions. “Claude” is a trademark of Anthropic PBC.</span>
+        <span style="text-align: right;">© 2026 Claude Community Kenya · A community, not a product.<br>Built by the community, for the community.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

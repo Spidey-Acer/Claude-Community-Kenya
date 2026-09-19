@@ -22,9 +22,15 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { register, unregister } from "@/components/karibu/motion/observer";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
+import { FaqAccordion } from "@/components/karibu/FaqAccordion";
+import { faqs } from "@/data/faq";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+
+const RESOURCES_FAQS = faqs.filter((f) => f.category === "general").slice(0, 5);
 
 export interface LearnCard {
   title: string;
@@ -72,22 +78,16 @@ function ProgressLine() {
 export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Learn header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Learn</div>
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Start where you are. <span className="italic text-clay">Build from there.</span>
-          </h1>
-          <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Community-curated guides, prompts and courses for every level — from
-            your very first prompt to production-ready Claude Code.
-          </p>
-        </Reveal>
-      </section>
+      <PageBanner
+        image="/images/community/laptops.webp"
+        imageAlt="Members building on their laptops at a CCK meetup"
+        crumbs={["Home", "Resources"]}
+        title="Start where you are. Build from there."
+        subtitle="Community-curated guides, prompts and courses for every level — from your very first prompt to production-ready Claude Code."
+      />
 
       {/* Resource cards */}
-      <section className={`${WRAP} py-5`} aria-label="Resources">
+      <section className={`${WRAP} py-10`} aria-label="Resources">
         <Reveal className="grid gap-4 sm:grid-cols-2">
           {cards.map((card, i) => {
             const Icon = ICONS[card.icon] ?? Rocket;
@@ -148,6 +148,29 @@ export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
             </div>
           </div>
         </Reveal>
+      </section>
+
+      {/* FAQ */}
+      <section className={`${WRAP} grid gap-11 py-10 lg:grid-cols-[380px_1fr] lg:gap-[88px]`} aria-label="Frequently asked questions">
+        <Reveal>
+          <div className={`${KICKER} mb-[18px]`}>Questions</div>
+          <h2 className="mb-5 font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+            Before you <span className="italic text-clay">start.</span>
+          </h2>
+          <p className="mb-5 font-inter text-[15.5px] leading-[1.6] text-ink-soft sm:text-[16px]">
+            Common questions from people picking up Claude for the first time.
+          </p>
+          <Link href="/faq" className="font-inter text-[15px] font-semibold text-clay hover:underline">
+            All questions →
+          </Link>
+        </Reveal>
+        <Reveal>
+          <FaqAccordion items={RESOURCES_FAQS} variant="rule" />
+        </Reveal>
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { KaribuEvents } from "@/components/karibu/KaribuEvents";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getEvents } from "@/lib/data";
@@ -27,7 +28,11 @@ export default async function EventsPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Events" }]} />
-      <KaribuEvents events={events} />
+      {/* useSearchParams (?city=/?type= from the home page's track links)
+       * needs a Suspense boundary since this page is statically revalidated. */}
+      <Suspense>
+        <KaribuEvents events={events} />
+      </Suspense>
     </>
   );
 }

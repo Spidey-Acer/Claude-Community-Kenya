@@ -1,77 +1,28 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-
 interface CountUpProps {
   target: number;
-  duration?: number;
   prefix?: string;
   suffix?: string;
   className?: string;
 }
 
-export function CountUp({
-  target,
-  duration = 2000,
-  prefix = "",
-  suffix = "",
-  className,
-}: CountUpProps) {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) {
-          setHasStarted(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [hasStarted]);
-
-  useEffect(() => {
-    if (!hasStarted) return;
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCount(target);
-      return;
-    }
-
-    const startTime = performance.now();
-    let frameId: number;
-
-    function animate(currentTime: number) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-
-      if (progress < 1) {
-        frameId = requestAnimationFrame(animate);
-      }
-    }
-
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, [hasStarted, target, duration]);
-
+/**
+ * Renders the final formatted number immediately — in the server-rendered
+ * HTML, on first client paint, and for no-JS or reduced-motion readers alike.
+ * There is no client-side count-up from 0: that flashed "~0" (or the whole
+ * stat missing) at every server-rendered load and at every no-JS visitor,
+ * which is worse than skipping the animation.
+ *
+ * The "climbing" flourish is a pure CSS fade/rise-in (`.count-reveal`, see
+ * globals.css) that starts at first paint, needs no JavaScript to run, and is
+ * automatically flattened to instant by the site-wide
+ * `prefers-reduced-motion: reduce` reset.
+ */
+export function CountUp({ target, prefix = "", suffix = "", className }: CountUpProps) {
+  const classes = ["count-reveal", className].filter(Boolean).join(" ");
   return (
-    <span ref={ref} className={className}>
+    <span className={classes}>
       {prefix}
-      {count.toLocaleString()}
+      {target.toLocaleString()}
       {suffix}
     </span>
   );

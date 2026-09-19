@@ -11,6 +11,10 @@
 import Link from "next/link";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
+import { FaqAccordion } from "@/components/karibu/FaqAccordion";
+import { faqs } from "@/data/faq";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
@@ -20,6 +24,12 @@ const STEPS = [
   { n: "2", title: "Introduce yourself", body: "Your city and what you're building or curious about. We all did." },
   { n: "3", title: "Come to an event", body: "Meet the community in person in your city." },
 ];
+
+// The 5 questions a first-timer actually asks before saying hello.
+const JOIN_FAQ_IDS = ["gen-2", "gen-3", "gen-4", "gen-6", "evt-8"];
+const JOIN_FAQS = JOIN_FAQ_IDS.map((id) => faqs.find((f) => f.id === id)).filter(
+  (f): f is NonNullable<typeof f> => f != null,
+);
 
 export function KaribuJoin() {
   const { whatsapp, discord, lumaNairobi, lumaMombasa } = useSocialLinks();
@@ -33,17 +43,17 @@ export function KaribuJoin() {
 
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-8 pt-16 text-center`} aria-label="Join header">
+      <PageBanner
+        image="/images/community/workshop-room.webp"
+        imageAlt="A full room at a CCK workshop"
+        crumbs={["Home", "Join"]}
+        title="Say hello and you're one of us."
+        subtitle="Free, no application. Introduce yourself and start building with a community growing across Kenya."
+      />
+
+      {/* Primary join CTAs */}
+      <section className={`${WRAP} pb-8 pt-10 text-center`} aria-label="Join CTAs">
         <Reveal>
-          <div className={`${KICKER} mb-4`}>Join</div>
-          <h1 className="mx-auto mb-5 max-w-[820px] font-newsreader text-[44px] font-normal leading-[1.02] tracking-[-0.02em] text-ink sm:text-[60px]">
-            Say <span className="italic text-clay">hello</span> and you&apos;re one of us.
-          </h1>
-          <p className="mx-auto mb-8 max-w-[560px] font-inter text-[18px] leading-[1.6] text-ink-soft">
-            Free, no application. Introduce yourself and start building with a
-            community growing across Kenya.
-          </p>
           <div className="flex flex-wrap justify-center gap-3">
             {whatsapp && (
               <a
@@ -110,6 +120,25 @@ export function KaribuJoin() {
             Request a chapter →
           </Link>
         </p>
+      </section>
+
+      {/* FAQ */}
+      <section className={`${WRAP} py-10`} aria-label="Frequently asked questions">
+        <Reveal>
+          <div className={`${KICKER} mb-4`}>Before you say hello</div>
+        </Reveal>
+        <Reveal className="mx-auto max-w-3xl">
+          <FaqAccordion items={JOIN_FAQS} variant="card" />
+        </Reveal>
+        <p className="mt-4 text-center font-inter text-[13.5px] text-ink-muted">
+          <Link href="/faq" className="font-semibold text-clay hover:underline">
+            All questions →
+          </Link>
+        </p>
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

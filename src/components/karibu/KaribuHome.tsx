@@ -3,44 +3,58 @@
 /**
  * KaribuHome — warm-light "Karibu" home page composition.
  *
- * First page of the page-by-page redesign. Visual language ports the approved
- * `index.dc.html` mockup; all content is wired to real data:
- *   • community stats + active cities from siteSettings (no inflated numbers)
- *   • upcoming events from the DB
- *   • Karibu personalization via the shared rank() engine
+ * Section order matches the approved canvas artboard
+ * (docs/superpowers/specs/canvas-2026-09-05/Main.dc.html) exactly: hero →
+ * stats card → who we are → next up / last event → what we do → two tracks
+ * → made in Kenya → community in action → faces of the community →
+ * supported by → FAQ → CTA band. The footer is rendered by ConditionalLayout,
+ * not here.
  *
- * The persona toggle is intentionally absent here — this route is a single
- * identity. Motion is gated behind prefers-reduced-motion.
+ * All content is wired to real data — community stats + active cities from
+ * SiteSettings, upcoming/past events from the DB, projects filtered to
+ * member work (not CCK's own, see KaribuProjects). Nothing here renders a
+ * canvas annotation ("Screenshot slot", "[Member project]", etc.) as copy.
  */
 
 import Link from "next/link";
 import Image from "next/image";
 import type { Event } from "@/lib/types";
 import type { CommunityStats } from "@/components/sections/HeroTerminal";
-import type { AudienceState } from "@/contexts/AudienceContext";
 import type { ProjectView } from "@/lib/data";
-import { rank, type Recommendable } from "@/lib/recommendations";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
-import { Marquee } from "@/components/karibu/Marquee";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { CountUp } from "@/components/ui/CountUp";
 import { KaribuTestimonials } from "@/components/karibu/KaribuTestimonials";
 import { KaribuProjects } from "@/components/karibu/KaribuProjects";
-import { HERO_PHOTO, HERO_PHOTO_CREDIT, GALLERY_PHOTOS, eventCover } from "@/components/karibu/photos";
+import { HeroMedia } from "@/components/karibu/HeroMedia";
+import { StatsCard } from "@/components/karibu/StatsCard";
+import { FramedPhoto } from "@/components/karibu/FramedPhoto";
+import { PhotoGrid } from "@/components/karibu/PhotoGrid";
+import { SupporterWall } from "@/components/karibu/SupporterWall";
+import { SUPPORTERS } from "@/components/karibu/supporters";
+import { FaqAccordion } from "@/components/karibu/FaqAccordion";
+import { CtaBand } from "@/components/karibu/CtaBand";
+import {
+  HERO_PHOTO,
+  HERO_PHOTO_CREDIT,
+  FIRST_MEETUP_PHOTO,
+  REEL_POSTER_PHOTO,
+  FACES_PHOTOS,
+  eventCover,
+} from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
+import { faqs } from "@/data/faq";
 
 interface KaribuHomeProps {
   communityStats?: CommunityStats;
   upcomingEvents: Event[];
-  audienceState: AudienceState;
-  recommendables: Recommendable[];
+  /** Most recently completed event — hero "Last" chip + the strip's fallback. */
+  latestPastEvent: Event | null;
   featuredProjects: ProjectView[];
   projectOfTheWeek: ProjectView | null;
 }
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER =
-  "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 const TYPE_LABEL: Record<Event["type"], string> = {
   meetup: "Meetup",
@@ -53,333 +67,274 @@ const TYPE_LABEL: Record<Event["type"], string> = {
 /**
  * Today in Nairobi as YYYY-MM-DD — the same shape Event.date already uses, so
  * the comparison is a plain string compare with no parsing or local-timezone
- * drift. Pinning the zone on both server and client also keeps SSR and
- * hydration in agreement for a visitor sitting in another timezone.
+ * drift.
  */
 function todayInNairobi(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Nairobi" });
 }
 
-/**
- * Call-to-action for an event card, derived from when the event is rather than
- * what kind it is. Type was the wrong signal: it labelled every hackathon
- * "Register" for as long as the card existed, including months after the
- * hackathon had been run and judged.
- */
+/** Call-to-action for an upcoming event, derived from when it is. */
 function eventCta(ev: Event): string {
   if (ev.date && ev.date < todayInNairobi()) {
     return ev.type === "hackathon" ? "See the recap" : "View";
   }
-  return ev.type === "hackathon" || ev.status === "registration-open"
-    ? "Register"
-    : "RSVP";
+  return ev.type === "hackathon" || ev.status === "registration-open" ? "Register" : "RSVP";
+}
+
+/** "Wed 2 Sep" style short date for chips and captions. */
+function shortDate(date: string): string {
+  const dt = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return date;
+  return dt.toLocaleString("en-US", { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** "Wednesday 2 September 2026" style long date + time for the event strip. */
+function longDateLine(ev: Event): string {
+  const dt = new Date(`${ev.date}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return `${ev.date}${ev.time ? ` · ${ev.time}` : ""}`;
+  const d = dt.toLocaleString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return `${d}${ev.time ? ` · ${ev.time}` : ""} · ${ev.venue}, ${ev.city}`;
 }
 
 export function KaribuHome({
   communityStats,
   upcomingEvents,
-  audienceState,
-  recommendables,
+  latestPastEvent,
   featuredProjects,
   projectOfTheWeek,
 }: KaribuHomeProps) {
   const cities = communityStats?.citiesActive ?? [];
-  const memberLabel = communityStats?.totalMembers
-    ? `~${communityStats.totalMembers.toLocaleString()} members`
-    : null;
-
-  const marqueeItems = [
-    memberLabel,
-    ...cities,
-    "Free & founder-led",
-    "Anthropic-supported via the Claude Community Ambassadors program",
-    "Everyone welcome",
-  ].filter(Boolean) as string[];
-
   const nextEvent = upcomingEvents[0];
 
   return (
     <>
-      <Marquee items={marqueeItems} />
-      <Hero nextEvent={nextEvent} />
-      <TrustBar stats={communityStats} cities={cities} />
-      <MadeForYouLight audienceState={audienceState} items={recommendables} />
+      <Hero latestPastEvent={latestPastEvent} />
+      <div className={`${WRAP} relative z-[2] -mt-6 sm:-mt-12`}>
+        <StatsCard
+          eventsHosted={communityStats?.eventsHeld ?? 0}
+          buildersReached={communityStats?.totalMembers ?? 0}
+          cities={cities.length ? cities : ["Nairobi", "Mombasa", "Kisumu"]}
+          sinceLabel="Jan '26"
+          sinceDetail="first meetup, Westlands"
+        />
+      </div>
+      <WhoWeAre />
+      <NextUpStrip nextEvent={nextEvent} latestPastEvent={latestPastEvent} />
       <WhatWeDo />
       <TwoTracks />
-      <EventsSection events={upcomingEvents.slice(0, 3)} />
       <KaribuProjects projectOfTheWeek={projectOfTheWeek} featuredProjects={featuredProjects} />
       <CommunityInAction />
-      <HowToJoin />
+      <FacesOfTheCommunity />
       <SupportedBy />
+      <FaqSection />
+      <section className={`${WRAP} pb-20 pt-4`} aria-label="Join">
+        <CtaBand />
+      </section>
     </>
-  );
-}
-
-/* ─────────────────────────── Supported by ─────────────────────────── */
-
-function SupportedBy() {
-  return (
-    <section className={`${WRAP} pb-20 pt-4`} aria-label="Supported by">
-      <Reveal>
-        <p className="mb-8 text-center font-inter text-xs font-semibold uppercase tracking-[0.22em] text-ink-muted">
-          Supported by
-        </p>
-        <div className="flex flex-col items-center gap-3">
-          <a
-            href="https://anthropic.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center rounded-2xl border border-sand bg-paper-card px-7 py-5 transition-colors hover:border-clay/50"
-          >
-            <Image
-              src="/images/anthropic-wordmark.webp"
-              alt="Anthropic"
-              width={160}
-              height={43}
-              className="anthropic-mark"
-              style={{ width: "160px", height: "auto" }}
-            />
-          </a>
-          <p className="font-inter text-[12.5px] text-ink-soft">
-            via the Claude Community Ambassadors program
-          </p>
-        </div>
-      </Reveal>
-    </section>
   );
 }
 
 /* ─────────────────────────── Hero ─────────────────────────── */
 
-/**
- * The hero is the LCP element, so nothing in it may wait for hydration.
- * Entrance runs via the CSS-only [data-hero-rise] animation in globals.css
- * (starts at first paint) instead of Framer Motion (starts after ~363KB of JS
- * has parsed and hydrated). Below-fold sections keep their motion wrappers.
- */
-function Hero({ nextEvent }: { nextEvent?: Event }) {
+function Hero({ latestPastEvent }: { latestPastEvent: Event | null }) {
   const { whatsapp } = useSocialLinks();
 
   return (
-    <section className={`${WRAP} pb-14 pt-[74px]`} aria-label="Hero">
-      <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <div data-hero-rise style={{ "--i": 0 } as React.CSSProperties} className={`${KICKER} mb-6`}>
-            Karibu · Kenya&apos;s Claude Community
-          </div>
-          <h1
-            data-hero-rise
-            style={{ "--i": 1 } as React.CSSProperties}
-            className="mb-6 font-newsreader text-[44px] font-normal leading-[1.04] tracking-[-0.02em] text-ink sm:text-[54px] lg:text-[62px]"
-          >
-            A free community for Kenyans{" "}
-            <span className="italic text-clay">learning &amp; building</span> with
-            Claude.
-          </h1>
-          <p
-            data-hero-rise
-            style={{ "--i": 2 } as React.CSSProperties}
-            className="mb-9 max-w-[480px] font-inter text-[18px] leading-[1.6] text-ink-soft"
-          >
-            Founder-led, mobile-first, and open to everyone — from first-time
-            students to seasoned developers. Meet-ups, hands-on workshops, and a
-            warm community growing across Kenya.
-          </p>
-          <div
-            data-hero-rise
-            style={{ "--i": 3 } as React.CSSProperties}
-            className="flex flex-wrap items-center gap-3.5"
-          >
-            {whatsapp && (
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                Join the community
-              </a>
-            )}
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-[15px] font-inter text-[15.5px] font-semibold text-ink transition-colors hover:border-ink"
+    <HeroMedia
+      posterSrc={HERO_PHOTO}
+      posterAlt="Claude Community Kenya members at a meetup"
+    >
+      {/* The hero sizes to its content, with a floor, rather than a fixed
+       * height: the ticker now sits above the sticky nav, and at 390px the
+       * copy stack is taller than a fixed 560px box, so the headline ran up
+       * behind the nav. `pt` reserves the ticker + nav band; the min heights
+       * keep the intended proportions once the copy fits. */}
+      <div
+        className={`${WRAP} relative flex min-h-[560px] flex-col justify-end pb-16 pt-[124px] sm:min-h-[620px] sm:pb-20 sm:pt-28 lg:min-h-[680px] lg:pb-[92px]`}
+      >
+        <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-scrim/35 py-1.5 pl-2.5 pr-3.5 backdrop-blur-sm">
+          <span className="h-[7px] w-[7px] rounded-full bg-clay-light" aria-hidden="true" />
+          <span className="font-inter text-xs font-semibold uppercase tracking-[0.18em] text-scrim-text">
+            Karibu · Kenya&apos;s Claude community
+          </span>
+        </div>
+        <h1 className="mb-6 max-w-[760px] font-newsreader text-[38px] font-normal leading-[1.05] tracking-[-0.02em] text-scrim-text sm:text-[54px] lg:text-[64px]">
+          A free community for Kenyans{" "}
+          <span className="italic text-clay-light">learning &amp; building</span> with Claude.
+        </h1>
+        <p className="mb-8 max-w-[580px] font-inter text-[16px] leading-[1.6] text-scrim-text-soft sm:text-[18px]">
+          Free meetups in Nairobi, Mombasa and Kisumu. Workshops, build days and a
+          room that answers questions. Beginners welcome.
+        </p>
+        <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3.5">
+          {whatsapp && (
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
             >
-              See upcoming events →
-            </Link>
-          </div>
+              Join the community
+            </a>
+          )}
+          <Link
+            href="#made-in-kenya"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/45 px-6 py-[15px] font-inter text-[15.5px] font-semibold text-scrim-text transition-colors hover:border-white"
+          >
+            See what we&apos;ve built <span aria-hidden="true">→</span>
+          </Link>
         </div>
 
-        {/* Hero visual — real CCK meetup photo. Also above the fold and a
-            competing LCP candidate, so it uses the same CSS entrance. */}
-        <div
-          data-hero-rise
-          style={{ "--i": 1 } as React.CSSProperties}
-          className="frame-base frame-photo rounded-2xl border border-sand-2"
-        >
-          <Image
-            src={HERO_PHOTO}
-            alt={`Claude Community Kenya members at the ${HERO_PHOTO_CREDIT}`}
-            fill
-            priority
-            sizes="(max-width: 1024px) 100vw, 560px"
-            className="object-cover"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim/45 via-transparent to-transparent" />
-          {/* Photo credit. The "Coming up" chip below is an announcement
-           * overlay, not a caption — naming what the photograph actually
-           * shows is what keeps that distinction honest. */}
-          <div className="pointer-events-none absolute left-[18px] top-[18px] rounded-full border border-white/15 bg-scrim/70 px-3 py-1 backdrop-blur-md">
-            <span className="font-inter text-[10px] font-semibold uppercase tracking-[0.14em] text-scrim-text-soft">
-              {HERO_PHOTO_CREDIT}
-            </span>
-          </div>
-          {nextEvent && (
-            <div className="absolute inset-x-[18px] bottom-[18px] overflow-hidden rounded-xl border border-white/15 backdrop-blur-md">
-              {/* Gradient scrim, not a flat block — darkens the photo under
-               * the text without a hard-edged bar. Built from the fixed
-               * --scrim tokens (not --ink/--paper-card) so it stays a dark
-               * scrim with light text in every theme; those tokens flip in
-               * dark mode and would otherwise turn this into a near-white
-               * bar with illegible white-on-white text. */}
-              <div className="absolute inset-0 bg-gradient-to-t from-scrim via-scrim/85 to-scrim/60" />
-              <div className="relative px-4 py-3">
-                <div className="font-inter text-[10.5px] font-semibold uppercase tracking-[0.14em] text-clay-light">
-                  Coming up
-                </div>
-                <div className="mt-0.5 font-inter text-[14px] font-semibold leading-tight text-scrim-text">
-                  {nextEvent.title}
-                </div>
-                {typeof nextEvent.attendeeCount === "number" && (
-                  <div className="mt-0.5 font-inter text-[12px] text-scrim-text-soft">
-                    {nextEvent.attendeeCount} registered
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* Bottom row: last-event chip (left) + photo credit (right) — the
+         * only piece of the canvas's annotation family that ships is the
+         * credit, since it names what the photo actually shows. */}
+        <div className="mt-10 flex flex-wrap items-end justify-between gap-4 sm:mt-14">
+          {latestPastEvent ? (
+            <Link
+              href={`/events/${latestPastEvent.slug}`}
+              className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-scrim/60 px-3.5 py-2.5 backdrop-blur-md"
+            >
+              <span className="font-inter text-[10.5px] font-semibold uppercase tracking-[0.14em] text-clay-light">
+                Last
+              </span>
+              <span className="font-inter text-sm font-semibold text-scrim-text">
+                {latestPastEvent.title} · {shortDate(latestPastEvent.date)}
+              </span>
+              <span className="font-inter text-sm text-scrim-text-soft">· recap →</span>
+            </Link>
+          ) : (
+            <span />
           )}
+          <span className="font-inter text-[10px] font-semibold uppercase tracking-[0.14em] text-scrim-text-soft/80">
+            Poster: {HERO_PHOTO_CREDIT}
+          </span>
         </div>
       </div>
+      {/* Marks where the hero ends, for KaribuNav's pinned mobile bottom bar
+       * (shows once this scrolls out of view). Zero-size — purely a scroll
+       * marker, never rendered visibly. */}
+      <div data-hero-sentinel aria-hidden="true" />
+    </HeroMedia>
+  );
+}
+
+/* ─────────────────────────── Who we are ─────────────────────────── */
+
+function WhoWeAre() {
+  return (
+    <section className={`${WRAP} grid gap-11 py-16 sm:py-24 lg:grid-cols-[500px_1fr] lg:items-center lg:gap-[88px]`} aria-label="Who we are">
+      <Reveal>
+        <FramedPhoto
+          src={FIRST_MEETUP_PHOTO}
+          alt="Claude Community Kenya's first meetup in Westlands, Nairobi"
+          caption="First meetup · Jan 2026"
+          priority
+        />
+      </Reveal>
+      <Reveal>
+        <div className={`${KICKER} mb-[18px]`}>Who we are</div>
+        <h2 className="mb-5 font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+          How CCK <span className="italic text-clay">started</span>
+        </h2>
+        <p className="mb-4 font-inter text-[16px] leading-[1.65] text-ink-soft sm:text-[17px]">
+          It began with a handful of people in Nairobi swapping notes on what they
+          were building with Claude. Word spread, the group filled up, and
+          meetups followed in Mombasa and Kisumu. Today it&apos;s students,
+          founders, marketers and engineers at every level.
+        </p>
+        <p className="mb-7 font-inter text-[16px] leading-[1.65] text-ink-soft sm:text-[17px]">
+          We stayed free and volunteer-run on purpose. The point isn&apos;t to
+          sell anything. It&apos;s to make sure that if you&apos;re in Kenya
+          and curious about AI, there&apos;s a warm, capable room waiting for
+          you.
+        </p>
+        <Link href="/about" className="font-inter text-[15px] font-semibold text-clay hover:underline">
+          Read our story →
+        </Link>
+      </Reveal>
     </section>
   );
 }
 
-/* ─────────────────────────── Trust bar ─────────────────────────── */
+/* ─────────────────── Next up / Last event strip ─────────────────── */
 
-function TrustBar({
-  stats,
-  cities,
+function NextUpStrip({
+  nextEvent,
+  latestPastEvent,
 }: {
-  stats?: CommunityStats;
-  cities: string[];
+  nextEvent?: Event;
+  latestPastEvent: Event | null;
 }) {
-  const items: { big: React.ReactNode; small: string }[] = [
-    {
-      // Count up only the members figure — it's the one number that rewards
-      // watching it climb. City count (1–2) would read as filler animated.
-      big: stats?.totalMembers ? (
-        <CountUp target={stats.totalMembers} prefix="~" />
-      ) : (
-        "Growing"
-      ),
-      small: "members & growing",
-    },
-    {
-      big: cities.length ? `${cities.length} ${cities.length === 1 ? "city" : "cities"}` : "Kenya",
-      small: cities.length ? cities.join(" · ") : "and expanding",
-    },
-    { big: "100% free", small: "community-run, always open" },
-    { big: "Supported", small: "Claude Community Ambassadors program" },
-  ];
+  const { whatsapp } = useSocialLinks();
+  const featured = nextEvent ?? latestPastEvent ?? undefined;
+  if (!featured) return null;
+
+  const isUpcoming = featured === nextEvent;
+  const cover = eventCover(featured.posterUrl);
 
   return (
-    <div className="relative overflow-hidden border-y border-sand bg-paper-alt">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(90deg, rgba(193,95,60,0.05) 0 2px, transparent 2px 16px)",
-          animation: "karibu-drift 36s linear infinite",
-        }}
-        aria-hidden="true"
-      />
-      <div className={`${WRAP} grid grid-cols-2 lg:grid-cols-4`}>
-        {items.map((it) => (
-          <div key={it.small} className="py-[26px] pr-6">
-            <div className="font-newsreader text-[30px] font-medium text-ink">
-              {it.big}
-            </div>
-            <div className="mt-0.5 font-inter text-[13.5px] text-ink-muted">
-              {it.small}
+    <section className={`${WRAP} pb-16 sm:pb-24`} aria-label={isUpcoming ? "Next event" : "Last event"}>
+      <Reveal>
+        <div className="mb-5 flex items-baseline justify-between">
+          <div className={KICKER}>{isUpcoming ? "Next up" : "Last event"}</div>
+          <Link href="/events" className="font-inter text-[14.5px] font-semibold text-clay hover:underline">
+            All events →
+          </Link>
+        </div>
+        <div className="grid overflow-hidden rounded-2xl border border-sand bg-paper-card md:grid-cols-[minmax(0,380px)_1fr]">
+          <div className="frame-base frame-plate border-b border-sand md:border-b-0 md:border-r">
+            {cover ? (
+              <Image
+                src={cover}
+                alt={featured.title}
+                fill
+                sizes="(min-width: 768px) 380px, 100vw"
+                className="object-contain"
+              />
+            ) : (
+              <EventCoverPlaceholder event={featured} size="lg" />
+            )}
+          </div>
+          <div className="flex flex-col justify-center gap-3.5 p-8 md:p-11">
+            <span className="w-fit rounded-full bg-clay/10 px-3 py-1.5 font-inter text-[11px] font-bold uppercase tracking-[0.1em] text-clay">
+              {TYPE_LABEL[featured.type]}
+              {isUpcoming ? "" : " · Recap"}
+            </span>
+            <h3 className="font-newsreader text-[26px] leading-[1.15] tracking-[-0.015em] text-ink sm:text-[32px]">
+              {featured.title}
+            </h3>
+            <div className="font-inter text-[14.5px] text-ink-muted">{longDateLine(featured)}</div>
+            <div className="mt-2 flex flex-wrap gap-3">
+              {isUpcoming ? (
+                <Link
+                  href={`/events/${featured.slug}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-[14.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                >
+                  {eventCta(featured)}
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href={`/events/${featured.slug}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-[14.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                  >
+                    Read the recap
+                  </Link>
+                  {whatsapp && (
+                    <a
+                      href={whatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-3 font-inter text-[14.5px] font-semibold text-ink transition-colors hover:border-ink"
+                    >
+                      Get a heads-up for the next one
+                    </a>
+                  )}
+                </>
+              )}
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────── Made for you (personalized) ─────────────────── */
-
-function MadeForYouLight({
-  audienceState,
-  items,
-}: {
-  audienceState: AudienceState;
-  items: Recommendable[];
-}) {
-  const ranked = rank(items, {
-    audience: audienceState.audience,
-    intent: audienceState.intent,
-    experience: audienceState.experience,
-    city: audienceState.city,
-  }).slice(0, 3);
-  if (ranked.length === 0) return null;
-
-  return (
-    <section className={`${WRAP} py-16`} aria-label="Recommended for you">
-      <Reveal>
-        <div className={`${KICKER} mb-4`}>Made for you</div>
-        <h2 className="mb-8 font-newsreader text-[40px] font-normal leading-[1.1] tracking-[-0.015em] text-ink">
-          {ranked.length >= 3 ? "Three things to start with." : "Start with these."}
-        </h2>
-      </Reveal>
-      <Reveal
-        className={`grid gap-4 ${
-          ranked.length === 1
-            ? "max-w-md"
-            : ranked.length === 2
-              ? "sm:grid-cols-2"
-              : "sm:grid-cols-3"
-        }`}
-      >
-        {ranked.map((item) => {
-          const href =
-            item.type === "event"
-              ? `/events/${item.id}`
-              : item.type === "resource"
-                ? `/blog/${item.id}`
-                : `/community/${item.id}`;
-          return (
-            <Link
-              key={`${item.type}-${item.id}`}
-              href={href}
-              className="group rounded-2xl border border-sand bg-paper-card p-5 transition-colors hover:border-clay"
-            >
-              <span className="font-inter text-[11px] font-semibold uppercase tracking-[0.1em] text-clay">
-                {item.type}
-              </span>
-              <div className="mt-1.5 line-clamp-2 font-inter text-[15px] font-semibold leading-tight text-ink">
-                {item.title}
-              </div>
-              {item.date && (
-                <div className="mt-2 font-inter text-[13px] text-ink-muted">
-                  {item.date.toISOString().slice(0, 10)}
-                  {item.city ? ` · ${item.city}` : ""}
-                </div>
-              )}
-            </Link>
-          );
-        })}
+        </div>
       </Reveal>
     </section>
   );
@@ -387,91 +342,85 @@ function MadeForYouLight({
 
 /* ─────────────────────────── What we do ─────────────────────────── */
 
+const WHAT_WE_DO = [
+  {
+    n: "01",
+    title: "Events & meetups",
+    body: "Regular in-person gatherings across our cities. Live demos, project showcases, and the hallway conversations that start real projects.",
+    cta: "See events →",
+    href: "/events",
+    clay: false,
+  },
+  {
+    n: "02",
+    title: "Hands-on workshops",
+    body: "Deep dives on Claude Code, agentic patterns and shipping real apps.",
+    cta: "Explore resources →",
+    href: "/resources",
+    clay: false,
+  },
+  {
+    n: "03",
+    title: "Online community",
+    body: "WhatsApp & Discord. Questions answered daily, wins shared nightly.",
+    cta: "Join the room →",
+    href: "whatsapp",
+    clay: true,
+  },
+  {
+    n: "04",
+    title: "Learn with Claude",
+    body: "Shared guides, prompts and starter projects pitched for every level, from your first prompt to production.",
+    cta: "Explore resources →",
+    href: "/resources",
+    clay: false,
+  },
+] as const;
+
 function WhatWeDo() {
+  const { whatsapp } = useSocialLinks();
   return (
-    <section id="what" className={`${WRAP} pb-8 pt-20`} aria-label="What we do">
+    <section className={`${WRAP} pb-16 sm:pb-24`} aria-label="What we do">
       <Reveal>
-        <div className={`${KICKER} mb-4`}>What we do</div>
-        <h2 className="mb-10 max-w-[620px] font-newsreader text-[40px] font-normal leading-[1.1] tracking-[-0.015em] text-ink">
-          Four ways we learn and build together.
+        <div className={`${KICKER} mb-[18px]`}>What we do</div>
+        <h2 className="mb-9 max-w-[620px] font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+          Four ways we learn and build <span className="italic text-clay">together.</span>
         </h2>
       </Reveal>
-
-      {/* Each card reveals on its own staggered delay (--i, capped at 6 steps)
-       * and lifts 4px on hover. The grid-span classes live on the Reveal so it
-       * is the grid item; the article fills it with h-full. */}
-      <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
-        {/* 01 — tall */}
-        <Reveal index={0} className="md:row-span-2">
-          <article className="flex h-full flex-col justify-between rounded-2xl border border-sand bg-paper-card p-7 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay">
-            <div className="font-mono text-xs tracking-[0.06em] text-clay">01</div>
-            <div>
-              <h3 className="mb-2.5 font-newsreader text-[27px] text-ink">
-                Events &amp; meetups
-              </h3>
-              <p className="font-inter text-[15px] leading-[1.55] text-ink-soft">
-                Regular in-person gatherings across our cities — live demos,
-                project showcases, and the hallway conversations that start real
-                projects.
-              </p>
-            </div>
-          </article>
-        </Reveal>
-
-        {/* 02 */}
-        <Reveal index={1}>
-          <article className="h-full rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay">
-            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay">02</div>
-            <h3 className="mb-2 font-newsreader text-[22px] text-ink">
-              Hands-on workshops
-            </h3>
-            <p className="font-inter text-sm leading-[1.5] text-ink-soft">
-              Deep dives on Claude Code, agentic patterns and shipping real apps.
-            </p>
-          </article>
-        </Reveal>
-
-        {/* 03 — clay */}
-        <Reveal index={2}>
-          <article className="h-full rounded-2xl bg-clay p-6 text-paper-card transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1">
-            <div className="mb-8 font-mono text-xs tracking-[0.06em] text-clay-light">
-              03
-            </div>
-            <h3 className="mb-2 font-newsreader text-[22px]">Online community</h3>
-            <p className="font-inter text-sm leading-[1.5] text-[#F5E4DB]">
-              WhatsApp &amp; Discord — questions answered daily, wins shared
-              nightly.
-            </p>
-          </article>
-        </Reveal>
-
-        {/* 04 — wide */}
-        <Reveal index={3} className="md:col-span-2">
-          <article className="group flex h-full flex-col items-center gap-6 rounded-2xl border border-sand bg-paper-card p-6 transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 active:-translate-y-0.5 active:border-clay md:flex-row">
-            <div className="flex-1">
-              <div className="mb-2.5 font-mono text-xs tracking-[0.06em] text-clay">
-                04
-              </div>
-              <h3 className="mb-2 font-newsreader text-[22px] text-ink">
-                Learn with Claude
-              </h3>
-              <p className="font-inter text-sm leading-[1.5] text-ink-soft">
-                Shared guides, prompts and starter projects pitched for every
-                level — from your first prompt to production.
-              </p>
-            </div>
-            <Link
-              href="/resources"
-              className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-clay hover:underline"
+      <Reveal className="grid gap-4 md:grid-cols-4">
+        {WHAT_WE_DO.map((card) => {
+          const isWhatsapp = card.href === "whatsapp";
+          const linkHref = isWhatsapp ? whatsapp : card.href;
+          return (
+            <article
+              key={card.n}
+              className={`flex min-h-[220px] flex-col gap-3 rounded-2xl p-7 sm:min-h-[250px] ${
+                card.clay ? "bg-clay text-paper-card" : "border border-sand bg-paper-card"
+              }`}
             >
-              Explore resources{" "}
-              <span className="inline-block transition-transform duration-150 ease-[var(--ease-reversible)] group-hover:translate-x-1">
-                →
-              </span>
-            </Link>
-          </article>
-        </Reveal>
-      </div>
+              <div className={`font-mono text-xs tracking-[0.06em] ${card.clay ? "text-clay-light" : "text-clay"}`}>
+                {card.n}
+              </div>
+              <h3 className={`font-newsreader text-[25px] ${card.clay ? "text-paper-card" : "text-ink"}`}>
+                {card.title}
+              </h3>
+              <p className={`flex-1 font-inter text-[15px] leading-[1.55] ${card.clay ? "text-[#F1E6D8]" : "text-ink-soft"}`}>
+                {card.body}
+              </p>
+              {linkHref && (
+                <a
+                  href={linkHref}
+                  target={isWhatsapp ? "_blank" : undefined}
+                  rel={isWhatsapp ? "noopener noreferrer" : undefined}
+                  className={`font-inter text-sm font-semibold hover:underline ${card.clay ? "text-paper-card" : "text-clay"}`}
+                >
+                  {card.cta}
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </Reveal>
     </section>
   );
 }
@@ -480,20 +429,20 @@ function WhatWeDo() {
 
 function TwoTracks() {
   return (
-    <section className={`${WRAP} py-14`} aria-label="Two tracks">
+    <section className={`${WRAP} pb-16 sm:pb-24`} aria-label="Two tracks">
       <Reveal>
-        <div className={`${KICKER} mb-4`}>Two tracks · one community</div>
+        <div className={`${KICKER} mb-[18px]`}>Two tracks · one community</div>
       </Reveal>
       <Reveal className="grid gap-4 md:grid-cols-2">
         <TrackCard
           title="Software engineers"
           body="Backend, frontend, mobile, ML. Agentic patterns, multi-instance Claude Code, and hackathons that ship."
           cta="See engineering events →"
-          href="/events"
+          href="/events?type=hackathon"
         />
         <TrackCard
           title="Builders & vibe coders"
-          body="Founders, PMs, designers, students and the AI-curious. Skip the theory — ship the thing."
+          body="Founders, PMs, designers, students and the AI-curious. Skip the theory. Ship the thing."
           cta="Start here →"
           href="/join"
         />
@@ -502,237 +451,110 @@ function TwoTracks() {
   );
 }
 
-function TrackCard({
-  title,
-  body,
-  cta,
-  href,
-}: {
-  title: string;
-  body: string;
-  cta: string;
-  href: string;
-}) {
+function TrackCard({ title, body, cta, href }: { title: string; body: string; cta: string; href: string }) {
   return (
     <div className="rounded-2xl border border-sand bg-paper-card p-8">
       <h3 className="mb-2.5 font-newsreader text-[26px] text-ink">{title}</h3>
-      <p className="mb-4 font-inter text-[15px] leading-[1.6] text-ink-soft">
-        {body}
-      </p>
-      <Link
-        href={href}
-        className="font-inter text-[14.5px] font-semibold text-clay hover:underline"
-      >
+      <p className="mb-4 font-inter text-[15px] leading-[1.6] text-ink-soft">{body}</p>
+      <Link href={href} className="font-inter text-[14.5px] font-semibold text-clay hover:underline">
         {cta}
       </Link>
     </div>
   );
 }
 
-/* ─────────────────────────── Events ─────────────────────────── */
-
-function EventsSection({ events }: { events: Event[] }) {
-  if (events.length === 0) return null;
-  return (
-    <section className={`${WRAP} py-14`} aria-label="Upcoming events">
-      <Reveal>
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className={`${KICKER} mb-3.5`}>Upcoming</div>
-            <h2 className="font-newsreader text-[40px] font-normal tracking-[-0.015em] text-ink">
-              Come to the next one.
-            </h2>
-          </div>
-          <Link
-            href="/events"
-            className="font-inter text-[14.5px] font-semibold text-clay hover:underline"
-          >
-            All events →
-          </Link>
-        </div>
-      </Reveal>
-
-      <Reveal className={`grid gap-4 ${events.length >= 3 ? "md:grid-cols-3" : events.length === 2 ? "md:grid-cols-2" : ""}`}>
-        {events.map((ev) => {
-          const single = events.length === 1;
-          const cover = eventCover(ev.posterUrl);
-          const cta = eventCta(ev);
-          return (
-            <Link
-              key={ev.slug}
-              href={`/events/${ev.slug}`}
-              className={`group overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay active:border-clay active:-translate-y-0.5 ${
-                single ? "md:grid md:grid-cols-[minmax(0,300px)_1fr]" : "block"
-              }`}
-            >
-              <div
-                className={`frame-base border-sand ${
-                  single
-                    ? "frame-plate border-b md:border-b-0 md:border-r"
-                    : "frame-tile border-b"
-                }`}
-              >
-                {cover ? (
-                  <Image
-                    src={cover}
-                    alt={ev.title}
-                    fill
-                    sizes={
-                      single
-                        ? "(min-width: 768px) 300px, 100vw"
-                        : "(min-width: 1024px) 240px, (min-width: 768px) 33vw, 100vw"
-                    }
-                    className={single ? "object-contain" : "object-cover"}
-                  />
-                ) : (
-                  <EventCoverPlaceholder event={ev} size={single ? "lg" : "sm"} />
-                )}
-              </div>
-              <div className="p-[22px]">
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {ev.city && (
-                    <span className="rounded-full bg-clay/10 px-2.5 py-1 font-inter text-xs font-semibold text-clay">
-                      {ev.city}
-                    </span>
-                  )}
-                  <span className="rounded-full bg-paper-alt px-2.5 py-1 font-inter text-xs font-semibold text-ink-muted">
-                    {TYPE_LABEL[ev.type]}
-                  </span>
-                </div>
-                <div className="mb-1.5 font-inter text-[13px] text-ink-muted">
-                  {ev.date}
-                  {ev.time ? ` · ${ev.time}` : ""}
-                </div>
-                <h3 className="mb-4 font-newsreader text-[22px] leading-[1.15] text-ink">
-                  {ev.title}
-                </h3>
-                <span className="border-b-2 border-clay pb-0.5 font-inter text-sm font-semibold text-ink">
-                  {cta}
-                </span>
-              </div>
-            </Link>
-          );
-        })}
-      </Reveal>
-    </section>
-  );
-}
-
-/* ─────────────────── Community in action (testimonials) ─────────────────── */
+/* ─────────────── Community in action (reel + testimonials) ─────────────── */
 
 function CommunityInAction() {
   return (
-    <section className={`${WRAP} py-14`} aria-label="Community in action">
+    <div className="border-y border-sand bg-paper-alt">
+      <div className={`${WRAP} grid gap-11 py-16 sm:py-24 lg:grid-cols-[300px_1fr] lg:items-center lg:gap-[88px]`}>
+        <Reveal className="flex flex-col items-center gap-4">
+          <div className="relative w-[240px] rounded-[36px] bg-ink p-2.5 shadow-[0_30px_60px_-30px_rgba(35,32,27,0.6)] sm:w-[280px] sm:rounded-[40px]">
+            <div className="relative aspect-[9/18.5] overflow-hidden rounded-[28px] bg-ink sm:rounded-[32px]">
+              <Image src={REEL_POSTER_PHOTO} alt="" fill sizes="280px" className="object-cover" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-scrim via-transparent to-transparent" />
+              <div className="absolute inset-x-4 bottom-4 text-scrim-text">
+                <div className="font-inter text-[10.5px] font-semibold uppercase tracking-[0.14em] text-clay-light">
+                  Impact Lab 02 · winners reel
+                </div>
+                <div className="mt-1 font-inter text-[13px] font-semibold">Recap video coming soon</div>
+              </div>
+            </div>
+            <div className="absolute left-1/2 top-[22px] h-6 w-[84px] -translate-x-1/2 rounded-xl bg-ink" aria-hidden="true" />
+          </div>
+        </Reveal>
+        <Reveal>
+          <div className={`${KICKER} mb-[18px]`}>Community in action</div>
+          <h2 className="mb-9 font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+            In their <span className="italic text-clay">own words.</span>
+          </h2>
+          <KaribuTestimonials />
+        </Reveal>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────── Faces of the community ─────────────────── */
+
+function FacesOfTheCommunity() {
+  return (
+    <section className={`${WRAP} py-16 sm:py-24`} aria-label="Faces of the community">
       <Reveal>
-        <div className={`${KICKER} mb-4`}>Community in action</div>
-      </Reveal>
-      <Reveal className="grid items-stretch gap-6 lg:grid-cols-2">
-        {/* Real member & event photos. */}
-        <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-3">
-          <div className="relative row-span-2 overflow-hidden rounded-xl">
-            <Image src={GALLERY_PHOTOS.tall} alt="CCK members building with Claude" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
+        <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className={`${KICKER} mb-[18px]`}>Faces of the community</div>
+            <h2 className="font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+              The rooms we&apos;ve <span className="italic text-clay">filled.</span>
+            </h2>
           </div>
-          <div className="relative overflow-hidden rounded-xl">
-            <Image src={GALLERY_PHOTOS.topRight} alt="Engaged audience at a CCK meetup" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
-          </div>
-          <div className="relative overflow-hidden rounded-xl">
-            <Image src={GALLERY_PHOTOS.bottomRight} alt="CCK community group photo" fill sizes="(max-width: 1024px) 50vw, 280px" className="object-cover" />
-          </div>
+          <Link href="/gallery" className="font-inter text-[14.5px] font-semibold text-clay hover:underline">
+            See all photos →
+          </Link>
         </div>
-        <KaribuTestimonials />
+        <PhotoGrid photos={FACES_PHOTOS} columns={4} />
       </Reveal>
     </section>
   );
 }
 
-/* ─────────────────────────── How to join ─────────────────────────── */
+/* ─────────────────────────── Supported by ─────────────────────────── */
 
-const JOIN_STEPS = [
-  {
-    n: "1",
-    title: 'Tap "Join on WhatsApp"',
-    body: "Opens the main community group instantly.",
-  },
-  {
-    n: "2",
-    title: "Introduce yourself",
-    body: "Your city and what you're building or curious about.",
-  },
-  {
-    n: "3",
-    title: "Come to an event near you",
-    body: "Meetups across Kenya — all welcome.",
-  },
-];
-
-function HowToJoin() {
-  const { whatsapp, discord } = useSocialLinks();
+function SupportedBy() {
   return (
-    <section id="join" className={`${WRAP} py-14`} aria-label="How to join">
-      <Reveal className="relative overflow-hidden rounded-2xl bg-panel-dark p-9 text-on-panel-dark sm:p-[54px]">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(90deg, rgba(230,144,111,0.06) 0 2px, transparent 2px 16px)",
-            animation: "karibu-drift 36s linear infinite",
-          }}
-          aria-hidden="true"
+    <section className={`${WRAP} pb-16 sm:pb-24`} aria-label="Supported by">
+      <Reveal>
+        <SupporterWall
+          supporters={SUPPORTERS}
+          caption="Anthropic, via the Claude Community Ambassadors program · and the venues that open their doors to us"
         />
-        <div className="relative grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
-            <div className="mb-4 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay-light">
-              How to join
-            </div>
-            <h2 className="mb-5 font-newsreader text-[40px] font-normal leading-[1.1] tracking-[-0.015em]">
-              Three taps and you&apos;re in.
-            </h2>
-            <p className="mb-7 font-inter text-base leading-[1.6] text-[#C7BEB0]">
-              No fees, no application. Just introduce yourself and start
-              building.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {whatsapp && (
-                <a
-                  href={whatsapp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-clay px-[26px] py-[15px] font-inter text-[15.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-                >
-                  Join on WhatsApp
-                </a>
-              )}
-              {discord && (
-                <a
-                  href={discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#554E44] px-6 py-[15px] font-inter text-[15.5px] font-semibold text-on-panel-dark transition-colors hover:border-on-panel-dark"
-                >
-                  Join Discord
-                </a>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3.5">
-            {JOIN_STEPS.map((step, i) => (
-              <div
-                key={step.n}
-                className={`flex items-start gap-[18px] ${
-                  i < JOIN_STEPS.length - 1 ? "border-b border-[#3B352D] pb-3.5" : ""
-                }`}
-              >
-                <div className="font-newsreader text-2xl text-clay-light">{step.n}</div>
-                <div>
-                  <div className="font-inter text-base font-semibold text-paper">
-                    {step.title}
-                  </div>
-                  <div className="font-inter text-sm text-[#A79E90]">{step.body}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ─────────────────────────── FAQ ─────────────────────────── */
+
+const HOME_FAQS = faqs.filter((f) => f.category === "general").slice(0, 5);
+
+function FaqSection() {
+  return (
+    <section className={`${WRAP} grid gap-11 pb-16 sm:pb-24 lg:grid-cols-[380px_1fr] lg:gap-[88px]`} aria-label="Frequently asked questions">
+      <Reveal>
+        <div className={`${KICKER} mb-[18px]`}>Questions</div>
+        <h2 className="mb-5 font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]">
+          Before you <span className="italic text-clay">come.</span>
+        </h2>
+        <p className="mb-5 font-inter text-[15.5px] leading-[1.6] text-ink-soft sm:text-[16px]">
+          The things people ask in the WhatsApp group before their first meetup.
+        </p>
+        <Link href="/faq" className="font-inter text-[15px] font-semibold text-clay hover:underline">
+          All questions →
+        </Link>
+      </Reveal>
+      <Reveal>
+        <FaqAccordion items={HOME_FAQS} variant="rule" />
       </Reveal>
     </section>
   );

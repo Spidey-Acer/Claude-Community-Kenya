@@ -19,10 +19,14 @@ import { NEED_LABELS, type NeedKey } from "@/lib/showcase/constants"
 import { ShowcaseCard } from "@/components/karibu/showcase/ShowcaseCard"
 import { Reveal } from "@/components/karibu/motion/Reveal"
 import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination"
+import { PageBanner } from "@/components/karibu/PageBanner"
+import { CtaBand } from "@/components/karibu/CtaBand"
 import { cn } from "@/lib/utils"
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10"
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay"
+
+/** Below this count, sort/filter pills read as decorative rather than useful. */
+const MIN_ITEMS_FOR_SORT_PILLS = 8
 
 const SORTS: Array<{ key: ShowcaseSort; label: string; icon: LucideIcon }> = [
   { key: "hot", label: "Hot", icon: Flame },
@@ -72,25 +76,23 @@ export function ShowcaseFeed({
 
   return (
     <>
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Showcase header">
+      <PageBanner
+        image="/images/community/crowd-nairobi.webp"
+        imageAlt="A crowd at a CCK Nairobi event"
+        crumbs={["Home", "Showcase"]}
+        title="What the community is building."
+        subtitle="Projects, demos and works in progress from members across the country. React, comment, and help each other ship."
+      />
+
+      <section className={`${WRAP} pb-6 pt-10`} aria-label="Share">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className={`${KICKER} mb-4`}>Showcase</div>
-              <h1 className="mb-3 font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[52px]">
-                What the community is building.
-              </h1>
-              <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-                Projects, demos and works in progress from members across the
-                country. React, comment, and help each other ship.
-              </p>
-              <p className="mt-2 font-inter text-[14px] text-ink-muted">
-                Sharing an MCP, prompt or workflow?{" "}
-                <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
-                  That lives in Tools &amp; Prompts
-                </Link>
-              </p>
-            </div>
+            <p className="font-inter text-[14px] text-ink-muted">
+              Sharing an MCP, prompt or workflow?{" "}
+              <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
+                That lives in Tools &amp; Prompts
+              </Link>
+            </p>
             <Link
               href="/showcase/submit"
               className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
@@ -102,29 +104,34 @@ export function ShowcaseFeed({
       </section>
 
       <section className={`${WRAP} pb-6`} aria-label="Sort and filters">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Sort showcase">
-          {SORTS.map(({ key, label, icon: Icon }) => {
-            const on = activeSort === key
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => update("sort", key === "hot" ? undefined : key)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
-                  on
-                    ? "bg-ink text-paper-card"
-                    : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        {/* Decorative at low volume — see the 2026-09-05 structure-redesign
+         * spec, section 5: hide sort pills below 8 items. Filter chips (an
+         * active event/need) stay since they're state to clear, not decor. */}
+        {total >= MIN_ITEMS_FOR_SORT_PILLS && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Sort showcase">
+            {SORTS.map(({ key, label, icon: Icon }) => {
+              const on = activeSort === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => update("sort", key === "hot" ? undefined : key)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
+                    on
+                      ? "bg-ink text-paper-card"
+                      : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {hasFilters && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -202,6 +209,10 @@ export function ShowcaseFeed({
             </Link>
           </div>
         )}
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   )

@@ -9,7 +9,7 @@ import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { PersonalizeFooterLink } from "@/components/karibu/PersonalizeFooterLink";
 
 export function Footer() {
-  const { skin, setSkin } = useSkin();
+  const { skin } = useSkin();
   const links = useSocialLinks();
   const isPro = skin === "pro";
   const [exitHovered, setExitHovered] = useState(false);
@@ -240,17 +240,6 @@ export function Footer() {
                 : "$ exit"}
             </span>
           )}
-
-          {/* Discrete skin toggle — the only place the dev skin can be turned on */}
-          <button
-            type="button"
-            onClick={() => setSkin(isPro ? "dev" : "pro")}
-            className="cursor-pointer font-mono text-[11px] text-text-dim/40 transition-colors hover:text-text-dim"
-            title={isPro ? "Switch to developer skin" : "Switch to professional skin"}
-            aria-label={isPro ? "Switch to developer skin" : "Switch to professional skin"}
-          >
-            {isPro ? ">_ dev" : "◆ pro"}
-          </button>
         </div>
       </div>
     </footer>

@@ -60,7 +60,10 @@ wart, see Known Issues.
 ```
 src/
 ├── app/                          # 25+ public pages, 15 admin pages, 42 API routes
-│   ├── page.tsx                  # Home (HeroTerminal + StatsBar + content sections)
+│   ├── page.tsx                  # Home (renders KaribuHome: marquee ticker, hero, trust-bar
+│   │                             #   stats, personalized recommendations, what-we-do, two
+│   │                             #   tracks, events, projects, community-in-action, how-to-join,
+│   │                             #   supported-by)
 │   ├── about/                    # About with timeline
 │   ├── events/                   # Listing + [slug] detail + demo request forms
 │   ├── blog/                     # Listing + [slug] detail (DB-backed)
@@ -171,8 +174,9 @@ npm run db:seed          # Seed database
 - First meetup: **January 24, 2026** — iHiT Events Space, Westlands, Nairobi
 - Attendees at first meetup: **30+**
 - First meetup: Community gathering + networking, Peter Kibet demoed Claude Code workflow
-- Events hosted: **2** (Nairobi #1 Jan 24, Nairobi #2 Feb 20)
-- Cities: Nairobi + Mombasa (expanding)
+- Events hosted: growing count across Nairobi, Mombasa and Kisumu — the live
+  figure comes from `SiteSettings.eventsHeld` in the DB, not this file
+- Cities: Nairobi, Mombasa and Kisumu (each has hosted at least one event; the footer list is the source of truth)
 
 ## Known Issues
 

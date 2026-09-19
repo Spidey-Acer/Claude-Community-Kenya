@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { ScrollReveal } from "@/components/terminal";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 import {
   getResourceCategories,
   getResourcesByCategory,
@@ -27,176 +25,126 @@ export const metadata: Metadata = {
   },
 };
 
+const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
+const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+
 export default async function LinksPage() {
   const categories = getResourceCategories();
   const socialLinks = await getSocialLinks();
+  const totalResources = categories.reduce(
+    (acc, cat) => acc + getResourcesByCategory(cat).length,
+    0
+  );
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
-      {/* Back link */}
-      <Link
-        href="/resources"
-        className="inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Resources
-      </Link>
-
+    <>
       {/* Header */}
-      <ScrollReveal>
-        <section className="py-16">
-          <PersonaHeading
-            page="links"
-            section="hero"
-            as="h1"
-            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-          />
-          <PersonaText
-            page="links"
-            section="hero"
-            field="subtitle"
-            className="mt-4 max-w-2xl text-lg text-text-secondary"
-          />
-        </section>
-      </ScrollReveal>
-
-      {/* File tree listing */}
-      <ScrollReveal delay={100}>
-      <section className="py-20">
-        <div className="border border-border-default bg-bg-card">
-          {/* Title bar */}
-          <div className="flex items-center gap-2 border-b border-border-default px-4 py-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-red" />
-              <span className="h-2.5 w-2.5 rounded-full bg-amber" />
-              <span className="h-2.5 w-2.5 rounded-full bg-green-primary" />
-            </div>
-            <span className="ml-2 font-mono text-xs text-text-dim">
-              resource-directory
-            </span>
-          </div>
-
-          {/* Tree content */}
-          <div className="p-6 font-mono text-sm">
-            <p className="mb-6 text-text-dim">
-              $ tree ./resources --all --urls
-            </p>
-
-            {categories.map((category, catIndex) => {
-              const items = getResourcesByCategory(category);
-              const isLastCategory = catIndex === categories.length - 1;
-
-              return (
-                <div key={category} className="mb-8 last:mb-0">
-                  {/* Category heading */}
-                  <p className="mb-2 font-bold text-amber">{category}</p>
-
-                  {/* Resource items */}
-                  {items.map((resource, index) => {
-                    const isLast = index === items.length - 1;
-                    const connector = isLast ? "\u2514\u2500\u2500" : "\u251C\u2500\u2500";
-
-                    return (
-                      <div
-                        key={resource.id}
-                        id={resource.id}
-                        className="flex flex-col gap-0.5 py-1 scroll-mt-24 sm:flex-row sm:items-center sm:gap-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-text-dim select-none">
-                            {connector}
-                          </span>
-                          <span className="text-text-primary">
-                            {resource.title}
-                          </span>
-                        </div>
-                        <a
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-8 text-cyan hover:underline sm:ml-0"
-                        >
-                          {resource.url}
-                        </a>
-                      </div>
-                    );
-                  })}
-
-                  {/* Category separator */}
-                  {!isLastCategory && (
-                    <div className="mt-4 border-b border-border-default" />
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Summary line */}
-            <div className="mt-8 border-t border-border-default pt-4">
-              <p className="text-text-dim">
-                {categories.length} categories,{" "}
-                {categories.reduce(
-                  (acc, cat) => acc + getResourcesByCategory(cat).length,
-                  0
-                )}{" "}
-                resources listed
-              </p>
-            </div>
-          </div>
-        </div>
+      <section className={`${WRAP} pb-6 pt-16`} aria-label="Curated links header">
+        <Reveal>
+          <Link
+            href="/resources"
+            className="mb-5 inline-flex items-center gap-1.5 font-inter text-[13px] font-medium text-ink-muted transition-colors hover:text-clay"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to Resources
+          </Link>
+          <div className={`${KICKER} mb-3`}>Resources</div>
+          <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">
+            Curated <span className="italic text-clay">links</span>
+          </h1>
+          <p className="max-w-[600px] font-inter text-[16px] leading-[1.6] text-ink-soft">
+            A comprehensive directory of Claude AI resources, tools, communities,
+            and learning materials curated for Kenyan developers.
+          </p>
+        </Reveal>
       </section>
-      </ScrollReveal>
+
+      {/* Link directory, grouped by category */}
+      <section className={`${WRAP} py-10`} aria-label="Link directory">
+        <div className="space-y-10">
+          {categories.map((category, catIndex) => {
+            const items = getResourcesByCategory(category);
+            return (
+              <Reveal key={category} index={catIndex % 6}>
+                <h2 className="mb-4 font-inter text-[13px] font-semibold uppercase tracking-[0.14em] text-clay">
+                  {category}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {items.map((resource) => (
+                    <a
+                      key={resource.id}
+                      id={resource.id}
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex scroll-mt-24 flex-col gap-1 rounded-2xl border border-sand bg-paper-card p-5 transition-colors hover:border-clay"
+                    >
+                      <span className="font-inter text-[15px] font-semibold text-ink group-hover:text-clay">
+                        {resource.title}
+                      </span>
+                      <span className="truncate font-inter text-[13px] text-ink-muted">
+                        {resource.url}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+        <p className="mt-10 font-inter text-[13px] text-ink-muted">
+          {categories.length} categories, {totalResources} resources listed.
+        </p>
+      </section>
 
       {/* Contribute CTA */}
-      <ScrollReveal delay={200}>
-      <section className="py-20">
-        <div className="border border-border-default bg-bg-card p-6">
-          <PersonaHeading
-            page="links"
-            section="contribute"
-            as="h2"
-            className="font-mono text-lg font-bold text-text-primary"
-          />
-          <p className="mt-3 text-sm text-text-secondary">
-            Know a great Claude resource that should be listed here? Have a tool
-            or tutorial to share? We welcome contributions from the community.
-            Reach out on our{" "}
-            {socialLinks.discord && (
-              <>
+      <section className={`${WRAP} pb-20 pt-4`} aria-label="Contribute a resource">
+        <Reveal>
+          <div className="rounded-2xl border border-sand bg-paper-card p-7">
+            <h2 className="mb-3 font-newsreader text-[22px] text-ink">
+              Contribute a resource
+            </h2>
+            <p className="font-inter text-[15px] leading-[1.6] text-ink-soft">
+              Know a great Claude resource that should be listed here? Have a
+              tool or tutorial to share? We welcome contributions from the
+              community. Reach out on our{" "}
+              {socialLinks.discord && (
+                <>
+                  <a
+                    href={socialLinks.discord}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-clay hover:underline"
+                  >
+                    Discord server
+                  </a>
+                  {socialLinks.whatsapp ? ", " : ""}
+                </>
+              )}
+              {socialLinks.whatsapp && (
                 <a
-                  href={socialLinks.discord}
+                  href={socialLinks.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-cyan hover:underline"
+                  className="font-semibold text-clay hover:underline"
                 >
-                  Discord server
+                  WhatsApp group
                 </a>
-                {socialLinks.whatsapp ? ", " : ""}
-              </>
-            )}
-            {socialLinks.whatsapp && (
+              )}
+              {", or open a pull request on "}
               <a
-                href={socialLinks.whatsapp}
+                href="https://github.com/Spidey-Acer/Claude-Community-Kenya"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-cyan hover:underline"
+                className="font-semibold text-clay hover:underline"
               >
-                WhatsApp group
+                GitHub
               </a>
-            )}
-            {", or open a pull request on "}
-            <a
-              href="https://github.com/Spidey-Acer/Claude-Community-Kenya"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan hover:underline"
-            >
-              GitHub
-            </a>
-            .
-          </p>
-        </div>
+              .
+            </p>
+          </div>
+        </Reveal>
       </section>
-      </ScrollReveal>
-    </main>
+    </>
   );
 }

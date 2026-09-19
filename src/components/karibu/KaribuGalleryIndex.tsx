@@ -1,12 +1,16 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Camera, Download, ImageIcon } from "lucide-react";
 import type { GalleryAlbum } from "@/lib/data";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 /** Human-readable download size, so nobody on mobile data taps blind. */
 export function formatBytes(bytes: number): string {
@@ -25,37 +29,75 @@ function formatDate(d: Date | string): string {
 }
 
 /**
- * Gallery index — one card per event album.
- *
- * A server component: it is a list of links with no interactive state, so
- * there is no reason to ship it to the browser. The lightbox lives on the
- * album page, where it is actually needed.
+ * Gallery index — one card per event album, with city chips to filter them
+ * (structure-redesign spec, section 5: "4-column grid, album chips"). The
+ * lightbox itself still lives on the album page, where it's actually needed.
  */
 export function KaribuGalleryIndex({ albums }: { albums: GalleryAlbum[] }) {
   const totalPhotos = albums.reduce((n, a) => n + a.count, 0);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
+
+  // Album chips: "All" plus every city that actually has an album — no chip
+  // for a city with zero albums.
+  const cities = useMemo(
+    () => [...new Set(albums.map((a) => a.city).filter(Boolean))],
+    [albums],
+  );
+  const filtered = useMemo(
+    () => (activeCity ? albums.filter((a) => a.city === activeCity) : albums),
+    [albums, activeCity],
+  );
 
   return (
     <>
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Gallery header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Gallery</div>
-          <h1 className="mb-4 max-w-[760px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Faces of the <span className="italic text-clay">community.</span>
-          </h1>
-          <p className="mb-6 max-w-[620px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Photos from our meetups and build days across Nairobi, Mombasa and
-            beyond — taken by community members at the events themselves.
-            Browse an album, or download the lot.
+      <PageBanner
+        image="/images/community/mural-laptops.webp"
+        imageAlt="Members building on their laptops at a CCK meetup"
+        crumbs={["Home", "Gallery"]}
+        title="Faces of the community."
+        subtitle="Photos from our meetups and build days across Nairobi, Mombasa and beyond — taken by community members at the events themselves."
+      />
+
+      <section className={`${WRAP} pb-2 pt-10`} aria-label="Filter albums">
+        {totalPhotos > 0 && (
+          <p className="mb-4 font-inter text-[13px] text-ink-muted">
+            <span className="font-semibold tabular-nums text-clay">{totalPhotos}</span> photos
+            {" · "}
+            <span className="font-semibold tabular-nums text-clay">{albums.length}</span>{" "}
+            {albums.length === 1 ? "event" : "events"}
           </p>
-          {totalPhotos > 0 && (
-            <p className="font-inter text-[13px] text-ink-muted">
-              <span className="font-semibold tabular-nums text-clay">{totalPhotos}</span> photos
-              {" · "}
-              <span className="font-semibold tabular-nums text-clay">{albums.length}</span>{" "}
-              {albums.length === 1 ? "event" : "events"}
-            </p>
-          )}
-        </Reveal>
+        )}
+        {cities.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveCity(null)}
+              aria-pressed={activeCity === null}
+              className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
+                activeCity === null
+                  ? "bg-ink text-paper-card"
+                  : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
+              }`}
+            >
+              All
+            </button>
+            {cities.map((city) => (
+              <button
+                key={city}
+                type="button"
+                onClick={() => setActiveCity(city)}
+                aria-pressed={activeCity === city}
+                className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
+                  activeCity === city
+                    ? "bg-ink text-paper-card"
+                    : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
+                }`}
+              >
+                {city}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className={`${WRAP} py-5 pb-16`} aria-label="Event albums">
@@ -79,8 +121,8 @@ export function KaribuGalleryIndex({ albums }: { albums: GalleryAlbum[] }) {
           </Reveal>
         ) : (
           <Reveal>
-            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" role="list">
-              {albums.map((album) => (
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" role="list">
+              {filtered.map((album) => (
                 <li key={album.slug}>
                   <Link
                     href={`/gallery/${album.slug}`}
@@ -127,6 +169,10 @@ export function KaribuGalleryIndex({ albums }: { albums: GalleryAlbum[] }) {
             </ul>
           </Reveal>
         )}
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

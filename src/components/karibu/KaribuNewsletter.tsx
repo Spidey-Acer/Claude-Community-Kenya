@@ -10,11 +10,21 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { Check } from "lucide-react";
 import type { NewsletterIssueView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+
+const WHAT_YOU_GET = [
+  "Claude tips and prompts worth stealing",
+  "Community project spotlights",
+  "Event recaps from Nairobi, Mombasa and Kisumu",
+  "What's shipping in the Kenyan AI scene",
+];
 
 /** Formats a date string as "May 2026" */
 function formatIssueMonth(iso: string): string {
@@ -156,25 +166,35 @@ function SubscribeForm() {
 export function KaribuNewsletter({ issues }: { issues: readonly NewsletterIssueView[] }) {
   return (
     <>
-      {/* Header + subscribe */}
-      <section className={`${WRAP} pb-10 pt-16 text-center`} aria-label="Newsletter header">
+      <PageBanner
+        image="/images/community/networking.webp"
+        imageAlt="Members networking between sessions"
+        crumbs={["Home", "Newsletter"]}
+        title="The CCK Newsletter."
+        subtitle="Claude tips, community projects, event recaps, and what's shipping in the Kenyan AI scene — delivered monthly."
+      />
+
+      {/* Subscribe + what you'll get */}
+      <section className={`${WRAP} grid gap-10 py-14 sm:text-center`} aria-label="Subscribe">
         <Reveal>
-          <div className={`${KICKER} mb-4 flex items-center justify-center gap-2`}>
-            <span>Newsletter</span>
-            {issues.length > 0 && (
-              <span className="rounded-full bg-clay/10 px-2 py-0.5 text-[10px] font-semibold text-clay">
-                {issues.length} issue{issues.length !== 1 ? "s" : ""}
+          {issues.length > 0 && (
+            <div className="mb-5 flex justify-center">
+              <span className="rounded-full bg-clay/10 px-3 py-1 font-inter text-[11px] font-semibold uppercase tracking-[0.1em] text-clay">
+                {issues.length} issue{issues.length !== 1 ? "s" : ""} so far
               </span>
-            )}
-          </div>
-          <h1 className="mx-auto mb-4 max-w-[720px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            The <span className="italic text-clay">CCK Newsletter</span>
-          </h1>
-          <p className="mx-auto mb-8 max-w-[560px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Claude tips, community projects, event recaps, and what&apos;s
-            shipping in the Kenyan AI scene — delivered monthly.
-          </p>
+            </div>
+          )}
           <SubscribeForm />
+        </Reveal>
+        <Reveal>
+          <ul className="mx-auto grid max-w-[560px] gap-3 text-left sm:grid-cols-2" role="list">
+            {WHAT_YOU_GET.map((item) => (
+              <li key={item} className="flex items-start gap-2.5 font-inter text-[14.5px] leading-[1.5] text-ink-soft">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-clay" aria-hidden="true" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </Reveal>
       </section>
 
@@ -223,6 +243,10 @@ export function KaribuNewsletter({ issues }: { issues: readonly NewsletterIssueV
             </ul>
           )}
         </Reveal>
+      </section>
+
+      <section className={`${WRAP} pb-16`} aria-label="Join CTA">
+        <CtaBand />
       </section>
     </>
   );

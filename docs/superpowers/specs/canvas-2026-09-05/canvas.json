@@ -1,0 +1,92 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Home · desktop 1440 · light",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 6900
+    },
+    {
+      "file": "HomeDark.dc.html",
+      "title": "Home · desktop 1440 · dark",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 6900
+    },
+    {
+      "file": "HomeMobile.dc.html",
+      "title": "Home · mobile 390 · light",
+      "x": 3120,
+      "y": 0,
+      "w": 390,
+      "h": 8500
+    },
+    {
+      "file": "MobileNavOpen.dc.html",
+      "title": "Home · mobile 390 · nav open",
+      "x": 3590,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "MobileNavOpenDark.dc.html",
+      "title": "Home · mobile 390 · nav open · dark",
+      "x": 3590,
+      "y": 964,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Events.dc.html",
+      "title": "Events · desktop 1440 · light",
+      "x": 4060,
+      "y": 0,
+      "w": 1440,
+      "h": 3700
+    }
+  ],
+  "annotations": [
+    {
+      "id": "read-me",
+      "x": 0,
+      "y": -300,
+      "w": 640,
+      "text": "CCK structure redesign · Phase 1 design canvas · 5 Sep 2026\n\nStructure borrowed from africahackon (full-bleed hero, overlapping stats card, framed intro photo, photo grid, supporter wall, FAQ, CTA band). Skin is Karibu: paper, clay, Newsreader + Inter, exactly the tokens in globals.css.\n\nDashed chips mark SLOTS (video, reel, logos, screenshots). Bracketed text marks facts Peter supplies. Photos are the real ones already on the site."
+    },
+    {
+      "id": "dark-note",
+      "x": 1560,
+      "y": -180,
+      "w": 420,
+      "text": "Dark board uses the data-theme=dark tokens. Fixed slabs (ticker, card 03, CTA band, footer) stay #A84E2D / #23201B in both themes, like the live footer does."
+    },
+    {
+      "id": "mobile-note",
+      "x": 3120,
+      "y": -200,
+      "w": 400,
+      "text": "390 px: compact top bar (logo · search · theme · menu), full-width 48 px buttons, hero poster only. A pinned bottom bar (Home · Events · Learn · Join) slides in once the hero scrolls away, drawn here at scroll position 844: Join and Events stay one thumb away without duplicating the hero CTAs."
+    },
+    {
+      "id": "navopen-note",
+      "x": 3590,
+      "y": -200,
+      "w": 400,
+      "text": "Menu open: full-screen sheet with backdrop blur over the page. Five serif sections with sub-items visible without a second tap, city chips, Join buttons pinned at the bottom, Sign in as text. Dark variant below uses the same tokens (paper on ink)."
+    },
+    {
+      "id": "events-note",
+      "x": 4060,
+      "y": -180,
+      "w": 460,
+      "text": "Inner-page template: PageBanner (tinted photo + breadcrumb + H1) → body → CtaBand → footer. Upcoming shows the designed empty state. Every past card has art: uploaded poster where one exists, generated Karibu cover otherwise."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

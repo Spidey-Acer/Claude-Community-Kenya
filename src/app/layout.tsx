@@ -158,6 +158,29 @@ const jsonLd = {
   },
 };
 
+const DEFAULT_CITIES = ["Nairobi", "Mombasa", "Kisumu"];
+
+/**
+ * SiteSettings.citiesActive is a JSON column that has been written both as a
+ * real array and as a JSON-encoded string. Anything else (null, an object,
+ * malformed text) falls back to the default list — this runs in the root
+ * layout, so a throw here would 500 every page on the site.
+ */
+function parseCities(raw: unknown): string[] {
+  const isStringArray = (v: unknown): v is string[] =>
+    Array.isArray(v) && v.every((c) => typeof c === "string");
+  if (isStringArray(raw) && raw.length > 0) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (isStringArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fall through to the default
+    }
+  }
+  return DEFAULT_CITIES;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -197,6 +220,23 @@ export default async function RootLayout({
   );
 
   const showKaribu = canaryHit && !hasCompletedKaribu && audienceCookie !== "skipped";
+
+  // ─── Sitewide ticker (Peter's canvas feedback, 2026-09-05: the clay ticker
+  // strip moves above the nav on every page) ───────────────────────────────
+  const tickerSettings = await prisma.siteSettings
+    .findUnique({ where: { id: "default" }, select: { citiesActive: true, eventsHeld: true } })
+    .catch(() => null);
+  const citiesActive = parseCities(tickerSettings?.citiesActive);
+  const eventsHeld = tickerSettings?.eventsHeld ?? 0;
+  // Kept deliberately short. "Beginners welcome" said the same thing as
+  // "Everyone welcome", and the Anthropic Ambassadors credit is carried in
+  // full — and more accurately — by the footer disclaimer and the home page's
+  // "Supported by" section, so repeating a clipped version here was noise.
+  const tickerItems = [
+    citiesActive.join(" · "),
+    "Free & volunteer-run",
+    "Everyone welcome",
+  ];
 
   const audienceState: AudienceState = hasCompletedKaribu && session
     ? {
@@ -244,7 +284,13 @@ export default async function RootLayout({
       <body className="antialiased">
         <GoogleAnalytics />
         <WebVitals />
-        <ConditionalLayout audienceState={audienceState} showKaribu={showKaribu} socialLinks={socialLinks}>
+        <ConditionalLayout
+          audienceState={audienceState}
+          showKaribu={showKaribu}
+          socialLinks={socialLinks}
+          tickerItems={tickerItems}
+          eventsHeld={eventsHeld}
+        >
           {children}
         </ConditionalLayout>
       </body>

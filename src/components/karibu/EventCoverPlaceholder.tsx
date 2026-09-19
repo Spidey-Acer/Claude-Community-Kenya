@@ -73,11 +73,29 @@ function coverTitle(title: string, city?: string | null): string {
 }
 
 /**
- * The eyebrow carries the event *type* and nothing else. City and month are
- * already printed under every card that uses this placeholder; repeating
- * them here made the cover read as a duplicate of its own caption rather
- * than as artwork. Type is the one fact the card doesn't otherwise state.
+ * The `sm` eyebrow carries city + month ("Nairobi · Aug 2026") — matches
+ * Events.dc.html's generated-cover cards exactly, which is what this
+ * placeholder exists to reproduce for a real event with no uploaded poster.
+ *
+ * This used to print the event *type* instead, reasoning that city/month was
+ * "already printed under every card" so repeating it read as a duplicate
+ * caption. That held for the grid this placeholder first shipped in, but the
+ * artboard is explicit (Peter's brief, 2026-09-06) and the Past grid's own
+ * caption already carries the type too ("Aug 2026 · Nairobi · Workshop"), so
+ * the type wasn't actually the one fact missing — city/month was, since some
+ * callers (the home "Last event" strip) don't print a caption at all.
  */
+function eyebrowLabel(event: Pick<Event, "city" | "date">): string {
+  const dt = new Date(`${event.date}T00:00:00`);
+  const monthYear = Number.isNaN(dt.getTime())
+    ? ""
+    : dt.toLocaleString("en-US", { month: "short", year: "numeric" });
+  return [event.city, monthYear].filter(Boolean).join(" · ");
+}
+
+/** Used only by the `lg` variant, which pairs type with city (see below) —
+ * the taller box has its own big date numeral, so city+month there would be
+ * a third repetition of the same date rather than the missing fact. */
 const TYPE_EYEBROW: Record<Event["type"], string> = {
   meetup: "Meetup",
   workshop: "Workshop",
@@ -162,9 +180,9 @@ export function EventCoverPlaceholder({
           size === "lg" ? "pr-16 text-[11.5px]" : "pr-10 text-[10px]",
         )}
       >
-        {[TYPE_EYEBROW[event.type], size === "lg" ? event.city : null]
-          .filter(Boolean)
-          .join(" · ")}
+        {size === "lg"
+          ? [TYPE_EYEBROW[event.type], event.city].filter(Boolean).join(" · ")
+          : eyebrowLabel(event)}
       </div>
 
       {/* Bottom: the copy block. */}

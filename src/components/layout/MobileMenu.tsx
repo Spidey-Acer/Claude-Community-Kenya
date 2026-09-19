@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { PersonaToggle } from "@/components/persona/PersonaToggle";
 import { useSkin } from "@/contexts/SkinContext";
 
 interface MobileMenuProps {
@@ -196,15 +195,6 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 </motion.div>
               );
             })}
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: NAV_LINKS.length * 0.05 }}
-              className="mt-4 flex justify-center"
-            >
-              <PersonaToggle />
-            </motion.div>
 
             {/* Auth-aware CTA */}
             <motion.div

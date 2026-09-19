@@ -12,11 +12,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { CtaBand } from "@/components/karibu/CtaBand";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
 
@@ -53,7 +56,18 @@ type Filter = { key: string; label: string };
 const PAST_PAGE_SIZE = 9;
 
 export function KaribuEvents({ events }: { events: Event[] }) {
-  const [active, setActive] = useState("all");
+  const searchParams = useSearchParams();
+  // Initial filter from ?city= or ?type= (e.g. the home page's "See
+  // engineering events" link) — read once, not kept in sync with the URL
+  // afterwards, since the chips are the source of truth once the visitor
+  // starts clicking them.
+  const [active, setActive] = useState(() => {
+    const city = searchParams.get("city");
+    const type = searchParams.get("type");
+    if (city) return `city:${city}`;
+    if (type) return `type:${type}`;
+    return "all";
+  });
   const [pastPages, setPastPages] = useState(1);
   const reduce = useReducedMotion();
   const { whatsapp } = useSocialLinks();
@@ -114,95 +128,86 @@ export function KaribuEvents({ events }: { events: Event[] }) {
   const featured = upcoming[0];
   const rest = upcoming.slice(1);
   const bandLabel = monthRange(rest.length ? rest : upcoming);
+  // Past is already sorted newest-first, so its head is the latest past
+  // event — the same fact the home hero's "Last" chip uses, computed here
+  // from the one list this page already has rather than a second fetch.
+  const latestPast = past[0];
 
   return (
     <>
-      {/* Header */}
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Events header">
-        <Reveal>
-          <div className="mb-4 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay">
-            Events
-          </div>
-          <h1 className="mb-[18px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Where we meet.
-          </h1>
-          <p className="mb-7 max-w-[560px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Free, in-person gatherings across Kenya. Everyone welcome — bring a
-            laptop and your curiosity.
-          </p>
-          <div className="flex flex-wrap gap-2.5">
-            {filters.map((f) => {
-              const on = f.key === active;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => {
-                    setActive(f.key);
-                    setPastPages(1);
-                  }}
-                  aria-pressed={on}
-                  className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
-                    on
-                      ? "bg-ink text-paper-card"
-                      : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
+      <PageBanner
+        image="/images/community/workshop-room.webp"
+        imageAlt="A full room at a CCK workshop"
+        crumbs={["Home", "Events"]}
+        title="Where we meet."
+        subtitle="Free, in-person gatherings across Kenya. Everyone welcome. Bring a laptop and your curiosity."
+      />
+
+      {/* Filters */}
+      <section className={`${WRAP} flex flex-wrap items-center justify-between gap-4 pb-2 pt-10`} aria-label="Filter events">
+        <Reveal className="flex flex-wrap gap-2">
+          {filters.map((f) => {
+            const on = f.key === active;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => {
+                  setActive(f.key);
+                  setPastPages(1);
+                }}
+                aria-pressed={on}
+                className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
+                  on
+                    ? "bg-ink text-paper-card"
+                    : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </Reveal>
+        <span className="font-inter text-[13.5px] text-ink-muted">
+          {events.length} events · {new Set(events.map((e) => e.city)).size} cities
+        </span>
       </section>
 
-      {/* Featured "Next up" */}
-      {featured && (
-        <section className={`${WRAP} py-5`} aria-label="Next event">
-          <Reveal>
-            <FeaturedCard event={featured} />
-          </Reveal>
-        </section>
-      )}
-
-      {/* Upcoming list */}
-      {rest.length > 0 && (
-        <section className={`${WRAP} pb-10 pt-2`} aria-label="Upcoming events">
-          <Reveal>
-            <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              {bandLabel}
-            </div>
-            <AnimatePresence mode="popLayout" initial={false}>
-              {rest.map((ev) => (
-                <motion.div key={ev.slug} {...flip}>
-                  <ListRow event={ev} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </Reveal>
-        </section>
-      )}
-
-      {/* Empty state */}
-      {upcoming.length === 0 && past.length === 0 && (
-        <section className={`${WRAP} py-16`}>
-          <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
-            <p className="mb-4 font-newsreader text-[24px] text-ink">
-              No events in this filter yet.
-            </p>
-            {whatsapp && (
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                Get notified on WhatsApp
-              </a>
-            )}
+      {/* Upcoming — always visible, with the designed empty state (Events.dc.html)
+       * when nothing is scheduled, which is the seed data's actual state today. */}
+      <section className={`${WRAP} pb-10 pt-8`} aria-label="Upcoming events">
+        <Reveal>
+          <div className="mb-5 flex items-baseline justify-between border-b border-sand pb-3">
+            <span className="font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+              Upcoming
+            </span>
+            <span className="font-inter text-[13.5px] text-ink-muted">
+              {upcoming.length} scheduled
+            </span>
           </div>
-        </section>
-      )}
+          {upcoming.length === 0 ? (
+            <EmptyUpcoming whatsapp={whatsapp} latestPast={latestPast} />
+          ) : (
+            <>
+              <FeaturedCard event={featured} />
+              {rest.length > 0 && (
+                <div className="mt-8">
+                  <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+                    {bandLabel}
+                  </div>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {rest.map((ev) => (
+                      <motion.div key={ev.slug} {...flip}>
+                        <ListRow event={ev} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+            </>
+          )}
+        </Reveal>
+      </section>
 
       {/* Past */}
       {past.length > 0 && (
@@ -239,7 +244,75 @@ export function KaribuEvents({ events }: { events: Event[] }) {
           </Reveal>
         </section>
       )}
+
+      <section className={`${WRAP} pb-16`} aria-label="Join the community">
+        <CtaBand />
+      </section>
     </>
+  );
+}
+
+/* ─────────────────────────── Upcoming empty state ─────────────────────────── */
+
+/** Ports Events.dc.html's "Nothing on the calendar yet." card exactly. */
+function EmptyUpcoming({
+  whatsapp,
+  latestPast,
+}: {
+  whatsapp: string | null;
+  latestPast?: Event;
+}) {
+  return (
+    <div className="grid gap-8 rounded-2xl border border-sand bg-[linear-gradient(135deg,color-mix(in_oklab,var(--clay)_7%,var(--paper-card)),var(--paper-card))] p-9 sm:grid-cols-[200px_1fr] sm:items-center sm:p-11">
+      <svg
+        viewBox="0 0 200 160"
+        fill="none"
+        stroke="var(--clay)"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="mx-auto w-[150px] sm:w-full"
+        aria-hidden="true"
+      >
+        <rect x="30" y="28" width="140" height="112" rx="10" className="fill-paper-card" />
+        <path d="M30 56h140M62 18v20M138 18v20" />
+        <g stroke="var(--sand-2)">
+          <path d="M54 78h16M86 78h16M118 78h16M54 104h16M86 104h16" />
+        </g>
+        <circle cx="126" cy="104" r="14" fill="var(--clay)" stroke="var(--clay)" />
+        <path d="M120 104l4 4 8-8" stroke="var(--paper-card)" strokeWidth={2} />
+        <path d="M8 148c30-20 60-20 90 0" stroke="var(--sand-2)" strokeDasharray="3 5" />
+      </svg>
+      <div>
+        <h2 className="mb-2.5 font-newsreader text-[28px] leading-[1.1] tracking-[-0.015em] text-ink sm:text-[34px]">
+          Nothing on the calendar <span className="italic text-clay">yet.</span>
+        </h2>
+        <p className="mb-6 max-w-[520px] font-inter text-[15px] leading-[1.6] text-ink-soft sm:text-[16px]">
+          The next one is being planned. Get a heads-up on WhatsApp the moment
+          it&apos;s live{latestPast ? `, or see what happened at ${latestPast.title}` : ""}.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {whatsapp && (
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-[14.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+            >
+              Get a heads-up
+            </a>
+          )}
+          {latestPast && (
+            <Link
+              href={`/events/${latestPast.slug}`}
+              className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-3 font-inter text-[14.5px] font-semibold text-ink transition-colors hover:border-ink"
+            >
+              Read the last recap
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -375,8 +448,7 @@ function PastCard({ event }: { event: Event }) {
         )}
       </div>
       <div className="font-inter text-xs text-ink-muted">
-        {label}
-        {event.city ? ` · ${event.city}` : ""}
+        {[label, event.city, TYPE_LABEL[event.type]].filter(Boolean).join(" · ")}
       </div>
       <div className="font-newsreader text-[18px] text-ink">{event.title}</div>
     </Link>

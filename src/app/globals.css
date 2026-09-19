@@ -98,6 +98,17 @@
   --footer-accent-bg-hover: #8F4023;
   --footer-cta-text: #FBF7F0;
 
+  /* Fixed brand bands (ticker, CTA band, the clay "03" card): stay clay in
+   * every theme, same reasoning as --footer-*. `--clay` flips to a lighter
+   * #d2704a in dark mode for text/borders on the paper background, which
+   * would wash out a solid clay surface — these three surfaces are brand
+   * chrome, not page content, so they pin their own pair instead. */
+  --band-bg: #A84E2D;
+  --band-bg-hover: #8F4023;
+  --on-band: #FBF7F0;
+  --on-band-soft: #F1E6D8;
+  --on-band-light: #E6906F;
+
   --font-newsreader-stack: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-inter-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
@@ -175,6 +186,11 @@
   --color-footer-accent-bg: var(--footer-accent-bg);
   --color-footer-accent-bg-hover: var(--footer-accent-bg-hover);
   --color-footer-cta-text: var(--footer-cta-text);
+  --color-band-bg: var(--band-bg);
+  --color-band-bg-hover: var(--band-bg-hover);
+  --color-on-band: var(--on-band);
+  --color-on-band-soft: var(--on-band-soft);
+  --color-on-band-light: var(--on-band-light);
 
   --font-newsreader: var(--font-newsreader-stack);
   --font-inter: var(--font-inter-stack);
@@ -210,19 +226,25 @@
   --text-dim: #9a9890;
 }
 
-/* Pro: refined typography — display serif for headlines, sans for body */
-.persona-pro h1,
-.persona-pro h2,
-.persona-pro h3 {
+/* Pro: refined typography — display serif for headlines, sans for body.
+ *
+ * `persona-pro` sits on <html>, so these element-scoped rules outrank the
+ * `.font-newsreader` / `.font-inter` utilities a Karibu component asks for
+ * (0,1,1 beats 0,1,0) and every Karibu heading rendered in Fraunces instead
+ * of Newsreader. Karibu owns its own display type, so the legacy rules are
+ * held out of the `.karibu` subtree and each component's own utility wins. */
+.persona-pro h1:not(.karibu *),
+.persona-pro h2:not(.karibu *),
+.persona-pro h3:not(.karibu *) {
   font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   font-weight: 500;
   letter-spacing: -0.025em;
   font-feature-settings: "ss01", "ss02";
 }
 
-.persona-pro h4,
-.persona-pro h5,
-.persona-pro h6 {
+.persona-pro h4:not(.karibu *),
+.persona-pro h5:not(.karibu *),
+.persona-pro h6:not(.karibu *) {
   font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -377,8 +399,19 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── Typography ─── */
-h1, h2, h3, h4, h5, h6 {
+/* ─── Typography ───
+ *
+ * Terminal Noir's heading defaults. These are unlayered, so they beat the
+ * Tailwind `font-*` utilities (which live in @layer utilities) no matter how
+ * specific the utility is — cascade layers lose to unlayered rules. Inside
+ * `.karibu` each component picks its own face (`font-newsreader` for display,
+ * `font-inter` for body), so the subtree is held out and the utilities win. */
+h1:not(.karibu *),
+h2:not(.karibu *),
+h3:not(.karibu *),
+h4:not(.karibu *),
+h5:not(.karibu *),
+h6:not(.karibu *) {
   font-family: var(--font-mono);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -801,10 +834,6 @@ body::before {
   border-radius: 2px;
 }
 
-@keyframes karibu-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @keyframes karibu-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -813,8 +842,24 @@ body::before {
   from { background-position: 0 0; }
   to { background-position: 480px 0; }
 }
-.karibu [data-marquee]:hover [data-mq-track] {
-  animation-play-state: paused;
+/* ─── CountUp reveal ─────────────────────────────────────────────────────
+ * The number itself is always the final, server-rendered value (see
+ * CountUp.tsx) — this only fades/rises it in on first paint. Pure CSS: no
+ * JavaScript required to run, so it also plays for no-JS readers instead of
+ * leaving the stat inert. The site-wide `prefers-reduced-motion: reduce`
+ * reset above already collapses this to an instant, fully-visible state. */
+@keyframes count-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.count-reveal {
+  animation: count-reveal 500ms var(--ease-entrance, ease-out) both;
 }
 
 /* ─── Karibu skeleton loading ─────────────────────────────────────────────
