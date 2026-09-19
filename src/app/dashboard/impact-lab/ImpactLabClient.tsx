@@ -26,6 +26,7 @@ import { TrackPicker } from "./TrackPicker";
 import { TrackGuide } from "./TrackGuide";
 import { JoinRequestCard } from "./JoinRequestCard";
 import { JudgesPanel } from "./JudgesPanel";
+import { NightRail, type NightRailEvent, type NightRailRubric } from "./NightRail";
 import { ResultsView, type ResultsViewProps } from "./ResultsView";
 import { ConversationsReportCard } from "./ConversationsReportCard";
 import type { ConversationsReportView } from "@/lib/conversations/queries";
@@ -85,6 +86,8 @@ export function ImpactLabClient({
   tracks,
   inviteEvent,
   conversationsReport,
+  eventInfo = null,
+  rubric = null,
 }: {
   sessionEmail: string;
   cohortActive: boolean;
@@ -107,6 +110,14 @@ export function ImpactLabClient({
   inviteEvent?: InviteEvent | null;
   /** The Claude Conversations report for this cohort's linked event, if any. */
   conversationsReport?: ConversationsReportView | null;
+  /**
+   * The active event's own format note, ground rules, location and dates,
+   * read off the event record for the revealed-phase side rail. Null when
+   * there is no resolvable event, in which case the rail has nothing to say.
+   */
+  eventInfo?: NightRailEvent | null;
+  /** The event's judging rubric, reduced to what a participant is shown. */
+  rubric?: NightRailRubric | null;
 }) {
   const router = useRouter();
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
@@ -223,7 +234,7 @@ export function ImpactLabClient({
 
   if (phase === "error") {
     return (
-      <div className="rounded-lg border border-red/30 bg-red/10 p-5">
+      <div className="max-w-3xl rounded-lg border border-red/30 bg-red/10 p-5">
         <p className="flex items-center gap-2 font-mono text-sm text-red">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           Couldn&apos;t load your Impact Lab status.
@@ -249,6 +260,7 @@ export function ImpactLabClient({
   // know which one; only what happens after saving differs.
   if (registering) {
     return (
+      <div className="max-w-3xl">
       <MatchProfileForm
         isNew
         cohort={cohort}
@@ -288,6 +300,7 @@ export function ImpactLabClient({
         }}
         onCancel={() => setRegistering(false)}
       />
+      </div>
     );
   }
 
@@ -310,55 +323,78 @@ export function ImpactLabClient({
       // all the picker needs to decide between "you may move the team",
       // "ask <name>" and "nobody has claimed this team yet".
       const leader = team.members.find((m) => m.isLeader) ?? null;
+      // Two columns from lg up: the team and its actions on the left, the
+      // countdown and the event's reference notes in a sticky 20rem rail on
+      // the right. Below lg the same three grid children stack as countdown,
+      // main column, rail, so the deadline is still the first thing on a
+      // phone and nothing renders twice.
+      //
+      // The rail wrapper is `display: contents` below lg, which hands the
+      // countdown and NightRail to the outer grid as separate items whose
+      // `order-*` puts the main column between them. At lg it becomes a real
+      // block again so the two share one sticky containing block: a sticky
+      // item cannot leave its own grid row, so the countdown could never
+      // stick from a row of its own above NightRail.
       return (
-        <div className="space-y-6">
-          {cohortActive && <DeadlineCountdown cohort={cohort} />}
-          {cohortActive && hasTracks && (
-            <TrackPicker
-              cohort={cohort}
-              tracks={tracks!}
-              team={{
-                trackKey: team.trackKey,
-                table: team.table,
-                leaderName: leader?.fullName ?? null,
-                iAmLeader: leader?.isSelf ?? false,
-              }}
-              // Refetch team + profile in place. Deliberately not
-              // setPhase("loading") — that would unmount TrackPicker and take
-              // the server's confirmation message away before it is read.
-              onTeamTrackChanged={() => setReloadKey((k) => k + 1)}
-            />
-          )}
-          {/* Remount on an actual track change so `useOwnTrack` re-fetches:
-              the hook loads once per mount, and a stale own-track against the
-              team's new one would show the mismatch warning to the very
-              person who just moved the team. */}
-          <TeamReveal
-            key={team.trackKey ?? ""}
-            team={team}
-            onStage={onStage}
-            onOnStageChange={setOnStage}
-            cohortActive={cohortActive}
-            cohort={cohort}
-            tracks={tracks}
-            // Refetch in place. Dropping to "loading" first would unmount the
-            // team card and replay its entrance animation on every accept —
-            // the phase is already "revealed" and the load below sets it again.
-            onTeamChanged={() => setReloadKey((k) => k + 1)}
-          />
-          <JudgesPanel judges={judges} />
-          {hasTracks && (
-            // Keyed for the same reason as TeamReveal above: the guide seeds
-            // which cards are open once, at mount. Without a remount a moved
-            // team gets its new track sorted first but collapsed, with the
-            // old one still expanded.
-            <TrackGuide
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
+          <div className="contents lg:col-start-2 lg:row-start-1 lg:block lg:self-start lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
+            {cohortActive && (
+              <div className="order-1 lg:mb-8">
+                <DeadlineCountdown cohort={cohort} compact />
+              </div>
+            )}
+            <div className="order-3">
+              <NightRail event={eventInfo} rubric={rubric} judges={judges} />
+            </div>
+          </div>
+
+          <div className="order-2 min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
+            {/* Remount on an actual track change so `useOwnTrack` re-fetches:
+                the hook loads once per mount, and a stale own-track against the
+                team's new one would show the mismatch warning to the very
+                person who just moved the team. */}
+            <TeamReveal
               key={team.trackKey ?? ""}
+              team={team}
+              onStage={onStage}
+              onOnStageChange={setOnStage}
+              cohortActive={cohortActive}
               cohort={cohort}
-              tracks={tracks!}
-              teamTrackKey={team.trackKey}
+              tracks={tracks}
+              // Refetch in place. Dropping to "loading" first would unmount the
+              // team card and replay its entrance animation on every accept —
+              // the phase is already "revealed" and the load below sets it again.
+              onTeamChanged={() => setReloadKey((k) => k + 1)}
             />
-          )}
+            {cohortActive && hasTracks && (
+              <TrackPicker
+                cohort={cohort}
+                tracks={tracks!}
+                team={{
+                  trackKey: team.trackKey,
+                  table: team.table,
+                  leaderName: leader?.fullName ?? null,
+                  iAmLeader: leader?.isSelf ?? false,
+                }}
+                // Refetch team + profile in place. Deliberately not
+                // setPhase("loading") — that would unmount TrackPicker and take
+                // the server's confirmation message away before it is read.
+                onTeamTrackChanged={() => setReloadKey((k) => k + 1)}
+              />
+            )}
+            {hasTracks && (
+              // Keyed for the same reason as TeamReveal above: the guide seeds
+              // which cards are open once, at mount. Without a remount a moved
+              // team gets its new track sorted first but collapsed, with the
+              // old one still expanded.
+              <TrackGuide
+                key={team.trackKey ?? ""}
+                cohort={cohort}
+                tracks={tracks!}
+                teamTrackKey={team.trackKey}
+              />
+            )}
+          </div>
         </div>
       );
     }
@@ -693,8 +729,11 @@ export function ImpactLabClient({
     );
   })();
 
+  // The page container is wide enough for the revealed phase's two columns;
+  // every other phase is a single column of cards and stays at the width it
+  // was designed for, left-aligned under the header.
   return (
-    <>
+    <div className={phase === "revealed" ? undefined : "max-w-3xl"}>
       {inviteEvent && (
         <section
           className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-green-primary/30 bg-green-primary/5 p-4"
@@ -717,6 +756,6 @@ export function ImpactLabClient({
       )}
       {conversationsReport && <ConversationsReportCard report={conversationsReport} />}
       {content}
-    </>
+    </div>
   );
 }

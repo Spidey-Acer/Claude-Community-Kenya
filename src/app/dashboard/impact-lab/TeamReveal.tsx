@@ -196,15 +196,18 @@ export function TeamReveal({
             transition={{ duration: 0.8 }}
           />
         )}
+        {/* Phone-first header: below sm the icon tile goes, the eyebrow holds
+            one line, and the check-in control drops to a full row under the
+            name so the two never fight over 350px of width. */}
         <div className="relative flex flex-wrap items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10">
+          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded border border-green-primary/30 bg-green-primary/10 sm:flex">
             <PartyPopper className="h-6 w-6 text-green-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-green-primary mb-1">
+            <p className="mb-1 whitespace-nowrap font-mono text-[11px] uppercase tracking-wider text-green-primary">
               {"// ./your-team"}
             </p>
-            <h2 className="flex flex-wrap items-center gap-2 font-mono text-xl break-words font-bold text-text-primary sm:text-3xl">
+            <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5 font-mono text-xl break-words font-bold text-text-primary sm:text-3xl">
               {team.teamName}
               {typeof team.table === "number" && (
                 <span className="rounded border border-amber/40 bg-amber/10 px-2.5 py-0.5 font-mono text-base uppercase tracking-wider text-amber">
@@ -231,7 +234,7 @@ export function TeamReveal({
               </p>
             )}
           </div>
-          <div className="shrink-0">
+          <div className="w-full empty:hidden sm:w-auto sm:shrink-0">
             {!cohortActive ? (
               checkedIn ? (
                 <span className="inline-flex items-center gap-1.5 rounded border border-border-default bg-bg-card px-3 py-1.5 font-mono text-xs font-semibold text-text-dim">

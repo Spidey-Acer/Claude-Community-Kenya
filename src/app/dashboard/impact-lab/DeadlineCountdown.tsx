@@ -54,7 +54,19 @@ function localCloseTime(closeAt: string): string {
     .toLowerCase();
 }
 
-export function DeadlineCountdown({ cohort }: { cohort?: string }) {
+export function DeadlineCountdown({
+  cohort,
+  compact = false,
+}: {
+  cohort?: string;
+  /**
+   * Stacked layout with smaller digits, for the 20rem side rail on the
+   * revealed-phase dashboard. The default keeps the full-width card, whose
+   * `sm:` breakpoints are viewport-based and would put the digits beside the
+   * label inside a rail that has no room for it.
+   */
+  compact?: boolean;
+}) {
   const cohortQuery = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [closeAt, setCloseAt] = useState<string | null>(null);
   /** Server time minus local time, so a wrong device clock cancels out. */
@@ -133,7 +145,13 @@ export function DeadlineCountdown({ cohort }: { cohort?: string }) {
       aria-label="Submission deadline"
       className={`w-full rounded-lg border bg-bg-secondary p-4 sm:p-5 ${styles.card}`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-x-6">
+      <div
+        className={
+          compact
+            ? "flex flex-col gap-3"
+            : "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-x-6"
+        }
+      >
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[11px] uppercase tracking-wider text-text-dim">
             {"// ./submission-window"}
@@ -148,7 +166,9 @@ export function DeadlineCountdown({ cohort }: { cohort?: string }) {
         <div className="min-w-0">
           <p
             aria-hidden="true"
-            className={`font-mono tabular-nums text-4xl font-bold leading-none break-normal sm:text-5xl ${styles.digits} ${
+            className={`font-mono tabular-nums font-bold leading-none break-normal ${
+              compact ? "text-4xl" : "text-4xl sm:text-5xl"
+            } ${styles.digits} ${
               pulsing ? "motion-safe:animate-pulse" : ""
             }`}
           >
