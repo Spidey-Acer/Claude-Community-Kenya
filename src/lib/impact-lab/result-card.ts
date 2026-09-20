@@ -183,11 +183,17 @@ export function shortName(fullName: string): string {
  * the run predates tables. Empty when there is neither.
  */
 export function teamPlaceLabel(table: number | null, teamName: string): string {
-  const name = teamName.trim()
+  let name = teamName.trim().replace(/\s+/g, " ")
   const tableLabel = table !== null ? `Table ${table}` : null
-  const nameIsTable =
-    tableLabel !== null && name.replace(/\s+/g, " ").toLowerCase() === tableLabel.toLowerCase()
-  return [tableLabel, nameIsTable || name === "" ? null : name]
+  if (tableLabel !== null) {
+    // "Table 40 · Everyday" (the rename-by-table-and-track form) carries the
+    // table in its own name; keep only the track so it never prints
+    // "Table 40 · Table 40 · Everyday" (Build Day 2026-09-20).
+    const prefix = `${tableLabel} · `
+    if (name.toLowerCase().startsWith(prefix.toLowerCase())) name = name.slice(prefix.length).trim()
+    if (name.toLowerCase() === tableLabel.toLowerCase()) name = ""
+  }
+  return [tableLabel, name === "" ? null : name]
     .filter((s): s is string => s !== null)
     .join(" · ")
 }
@@ -254,8 +260,11 @@ export const CARD_GOLD = {
 /** Runner-up graphite, top to bottom, plus its silver pill colour. */
 export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
 
-/** Third-place bronze, top to bottom. */
-export const CARD_BRONZE = { from: "#4E2A14", to: "#8C5A2B" } as const
+/**
+ * Third-place bronze, top to bottom. Copper-red rather than warm brown: the
+ * earlier #4E2A14 → #8C5A2B read as a second gold next to the winner card.
+ */
+export const CARD_BRONZE = { from: "#3F2418", to: "#7A4630" } as const
 
 export type CardStyle = {
   kind: "winner" | "runner-up" | "third" | "built"
