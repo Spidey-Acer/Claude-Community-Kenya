@@ -716,6 +716,11 @@ export function impactLabResultsEmail(data: {
   const podium = isPodium(data.placement)
   const ranked = data.placement?.kind === "ranked" ? data.placement : null
   const track = data.placement?.track ?? null
+  // The public card image's alt text: the placing headline in words.
+  const shareCardAlt =
+    podium && ranked
+      ? `${placementTitle(ranked)} in ${ranked.track}: ${data.projectName}`
+      : `${data.projectName}, built at ${data.eventName}`
 
   // ── Subject ──────────────────────────────────────────────────────────────
   let subject: string
@@ -1040,13 +1045,17 @@ export function impactLabResultsEmail(data: {
 
   // ── Calls to action ──────────────────────────────────────────────────────
   // Stacked, one table each. Two buttons in one table row cannot wrap, and
-  // together they forced the whole email past 480px on a phone.
+  // together they forced the whole email past 480px on a phone. Both cells
+  // share one fixed width and a 1px border (the orange one borders itself),
+  // so the pair lines up as two equal blocks instead of two content-sized
+  // pills of different heights.
+  const CTA_WIDTH = 240
   const shareButton = data.shareUrl
     ? `
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;">
               <tr>
-                <td bgcolor="${DARK.orange}" style="border-radius:8px;background-color:${DARK.orange};">
-                  <a href="${esc(data.shareUrl)}" style="display:inline-block;padding:13px 22px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${DARK.ink};text-decoration:none;">Share your result</a>
+                <td bgcolor="${DARK.orange}" width="${CTA_WIDTH}" style="width:${CTA_WIDTH}px;border-radius:8px;border:1px solid ${DARK.orange};background-color:${DARK.orange};text-align:center;">
+                  <a href="${esc(data.shareUrl)}" style="display:block;padding:12px 16px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${DARK.ink};text-decoration:none;text-align:center;">Share your result</a>
                 </td>
               </tr>
             </table>`
@@ -1055,8 +1064,8 @@ export function impactLabResultsEmail(data: {
   const dashboardButton = `
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
               <tr>
-                <td bgcolor="${DARK.card}" style="border-radius:8px;border:1px solid ${DARK.text};background-color:${DARK.card};">
-                  <a href="${esc(data.dashboardUrl)}" style="display:inline-block;padding:12px 22px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${DARK.text};text-decoration:none;">Open my dashboard</a>
+                <td bgcolor="${DARK.card}" width="${CTA_WIDTH}" style="width:${CTA_WIDTH}px;border-radius:8px;border:1px solid ${DARK.text};background-color:${DARK.card};text-align:center;">
+                  <a href="${esc(data.dashboardUrl)}" style="display:block;padding:12px 16px;font-family:${BODY_FONT};font-size:14px;font-weight:600;color:${DARK.text};text-decoration:none;text-align:center;">Open my dashboard</a>
                 </td>
               </tr>
             </table>`
@@ -1065,8 +1074,26 @@ export function impactLabResultsEmail(data: {
   // unbreakable 49-character URL was the one thing holding the layout wider
   // than a phone, and break-all on the paragraph would split the prose too.
   const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
+  // The card itself, under the line that describes it: the square PNG the
+  // share page serves (`card/square` beside the page URL), in a full-width
+  // cell so it centres, at 480px so it fits the 600px column with the card
+  // body's padding. `alt` carries the headline for clients that block
+  // remote images by default. Only with a share URL: no card, no image.
+  const shareCard = data.shareUrl
+    ? `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 18px;">
+              <tr>
+                <td align="center" style="text-align:center;">
+                  <a href="${esc(data.shareUrl)}" style="display:inline-block;text-decoration:none;">
+                    <img src="${esc(`${data.shareUrl}/card/square`)}" width="480" alt="${esc(shareCardAlt)}" style="display:block;width:100%;max-width:480px;height:auto;border:0;border-radius:12px;" />
+                  </a>
+                </td>
+              </tr>
+            </table>`
+    : ""
   const shareLine = data.shareUrl
-    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${DARK.dim};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>`
+    ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${DARK.dim};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>
+            ${shareCard}`
     : ""
 
   // Not wrapped in a `<head>` — this fragment has none, and email clients
