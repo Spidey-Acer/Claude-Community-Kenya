@@ -175,6 +175,25 @@ describe("GET /api/admin/impact-lab/judging — who sees the aggregate", () => {
 })
 
 describe("DELETE /api/admin/impact-lab/judging", () => {
+  it("with teamId deletes only that judge's sheet for that team", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce(OPEN_RUN as never)
+    vi.mocked(prisma.impactLabScore.deleteMany).mockResolvedValueOnce({ count: 1 } as never)
+
+    const res = await DELETE(
+      deleteRequest("?runId=run-1&judgeId=name:test-judge&teamId=team-15")
+    )
+
+    expect(res.status).toBe(200)
+    expect(prisma.impactLabScore.deleteMany).toHaveBeenCalledWith({
+      where: { runId: "run-1", judgeEmail: "name:test-judge", teamId: "team-15" },
+    })
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: expect.objectContaining({ judgeId: "name:test-judge", teamId: "team-15", deleted: 1 }),
+      })
+    )
+  })
+
   it("deletes that judge's rows for that run and audits the count", async () => {
     vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce(OPEN_RUN as never)
     vi.mocked(prisma.impactLabScore.deleteMany).mockResolvedValueOnce({ count: 7 } as never)

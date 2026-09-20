@@ -483,10 +483,18 @@ export async function DELETE(request: NextRequest) {
   if (!check.authorized) return check.response
 
   const params = z
-    .object({ runId: z.string().min(1).max(64), judgeId: z.string().min(1).max(320) })
+    .object({
+      runId: z.string().min(1).max(64),
+      judgeId: z.string().min(1).max(320),
+      // Optional: delete this judge's sheet for ONE team only. Build Day
+      // 2026-09-20: a judge scored the wrong team by name and the only tool
+      // wiped every sheet they had saved that night.
+      teamId: z.string().min(1).max(64).optional(),
+    })
     .safeParse({
       runId: request.nextUrl.searchParams.get("runId")?.trim() ?? "",
       judgeId: request.nextUrl.searchParams.get("judgeId")?.trim() ?? "",
+      teamId: request.nextUrl.searchParams.get("teamId")?.trim() || undefined,
     })
   if (!params.success) {
     return NextResponse.json(
@@ -520,12 +528,21 @@ export async function DELETE(request: NextRequest) {
   }
 
   const { count } = await prisma.impactLabScore.deleteMany({
-    where: { runId: run.id, judgeEmail: params.data.judgeId },
+    where: {
+      runId: run.id,
+      judgeEmail: params.data.judgeId,
+      ...(params.data.teamId ? { teamId: params.data.teamId } : {}),
+    },
   })
 
   if (count === 0) {
     return NextResponse.json(
-      { success: false, error: "That judge has no scores on this run." },
+      {
+        success: false,
+        error: params.data.teamId
+          ? "That judge has no score for that team on this run."
+          : "That judge has no scores on this run.",
+      },
       { status: 404 }
     )
   }
@@ -537,7 +554,12 @@ export async function DELETE(request: NextRequest) {
     action: "DELETE",
     entity: "ImpactLabScore",
     entityId: run.id,
-    changes: { judgeId: params.data.judgeId, deleted: count, cohort: run.cohort },
+    changes: {
+      judgeId: params.data.judgeId,
+      ...(params.data.teamId ? { teamId: params.data.teamId } : {}),
+      deleted: count,
+      cohort: run.cohort,
+    },
     ...getRequestMetadata(request),
   })
 
