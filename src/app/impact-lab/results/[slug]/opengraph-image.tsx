@@ -1,231 +1,30 @@
-import { ImageResponse } from "next/og"
-import { CARD_DARK, CARD_GOLD, cardStyleForTitle, type CardStyle } from "@/lib/impact-lab/result-card"
-import { findResultCardBySlug } from "@/lib/impact-lab/result-card-store"
-import { loadFonts } from "@/lib/impact-lab/og-fonts"
+import { cardResponseForSlug } from "@/lib/impact-lab/card-response"
 
 /**
- * The LinkedIn post graphic for one team's result card. Same lookup as the
- * page, same four treatments — see `cardStyleForTitle` in `result-card.ts`,
- * the single source of the dark premium palette both files share. Literal
- * hex only: Satori cannot read CSS variables, and a Karibu theme token would
- * invert under the visitor's dark-mode preference anyway.
+ * The link-preview graphic for one team's result card: the same Build Day
+ * card `renderCard` draws for the downloads, cropped to 1200x630 (see
+ * `ogLayout` in `card-render.tsx`). Served inline, never as an attachment.
+ * Default Node.js runtime: the lookup goes through Prisma and the fonts
+ * come off the filesystem, neither of which the edge runtime can do.
  *
- * Fraunces and Inter are fetched from Google Fonts at render time (Satori
- * ships only Noto Sans and cannot see system fonts), cached by the runtime,
- * and if the fetch fails the image still renders in the bundled sans rather
- * than failing a share. Default Node.js runtime: the lookup goes through
- * Prisma, which the edge runtime cannot load.
- */
-
-/**
  * Force-dynamic for the same reason `page.tsx` is: a result card is computed
  * from the run's `resultsSnapshot` per request, and that snapshot can be
  * corrected after publication. Impact Lab 02 published a podium naming a team
  * that had won nothing; correcting it fixes the page, but a PNG left in the
  * route cache would keep serving the wrong placing to every link preview —
  * the right page and the wrong image, which is the version nobody checks.
+ *
+ * An unknown slug gets a 404 rather than a generic poster: the page it
+ * belongs to is the not-found page, and a preview claiming otherwise would
+ * be the one thing on the link that lies.
  */
 export const dynamic = "force-dynamic"
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
-export const alt = "Impact Lab result — Claude Community Kenya"
-
-const DISPLAY = "Fraunces"
-const SANS = "Inter"
-
-/** CSS `linear-gradient` for a `CardStyle`'s panel — 2 or 3 stops, along `style.angle`. */
-function panelBackground(style: CardStyle): string {
-  return `linear-gradient(${style.angle}, ${style.gradient.join(", ")})`
-}
+export const alt = "Build Day result card, Claude Community Kenya"
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const [card, fonts] = await Promise.all([
-    findResultCardBySlug(slug).catch(() => null),
-    loadFonts([
-      { name: DISPLAY, weight: 600 },
-      { name: SANS, weight: 400 },
-    ]),
-  ])
-
-  // A valid page never gets a blank preview: an unknown slug renders the
-  // generic "built" treatment rather than nothing.
-  const isPodium = card ? card.title !== "Built" : false
-  const style = cardStyleForTitle(card?.title ?? "Built")
-  const fg = style.ink
-  const muted = style.muted
-  // Clay on the gold winner surface, brand orange everywhere else — see
-  // `CardStyle.accent` in result-card.ts.
-  const eyebrowColor = style.accent
-  // Podium: the placing is the headline and the project sits under it.
-  // Built: the project is the headline — same hierarchy as the page.
-  const eyebrow = card ? (isPodium ? card.track : `Built at ${card.eventName}`) : "Claude Community Kenya"
-  const headline = card ? (isPodium ? card.title : card.projectName) : "Impact Lab"
-  const sub = card ? (isPodium ? card.projectName : `${card.track} track`) : "Results"
-  const eventLine = card
-    ? `${card.eventName}${card.eventDates ? ` · ${card.eventDates}` : ""}`
-    : "Nairobi"
-  const members = card?.members.join(" · ") ?? ""
-  const displayFamily = fonts.some((f) => f.name === DISPLAY) ? DISPLAY : SANS
-
-  // The placement word ("Winner" / "Runner-up" / "Third place") must read as
-  // one line on a 1200px poster no matter how it's cropped by a client:
-  // ~120px for the five-letter "Winner", scaled down to ~96px for the two
-  // longer titles so neither wraps or gets clipped.
-  const headlineFontSize = !isPodium
-    ? headline.length > 22
-      ? "72px"
-      : "118px"
-    : style.kind === "winner"
-      ? "120px"
-      : "96px"
-
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          background: CARD_DARK.pageBg,
-          padding: "36px",
-          fontFamily: SANS,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: "100%",
-            position: "relative",
-            textAlign: "center",
-            background: panelBackground(style),
-            border:
-              style.kind === "built"
-                ? `1px solid ${CARD_DARK.hairline}`
-                : style.kind === "winner"
-                  ? `1px solid ${CARD_GOLD.innerBorder}`
-                  : "none",
-            borderLeft: style.kind === "built" ? `6px solid ${CARD_DARK.orange}` : "none",
-            borderRadius: "28px",
-            padding: "56px 64px",
-          }}
-        >
-          {style.kind === "winner" ? (
-            <div
-              style={{
-                display: "flex",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: `radial-gradient(circle at top left, ${CARD_GOLD.radialHighlight}, transparent 60%)`,
-                borderRadius: "27px",
-              }}
-            />
-          ) : null}
-
-          {style.kind === "winner" ? (
-            <div
-              style={{
-                display: "flex",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "4px",
-                background: "#F3DFA0",
-                borderRadius: "28px 28px 0 0",
-              }}
-            />
-          ) : null}
-
-          <div
-            style={{
-              display: "flex",
-              fontSize: "22px",
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
-              color: eyebrowColor,
-            }}
-          >
-            {eyebrow}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              marginTop: "24px",
-              fontFamily: displayFamily,
-              fontSize: headlineFontSize,
-              lineHeight: 1,
-              fontWeight: 700,
-              letterSpacing: isPodium ? "-0.01em" : "-0.03em",
-              whiteSpace: isPodium ? "nowrap" : "normal",
-              color: fg,
-            }}
-          >
-            {headline}
-          </div>
-
-          {style.pill ? (
-            <div
-              style={{
-                display: "flex",
-                marginTop: "20px",
-                fontSize: "20px",
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: style.pill.color,
-                border: `2px solid ${style.pill.color}`,
-                borderRadius: "999px",
-                padding: "8px 22px",
-              }}
-            >
-              {style.pill.label}
-            </div>
-          ) : null}
-
-          <div
-            style={{
-              display: "flex",
-              width: "72px",
-              height: "4px",
-              marginTop: "28px",
-              background: style.accent,
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              marginTop: "26px",
-              fontFamily: displayFamily,
-              fontSize: sub.length > 40 ? "38px" : "50px",
-              lineHeight: 1.15,
-              fontWeight: 600,
-              color: fg,
-              maxWidth: "1000px",
-            }}
-          >
-            {sub}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginTop: "40px" }}>
-            {members ? (
-              <div style={{ display: "flex", fontSize: "22px", color: muted }}>{members}</div>
-            ) : null}
-            <div style={{ display: "flex", fontSize: "22px", color: fg }}>{eventLine}</div>
-          </div>
-          <div style={{ display: "flex", marginTop: "16px", fontSize: "20px", color: muted }}>claudekenya.org</div>
-        </div>
-      </div>
-    ),
-    { ...size, fonts: fonts.length > 0 ? fonts : undefined }
-  )
+  return cardResponseForSlug(slug, "og", { download: false })
 }

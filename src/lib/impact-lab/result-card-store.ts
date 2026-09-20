@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma"
 import { getEventByCohort } from "./event-store"
 import { extractFrozenTeams } from "./member"
 import {
+  isChampion,
   looksLikeResultCardSlug,
   placementFor,
   resultCardSecret,
@@ -80,6 +81,7 @@ export async function findResultCardBySlug(slug: string): Promise<PublicResultCa
       eventDates: event?.dates ?? "",
       projectName,
       placement,
+      champion: isChampion(snapshot, team.id),
       memberFullNames,
     })
   }

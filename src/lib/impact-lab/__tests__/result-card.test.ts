@@ -5,7 +5,11 @@
 
 import { afterEach, describe, expect, it } from "vitest"
 import {
+  cardHeadline,
+  cardMembersLine,
+  cardPlacingLine,
   cardStyleForTitle,
+  isChampion,
   isPodium,
   looksLikeResultCardSlug,
   placementFor,
@@ -220,10 +224,90 @@ describe("public card", () => {
       projectName: "Shamba Bot",
       track: "Kilimo",
       title: "Winner",
+      champion: false,
       members: ["Wanjiru K.", "Brian O."],
     })
     expect(Object.keys(card)).not.toContain("position")
     expect(Object.keys(card)).not.toContain("overallRank")
+  })
+})
+
+/** Champion mode: k1 is the one overall champion; e1 is Elimu's announced winner. */
+const CHAMPION_SNAPSHOT: ResultsSnapshot = {
+  ...SNAPSHOT,
+  announcementMode: "champion",
+  overall: [{ rank: 1, teamId: "k1", projectName: "Shamba Bot" }],
+}
+
+describe("isChampion", () => {
+  it("names only the champion-mode overall[0]", () => {
+    expect(isChampion(CHAMPION_SNAPSHOT, "k1")).toBe(true)
+    // An announced track winner is not the champion.
+    expect(isChampion(CHAMPION_SNAPSHOT, "e1")).toBe(false)
+    expect(isChampion(CHAMPION_SNAPSHOT, "k2")).toBe(false)
+  })
+
+  it("is false under podium mode, where rank 1 is a podium place", () => {
+    expect(isChampion(SNAPSHOT, "k1")).toBe(false)
+    expect(isChampion({ ...SNAPSHOT, announcementMode: undefined }, "k1")).toBe(false)
+  })
+
+  it("is false under tracks mode, which has no overall placing", () => {
+    expect(isChampion({ ...SNAPSHOT, announcementMode: "tracks", overall: [] }, "k1")).toBe(false)
+  })
+})
+
+describe("card copy", () => {
+  const base = { eventName: "Nairobi | Fable 5.1 Build Day", eventDates: "19 to 20 September 2026", projectName: "Prism", members: [] }
+
+  it("reads CHAMPION for the champion even though it also won its track", () => {
+    const card = toPublicResultCard({
+      ...base,
+      placement: placementFor(CHAMPION_SNAPSHOT, "k1")!,
+      champion: isChampion(CHAMPION_SNAPSHOT, "k1"),
+      memberFullNames: [],
+    })
+    expect(card.title).toBe("Winner")
+    expect(cardPlacingLine(card)).toBe("CHAMPION")
+    expect(cardHeadline(card)).toBe("Champion of Nairobi | Fable 5.1 Build Day: Prism")
+  })
+
+  it("names the track for winners, runners-up and third", () => {
+    expect(cardPlacingLine({ ...base, track: "Delight", title: "Winner", champion: false })).toBe("DELIGHT WINNER")
+    expect(cardPlacingLine({ ...base, track: "Delight", title: "Runner-up", champion: false })).toBe("RUNNER-UP IN DELIGHT")
+    expect(cardPlacingLine({ ...base, track: "Everyday", title: "Third place", champion: false })).toBe("THIRD IN EVERYDAY")
+  })
+
+  it("second by score in a track is runner-up, exactly as placementFor says", () => {
+    // k2 sits second in Kilimo behind the champion: the card says what the
+    // placement says, no more and no less.
+    const card = toPublicResultCard({
+      ...base,
+      placement: placementFor(CHAMPION_SNAPSHOT, "k2")!,
+      champion: isChampion(CHAMPION_SNAPSHOT, "k2"),
+      memberFullNames: [],
+    })
+    expect(cardPlacingLine(card)).toBe("RUNNER-UP IN KILIMO")
+  })
+
+  it("built cards name Build Day by its format line, other events by name", () => {
+    expect(cardPlacingLine({ ...base, track: "Everyday", title: "Built", champion: false })).toBe("BUILT AT BUILD DAY")
+    expect(cardPlacingLine({ ...base, eventName: "Impact Lab 02", track: "Kilimo", title: "Built", champion: false })).toBe(
+      "BUILT AT IMPACT LAB 02"
+    )
+  })
+
+  it("caps the members line at six names", () => {
+    const names = ["A B.", "C D.", "E F.", "G H.", "I J.", "K L.", "M N.", "O P."]
+    expect(cardMembersLine(names.slice(0, 6))).toBe("A B. · C D. · E F. · G H. · I J. · K L.")
+    expect(cardMembersLine(names)).toBe("A B. · C D. · E F. · G H. · I J. · K L. and 2 more")
+    expect(cardMembersLine([])).toBe("")
+  })
+
+  it("never puts an em dash in card copy", () => {
+    for (const title of ["Winner", "Runner-up", "Third place", "Built"]) {
+      expect(cardPlacingLine({ ...base, track: "Delight", title, champion: false })).not.toContain("—")
+    }
   })
 })
 
