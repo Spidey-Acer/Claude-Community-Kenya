@@ -14,9 +14,9 @@ import { cardResponseForSlug } from "@/lib/impact-lab/card-response"
  * route cache would keep serving the wrong placing to every link preview —
  * the right page and the wrong image, which is the version nobody checks.
  *
- * An unknown slug gets a 404 rather than a generic poster: the page it
- * belongs to is the not-found page, and a preview claiming otherwise would
- * be the one thing on the link that lies.
+ * A valid page never gets a blank preview: an unknown slug, or a lookup
+ * that fails mid-request, renders the generic community card rather than
+ * nothing (see `FALLBACK_CARD` in `card-response.ts`).
  */
 export const dynamic = "force-dynamic"
 
@@ -26,5 +26,5 @@ export const alt = "Build Day result card, Claude Community Kenya"
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  return cardResponseForSlug(slug, "og", { download: false })
+  return cardResponseForSlug(slug, "og", { download: false, fallback: true })
 }
