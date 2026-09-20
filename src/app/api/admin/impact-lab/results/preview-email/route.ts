@@ -28,7 +28,7 @@ import { APP_URL, impactLabResultsEmail, resultsOrdinal } from "@/lib/email"
  * (`placementFor`/`placementTitle`), so this sentence and the email an
  * organiser is being warned about can never disagree with each other.
  */
-export function announcementHeadline(
+function announcementHeadline(
   placement: Placement | null,
   mode: "podium" | "tracks" | "champion"
 ): string {
