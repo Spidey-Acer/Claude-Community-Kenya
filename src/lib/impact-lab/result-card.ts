@@ -182,7 +182,7 @@ export function shortName(fullName: string): string {
  * which otherwise printed "Table 36 · Table 36"), or just the name when
  * the run predates tables. Empty when there is neither.
  */
-export function teamPlaceLabel(table: number | null, teamName: string): string {
+export function teamPlaceLabel(table: number | null, teamName: string, track?: string | null): string {
   let name = teamName.trim().replace(/\s+/g, " ")
   const tableLabel = table !== null ? `Table ${table}` : null
   if (tableLabel !== null) {
@@ -193,6 +193,10 @@ export function teamPlaceLabel(table: number | null, teamName: string): string {
     if (name.toLowerCase().startsWith(prefix.toLowerCase())) name = name.slice(prefix.length).trim()
     if (name.toLowerCase() === tableLabel.toLowerCase()) name = ""
   }
+  // When what is left is just the track and the caller already prints the
+  // track next to this label, drop it: "Everyday track · Table 32", not
+  // "Everyday track · Table 32 · Everyday" (results email, same event).
+  if (track && name.toLowerCase() === track.trim().toLowerCase()) name = ""
   return [tableLabel, name === "" ? null : name]
     .filter((s): s is string => s !== null)
     .join(" · ")

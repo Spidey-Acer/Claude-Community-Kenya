@@ -727,7 +727,7 @@ export function impactLabResultsEmail(data: {
   // ── Hero ─────────────────────────────────────────────────────────────────
   // "Table 36 · Kilimo 3", or "Table 36" alone when the team is named after
   // its table — see teamPlaceLabel. The middle dot is re-encoded for email.
-  const tableLine = esc(teamPlaceLabel(data.table, data.teamName)).replace(/ · /g, " &middot; ")
+  const tableLine = esc(teamPlaceLabel(data.table, data.teamName, track)).replace(/ · /g, " &middot; ")
 
   let hero: string
   if (podium && ranked) {
