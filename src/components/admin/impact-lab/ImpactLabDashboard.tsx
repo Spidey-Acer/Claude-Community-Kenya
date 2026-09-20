@@ -12,6 +12,7 @@ import {
   ListChecks,
   SlidersHorizontal,
   CalendarDays,
+  IdCard,
   Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -27,6 +28,7 @@ import { JudgesTab } from "./JudgesTab"
 import { ResultsTab } from "./ResultsTab"
 import { RubricTab } from "./RubricTab"
 import { EventsTab } from "./EventsTab"
+import { CardsTab } from "./CardsTab"
 
 type Tab =
   | "events"
@@ -39,6 +41,7 @@ type Tab =
   | "leaderboard"
   | "judges"
   | "results"
+  | "cards"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   // First: events span organisations and aren't scoped to the selected
@@ -56,6 +59,9 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "leaderboard", label: "Leaderboard", icon: Trophy },
   { key: "judges", label: "Judges", icon: Gavel },
   { key: "results", label: "Results", icon: ListChecks },
+  // After Results: the share cards are what publishing produces, previewed
+  // here before the results email carries them out.
+  { key: "cards", label: "Cards", icon: IdCard },
 ]
 
 /**
@@ -150,6 +156,7 @@ export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }
         {tab === "leaderboard" && <LeaderboardTab cohort={cohort} />}
         {tab === "judges" && <JudgesTab cohort={cohort} />}
         {tab === "results" && <ResultsTab cohort={cohort} />}
+        {tab === "cards" && <CardsTab cohort={cohort} />}
       </div>
     </div>
   )
