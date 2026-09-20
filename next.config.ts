@@ -1,5 +1,7 @@
 import type { NextConfig } from "next"
 
+const CARD_ASSETS = ["./public/fonts/**", "./public/images/buildday/**"]
+
 const nextConfig: NextConfig = {
   // sharp and archiver are native/stream-heavy and must not be bundled by the
   // server compiler — sharp in particular resolves a platform binary at
@@ -15,6 +17,15 @@ const nextConfig: NextConfig = {
     "/api/showcase/media/finalize": ["./node_modules/@img/**"],
     "/api/admin/photos/finalize": ["./node_modules/@img/**"],
     "/api/admin/photos/presign": ["./node_modules/@img/**"],
+    // The Build Day share card reads the kit fonts and the pre-rendered
+    // arc+icon marks off the filesystem (`card-assets.ts`), from paths
+    // built at runtime that tracing cannot follow. Every route that calls
+    // `renderCard` gets them.
+    "/impact-lab/results/[slug]/opengraph-image": CARD_ASSETS,
+    "/impact-lab/results/[slug]/card/square": CARD_ASSETS,
+    "/impact-lab/results/[slug]/card/portrait": CARD_ASSETS,
+    "/impact-lab/results/[slug]/card/story": CARD_ASSETS,
+    "/api/admin/impact-lab/results/card": CARD_ASSETS,
   },
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],

@@ -188,6 +188,21 @@ describe("impactLabResultsEmail content rules", () => {
     expect(without).toContain("Open my dashboard")
   })
 
+  it("embeds the square card image under the share line, only with a share URL", () => {
+    const withShare = build().html
+    expect(withShare).toContain(
+      'src="https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx/card/square"'
+    )
+    expect(withShare).toContain('width="480"')
+    expect(withShare).toContain('alt="Winner in Kilimo: Nitapata?: Shamba Bot"')
+    // The image sits after the line that describes the card.
+    expect(withShare.indexOf("Your public card shows")).toBeLessThan(withShare.indexOf("/card/square"))
+
+    const without = build({ shareUrl: null }).html
+    expect(without).not.toContain("/card/square")
+    expect(without).not.toContain("<img")
+  })
+
   it("escapes user-typed names", () => {
     const { html } = build({ projectName: "<b>Bold</b> & co", teamName: "Team <x>" })
     expect(html).not.toContain("<b>Bold</b>")

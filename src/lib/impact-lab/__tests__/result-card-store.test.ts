@@ -78,12 +78,25 @@ describe("findResultCardBySlug", () => {
       projectName: "Shamba Bot",
       track: "Kilimo",
       title: "Winner",
+      // No `announcementMode` on this snapshot: it reads as podium, whose
+      // rank 1 is a podium place, not a champion.
+      champion: false,
       members: ["Wanjiru K.", "Brian O."],
     })
     // Only published runs are ever scanned.
     expect(findManyRuns).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isFinal: true, resultsPublishedAt: { not: null } } })
     )
+  })
+
+  it("flags the champion of a champion-mode snapshot, and only that team", async () => {
+    findManyRuns.mockResolvedValue([
+      { ...PUBLISHED_RUN, resultsSnapshot: { ...PUBLISHED_RUN.resultsSnapshot, announcementMode: "champion" } },
+    ])
+    const champion = await findResultCardBySlug(resultCardSlug(RUN_ID, "k1", SECRET))
+    expect(champion).toMatchObject({ title: "Winner", champion: true })
+    const second = await findResultCardBySlug(resultCardSlug(RUN_ID, "k2", SECRET))
+    expect(second).toMatchObject({ title: "Runner-up", champion: false })
   })
 
   it("never returns a score, range or note", async () => {

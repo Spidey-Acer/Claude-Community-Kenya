@@ -138,8 +138,26 @@ export interface PublicResultCard {
   track: string
   /** "Winner" | "Runner-up" | "Third place" | "Built" */
   title: string
+  /**
+   * True only for the single overall champion of a `"champion"`-mode
+   * announcement (`snapshot.overall[0]`). A champion is also its track's
+   * winner (`title` stays "Winner", see `buildTrackWinners`), so this flag
+   * is what lets the card read "Champion" rather than "Delight winner". Never
+   * true under the podium or tracks modes — see `isChampion`.
+   */
+  champion: boolean
   /** "Jane K." style — first name plus last initial, never a full surname. */
   members: string[]
+}
+
+/**
+ * Whether `teamId` is the announced overall champion. Only a `"champion"`-mode
+ * snapshot names one: its `overall` holds exactly that team at rank 1 (see
+ * `ResultsInput.announcementMode`). A podium-mode rank 1 is a podium place,
+ * announced as such, and keeps its "Winner" wording.
+ */
+export function isChampion(snapshot: ResultsSnapshot, teamId: string): boolean {
+  return (snapshot.announcementMode ?? "podium") === "champion" && snapshot.overall[0]?.teamId === teamId
 }
 
 /**
@@ -207,6 +225,8 @@ export function toPublicResultCard(input: {
   eventDates: string
   projectName: string
   placement: Placement
+  /** From `isChampion`. Defaults to false: the claim must be earned. */
+  champion?: boolean
   memberFullNames: string[]
 }): PublicResultCard {
   return {
@@ -215,8 +235,48 @@ export function toPublicResultCard(input: {
     projectName: input.projectName,
     track: input.placement.track,
     title: placementTitle(input.placement),
+    champion: input.champion === true,
     members: input.memberFullNames.map(shortName).filter((n) => n !== ""),
   }
+}
+
+// ─── Card copy ───────────────────────────────────────────────────────────────
+
+/**
+ * The card's placing line, in the poster's caps: "CHAMPION", "DELIGHT
+ * WINNER", "RUNNER-UP IN DELIGHT", "THIRD IN EVERYDAY", or "BUILT AT BUILD
+ * DAY". A pure lookup over `title` + `champion` + `track` — the placing
+ * itself is `placementFor`'s and is not re-derived here.
+ */
+export function cardPlacingLine(card: Pick<PublicResultCard, "title" | "champion" | "track" | "eventName">): string {
+  const track = card.track.trim().toUpperCase()
+  if (card.champion) return "CHAMPION"
+  if (card.title === "Winner") return `${track} WINNER`
+  if (card.title === "Runner-up") return `RUNNER-UP IN ${track}`
+  if (card.title === "Third place") return `THIRD IN ${track}`
+  return `BUILT AT ${cardEventShortName(card.eventName)}`
+}
+
+/**
+ * The event as the built card names it: "BUILD DAY" for any Build Day
+ * edition (the poster's own format line), otherwise the event name in caps.
+ */
+function cardEventShortName(eventName: string): string {
+  return /build day/i.test(eventName) ? "BUILD DAY" : eventName.trim().toUpperCase()
+}
+
+/** Up to `max` members, then "and N more" — the card has one line for names. */
+export function cardMembersLine(members: readonly string[], max = 6): string {
+  if (members.length <= max) return members.join(" · ")
+  return `${members.slice(0, max).join(" · ")} and ${members.length - max} more`
+}
+
+/** The card's one-line headline for titles, alt text and link previews. */
+export function cardHeadline(card: PublicResultCard): string {
+  if (card.champion) return `Champion of ${card.eventName}: ${card.projectName}`
+  return card.title === "Built"
+    ? `${card.projectName}, built at ${card.eventName}`
+    : `${card.title} in ${card.track}: ${card.projectName}`
 }
 
 // ─── Dark premium palette ────────────────────────────────────────────────────
@@ -260,6 +320,13 @@ export const CARD_GOLD = {
   radialHighlight: "rgba(255, 255, 255, 0.10)",
   ink: "#16140F",
 } as const
+
+/**
+ * The Build Day poster's own field and text colours (the event kit's clay,
+ * ink and paper). The "built" share card is the poster's sibling and paints
+ * exactly these; the clay is the same brand orange as `CARD_DARK.orange`.
+ */
+export const CARD_POSTER = { clay: CARD_DARK.orange, ink: "#141413", paper: "#FAF9F5" } as const
 
 /** Runner-up graphite, top to bottom, plus its silver pill colour. */
 export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
