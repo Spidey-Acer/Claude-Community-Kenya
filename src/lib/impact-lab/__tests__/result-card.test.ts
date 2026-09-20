@@ -197,6 +197,10 @@ describe("public card", () => {
     expect(teamPlaceLabel(36, "Kilimo 3")).toBe("Table 36 · Kilimo 3")
     expect(teamPlaceLabel(40, "Table 40 · Everyday")).toBe("Table 40 · Everyday")
     expect(teamPlaceLabel(40, "table 40 · Everyday")).toBe("Table 40 · Everyday")
+    // The caller prints the track itself: the auto-name adds nothing.
+    expect(teamPlaceLabel(32, "Table 32 · Everyday", "Everyday")).toBe("Table 32")
+    expect(teamPlaceLabel(32, "Table 32 · Kilimo 3", "Everyday")).toBe("Table 32 · Kilimo 3")
+    expect(teamPlaceLabel(null, "Everyday", "everyday")).toBe("")
     expect(teamPlaceLabel(null, "Kilimo 3")).toBe("Kilimo 3")
     expect(teamPlaceLabel(null, "Table 36")).toBe("Table 36")
     expect(teamPlaceLabel(null, "")).toBe("")
