@@ -38,6 +38,7 @@ function build(overrides: Partial<Parameters<typeof impactLabResultsEmail>[0]> =
     basis: "demo",
     overall: OVERALL,
     trackWinners: TRACK_WINNERS,
+    eventDates: "Wed 2 Sep 2026",
     dashboardUrl: "https://www.claudekenya.org/dashboard/impact-lab",
     shareUrl: "https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx",
     rubric: IMPACT_LAB_RUBRIC,
@@ -46,50 +47,72 @@ function build(overrides: Partial<Parameters<typeof impactLabResultsEmail>[0]> =
 }
 
 describe("impactLabResultsEmail variants", () => {
-  it("track winner: clay hero, Winner headline, placement-aware subject", () => {
+  it("track winner: gold hero, the card's placing line, placement-aware subject", () => {
     const { subject, html } = build()
     expect(subject).toBe("You won the Kilimo: Nitapata? track at Impact Lab: AI Mashinani 02")
-    expect(html).toContain(">Winner<")
+    expect(html).toContain(">KILIMO: NITAPATA? WINNER<")
     expect(html).toContain("background-color:#D4AF37")
+    expect(html).toContain("/images/buildday/mark-ink.png")
     expect(html).toContain("Kilimo: Nitapata?")
     expect(html).toContain("1st overall")
-    expect(html).toContain("Table 12 &middot; Kilimo 3")
+    expect(html).toContain("Table 12 &middot; Kilimo 3 &middot; Kilimo: Nitapata? track")
+    expect(html).toContain(">Wed 2 Sep 2026<")
     expect(html).not.toContain("You built this")
   })
 
-  it("runner-up and third place: dark panel hero with their own titles and subjects", () => {
+  it("champion: gold hero reading CHAMPION, not the track", () => {
+    const { html } = build({ champion: true, announcementMode: "champion", overall: [OVERALL[0]] })
+    expect(html).toContain(">CHAMPION<")
+    expect(html).toContain("background-color:#D4AF37")
+    expect(html).not.toContain("WINNER<")
+  })
+
+  it("runner-up and third place: graphite and bronze heroes with the card's lines and their subjects", () => {
     const second = build({ placement: ranked(2), rank: 3 })
     expect(second.subject).toBe("Runner-up in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
-    expect(second.html).toContain(">Runner-up<")
+    expect(second.html).toContain(">RUNNER-UP IN KILIMO: NITAPATA?<")
     expect(second.html).toContain("background-color:#2A2A2E")
+    expect(second.html).toContain("/images/buildday/mark-paper.png")
     expect(second.html).toContain("2nd of 4 in Kilimo: Nitapata?")
 
     const third = build({ placement: ranked(3), rank: 5 })
     expect(third.subject).toBe("Third place in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
-    expect(third.html).toContain(">Third place<")
+    expect(third.html).toContain(">THIRD IN KILIMO: NITAPATA?<")
+    expect(third.html).toContain("background-color:#7A4630")
   })
 
-  it("everyone else: achievement hero, project name leads, no placing in the hero", () => {
+  it("everyone else: the clay card hero, project name in serif, built line, no placing word", () => {
     const { subject, html } = build({ placement: ranked(4, 4, 7, false), rank: 7 })
     expect(subject).toBe("Your Impact Lab: AI Mashinani 02 results: Shamba Bot")
-    expect(html).toContain("You built this")
-    expect(html).not.toContain(">Winner<")
-    expect(html).not.toContain(">Runner-up<")
-    expect(html).not.toContain(">Third place<")
+    expect(html).toContain("background-color:#D97757")
+    expect(html).toContain("/images/buildday/mark-poster.png")
+    expect(html).toContain(">BUILT AT IMPACT LAB: AI MASHINANI 02<")
+    expect(html).not.toContain("You built this")
+    expect(html).not.toContain("WINNER<")
+    expect(html).not.toContain("RUNNER-UP")
+    expect(html).not.toContain("THIRD IN")
     // Their own position still sits on the private scores block.
     expect(html).toContain("7th overall &middot; 4th of 4 in Kilimo: Nitapata?")
+  })
+
+  it("built cards on clay put the serif line in ink and the sans lines in paper, as the poster does", () => {
+    const { html } = build({ placement: ranked(4, 4, 7, false), rank: 7, eventName: "Nairobi | Fable 5.1 Build Day" })
+    expect(html).toContain(">BUILT AT BUILD DAY<")
+    expect(html).toMatch(/font-size:40px;[^>]*color:#141413;[^>]*>Shamba Bot</)
+    expect(html).toMatch(/text-transform:uppercase;[^>]*color:#FAF9F5;[^>]*>BUILT AT BUILD DAY</)
   })
 
   it("treats a missing placement as built rather than crashing", () => {
     const { subject, html } = build({ placement: null, rank: 9 })
     expect(subject).toBe("Your Impact Lab: AI Mashinani 02 results: Shamba Bot")
-    expect(html).toContain("You built this")
+    expect(html).toContain("background-color:#D97757")
+    expect(html).toContain(">BUILT AT IMPACT LAB: AI MASHINANI 02<")
     expect(html).toContain("9th overall")
   })
 
   it("prints the table once when the team is named after it", () => {
     const { html } = build({ table: 36, teamName: "Table 36" })
-    expect(html).toContain(">Table 36</p>")
+    expect(html).toContain(">Table 36 &middot; Kilimo: Nitapata? track</p>")
     expect(html).not.toContain("Table 36 &middot; Table 36")
   })
 
@@ -200,7 +223,8 @@ describe("impactLabResultsEmail content rules", () => {
 
     const without = build({ shareUrl: null }).html
     expect(without).not.toContain("/card/square")
-    expect(without).not.toContain("<img")
+    // The hero's mark is the only other image in the template.
+    expect(without.match(/<img /g)).toHaveLength(1)
   })
 
   it("escapes user-typed names", () => {
@@ -294,7 +318,7 @@ describe("impactLabResultsEmail — champion mode", () => {
       projectName: "Mwalimu AI",
       rank: 1,
     })
-    expect(html).toContain(">Winner<")
+    expect(html).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
     expect(html).not.toContain(">1st overall<")
     expect(html).not.toMatch(/\d+(st|nd|rd|th) overall/)
     expect(html).toContain("1st of 5 in Elimu: Mwalimu wa Grade 10")
