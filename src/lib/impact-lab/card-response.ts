@@ -3,12 +3,15 @@
  * slug lookup, the 404, and the two headers every PNG of a team's card
  * carries.
  *
- * `Cache-Control: private, no-store` on every size, for the same reason the
- * routes are `force-dynamic`: a published placing can be corrected, and a
- * cached PNG would keep handing out the old one (Impact Lab 02's podium was
- * corrected two days after publish). `Content-Disposition: attachment` only
- * where the caller asks — the download buttons — so the OG preview and the
- * page's `<img>` stay inline. `fallback` decides what an unresolvable slug
+ * `Cache-Control: public, max-age=300, stale-while-revalidate=600` on a
+ * rendered card: the dashboard shows up to eight of these per view and
+ * they all land in the hour the results email goes out, so each PNG may be
+ * served from cache for five minutes. A corrected placing (Impact Lab 02's
+ * podium was corrected two days after publish) therefore lags by at most
+ * that long; the routes stay `force-dynamic` so the next render reads the
+ * corrected snapshot. Errors stay `no-store`. `Content-Disposition:
+ * attachment` only where the caller asks — the download buttons — so the OG
+ * preview and the page's `<img>` stay inline. `fallback` decides what an unresolvable slug
  * gets: the downloads 404 (there is nothing to download), the OG route
  * draws `FALLBACK_CARD`. `honour` picks one of the team's cards (see
  * `cardHonours`), the primary by default; past the last one is a 404.
@@ -36,6 +39,8 @@ const FALLBACK_CARD: PublicResultCard = {
 }
 
 const NO_STORE = { "Cache-Control": "private, no-store" }
+/** Five minutes fresh, ten more stale while a fresh render is fetched (ruling 2026-09-21). */
+export const CARD_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=600"
 
 /** The raw `?honour=` value off a route's request URL, for `cardResponseForSlug`. */
 export function honourParam(request: Request): string | null {
@@ -63,7 +68,7 @@ export async function cardResponseForSlug(
   }
   const image = await renderCard(card, size, honour)
   const headers = new Headers(image.headers)
-  headers.set("Cache-Control", "private, no-store")
+  headers.set("Cache-Control", CARD_CACHE_CONTROL)
   if (options.download) {
     headers.set("Content-Disposition", `attachment; filename="${cardFileName(card, size, honour)}"`)
   }

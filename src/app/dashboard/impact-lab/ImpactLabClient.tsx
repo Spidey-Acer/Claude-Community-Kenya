@@ -461,11 +461,11 @@ export function ImpactLabClient({
                 <span className="break-all font-mono text-text-primary">{sessionEmail}</span>{" "}
                 for <span className="text-text-primary">{cohortLabel}</span>. If
                 you are attending that event, register here using the same email
-                you gave the organisers — that address is what links this account
+                you gave the organisers. That address is what links this account
                 to your team. Your team leader then adds you to the team.
               </p>
               <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                Not attending? Nothing to do — this card only concerns the event
+                Not attending? Nothing to do. This card only concerns the event
                 currently running.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -520,7 +520,7 @@ export function ImpactLabClient({
                 </h2>
                 <p className="mt-2 text-sm text-text-secondary leading-relaxed">
                   {profile.consentToMatch
-                    ? "You weren't placed on a team this round. That's on us, not you — find an organizer at the venue, or reach out on "
+                    ? "You weren't placed on a team this round. That's on us, not you. Find an organizer at the venue, or reach out on "
                     : "Your matching profile wasn't completed before the deadline, so the matcher couldn't include you this round. Find an organizer at the venue, or reach out on "}
                   <a
                     href={SOCIAL_LINKS.discord}
@@ -606,11 +606,11 @@ export function ImpactLabClient({
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="font-mono text-base font-bold text-text-primary">
-                  Profile saved — you&apos;re in the matching pool
+                  Profile saved. You&apos;re in the matching pool
                 </h2>
                 <p className="mt-1 text-sm text-text-secondary">
                   Teams drop Saturday morning, during the event. This page
-                  updates itself the moment your team is ready — no need to
+                  updates itself the moment your team is ready, no need to
                   refresh on the hour.
                 </p>
               </div>
@@ -631,7 +631,7 @@ export function ImpactLabClient({
               <li className="flex items-start gap-2.5">
                 <span className="mt-0.5 font-mono text-xs text-green-primary">1.</span>
                 <span>
-                  Organizers run the matcher against everyone&apos;s profile —
+                  Organizers run the matcher against everyone&apos;s profile:
                   roles, skills, and interests get grouped into balanced teams.
                 </span>
               </li>
@@ -665,7 +665,7 @@ export function ImpactLabClient({
               {[
                 "Laptop + charger",
                 "The AI tools you plan to use, signed in and ready",
-                "Whatever you need to demo — repo, data, hardware, deck",
+                "Whatever you need to demo: repo, data, hardware, deck",
                 "A decision on who presents",
               ].map((item) => (
                 <li

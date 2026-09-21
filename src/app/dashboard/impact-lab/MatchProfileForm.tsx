@@ -163,12 +163,12 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
         {isNew ? "$ ./register" : "$ vim ./matching-profile"}
       </p>
       <p className="mb-1 text-xs text-text-secondary">
-        Two minutes. Every field here feeds the matcher that builds your team —
-        the more accurate, the better the fit.
+        Two minutes. Every field here feeds the matcher that builds your team.
+        The more accurate, the better the fit.
       </p>
       <p className="mb-5 text-[11px] font-mono text-text-dim">
         {isNew
-          ? "Registering as " + profile.email + ". Once you're in, your team leader adds you to the team — no separate step."
+          ? "Registering as " + profile.email + ". Once you're in, your team leader adds you to the team, no separate step."
           : "We pre-filled what you told us on Luma. Check it over and fix anything that's changed."}
       </p>
 
@@ -223,7 +223,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
       <SectionHeading
         eyebrow="02"
         title="Your skills & track"
-        helper="This is the core matching signal — role, skills, and what you want to build decide who you're paired with."
+        helper="This is the core matching signal. Role, skills, and what you want to build decide who you're paired with."
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -321,7 +321,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
       <SectionHeading
         eyebrow="03"
         title="Teammates"
-        helper="Optional. If you already know who you want to build with, tell us — the matcher tries to honor both lists."
+        helper="Optional. If you already know who you want to build with, tell us. The matcher tries to honor both lists."
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -351,7 +351,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
             className={inputClass}
           />
           <p className="mt-1 text-[10px] font-mono text-text-dim">
-            Private — only organizers ever see this.
+            Private. Only organizers ever see this.
           </p>
         </div>
       </div>
@@ -371,7 +371,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
             <span className="font-mono font-semibold text-text-primary">
               Place me on a team.
             </span>{" "}
-            Required — we only match participants who opt in.
+            Required. We only match participants who opt in.
           </span>
         </label>
         <label className="flex items-start gap-2.5 cursor-pointer">
@@ -393,7 +393,7 @@ export function MatchProfileForm({ profile, onSaved, onCancel, isNew, cohort, tr
       {!isNew && (
         <p className="mt-3 text-[11px] font-mono text-text-dim">
           Registered as {profile.email}
-          {profile.institution ? ` · ${profile.institution}` : ""} — contact
+          {profile.institution ? ` · ${profile.institution}` : ""}. Contact
           the organizers to change this.
         </p>
       )}

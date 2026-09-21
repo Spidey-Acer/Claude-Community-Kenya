@@ -61,7 +61,7 @@ export function resultsSubtitle(input: {
   }
   return input.cohortActive
     ? "Complete your matching profile, then check back here for your team."
-    : "The event has wrapped — this is your record of it.";
+    : "The event has wrapped. This is your record of it.";
 }
 
 /**
@@ -93,7 +93,7 @@ export function decidedByNote(
   if (announcementMode === "champion" && hasAnnouncedOverall) {
     return (
       "The champion was decided by the judging panel after they had seen the demos and discussed " +
-      "the projects together — and so was each track's own winner, in the same conversation. " +
+      "the projects together, and so was each track's own winner, in the same conversation. " +
       "Every other team is ranked below them on score."
     );
   }
@@ -106,7 +106,7 @@ export function decidedByNote(
   }
   if (hasAnnouncedTrackWinner) {
     return (
-      "There was no overall podium at this event — the panel named a winner in some tracks after " +
+      "There was no overall podium at this event. The panel named a winner in some tracks after " +
       "seeing the demos and discussing the projects together, and those placings reflect that " +
       "conversation. Every other track's winner, and every other team, is ranked by score."
     );

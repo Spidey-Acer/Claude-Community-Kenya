@@ -24,7 +24,7 @@ describe("resultsSubtitle", () => {
       "Complete your matching profile, then check back here for your team."
     )
     expect(resultsSubtitle({ cohortActive: false, published: false, projectName: null })).toBe(
-      "The event has wrapped — this is your record of it."
+      "The event has wrapped. This is your record of it."
     )
   })
 })
