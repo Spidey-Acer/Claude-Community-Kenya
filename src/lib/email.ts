@@ -596,7 +596,7 @@ const BODY_FONT = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helveti
  *
  * - Track winner — a gold gradient hero: "Winner", the track, the project.
  * - Runner-up — the same hero on a metallic silver gradient.
- * - Third place — the same hero on a bronze gradient.
+ * - Third place — the same hero on a metallic copper gradient.
  * - Everyone else — an elevated dark panel with an orange left rule that
  *   reads as achievement: "You built <project> at <event>". No placing is
  *   printed in the hero; the team's own position within its track sits on
@@ -746,10 +746,10 @@ export function impactLabResultsEmail(data: {
 
   // Surface by placing, as `surfaceFor` in card-render.tsx: gold for a
   // winner (the champion is a winner too), silver for the runner-up,
-  // bronze for third, the poster's flat clay for everyone who built. Each
+  // copper for third, the poster's flat clay for everyone who built. Each
   // gradient carries a solid fallback (Gmail drops `background-image`;
   // Outlook renders neither and falls back to `bgcolor`). Text mirrors the
-  // card: ink on clay, gold and silver, paper on bronze — and on clay
+  // card: ink on every surface — and on clay
   // the serif line is ink while the sans lines are paper, as on the poster.
   const surface =
     ranked && ranked.position === 1
@@ -770,11 +770,11 @@ export function impactLabResultsEmail(data: {
           }
         : ranked && ranked.position === 3
           ? {
-              fallback: CARD_BRONZE.to,
-              gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`,
-              serif: CARD_POSTER.paper,
-              sans: CARD_POSTER.paper,
-              mark: "paper",
+              fallback: CARD_BRONZE.mid,
+              gradient: `linear-gradient(165deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.mid} 55%, ${CARD_BRONZE.to} 100%)`,
+              serif: CARD_BRONZE.ink,
+              sans: CARD_BRONZE.ink,
+              mark: "ink",
             }
           : {
               fallback: CARD_POSTER.clay,
@@ -899,7 +899,7 @@ export function impactLabResultsEmail(data: {
       : position === 2
         ? { fallback: CARD_SILVER.mid, gradient: `linear-gradient(165deg, ${CARD_SILVER.from} 0%, ${CARD_SILVER.mid} 55%, ${CARD_SILVER.to} 100%)`, text: CARD_SILVER.ink }
         : position === 3
-          ? { fallback: CARD_BRONZE.to, gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`, text: CARD_POSTER.paper }
+          ? { fallback: CARD_BRONZE.mid, gradient: `linear-gradient(165deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.mid} 55%, ${CARD_BRONZE.to} 100%)`, text: CARD_BRONZE.ink }
           : { fallback: DARK.card, gradient: "none", text: DARK.text }
   const readerIsAWinner = data.teamId !== undefined && cells.some((c) => c.teamId === data.teamId)
   const winnersSection =

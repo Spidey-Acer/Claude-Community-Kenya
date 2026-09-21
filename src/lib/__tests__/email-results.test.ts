@@ -74,7 +74,7 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("1st of 19 overall &middot;")
   })
 
-  it("runner-up and third place: silver and bronze heroes with the card's lines and their subjects", () => {
+  it("runner-up and third place: silver and copper heroes with the card's lines and their subjects", () => {
     const second = build({ placement: ranked(2), rank: 3 })
     expect(second.subject).toBe("Runner-up in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(second.html).toContain(">RUNNER-UP IN KILIMO: NITAPATA?<")
@@ -85,7 +85,8 @@ describe("impactLabResultsEmail variants", () => {
     const third = build({ placement: ranked(3), rank: 5 })
     expect(third.subject).toBe("Third place in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(third.html).toContain(">THIRD IN KILIMO: NITAPATA?<")
-    expect(third.html).toContain("background-color:#7A4630")
+    expect(third.html).toContain("background-color:#C47A3A")
+    expect(third.html).toContain("/images/buildday/mark-ink.png")
   })
 
   it("everyone else: the clay card hero, project name in serif, built line, no placing word", () => {
@@ -289,12 +290,12 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("Every project was ranked by score")
   })
 
-  it("podium mode: the winners strip carries the podium on gold, silver and bronze, then the track winners", () => {
+  it("podium mode: the winners strip carries the podium on gold, silver and copper, then the track winners", () => {
     const { html } = build({ teamId: "k2", placement: ranked(2), rank: 3 })
     const strip = html.slice(html.indexOf("The winners"))
     expect(strip).toMatch(/background-color:#D4AF37;[^>]*>[\s\S]*?>WINNER<[\s\S]*?>Shamba Bot</)
     expect(strip).toMatch(/background-color:#C9C9D1;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
-    expect(strip).toMatch(/background-color:#7A4630;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
+    expect(strip).toMatch(/background-color:#C47A3A;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
     expect(strip).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
     expect(strip).toContain(">KILIMO: NITAPATA? WINNER<")
     expect(strip).not.toMatch(/>\d+\.?</)

@@ -381,10 +381,20 @@ export const CARD_SILVER = {
 } as const
 
 /**
- * Third-place bronze, top to bottom. Copper-red rather than warm brown: the
- * earlier #4E2A14 → #8C5A2B read as a second gold next to the winner card.
+ * Third-place copper — metallic, on the gold's and silver's 165deg diagonal
+ * with the same faint highlight, so the three podium surfaces read as one
+ * family. Ink text, like them. Deep red-brown to a light copper: the red
+ * keeps it apart from the gold, the warmth from the silver. Replaces the
+ * flat copper-red that read as matte next to the two metallics (Build
+ * Day, 2026-09-21).
  */
-export const CARD_BRONZE = { from: "#3F2418", to: "#7A4630" } as const
+export const CARD_BRONZE = {
+  from: "#8C4A1F",
+  mid: "#C47A3A",
+  to: "#E8B07A",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#141413",
+} as const
 
 export type CardStyle = {
   kind: "winner" | "runner-up" | "third" | "built"
@@ -399,8 +409,8 @@ export type CardStyle = {
   /**
    * Eyebrow, pill border/text and rule colour. Clay (`#A84E2D`) on the gold
    * winner surface, where the brighter Claude orange loses contrast against
-   * gold's own warmth; the brand orange everywhere else (bronze,
-   * built), which is dark enough to read against those surfaces.
+   * gold's own warmth, and on the silver and copper surfaces for the same
+   * reason; the brand orange on the flat built surface, where it reads.
    */
   accent: string
   /** Small placement pill — `null` where the design has none (third, built). */
@@ -447,11 +457,11 @@ export function cardStyleForTitle(title: string): CardStyle {
   if (title === "Third place") {
     return {
       kind: "third",
-      gradient: [CARD_BRONZE.from, CARD_BRONZE.to],
-      angle: "to bottom",
-      ink: CARD_DARK.text,
-      muted: CARD_DARK.muted,
-      accent: CARD_DARK.orange,
+      gradient: [CARD_BRONZE.from, CARD_BRONZE.mid, CARD_BRONZE.to],
+      angle: "165deg",
+      ink: CARD_BRONZE.ink,
+      muted: CARD_BRONZE.ink,
+      accent: CARD_DARK.clay,
       pill: null,
     }
   }

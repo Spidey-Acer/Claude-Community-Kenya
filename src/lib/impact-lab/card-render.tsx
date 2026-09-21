@@ -29,7 +29,7 @@ import {
  *   built      flat clay, serif ink, sans paper, the poster's own colours
  *   winner     `CARD_GOLD`, ink text (the champion is a winner too)
  *   runner-up  `CARD_SILVER`, ink text, the same diagonal and highlight as gold
- *   third      `CARD_BRONZE`, paper text (copper-red so it never reads as gold or silver)
+ *   third      `CARD_BRONZE`, ink text, the same diagonal and highlight (copper, so it never reads as gold or silver)
  *
  * Satori rules, all of which this file obeys: inline styles only, no CSS
  * variables, `display: flex` on every element with children, text set by
@@ -80,11 +80,11 @@ function surfaceFor(card: PublicResultCard): Surface {
   }
   if (kind === "third") {
     return {
-      background: `linear-gradient(180deg, ${CARD_BRONZE.from}, ${CARD_BRONZE.to})`,
-      serif: CARD_POSTER.paper,
-      sans: CARD_POSTER.paper,
-      mark: "paper",
-      highlight: null,
+      background: `linear-gradient(165deg, ${CARD_BRONZE.from}, ${CARD_BRONZE.mid}, ${CARD_BRONZE.to})`,
+      serif: CARD_BRONZE.ink,
+      sans: CARD_BRONZE.ink,
+      mark: "ink",
+      highlight: CARD_BRONZE.radialHighlight,
     }
   }
   return {
@@ -312,7 +312,7 @@ function pieces(
 /**
  * The faint top-left radial highlight the metallic surfaces carry (the web
  * page drew the same one over its gold panel). Absolutely positioned over
- * the field, under the content; `null` on the flat and bronze surfaces.
+ * the field, under the content; `null` on the flat built surface.
  */
 function highlightLayer(surface: Surface) {
   if (!surface.highlight) return null
