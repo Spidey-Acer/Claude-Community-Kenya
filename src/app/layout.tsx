@@ -8,6 +8,8 @@ import { ensureVisitorId, getAudienceCookie } from "@/lib/karibu/cookies";
 import { type AudienceState } from "@/contexts/AudienceContext";
 import { prisma } from "@/lib/prisma";
 import { getSocialLinks } from "@/lib/social-links";
+import { getBandData } from "@/lib/band-data";
+import { buildBandCopy } from "@/components/karibu/band-copy";
 import "./globals.css";
 import { serializeJsonLd } from "@/lib/json-ld"
 
@@ -27,6 +29,9 @@ const ibmPlexSans = IBM_Plex_Sans({
 const fraunces = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
+  // The italic face is for the sitewide band's one sentence (Marquee). Without
+  // it the browser fakes an oblique from the upright.
+  style: ["normal", "italic"],
   axes: ["SOFT", "opsz"],
   display: "swap",
 });
@@ -221,22 +226,18 @@ export default async function RootLayout({
 
   const showKaribu = canaryHit && !hasCompletedKaribu && audienceCookie !== "skipped";
 
-  // ─── Sitewide ticker (Peter's canvas feedback, 2026-09-05: the clay ticker
-  // strip moves above the nav on every page) ───────────────────────────────
-  const tickerSettings = await prisma.siteSettings
-    .findUnique({ where: { id: "default" }, select: { citiesActive: true, eventsHeld: true } })
-    .catch(() => null);
+  // ─── Sitewide band (Peter's canvas feedback, 2026-09-05: the clay strip
+  // moves above the nav on every page). It carries one live sentence, built
+  // from the latest and next events; see band-copy.ts for the three states.
+  const [tickerSettings, bandData] = await Promise.all([
+    prisma.siteSettings
+      .findUnique({ where: { id: "default" }, select: { citiesActive: true, eventsHeld: true } })
+      .catch(() => null),
+    getBandData(),
+  ]);
   const citiesActive = parseCities(tickerSettings?.citiesActive);
   const eventsHeld = tickerSettings?.eventsHeld ?? 0;
-  // Kept deliberately short. "Beginners welcome" said the same thing as
-  // "Everyone welcome", and the Anthropic Ambassadors credit is carried in
-  // full — and more accurately — by the footer disclaimer and the home page's
-  // "Supported by" section, so repeating a clipped version here was noise.
-  const tickerItems = [
-    citiesActive.join(" · "),
-    "Free & volunteer-run",
-    "Everyone welcome",
-  ];
+  const bandCopy = buildBandCopy({ ...bandData, citiesActive });
 
   const audienceState: AudienceState = hasCompletedKaribu && session
     ? {
@@ -288,7 +289,7 @@ export default async function RootLayout({
           audienceState={audienceState}
           showKaribu={showKaribu}
           socialLinks={socialLinks}
-          tickerItems={tickerItems}
+          bandCopy={bandCopy}
           eventsHeld={eventsHeld}
         >
           {children}

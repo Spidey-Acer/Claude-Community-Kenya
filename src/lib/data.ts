@@ -18,6 +18,7 @@ import type {
   CommunitySubmission as PrismaCommunitySubmission,
   CommunityComment as PrismaCommunityComment,
   NewsletterIssue as PrismaNewsletterIssue,
+  Prisma,
 } from "@/generated/prisma/client"
 
 // ─── Event Mappers ──────────────────────────────────────────────────────────
@@ -240,18 +241,31 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   return row ? mapPrismaEvent(row) : null
 }
 
+// Status alone is not enough: it is set by hand in admin, so a finished event
+// left as UPCOMING advertises itself forever. Date is the fact that cannot be
+// forgotten to update.
+function upcomingWhere(): Prisma.EventWhereInput {
+  return {
+    status: { in: ["UPCOMING", "REGISTRATION_OPEN"] },
+    date: { gte: startOfTodayEAT() },
+  }
+}
+
 export async function getUpcomingEvents(): Promise<Event[]> {
-  // Status alone is not enough: it is set by hand in admin, so a finished event
-  // left as UPCOMING advertises itself forever. Date is the fact that cannot be
-  // forgotten to update.
   const rows = await prisma.event.findMany({
-    where: {
-      status: { in: ["UPCOMING", "REGISTRATION_OPEN"] },
-      date: { gte: startOfTodayEAT() },
-    },
+    where: upcomingWhere(),
     orderBy: { date: "asc" },
   })
   return rows.map(mapPrismaEvent)
+}
+
+/** The soonest upcoming event alone — for the sitewide band, which names one. */
+export async function getNextEvent(): Promise<Event | null> {
+  const row = await prisma.event.findFirst({
+    where: upcomingWhere(),
+    orderBy: { date: "asc" },
+  })
+  return row ? mapPrismaEvent(row) : null
 }
 
 /**

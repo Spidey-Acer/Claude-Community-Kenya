@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { KaribuNav } from "@/components/karibu/KaribuNav";
 import { KaribuFooter } from "@/components/karibu/KaribuFooter";
 import { Marquee } from "@/components/karibu/Marquee";
+import type { BandCopy } from "@/components/karibu/band-copy";
 import { LoadingBar } from "@/components/terminal/LoadingBar";
 import { EasterEggs } from "@/components/EasterEggs";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -30,15 +31,15 @@ export function ConditionalLayout({
   audienceState,
   showKaribu,
   socialLinks,
-  tickerItems,
+  bandCopy,
   eventsHeld,
 }: {
   children: React.ReactNode;
   audienceState: AudienceState;
   showKaribu: boolean;
   socialLinks: SocialLinks;
-  /** Real cities + community facts for the sitewide ticker strip. */
-  tickerItems: string[];
+  /** The one live sentence for the sitewide band, built in the root layout. */
+  bandCopy: BandCopy;
   /** SiteSettings.eventsHeld — also feeds the mobile nav's "N so far" count. */
   eventsHeld: number;
 }) {
@@ -91,10 +92,10 @@ export function ConditionalLayout({
               <a href="#main-content" className="skip-nav">
                 Skip to main content
               </a>
-              {/* Ticker sits above the nav on every Karibu page (Peter's
-               * canvas feedback, 2026-09-05) — previously home-only and
+              {/* The band sits above the nav on every Karibu page (Peter's
+               * canvas feedback, 2026-09-05); previously home-only and
                * below the nav. */}
-              {isKaribu && <Marquee items={tickerItems} />}
+              {isKaribu && <Marquee {...bandCopy} />}
               {isKaribu ? <KaribuNav eventsHeld={eventsHeld} /> : <Navbar />}
               <LoadingBar />
               <main id="main-content">
