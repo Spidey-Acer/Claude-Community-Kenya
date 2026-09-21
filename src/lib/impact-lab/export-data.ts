@@ -436,15 +436,32 @@ export function sortByTrailingNumber<T>(items: readonly T[], labelOf: (item: T) 
  */
 const ZERO_WIDTH_AND_CONTROL_CODES = [
   0x200b, 0x200c, 0x200d, 0xfeff, // zero-width space/non-joiner/joiner, BOM
+  0xfffd, // replacement character - what a decoder substitutes for invalid bytes; never an honest glyph
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // C0 controls before \t
   0x0b, 0x0c, // vertical tab, form feed (between \t=0x09 and \n=0x0A's neighbours)
   0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, // C0 controls after \n
   0x7f, // DEL
+  // C1 controls (U+0080-U+009F) - the high-byte counterpart of the C0 block
+  // above, built as a range rather than 32 individual entries.
+  ...Array.from({ length: 0x9f - 0x80 + 1 }, (_, i) => 0x80 + i),
 ]
 const ZERO_WIDTH_AND_CONTROL = new RegExp(
   `[${ZERO_WIDTH_AND_CONTROL_CODES.map((code) => String.fromCharCode(code)).join("")}]`,
   "g"
 )
+
+/**
+ * A run of box-drawing / block-element glyphs (U+2500..U+259F), optionally
+ * surrounded by spaces or tabs - an organiser's paste sometimes carries one
+ * as an ad hoc paragraph separator ("▎"), and pdfkit's embedded fonts have
+ * no glyph for it, printing a garbled "%Ž"-shaped artefact instead. Replaced
+ * by a newline in `cleanProse`; the following 3-or-more-newlines collapse
+ * then folds any resulting run down to a single blank-line paragraph break.
+ * Built from a hex escape, not a literal character, same reasoning as
+ * `ZERO_WIDTH_AND_CONTROL_CODES` above. Does not touch "•" (U+2022, outside
+ * this range) or ordinary punctuation.
+ */
+const BLOCK_ELEMENT_RUN = /[ \t]*[─-▟]+[ \t]*/g
 
 /**
  * Normalises one free-text field (pitch, problem, description, works-vs-
@@ -475,6 +492,7 @@ export function cleanProse(text: string): string {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(ZERO_WIDTH_AND_CONTROL, "")
+    .replace(BLOCK_ELEMENT_RUN, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 }
@@ -489,9 +507,19 @@ const HEADING_LINE = /^\s{0,3}#{1,6}\s+(.*)$/
  * already-cleaned prose, keeping the words. `[text](url)` becomes
  * "text (url)" - a reader of a printed page or a spreadsheet cell cannot
  * click a link, so the URL is kept in parentheses rather than dropped.
- * Bold/italic markers are removed outright - this document's renderers do
- * not carry inline bold runs, so "keeping" `**bold**` styling is not an
+ * Bold/italic/code markers are removed outright - this document's renderers
+ * do not carry inline bold runs, so "keeping" `**bold**` styling is not an
  * option; the words are what must survive.
+ *
+ * Deliberately tolerant of unbalanced markdown - a dictated or pasted
+ * submission sometimes drops a closing marker ("**Mitral Valve*", a lone
+ * trailing "**"), and a half-stripped marker left in the output is worse
+ * than an aggressively stripped one. So bold/underscore-bold and backtick
+ * markers are removed wherever they occur, paired or not, rather than only
+ * inside a matched `**...**` / `` `...` `` pair; the same reasoning then
+ * applies to a single `*` or `_` sitting at a word's edge (its opening or
+ * closing position - "*Aorta" or "Valve*"). "Inside a word" is the one case
+ * left alone, so `snake_case` and `2*3` still survive untouched.
  */
 function stripInlineMarkdown(line: string): string {
   return (
@@ -500,16 +528,20 @@ function stripInlineMarkdown(line: string): string {
       // label written in bold, e.g. [**docs**](url), is not stripped by the
       // link pass into a bare "docs](url)".
       .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1 ($2)")
-      // Bold: **text** / __text__.
-      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
-      .replace(/__([^_\n]+)__/g, "$1")
-      // Inline code: `text`.
-      .replace(/`([^`\n]+)`/g, "$1")
-      // Italic: *text* / _text_ - single markers, checked after bold/code so
-      // a bold run's own asterisks are already gone. A word boundary guard
-      // keeps a stray "_" inside an identifier like "claude_usage" untouched.
-      .replace(/(?<![*\w])\*([^*\n]+)\*(?![*\w])/g, "$1")
-      .replace(/(?<![_\w])_([^_\n]+)_(?![_\w])/g, "$1")
+      // Bold / double-underscore emphasis markers - every "**" or "__" run,
+      // whether or not it pairs with a matching close.
+      .replace(/\*\*/g, "")
+      .replace(/__/g, "")
+      // Inline code backticks - every backtick, paired or not.
+      .replace(/`/g, "")
+      // A single "*" or "_" that opens a token (preceded by a non-word
+      // character or the start of the line, followed by a word character)...
+      .replace(/(?<![\w*_])[*_](?=\w)/g, "")
+      // ...or closes one (preceded by a word character, followed by a
+      // non-word character or the end of the line). Split into two passes,
+      // rather than one lookaround covering both edges, so a single-word
+      // token like "*Aorta*" strips both its markers correctly.
+      .replace(/(?<=\w)[*_](?![\w*_])/g, "")
   )
 }
 

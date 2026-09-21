@@ -58,6 +58,32 @@ describe("cleanProse", () => {
       "A clean sentence.\n\nA second paragraph."
     )
   })
+
+  it("strips the replacement character U+FFFD", () => {
+    const replacementChar = String.fromCharCode(0xfffd)
+    expect(cleanProse(`a${replacementChar}b`)).toBe("ab")
+  })
+
+  it("strips C1 controls (U+0080-U+009F)", () => {
+    const c1 = String.fromCharCode(0x85) // NEL, a C1 control
+    expect(cleanProse(`a${c1}b`)).toBe("ab")
+  })
+
+  it("keeps a bullet character", () => {
+    expect(cleanProse("• first\n• second")).toBe("• first\n• second")
+  })
+
+  it("turns a run of block-drawing/element glyphs into a newline, exact sequence", () => {
+    const glyph = String.fromCharCode(0x258e) // "▎"
+    expect(cleanProse(`fail. ${glyph} ${glyph} What they do have`)).toBe(
+      "fail.\n\nWhat they do have"
+    )
+  })
+
+  it("collapses a block-glyph paragraph separator anywhere in the box-drawing/block-element range", () => {
+    const boxDrawing = String.fromCharCode(0x2500) // "─"
+    expect(cleanProse(`one${boxDrawing}${boxDrawing}${boxDrawing}two`)).toBe("one\ntwo")
+  })
 })
 
 describe("parseProseLines / markdownToPlainText", () => {
@@ -131,6 +157,33 @@ describe("parseProseLines / markdownToPlainText", () => {
   it("returns an empty array for blank input", () => {
     expect(parseProseLines("")).toEqual([])
     expect(parseProseLines("   ")).toEqual([])
+  })
+
+  it("strips an unbalanced bold-then-italic marker, keeping the words", () => {
+    expect(markdownToPlainText("**Mitral Valve*")).toBe("Mitral Valve")
+  })
+
+  it("strips a leading single asterisk with no closing marker", () => {
+    expect(markdownToPlainText("*Aorta, Left/Right")).toBe("Aorta, Left/Right")
+  })
+
+  it("strips a lone trailing double-asterisk marker", () => {
+    expect(markdownToPlainText("Tricuspid Valve**")).toBe("Tricuspid Valve")
+  })
+
+  it("strips a lone trailing double-underscore marker", () => {
+    expect(markdownToPlainText("Aortic Root__")).toBe("Aortic Root")
+  })
+
+  it("strips an unpaired single underscore at a word edge", () => {
+    expect(markdownToPlainText("_Left Ventricle")).toBe("Left Ventricle")
+    expect(markdownToPlainText("Left Ventricle_")).toBe("Left Ventricle")
+  })
+
+  it("still keeps snake_case and an inline multiplication untouched", () => {
+    expect(markdownToPlainText("claude_usage_tracker and 2*3")).toBe(
+      "claude_usage_tracker and 2*3"
+    )
   })
 })
 
