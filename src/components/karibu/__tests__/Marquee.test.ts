@@ -4,30 +4,39 @@ import { renderToString } from "react-dom/server";
 import { Marquee } from "../Marquee";
 
 describe("Marquee", () => {
-  it("renders each phrase exactly once, readable by assistive tech", () => {
-    const label = "UniqueMarqueeLabel";
-    const html = renderToString(createElement(Marquee, { items: [label] }));
+  it("renders the sentence once, statically, readable by assistive tech", () => {
+    const text = "UniqueBandSentence. ";
+    const html = renderToString(createElement(Marquee, { text }));
 
     // The band is static, so there are no duplicated clones to hide: the
-    // phrase appears once and is read directly. A regression back to the
+    // sentence appears once and is read directly. A regression back to the
     // scrolling track would show up here as extra occurrences.
-    expect(html.split(label).length - 1).toBe(1);
+    expect(html.split("UniqueBandSentence").length - 1).toBe(1);
     expect(html).not.toContain("sr-only");
     expect(html).not.toContain("animation");
+    expect(html).not.toContain("<a ");
   });
 
-  it("puts a decorative separator between phrases but not before the first", () => {
+  it("renders the link with its arrow text when given one", () => {
     const html = renderToString(
-      createElement(Marquee, { items: ["One", "Two", "Three"] }),
+      createElement(Marquee, { text: "Nairobi Build Day is done. ", href: "/events/x", linkText: "See what was built →" }),
     );
-
-    // Two separator marks for three phrases, each hidden from assistive tech
-    // by ClaudeMark's own aria-hidden, and none before the first phrase.
-    expect(html.split('aria-hidden="true"').length - 1).toBe(2);
-    expect(html.indexOf("One")).toBeLessThan(html.indexOf('aria-hidden="true"'));
+    expect(html).toContain('href="/events/x"');
+    expect(html).toContain("See what was built →");
+    // Sentence first, then the link, in one paragraph.
+    expect(html.indexOf("is done.")).toBeLessThan(html.indexOf("<a "));
   });
 
-  it("renders nothing when there are no phrases", () => {
-    expect(renderToString(createElement(Marquee, { items: [] }))).toBe("");
+  it("shows the Claude mark exactly once, hidden from assistive tech", () => {
+    const html = renderToString(createElement(Marquee, { text: "One line." }));
+    expect(html.split('aria-hidden="true"').length - 1).toBe(1);
+    expect(html.indexOf('aria-hidden="true"')).toBeLessThan(html.indexOf("One line."));
+  });
+
+  it("carries no em dash and no uppercase transform", () => {
+    const html = renderToString(createElement(Marquee, { text: "Plain." }));
+    expect(html).not.toContain("2014");
+    expect(html).not.toContain("uppercase");
+    expect(html).toContain("italic");
   });
 });
