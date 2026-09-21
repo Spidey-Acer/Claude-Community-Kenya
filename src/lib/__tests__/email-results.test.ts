@@ -368,6 +368,53 @@ describe("impactLabResultsEmail — champion mode", () => {
     { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
   ]
 
+  it("the winners strip: the overall podium row, then the track winners row, a two-honour team in both", () => {
+    // Build Day's shape: Shamba Bot is champion and its track's winner;
+    // Mwalimu AI won its track and came third by score; Soko Link is second.
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: [
+        { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
+        { track: "Elimu: Mwalimu wa Grade 10", teamId: "e1", projectName: "Mwalimu AI", basis: "announced" as const },
+        { track: "Afya: Daktari", teamId: "a1", projectName: "Daktari Bot", basis: "announced" as const },
+      ],
+      overallRunnersUp: [
+        { rank: 2, teamId: "k2", projectName: "Soko Link" },
+        { rank: 3, teamId: "e1", projectName: "Mwalimu AI" },
+      ],
+      placement: ranked(2, 4, 2, false),
+      rank: 2,
+      teamId: "k2",
+      projectName: "Soko Link",
+    })
+    const strip = html.slice(html.indexOf("The winners"), html.indexOf("That is you."))
+    // Six cells, in order, each on its own surface (the bgcolor fallback).
+    const cells = [...strip.matchAll(/bgcolor="(#[0-9A-F]{6})"[\s\S]*?<p[^>]*>([^<]+)<\/p>\s*<p[^>]*>([^<]+)<\/p>/g)].map((m) => [m[1], m[2], m[3]])
+    expect(cells).toEqual([
+      ["#D4AF37", "CHAMPION", "Shamba Bot"],
+      ["#C9C9D1", "SECOND OVERALL", "Soko Link"],
+      ["#C47A3A", "THIRD OVERALL", "Mwalimu AI"],
+      ["#D4AF37", "AFYA: DAKTARI WINNER", "Daktari Bot"],
+      ["#D4AF37", "ELIMU: MWALIMU WA GRADE 10 WINNER", "Mwalimu AI"],
+      ["#D4AF37", "KILIMO: NITAPATA? WINNER", "Shamba Bot"],
+    ])
+    // Two explicit rows of three: the podium row, then the track row.
+    expect(strip.match(/<tr>/g)).toHaveLength(2 + 6) // 2 rows + one inner row per cell
+    expect(strip.indexOf("THIRD OVERALL")).toBeLessThan(strip.indexOf("AFYA"))
+    expect(html).toContain("That is you.")
+  })
+
+  it("a short podium row is padded, and a legacy caller without runners-up shows the champion alone on it", () => {
+    const { html } = build({ announcementMode: "champion", overall: CHAMPION_OVERALL, trackWinners: CHAMPION_TRACK_WINNERS })
+    const strip = html.slice(html.indexOf("The winners"))
+    expect(strip).toContain(">CHAMPION<")
+    expect(strip).not.toContain("OVERALL<")
+    // The podium row still holds three cells: one card, two empty fillers.
+    const firstRow = strip.slice(strip.indexOf("<tr>"), strip.indexOf("</tr>", strip.indexOf("</table>")))
+    expect(firstRow.match(/<td width="33%"/g)).toHaveLength(3)
+  })
+
   it("the champion's own email: a CHAMPION cell first, every track winner after it, and its overall rank", () => {
     const { html } = build({
       announcementMode: "champion",

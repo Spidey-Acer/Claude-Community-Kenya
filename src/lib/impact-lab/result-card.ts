@@ -168,6 +168,20 @@ export function isChampion(snapshot: ResultsSnapshot, teamId: string): boolean {
 }
 
 /**
+ * The teams ranked second and third in score order (`snapshot.ranking`
+ * rows 2 and 3), shaped like announced winners so the email's winners
+ * strip can seat them beside the champion. The same source as the hero's
+ * "2nd overall" pill and the card's "SECOND OVERALL" line — Build Day
+ * ruling, 2026-09-21: the overall position is an announced fact.
+ */
+export function overallRunnersUp(snapshot: Pick<ResultsSnapshot, "ranking">): { rank: number; teamId: string; projectName: string }[] {
+  return snapshot.ranking
+    .filter((r) => r.rank === 2 || r.rank === 3)
+    .sort((a, b) => a.rank - b.rank)
+    .map((r) => ({ rank: r.rank, teamId: r.teamId, projectName: r.projectName }))
+}
+
+/**
  * One name token as it should print: "simon" → "Simon", "JOSEPH" →
  * "Joseph", "McHaro" → "McHaro". Only an all-lowercase or all-uppercase
  * token is re-cased; anything with mixed case was typed deliberately and

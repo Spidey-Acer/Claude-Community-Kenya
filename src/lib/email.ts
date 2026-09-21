@@ -690,6 +690,14 @@ export function impactLabResultsEmail(data: {
   basis: "demo" | "submission"
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
+  /**
+   * The teams second and third overall in score order (`overallRunnersUp`
+   * off the snapshot), for the champion-mode winners strip: the overall
+   * podium row is champion, second, third. Ignored in the other modes,
+   * where `overall` already carries the podium. Optional for a legacy
+   * caller, which then shows the champion alone on that row.
+   */
+  overallRunnersUp?: AnnouncedWinner[]
   dashboardUrl: string
   /**
    * The team's public result card. Omitted when no signing secret is
@@ -873,19 +881,31 @@ export function impactLabResultsEmail(data: {
   // nothing rather than an empty heading, so the note below never claims a
   // panel decision that didn't happen.
   //
-  // One strip of mini cards in the share-card system: the champion (or the
-  // overall podium, in podium mode) first, then every track winner, each on
-  // the surface its own card gets. Cells are fixed-width inline-block
-  // tables so Gmail lays them out in a row that wraps on a phone; Outlook
-  // ignores inline-block and stacks them one per row, which is the fallback
-  // the design allows. Four cells of 126px plus their margins (520px) sit
-  // inside the 536px inner column with room for rounding, and a 480px
-  // client wraps after three.
-  const CELL_WIDTH = 126
+  // A strip of mini cards in the share-card system, as two kinds of row:
+  // the overall podium first (champion, second overall, third overall in
+  // champion mode — the latter two in score order, the same source as the
+  // hero pill; the announced podium in podium mode), then the track
+  // winners in track order, each cell on the surface its own card gets. A
+  // team that holds two honours appears twice, once per row, as it gets
+  // two cards. Rows are explicit table rows of three fixed-width cells,
+  // so the podium row and the track row read as two rows in every client
+  // (inline-block wrapping put the fourth cell on its own line in some and
+  // stacked all of them in Outlook). Three cells of 170px plus their
+  // padding sit inside the 536px inner column.
   type WinnerCell = { teamId: string; placing: string; projectName: string; position: 1 | 2 | 3 | 4 }
-  const cells: WinnerCell[] =
+  const podiumCells: WinnerCell[] =
     mode === "champion"
-      ? data.overall.slice(0, 1).map((w) => ({ teamId: w.teamId, placing: "CHAMPION", projectName: w.projectName, position: 1 as const }))
+      ? [
+          ...data.overall.slice(0, 1).map((w) => ({ teamId: w.teamId, placing: "CHAMPION", projectName: w.projectName, position: 1 as const })),
+          ...(data.overallRunnersUp ?? [])
+            .filter((w) => w.rank === 2 || w.rank === 3)
+            .map((w) => ({
+              teamId: w.teamId,
+              placing: w.rank === 2 ? "SECOND OVERALL" : "THIRD OVERALL",
+              projectName: w.projectName,
+              position: w.rank === 2 ? (2 as const) : (3 as const),
+            })),
+        ]
       : data.overall.map((w) => ({
           teamId: w.teamId,
           placing:
@@ -893,9 +913,17 @@ export function impactLabResultsEmail(data: {
           projectName: w.projectName,
           position: w.rank === 1 ? 1 : w.rank === 2 ? 2 : w.rank === 3 ? 3 : 4,
         }))
-  for (const w of data.trackWinners) {
-    cells.push({ teamId: w.teamId, placing: `${w.track.toUpperCase()} WINNER`, projectName: w.projectName, position: 1 })
+  const trackCells: WinnerCell[] = [...data.trackWinners]
+    .sort((a, b) => a.track.localeCompare(b.track))
+    .map((w) => ({ teamId: w.teamId, placing: `${w.track.toUpperCase()} WINNER`, projectName: w.projectName, position: 1 as const }))
+  const cells = [...podiumCells, ...trackCells]
+  const CELLS_PER_ROW = 3
+  const chunk = (list: WinnerCell[]): WinnerCell[][] => {
+    const rows: WinnerCell[][] = []
+    for (let i = 0; i < list.length; i += CELLS_PER_ROW) rows.push(list.slice(i, i + CELLS_PER_ROW))
+    return rows
   }
+  const cellRows = [...chunk(podiumCells), ...chunk(trackCells)]
   // The same surfaces as the hero, by position; a rank past third (should a
   // panel ever announce one) sits on the card's plain dark panel.
   const cellSurface = (position: WinnerCell["position"]) =>
@@ -912,23 +940,29 @@ export function impactLabResultsEmail(data: {
       ? `
             <p style="margin:0 0 10px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">The winners</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${readerIsAWinner ? 8 : 28}px;">
-              <tr>
-                <td align="center" style="text-align:center;font-size:0;line-height:0;">
-                  ${cells
-                    .map((c) => {
-                      const surface = cellSurface(c.position)
-                      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${CELL_WIDTH}" style="display:inline-block;width:${CELL_WIDTH}px;vertical-align:top;margin:0 2px 6px;">
+              ${cellRows
+                .map((row) => {
+                  // Empty cells pad a short row so every cell keeps a third of the width.
+                  const fillers = Array.from({ length: CELLS_PER_ROW - row.length }, () => `<td width="33%" style="width:33%;padding:0 3px 6px;"></td>`).join("")
+                  return `<tr>
+                ${row
+                  .map((c) => {
+                    const surface = cellSurface(c.position)
+                    return `<td width="33%" valign="top" style="width:33%;padding:0 3px 6px;vertical-align:top;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td bgcolor="${surface.fallback}" style="width:${CELL_WIDTH}px;background-color:${surface.fallback};background-image:${surface.gradient};border-radius:8px;padding:14px 10px 16px;text-align:center;vertical-align:top;">
+                      <td bgcolor="${surface.fallback}" style="background-color:${surface.fallback};background-image:${surface.gradient};border-radius:8px;padding:14px 10px 16px;text-align:center;vertical-align:top;">
                         <p style="margin:0 0 6px;min-height:24px;font-family:${BODY_FONT};font-size:9px;line-height:1.3;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:${surface.text};text-align:center;">${esc(c.placing)}</p>
                         <p style="margin:0;font-family:${DISPLAY_FONT};font-size:18px;line-height:1.2;color:${surface.text};text-align:center;">${esc(c.projectName)}</p>
                       </td>
                     </tr>
-                  </table>`
-                    })
-                    .join("")}
-                </td>
-              </tr>
+                  </table>
+                </td>`
+                  })
+                  .join("")}${fillers}
+              </tr>`
+                })
+                .join("")}
             </table>${
               readerIsAWinner
                 ? `

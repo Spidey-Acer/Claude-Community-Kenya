@@ -12,6 +12,7 @@ import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { totalOutOf, type JudgingRubric } from "@/lib/impact-lab/judging"
 import {
   isChampion,
+  overallRunnersUp,
   placementFor,
   placingsFollowScores,
   resultCardUrl,
@@ -225,6 +226,7 @@ export async function POST(request: NextRequest) {
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
+      overallRunnersUp: overallRunnersUp(run.snapshot),
       dashboardUrl,
       rubric,
     })
@@ -339,6 +341,7 @@ export async function POST(request: NextRequest) {
       basis: card.basis,
       overall: run.snapshot.overall,
       trackWinners: run.snapshot.trackWinners,
+      overallRunnersUp: overallRunnersUp(run.snapshot),
       dashboardUrl,
       judgeNotes: feedbackByTeam.get(team.id)?.judgeNotes ?? [],
       communityReview: feedbackByTeam.get(team.id)?.review ?? null,
