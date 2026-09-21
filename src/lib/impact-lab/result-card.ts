@@ -250,46 +250,123 @@ export function toPublicResultCard(input: {
 
 // ─── Card copy ───────────────────────────────────────────────────────────────
 
-/** The fields the card's two copy lines read. `overallRank` may be absent on a legacy caller. */
-type CardCopyInput = Pick<PublicResultCard, "title" | "champion" | "track" | "eventName"> &
+/** The fields the card's copy reads. `overallRank` may be absent on a legacy caller. */
+export type CardCopyInput = Pick<PublicResultCard, "title" | "champion" | "track" | "eventName"> &
   Partial<Pick<PublicResultCard, "overallRank">>
 
-/** True when the card leads with the overall position: second or third overall, and not a winner. */
-function leadsWithOverall(card: CardCopyInput): boolean {
-  return !card.champion && card.title !== "Winner" && (card.overallRank === 2 || card.overallRank === 3)
+export type HonourKind =
+  | "champion"
+  | "track-winner"
+  | "second-overall"
+  | "third-overall"
+  | "track-runner-up"
+  | "track-third"
+  | "built"
+
+/**
+ * One thing a team may print a card for. A team with two honours (the
+ * champion also won its track; a track winner also placed third overall)
+ * gets one card per honour, in `cardHonours` order — Build Day ruling,
+ * 2026-09-21: "since they win also a track, shouldn't we put up two cards
+ * for them?"
+ */
+export interface Honour {
+  kind: HonourKind
+  /** Which of the four card surfaces this honour prints on. */
+  surface: CardStyle["kind"]
+  /** The placing line, in the poster's caps: "CHAMPION", "DELIGHT WINNER", "THIRD OVERALL". */
+  placingLine: string
+  /** The smaller line under the placing, or `null`: the track placing on an overall card. */
+  subline: string | null
+  /** Sentence case, for a heading beside the second card and beyond: "third overall", "Delight winner". */
+  label: string
+  /** Filename fragment: "champion", "everyday-winner", "third-overall". */
+  slug: string
+}
+
+function fileSlug(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "result"
+  )
 }
 
 /**
- * The card's placing line, in the poster's caps: "CHAMPION", "DELIGHT
- * WINNER", "SECOND OVERALL", "THIRD OVERALL", "RUNNER-UP IN DELIGHT",
- * "THIRD IN EVERYDAY", or "BUILT AT BUILD DAY". A pure lookup over `title`
- * + `champion` + `overallRank` + `track` — the placing itself is
- * `placementFor`'s and is not re-derived here. Second and third overall
- * lead with that (their track placing moves to `cardSubline`); the
- * champion and the track winners keep their own lines.
+ * Every honour a card may print, in this order: champion; track winner;
+ * second overall; third overall. A team with none of those gets its track
+ * runner-up or third place, and a team with nothing at all gets "built".
+ * A pure lookup over `title` + `champion` + `overallRank` + `track` — the
+ * placing itself is `placementFor`'s and is not re-derived here. The
+ * first honour is the primary card: the one the OG image, the email hero
+ * and the routes without an `honour` index render.
+ *
+ * A track runner-up who is second overall gets the overall card only (its
+ * track placing becomes that card's subline); a track winner who is third
+ * overall gets both, because each is its own announced fact.
  */
-export function cardPlacingLine(card: CardCopyInput): string {
-  const track = card.track.trim().toUpperCase()
-  if (card.champion) return "CHAMPION"
-  if (card.title === "Winner") return `${track} WINNER`
-  if (leadsWithOverall(card)) return card.overallRank === 2 ? "SECOND OVERALL" : "THIRD OVERALL"
-  if (card.title === "Runner-up") return `RUNNER-UP IN ${track}`
-  if (card.title === "Third place") return `THIRD IN ${track}`
-  return `BUILT AT ${cardEventShortName(card.eventName)}`
-}
-
-/**
- * The smaller line under the placing, only for a card that leads with its
- * overall position: its placing within its track ("Runner-up in Delight",
- * "Third in Everyday"), or the track alone when it holds no podium place
- * there. `null` for every other card.
- */
-export function cardSubline(card: CardCopyInput): string | null {
-  if (!leadsWithOverall(card)) return null
+export function cardHonours(card: CardCopyInput): Honour[] {
   const track = card.track.trim()
-  if (card.title === "Runner-up") return `Runner-up in ${track}`
-  if (card.title === "Third place") return `Third in ${track}`
-  return track ? `${track} track` : null
+  const TRACK = track.toUpperCase()
+  const honours: Honour[] = []
+
+  if (card.champion) {
+    honours.push({ kind: "champion", surface: "winner", placingLine: "CHAMPION", subline: null, label: "champion", slug: "champion" })
+  }
+  if (card.title === "Winner") {
+    honours.push({
+      kind: "track-winner",
+      surface: "winner",
+      placingLine: `${TRACK} WINNER`,
+      subline: null,
+      label: `${track} winner`,
+      slug: fileSlug(`${track} winner`),
+    })
+  }
+  if (card.overallRank === 2 || card.overallRank === 3) {
+    // The track placing beneath, or the track alone when the team holds no
+    // podium place there (a track winner's win has its own card above).
+    const subline =
+      card.title === "Runner-up" ? `Runner-up in ${track}` : card.title === "Third place" ? `Third in ${track}` : track ? `${track} track` : null
+    honours.push(
+      card.overallRank === 2
+        ? { kind: "second-overall", surface: "runner-up", placingLine: "SECOND OVERALL", subline, label: "second overall", slug: "second-overall" }
+        : { kind: "third-overall", surface: "third", placingLine: "THIRD OVERALL", subline, label: "third overall", slug: "third-overall" }
+    )
+  }
+  if (honours.length > 0) return honours
+
+  if (card.title === "Runner-up") {
+    return [{ kind: "track-runner-up", surface: "runner-up", placingLine: `RUNNER-UP IN ${TRACK}`, subline: null, label: `runner-up in ${track}`, slug: fileSlug(`runner-up ${track}`) }]
+  }
+  if (card.title === "Third place") {
+    return [{ kind: "track-third", surface: "third", placingLine: `THIRD IN ${TRACK}`, subline: null, label: `third in ${track}`, slug: fileSlug(`third ${track}`) }]
+  }
+  return [{ kind: "built", surface: "built", placingLine: `BUILT AT ${cardEventShortName(card.eventName)}`, subline: null, label: "built", slug: "built" }]
+}
+
+/** The primary honour's placing line — "CHAMPION", "DELIGHT WINNER", "SECOND OVERALL", "BUILT AT BUILD DAY". */
+export function cardPlacingLine(card: CardCopyInput): string {
+  return cardHonours(card)[0].placingLine
+}
+
+/** The primary honour's subline, or `null`. */
+export function cardSubline(card: CardCopyInput): string | null {
+  return cardHonours(card)[0].subline
+}
+
+/**
+ * The `?honour=` query value as an index into `cardHonours`: `null` or
+ * empty means the primary card; a whole number is that honour; anything
+ * else is `undefined` (the caller answers 400). Range is the caller's
+ * check, since it needs the card.
+ */
+export function parseHonourIndex(raw: string | null): number | undefined {
+  if (raw === null || raw.trim() === "") return 0
+  return /^\d{1,2}$/.test(raw.trim()) ? Number(raw.trim()) : undefined
 }
 
 /**
@@ -306,15 +383,27 @@ export function cardMembersLine(members: readonly string[], max = 6): string {
   return `${members.slice(0, max).join(" · ")} and ${members.length - max} more`
 }
 
-/** The card's one-line headline for titles, alt text and link previews. */
-export function cardHeadline(card: PublicResultCard): string {
-  if (card.champion) return `Champion of ${card.eventName}: ${card.projectName}`
-  if (leadsWithOverall(card)) {
-    return `${card.overallRank === 2 ? "Second" : "Third"} overall at ${card.eventName}: ${card.projectName}`
+/**
+ * The one-line headline for titles, alt text and link previews — for one
+ * honour, the primary by default.
+ */
+export function cardHeadline(card: CardCopyInput & Pick<PublicResultCard, "projectName">, honour: Honour = cardHonours(card)[0]): string {
+  switch (honour.kind) {
+    case "champion":
+      return `Champion of ${card.eventName}: ${card.projectName}`
+    case "track-winner":
+      return `Winner in ${card.track}: ${card.projectName}`
+    case "second-overall":
+      return `Second overall at ${card.eventName}: ${card.projectName}`
+    case "third-overall":
+      return `Third overall at ${card.eventName}: ${card.projectName}`
+    case "track-runner-up":
+      return `Runner-up in ${card.track}: ${card.projectName}`
+    case "track-third":
+      return `Third place in ${card.track}: ${card.projectName}`
+    default:
+      return `${card.projectName}, built at ${card.eventName}`
   }
-  return card.title === "Built"
-    ? `${card.projectName}, built at ${card.eventName}`
-    : `${card.title} in ${card.track}: ${card.projectName}`
 }
 
 // ─── Dark premium palette ────────────────────────────────────────────────────

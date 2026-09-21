@@ -10,12 +10,13 @@
  * where the caller asks — the download buttons — so the OG preview and the
  * page's `<img>` stay inline. `fallback` decides what an unresolvable slug
  * gets: the downloads 404 (there is nothing to download), the OG route
- * draws `FALLBACK_CARD`.
+ * draws `FALLBACK_CARD`. `honour` picks one of the team's cards (see
+ * `cardHonours`), the primary by default; past the last one is a 404.
  */
 
 import { cardFileName, renderCard, type CardSize } from "./card-render"
 import { findResultCardBySlug } from "./result-card-store"
-import type { PublicResultCard } from "./result-card"
+import { cardHonours, parseHonourIndex, type PublicResultCard } from "./result-card"
 
 /**
  * What the OG route draws when the slug resolves to nothing or the lookup
@@ -34,21 +35,37 @@ const FALLBACK_CARD: PublicResultCard = {
   members: [],
 }
 
+const NO_STORE = { "Cache-Control": "private, no-store" }
+
+/** The raw `?honour=` value off a route's request URL, for `cardResponseForSlug`. */
+export function honourParam(request: Request): string | null {
+  return new URL(request.url).searchParams.get("honour")
+}
+
 export async function cardResponseForSlug(
   slug: string,
   size: CardSize,
-  options: { download: boolean; fallback: boolean }
+  options: { download: boolean; fallback: boolean; honour?: string | null }
 ): Promise<Response> {
+  const index = parseHonourIndex(options.honour ?? null)
+  if (index === undefined) {
+    return new Response("honour must be a whole number", { status: 400, headers: NO_STORE })
+  }
   const found = await findResultCardBySlug(slug).catch(() => null)
   if (!found && !options.fallback) {
-    return new Response("Not found", { status: 404, headers: { "Cache-Control": "private, no-store" } })
+    return new Response("Not found", { status: 404, headers: NO_STORE })
   }
   const card = found ?? FALLBACK_CARD
-  const image = await renderCard(card, size)
+  const honours = cardHonours(card)
+  const honour = honours[index]
+  if (!honour) {
+    return new Response("Not found", { status: 404, headers: NO_STORE })
+  }
+  const image = await renderCard(card, size, honour)
   const headers = new Headers(image.headers)
   headers.set("Cache-Control", "private, no-store")
   if (options.download) {
-    headers.set("Content-Disposition", `attachment; filename="${cardFileName(card, size)}"`)
+    headers.set("Content-Disposition", `attachment; filename="${cardFileName(card, size, honour)}"`)
   }
   return new Response(image.body, { status: 200, headers })
 }

@@ -266,6 +266,24 @@ describe("impactLabResultsEmail content rules", () => {
     expect(without.match(/<img /g)).toHaveLength(1)
   })
 
+  it("stacks one card image per honour for a team that won more than once", () => {
+    // A track winner who also came third overall: two cards, the second by index.
+    const html = build({ placement: ranked(1, 5, 3, false), rank: 3, projectName: "AgentrixOS" }).html
+    expect(html).toContain(
+      'src="https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx/card/square"'
+    )
+    expect(html).toContain(
+      'src="https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx/card/square?honour=1"'
+    )
+    expect(html).toContain('alt="Winner in Kilimo: Nitapata?: AgentrixOS"')
+    expect(html).toContain('alt="Third overall at Impact Lab: AI Mashinani 02: AgentrixOS"')
+    expect(html.match(/width="480"/g)).toHaveLength(2)
+    // The line that describes the cards appears once, above both.
+    expect(html.match(/Your public card shows/g)).toHaveLength(1)
+    // A team with one honour gets one image.
+    expect(build().html.match(/width="480"/g)).toHaveLength(1)
+  })
+
   it("escapes user-typed names", () => {
     const { html } = build({ projectName: "<b>Bold</b> & co", teamName: "Team <x>" })
     expect(html).not.toContain("<b>Bold</b>")

@@ -17,8 +17,9 @@ import {
   CARD_GOLD,
   CARD_SILVER,
   CARD_POSTER,
+  cardHeadline,
+  cardHonours,
   cardPlacingLine,
-  isPodium,
   placementTitle,
   PODIUM_DEPTH,
   teamPlaceLabel,
@@ -718,14 +719,18 @@ export function impactLabResultsEmail(data: {
   rubric: JudgingRubric
 }): { subject: string; html: string } {
   const mode = data.announcementMode ?? "podium"
-  const podium = isPodium(data.placement)
   const ranked = data.placement?.kind === "ranked" ? data.placement : null
   const track = data.placement?.track ?? null
-  // The public card image's alt text: the placing headline in words.
-  const shareCardAlt =
-    podium && ranked
-      ? `${placementTitle(ranked)} in ${ranked.track}: ${data.projectName}`
-      : `${data.projectName}, built at ${data.eventName}`
+  // Every card the team gets (see `cardHonours`): one per honour, each with
+  // its headline in words for the image's alt text.
+  const honourInput = {
+    title: placementTitle(data.placement),
+    champion: data.champion === true,
+    track: track ?? "",
+    eventName: data.eventName,
+    overallRank: ranked?.overallRank ?? null,
+  }
+  const honours = cardHonours(honourInput)
 
   // ── Subject ──────────────────────────────────────────────────────────────
   let subject: string
@@ -1088,22 +1093,30 @@ export function impactLabResultsEmail(data: {
   // unbreakable 49-character URL was the one thing holding the layout wider
   // than a phone, and break-all on the paragraph would split the prose too.
   const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
-  // The card itself, under the line that describes it: the square PNG the
-  // share page serves (`card/square` beside the page URL), in a full-width
-  // cell so it centres, at 480px so it fits the 600px column with the card
-  // body's padding. `alt` carries the headline for clients that block
-  // remote images by default. Only with a share URL: no card, no image.
-  const shareCard = data.shareUrl
-    ? `
+  // The cards themselves, under the line that describes them: the square
+  // PNG the share page serves (`card/square` beside the page URL, one per
+  // honour via `?honour=`), stacked, each in a full-width cell so it
+  // centres, at 480px so it fits the 600px column with the card body's
+  // padding. `alt` carries the headline for clients that block remote
+  // images by default. Only with a share URL: no card, no image.
+  const shareUrl = data.shareUrl
+  const shareCard = shareUrl
+    ? honours
+        .map((honour, index) => {
+          const src = index === 0 ? `${shareUrl}/card/square` : `${shareUrl}/card/square?honour=${index}`
+          const alt = cardHeadline({ ...honourInput, projectName: data.projectName }, honour)
+          return `
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 18px;">
               <tr>
                 <td align="center" style="text-align:center;">
-                  <a href="${esc(data.shareUrl)}" style="display:inline-block;text-decoration:none;">
-                    <img src="${esc(`${data.shareUrl}/card/square`)}" width="480" alt="${esc(shareCardAlt)}" style="display:block;width:100%;max-width:480px;height:auto;border:0;border-radius:12px;" />
+                  <a href="${esc(shareUrl)}" style="display:inline-block;text-decoration:none;">
+                    <img src="${esc(src)}" width="480" alt="${esc(alt)}" style="display:block;width:100%;max-width:480px;height:auto;border:0;border-radius:12px;" />
                   </a>
                 </td>
               </tr>
             </table>`
+        })
+        .join("")
     : ""
   const shareLine = data.shareUrl
     ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${DARK.dim};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>

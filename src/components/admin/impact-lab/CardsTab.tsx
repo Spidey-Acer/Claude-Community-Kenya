@@ -34,6 +34,8 @@ interface CardTeam {
   projectName: string
   track: string
   placingLine: string
+  /** Every card the team gets, primary first: one per honour (see `cardHonours`). */
+  honours: { placingLine: string; label: string; slug: string }[]
   /** Score-order position across all tracks; `null` for a team that took part unscored. */
   overallRank: number | null
   group: CardGroup
@@ -70,8 +72,8 @@ function escapeAttribute(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-function cardUrl(cohort: string, teamId: string, size: "square" | "portrait" | "story"): string {
-  return `/api/admin/impact-lab/results/card?cohort=${encodeURIComponent(cohort)}&teamId=${encodeURIComponent(teamId)}&size=${size}`
+function cardUrl(cohort: string, teamId: string, size: "square" | "portrait" | "story", honour: number): string {
+  return `/api/admin/impact-lab/results/card?cohort=${encodeURIComponent(cohort)}&teamId=${encodeURIComponent(teamId)}&size=${size}&honour=${honour}`
 }
 
 export function CardsTab({ cohort }: { cohort: string }) {
@@ -236,21 +238,49 @@ export function CardsView({
               {teams.map((team) => (
                 <article
                   key={team.teamId}
-                  className="space-y-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-3"
+                  className={`space-y-3 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-3 ${team.honours.length > 1 ? "sm:col-span-2" : ""}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- rendered per request, must not be cached by the optimiser */}
-                  <img
-                    src={cardSrc(cohort, team.teamId, "square")}
-                    width={1080}
-                    height={1080}
-                    loading="lazy"
-                    alt={`${team.placingLine}: ${team.projectName}`}
-                    className="block aspect-square w-full rounded border border-[#1e1e1e]"
-                  />
+                  {/* One card per honour, side by side for a team with two. */}
+                  <div className="flex gap-3">
+                    {team.honours.map((honour, index) => (
+                      <div key={honour.slug} className="min-w-0 flex-1 space-y-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- rendered per request, must not be cached by the optimiser */}
+                        <img
+                          src={cardSrc(cohort, team.teamId, "square", index)}
+                          width={1080}
+                          height={1080}
+                          loading="lazy"
+                          alt={`${honour.placingLine}: ${team.projectName}`}
+                          className="block aspect-square w-full rounded border border-[#1e1e1e]"
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          {team.honours.length > 1 && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">{honour.placingLine}</span>
+                          )}
+                          <a
+                            href={cardSrc(cohort, team.teamId, "portrait", index)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded border border-[#1e1e1e] px-2 py-1 text-[11px] font-mono text-[#888] hover:border-[#333] hover:text-[#e0e0e0]"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Portrait
+                          </a>
+                          <a
+                            href={cardSrc(cohort, team.teamId, "story", index)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded border border-[#1e1e1e] px-2 py-1 text-[11px] font-mono text-[#888] hover:border-[#333] hover:text-[#e0e0e0]"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Story
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <div>
                     <p className="text-sm font-mono font-semibold text-[#e0e0e0]">{team.projectName}</p>
                     <p className="text-[11px] font-mono text-[#888]">
-                      {team.teamName} &middot; {team.placingLine}
+                      {team.teamName} &middot; {team.honours.map((h) => h.placingLine).join(" + ")}
                       {team.overallRank !== null ? ` \u00b7 ${ordinal(team.overallRank)} overall` : ""}
                     </p>
                     <p className="text-[11px] font-mono text-[#555]">
@@ -259,22 +289,6 @@ export function CardsView({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={cardSrc(cohort, team.teamId, "portrait")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border border-[#1e1e1e] px-2 py-1 text-[11px] font-mono text-[#888] hover:border-[#333] hover:text-[#e0e0e0]"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Portrait
-                    </a>
-                    <a
-                      href={cardSrc(cohort, team.teamId, "story")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border border-[#1e1e1e] px-2 py-1 text-[11px] font-mono text-[#888] hover:border-[#333] hover:text-[#e0e0e0]"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Story
-                    </a>
                     <button
                       type="button"
                       onClick={() => onPreviewEmail(team.teamId)}

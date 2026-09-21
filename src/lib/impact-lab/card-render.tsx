@@ -6,10 +6,10 @@ import {
   CARD_GOLD,
   CARD_SILVER,
   CARD_POSTER,
+  cardHonours,
   cardMembersLine,
-  cardPlacingLine,
-  cardStyleForTitle,
-  cardSubline,
+  type CardStyle,
+  type Honour,
   type PublicResultCard,
 } from "./result-card"
 
@@ -23,9 +23,11 @@ import {
  * line, the members and the site. Every route that serves a PNG of a team's
  * card — the three downloads, the OG preview and the admin preview — calls
  * `renderCard`, so the card a team downloads is the card the page shows is
- * the card LinkedIn unfurls.
+ * the card LinkedIn unfurls. A team with two honours (see `cardHonours`)
+ * gets one card per honour; `renderCard` draws the primary one unless
+ * handed another.
  *
- * Surface by placing (`cardStyleForTitle(card.title).kind`):
+ * Surface by honour (`Honour.surface`):
  *   built      flat clay, serif ink, sans paper, the poster's own colours
  *   winner     `CARD_GOLD`, ink text (the champion is a winner too)
  *   runner-up  `CARD_SILVER`, ink text, the same diagonal and highlight as gold
@@ -58,8 +60,7 @@ interface Surface {
   highlight: string | null
 }
 
-function surfaceFor(card: PublicResultCard): Surface {
-  const kind = cardStyleForTitle(card.title).kind
+function surfaceFor(kind: CardStyle["kind"]): Surface {
   if (kind === "winner") {
     return {
       background: `linear-gradient(165deg, ${CARD_GOLD.from}, ${CARD_GOLD.mid}, ${CARD_GOLD.to})`,
@@ -154,14 +155,15 @@ interface Pieces {
  */
 function pieces(
   card: PublicResultCard,
+  honour: Honour,
   surface: Surface,
   markSrc: string,
   markSize: { width: number; height: number },
   align: "center" | "start",
   project: { fontSize: number; wrap: boolean }
 ): Pieces {
-  const placingLine = cardPlacingLine(card)
-  const subline = cardSubline(card)
+  const placingLine = honour.placingLine
+  const subline = honour.subline
   const membersLine = cardMembersLine(card.members)
   const alignItems = align === "center" ? "center" : "flex-start"
   const justifyContent = align === "center" ? "center" : "flex-start"
@@ -466,15 +468,22 @@ function ogLayout(p: Pieces, surface: Surface) {
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
-/** The PNG of one team's card at one size. Throws if the assets cannot be read. */
-export async function renderCard(card: PublicResultCard, size: CardSize): Promise<ImageResponse> {
+/**
+ * The PNG of one team's card at one size, for one of its honours (the
+ * primary by default). Throws if the assets cannot be read.
+ */
+export async function renderCard(
+  card: PublicResultCard,
+  size: CardSize,
+  honour: Honour = cardHonours(card)[0]
+): Promise<ImageResponse> {
   const assets = await loadCardAssets()
-  const surface = surfaceFor(card)
+  const surface = surfaceFor(honour.surface)
   const dims = CARD_SIZES[size]
   const p =
     size === "og"
-      ? pieces(card, surface, assets.marks[surface.mark], assets.markSize, "start", ogProjectNameSize(card.projectName))
-      : pieces(card, surface, assets.marks[surface.mark], assets.markSize, "center", projectNameSize(card.projectName))
+      ? pieces(card, honour, surface, assets.marks[surface.mark], assets.markSize, "start", ogProjectNameSize(card.projectName))
+      : pieces(card, honour, surface, assets.marks[surface.mark], assets.markSize, "center", projectNameSize(card.projectName))
 
   const tree =
     size === "og" ? ogLayout(p, surface) : size === "story" ? storyLayout(p, surface) : stackedLayout(p, dims, surface)
@@ -482,8 +491,8 @@ export async function renderCard(card: PublicResultCard, size: CardSize): Promis
   return new ImageResponse(tree, { ...dims, fonts: assets.fonts })
 }
 
-/** "socratic-workspace-square" style filename stem for the download routes. */
-export function cardFileName(card: PublicResultCard, size: CardSize): string {
+/** "agentrixos-everyday-winner-square.png" style filename for the download routes. */
+export function cardFileName(card: PublicResultCard, size: CardSize, honour: Honour = cardHonours(card)[0]): string {
   const stem =
     card.projectName
       .toLowerCase()
@@ -491,5 +500,5 @@ export function cardFileName(card: PublicResultCard, size: CardSize): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "result"
-  return `${stem}-${size}.png`
+  return `${stem}-${honour.slug}-${size}.png`
 }

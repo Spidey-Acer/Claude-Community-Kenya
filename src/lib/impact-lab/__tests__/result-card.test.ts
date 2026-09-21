@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import {
   cardHeadline,
+  cardHonours,
   cardMembersLine,
   cardPlacingLine,
   cardStyleForTitle,
@@ -13,6 +14,7 @@ import {
   isChampion,
   isPodium,
   looksLikeResultCardSlug,
+  parseHonourIndex,
   placementFor,
   placementTitle,
   placingsFollowScores,
@@ -285,7 +287,7 @@ describe("card copy", () => {
     const second = { ...base, track: "Delight", title: "Runner-up", champion: false, overallRank: 2 }
     expect(cardPlacingLine(second)).toBe("SECOND OVERALL")
     expect(cardSubline(second)).toBe("Runner-up in Delight")
-    expect(cardHeadline({ ...second, members: [] })).toBe("Second overall at Nairobi | Fable 5.1 Build Day: Prism")
+    expect(cardHeadline(second)).toBe("Second overall at Nairobi | Fable 5.1 Build Day: Prism")
 
     const third = { ...base, track: "Everyday", title: "Third place", champion: false, overallRank: 3 }
     expect(cardPlacingLine(third)).toBe("THIRD OVERALL")
@@ -324,6 +326,51 @@ describe("card copy", () => {
     expect(card.overallRank).toBe(3)
     expect(cardPlacingLine(card)).toBe("THIRD OVERALL")
     expect(cardSubline(card)).toBe("Runner-up in Kilimo")
+  })
+
+  it("lists one honour per card, champion then track win then overall place", () => {
+    const lines = (card: Parameters<typeof cardHonours>[0]) => cardHonours(card).map((h) => [h.placingLine, h.surface, h.subline])
+
+    // The champion also won its track: two gold cards.
+    expect(lines({ ...base, track: "Delight", title: "Winner", champion: true, overallRank: 1 })).toEqual([
+      ["CHAMPION", "winner", null],
+      ["DELIGHT WINNER", "winner", null],
+    ])
+    // A track winner who came third overall: gold, then copper.
+    expect(lines({ ...base, track: "Everyday", title: "Winner", champion: false, overallRank: 3 })).toEqual([
+      ["EVERYDAY WINNER", "winner", null],
+      ["THIRD OVERALL", "third", "Everyday track"],
+    ])
+    // Second overall who was runner-up in its track: the silver overall card only.
+    expect(lines({ ...base, track: "Delight", title: "Runner-up", champion: false, overallRank: 2 })).toEqual([
+      ["SECOND OVERALL", "runner-up", "Runner-up in Delight"],
+    ])
+    // Everyone else: one card.
+    expect(lines({ ...base, track: "Everyday", title: "Built", champion: false, overallRank: 9 })).toEqual([
+      ["BUILT AT BUILD DAY", "built", null],
+    ])
+    expect(lines({ ...base, track: "Everyday", title: "Third place", champion: false, overallRank: 6 })).toEqual([
+      ["THIRD IN EVERYDAY", "third", null],
+    ])
+
+    // Labels and slugs for the page heading and the filenames.
+    const agentrix = cardHonours({ ...base, track: "Everyday", title: "Winner", champion: false, overallRank: 3 })
+    expect(agentrix.map((h) => h.label)).toEqual(["Everyday winner", "third overall"])
+    expect(agentrix.map((h) => h.slug)).toEqual(["everyday-winner", "third-overall"])
+    expect(cardHeadline({ ...base, projectName: "AgentrixOS", track: "Everyday", title: "Winner", champion: false, overallRank: 3 }, agentrix[1])).toBe(
+      "Third overall at Nairobi | Fable 5.1 Build Day: AgentrixOS"
+    )
+  })
+
+  it("reads the honour index off the query: missing is the primary, a whole number is itself, anything else is invalid", () => {
+    expect(parseHonourIndex(null)).toBe(0)
+    expect(parseHonourIndex("")).toBe(0)
+    expect(parseHonourIndex("1")).toBe(1)
+    expect(parseHonourIndex(" 2 ")).toBe(2)
+    expect(parseHonourIndex("-1")).toBeUndefined()
+    expect(parseHonourIndex("1.5")).toBeUndefined()
+    expect(parseHonourIndex("one")).toBeUndefined()
+    expect(parseHonourIndex("123")).toBeUndefined()
   })
 
   it("built cards name Build Day by its format line, other events by name", () => {

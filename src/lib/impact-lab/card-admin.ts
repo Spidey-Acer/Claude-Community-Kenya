@@ -19,7 +19,7 @@ import type { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getEventByCohort } from "./event-store"
 import { extractFrozenTeams } from "./member"
-import { cardPlacingLine, isChampion, placementFor, toPublicResultCard, type PublicResultCard } from "./result-card"
+import { cardHonours, isChampion, placementFor, toPublicResultCard, type Honour, type PublicResultCard } from "./result-card"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "./results"
 import { buildResultsInputFromRun } from "./results-input"
 import { resolveRubric } from "./rubric-store"
@@ -41,8 +41,10 @@ export interface AdminCardTeam {
   teamId: string
   teamName: string
   card: PublicResultCard
-  /** The caps line the card prints, e.g. "DELIGHT WINNER". */
+  /** The caps line the primary card prints, e.g. "DELIGHT WINNER". */
   placingLine: string
+  /** Every card the team gets, primary first — see `cardHonours`. */
+  honours: Honour[]
   group: CardGroup
 }
 
@@ -151,7 +153,8 @@ export async function loadAdminCards(cohort: string, proposal: CardProposal): Pr
         return name ? [name] : []
       }),
     })
-    cards.push({ teamId: team.id, teamName: team.name, card, placingLine: cardPlacingLine(card), group: groupFor(card) })
+    const honours = cardHonours(card)
+    cards.push({ teamId: team.id, teamName: team.name, card, placingLine: honours[0].placingLine, honours, group: groupFor(card) })
   }
 
   cards.sort((a, b) => CARD_GROUPS.indexOf(a.group) - CARD_GROUPS.indexOf(b.group) || a.card.projectName.localeCompare(b.card.projectName))
