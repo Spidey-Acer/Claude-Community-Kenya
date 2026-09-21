@@ -39,6 +39,7 @@ function build(overrides: Partial<Parameters<typeof impactLabResultsEmail>[0]> =
     overall: OVERALL,
     trackWinners: TRACK_WINNERS,
     eventDates: "Wed 2 Sep 2026",
+    rankedCount: 19,
     dashboardUrl: "https://www.claudekenya.org/dashboard/impact-lab",
     shareUrl: "https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx",
     rubric: IMPACT_LAB_RUBRIC,
@@ -54,7 +55,8 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("background-color:#D4AF37")
     expect(html).toContain("/images/buildday/mark-ink.png")
     expect(html).toContain("Kilimo: Nitapata?")
-    expect(html).toContain("1st overall")
+    expect(html).toContain(">1st overall<") // hero pill, announced podium place
+    expect(html).toContain("1st of 19 overall &middot; 1st of 4 in Kilimo: Nitapata?")
     expect(html).toContain("Table 12 &middot; Kilimo 3 &middot; Kilimo: Nitapata? track")
     expect(html).toContain(">Wed 2 Sep 2026<")
     expect(html).not.toContain("You built this")
@@ -69,21 +71,22 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).not.toMatch(/font-size:13px;[^>]*WINNER</)
     // "1st overall" under CHAMPION would only repeat it; the scores block still says it.
     expect(html).not.toContain(">1st overall<")
-    expect(html).toContain("1st overall &middot;")
+    expect(html).toContain("1st of 19 overall &middot;")
   })
 
-  it("runner-up and third place: graphite and bronze heroes with the card's lines and their subjects", () => {
+  it("runner-up and third place: silver and copper heroes with the card's lines and their subjects", () => {
     const second = build({ placement: ranked(2), rank: 3 })
     expect(second.subject).toBe("Runner-up in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(second.html).toContain(">RUNNER-UP IN KILIMO: NITAPATA?<")
-    expect(second.html).toContain("background-color:#2A2A2E")
-    expect(second.html).toContain("/images/buildday/mark-paper.png")
+    expect(second.html).toContain("background-color:#C9C9D1")
+    expect(second.html).toContain("/images/buildday/mark-ink.png")
     expect(second.html).toContain("2nd of 4 in Kilimo: Nitapata?")
 
     const third = build({ placement: ranked(3), rank: 5 })
     expect(third.subject).toBe("Third place in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(third.html).toContain(">THIRD IN KILIMO: NITAPATA?<")
-    expect(third.html).toContain("background-color:#7A4630")
+    expect(third.html).toContain("background-color:#C47A3A")
+    expect(third.html).toContain("/images/buildday/mark-ink.png")
   })
 
   it("everyone else: the clay card hero, project name in serif, built line, no placing word", () => {
@@ -94,8 +97,40 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain(">BUILT AT IMPACT LAB: AI MASHINANI 02<")
     expect(html).not.toContain("You built this")
     expect(html).not.toMatch(/font-size:13px;[^>]*>[^<]*(WINNER|RUNNER-UP|THIRD IN)[^<]*</)
-    // Their own position still sits on the private scores block.
-    expect(html).toContain("7th overall &middot; 4th of 4 in Kilimo: Nitapata?")
+    // Their own position still sits on the private scores block, and a rank
+    // past third gets no hero pill.
+    expect(html).toContain("7th of 19 overall &middot; 4th of 4 in Kilimo: Nitapata?")
+    expect(html).not.toContain("overall</span>")
+  })
+
+  it("second and third overall: hero pill, opening line and scores line all say so, in every mode", () => {
+    const second = build({
+      announcementMode: "champion",
+      overall: [OVERALL[0]],
+      placement: ranked(2, 6, 2, false),
+      rank: 2,
+      projectName: "prism",
+    })
+    expect(second.html).toContain(">2nd overall<") // hero pill
+    expect(second.html).toContain("prism finished 2nd overall and 2nd of 6 in the Kilimo: Nitapata? track.")
+    expect(second.html).toContain("2nd of 19 overall &middot; 2nd of 6 in Kilimo: Nitapata?")
+    // The position is stated as a fact; "by score" belongs only to the
+    // explanatory note about how placings were decided.
+    const hero = second.html.slice(0, second.html.indexOf("Hi Wanjiru"))
+    expect(hero).not.toMatch(/by score/i)
+
+    // Third overall who also won its track: the track win leads the hero,
+    // the pill and the opening still say third overall.
+    const third = build({
+      announcementMode: "champion",
+      overall: [OVERALL[0]],
+      placement: ranked(1, 5, 3, false),
+      rank: 3,
+      projectName: "AgentrixOS",
+    })
+    expect(third.html).toContain(">3rd overall<")
+    expect(third.html).toContain("AgentrixOS finished 3rd overall and first in the Kilimo: Nitapata? track.")
+    expect(third.html).toContain("3rd of 19 overall &middot; 1st of 5 in Kilimo: Nitapata?")
   })
 
   it("built cards on clay put the serif line in ink and the sans lines in paper, as the poster does", () => {
@@ -110,7 +145,8 @@ describe("impactLabResultsEmail variants", () => {
     expect(subject).toBe("Your Impact Lab: AI Mashinani 02 results: Shamba Bot")
     expect(html).toContain("background-color:#D97757")
     expect(html).toContain(">BUILT AT IMPACT LAB: AI MASHINANI 02<")
-    expect(html).toContain("9th overall")
+    expect(html).toContain("9th of 19 overall")
+    expect(build({ placement: null, rank: 9, rankedCount: undefined }).html).toContain("9th overall")
   })
 
   it("prints the table once when the team is named after it", () => {
@@ -230,6 +266,24 @@ describe("impactLabResultsEmail content rules", () => {
     expect(without.match(/<img /g)).toHaveLength(1)
   })
 
+  it("stacks one card image per honour for a team that won more than once", () => {
+    // A track winner who also came third overall: two cards, the second by index.
+    const html = build({ placement: ranked(1, 5, 3, false), rank: 3, projectName: "AgentrixOS" }).html
+    expect(html).toContain(
+      'src="https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx/card/square"'
+    )
+    expect(html).toContain(
+      'src="https://www.claudekenya.org/impact-lab/results/abcdefghijklmnopqrstuvwx/card/square?honour=1"'
+    )
+    expect(html).toContain('alt="Winner in Kilimo: Nitapata?: AgentrixOS"')
+    expect(html).toContain('alt="Third overall at Impact Lab: AI Mashinani 02: AgentrixOS"')
+    expect(html.match(/width="480"/g)).toHaveLength(2)
+    // The line that describes the cards appears once, above both.
+    expect(html.match(/Your public card shows/g)).toHaveLength(1)
+    // A team with one honour gets one image.
+    expect(build().html.match(/width="480"/g)).toHaveLength(1)
+  })
+
   it("escapes user-typed names", () => {
     const { html } = build({ projectName: "<b>Bold</b> & co", teamName: "Team <x>" })
     expect(html).not.toContain("<b>Bold</b>")
@@ -254,12 +308,12 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("Every project was ranked by score")
   })
 
-  it("podium mode: the winners strip carries the podium on gold, graphite and bronze, then the track winners", () => {
+  it("podium mode: the winners strip carries the podium on gold, silver and copper, then the track winners", () => {
     const { html } = build({ teamId: "k2", placement: ranked(2), rank: 3 })
     const strip = html.slice(html.indexOf("The winners"))
     expect(strip).toMatch(/background-color:#D4AF37;[^>]*>[\s\S]*?>WINNER<[\s\S]*?>Shamba Bot</)
-    expect(strip).toMatch(/background-color:#2A2A2E;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
-    expect(strip).toMatch(/background-color:#7A4630;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
+    expect(strip).toMatch(/background-color:#C9C9D1;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
+    expect(strip).toMatch(/background-color:#C47A3A;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
     expect(strip).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
     expect(strip).toContain(">KILIMO: NITAPATA? WINNER<")
     expect(strip).not.toMatch(/>\d+\.?</)
@@ -275,28 +329,25 @@ describe("impactLabResultsEmail content rules", () => {
     expect(build().html).not.toContain("That is you.")
   })
 
-  it("never claims an overall placing in the recipient's own scores line or hero pill when none was announced", () => {
+  it("tracks mode: the scores line states the team's position, the hero pill stays off for an unannounced first", () => {
     // The real "tracks" mode shape: `overall: []` AND the team's own
-    // `placement.announced` is false (a track winner named by the panel in
-    // that mode is `announced` on its OWN track slot, never on an overall
-    // podium that was never called — see `results.ts`'s own doc comment).
-    // `rank: 1` (from `build`'s defaults) is still populated — pure score
-    // order exists in "tracks" mode too — so nothing here must say "1st
-    // overall" even though the number is available. The track-relative half
-    // of the placing line ("1st of 4 in ...") is unaffected: that comes from
-    // `placement`, not from `overall`.
+    // `placement.announced` is false. The team is still told its own
+    // position in score order on its private scores block (Build Day
+    // ruling, 2026-09-21); the hero pill is for an announced podium place
+    // or a second/third overall, and a first that nobody announced is
+    // neither.
     const { html } = build({
       overall: [],
       trackWinners: [],
       placement: ranked(1, 4, 1, false),
     })
-    expect(html).not.toContain("1st overall")
-    expect(html).toContain("1st of 4 in Kilimo: Nitapata?")
+    expect(html).not.toContain("overall</span>")
+    expect(html).toContain("1st of 19 overall &middot; 1st of 4 in Kilimo: Nitapata?")
 
     // With an announced overall podium, the same recipient's line and hero
     // pill do say so.
     const withPodium = build().html
-    expect(withPodium).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
+    expect(withPodium).toContain("1st of 19 overall &middot; 1st of 4 in Kilimo: Nitapata?")
     expect(withPodium).toContain(">1st overall<")
   })
 
@@ -316,6 +367,53 @@ describe("impactLabResultsEmail — champion mode", () => {
     { track: "Elimu: Mwalimu wa Grade 10", teamId: "e1", projectName: "Mwalimu AI", basis: "announced" as const },
     { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
   ]
+
+  it("the winners strip: the overall podium row, then the track winners row, a two-honour team in both", () => {
+    // Build Day's shape: Shamba Bot is champion and its track's winner;
+    // Mwalimu AI won its track and came third by score; Soko Link is second.
+    const { html } = build({
+      announcementMode: "champion",
+      overall: CHAMPION_OVERALL,
+      trackWinners: [
+        { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
+        { track: "Elimu: Mwalimu wa Grade 10", teamId: "e1", projectName: "Mwalimu AI", basis: "announced" as const },
+        { track: "Afya: Daktari", teamId: "a1", projectName: "Daktari Bot", basis: "announced" as const },
+      ],
+      overallRunnersUp: [
+        { rank: 2, teamId: "k2", projectName: "Soko Link" },
+        { rank: 3, teamId: "e1", projectName: "Mwalimu AI" },
+      ],
+      placement: ranked(2, 4, 2, false),
+      rank: 2,
+      teamId: "k2",
+      projectName: "Soko Link",
+    })
+    const strip = html.slice(html.indexOf("The winners"), html.indexOf("That is you."))
+    // Six cells, in order, each on its own surface (the bgcolor fallback).
+    const cells = [...strip.matchAll(/bgcolor="(#[0-9A-F]{6})"[\s\S]*?<p[^>]*>([^<]+)<\/p>\s*<p[^>]*>([^<]+)<\/p>/g)].map((m) => [m[1], m[2], m[3]])
+    expect(cells).toEqual([
+      ["#D4AF37", "CHAMPION", "Shamba Bot"],
+      ["#C9C9D1", "SECOND OVERALL", "Soko Link"],
+      ["#C47A3A", "THIRD OVERALL", "Mwalimu AI"],
+      ["#D4AF37", "AFYA: DAKTARI WINNER", "Daktari Bot"],
+      ["#D4AF37", "ELIMU: MWALIMU WA GRADE 10 WINNER", "Mwalimu AI"],
+      ["#D4AF37", "KILIMO: NITAPATA? WINNER", "Shamba Bot"],
+    ])
+    // Two explicit rows of three: the podium row, then the track row.
+    expect(strip.match(/<tr>/g)).toHaveLength(2 + 6) // 2 rows + one inner row per cell
+    expect(strip.indexOf("THIRD OVERALL")).toBeLessThan(strip.indexOf("AFYA"))
+    expect(html).toContain("That is you.")
+  })
+
+  it("a short podium row is padded, and a legacy caller without runners-up shows the champion alone on it", () => {
+    const { html } = build({ announcementMode: "champion", overall: CHAMPION_OVERALL, trackWinners: CHAMPION_TRACK_WINNERS })
+    const strip = html.slice(html.indexOf("The winners"))
+    expect(strip).toContain(">CHAMPION<")
+    expect(strip).not.toContain("OVERALL<")
+    // The podium row still holds three cells: one card, two empty fillers.
+    const firstRow = strip.slice(strip.indexOf("<tr>"), strip.indexOf("</tr>", strip.indexOf("</table>")))
+    expect(firstRow.match(/<td width="33%"/g)).toHaveLength(3)
+  })
 
   it("the champion's own email: a CHAMPION cell first, every track winner after it, and its overall rank", () => {
     const { html } = build({
@@ -337,7 +435,7 @@ describe("impactLabResultsEmail — champion mode", () => {
     // Champion mode has no plural podium.
     expect(strip).not.toContain(">RUNNER-UP<")
     expect(strip).toContain("That is you.")
-    expect(html).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
+    expect(html).toContain("1st of 19 overall &middot; 1st of 4 in Kilimo: Nitapata?")
     expect(html).not.toContain(">1st overall<") // no pill under CHAMPION
   })
 
@@ -353,9 +451,10 @@ describe("impactLabResultsEmail — champion mode", () => {
       rank: 1,
     })
     expect(html).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
-    expect(html).not.toContain(">1st overall<")
-    expect(html).not.toMatch(/\d+(st|nd|rd|th) overall/)
-    expect(html).toContain("1st of 5 in Elimu: Mwalimu wa Grade 10")
+    // No pill: not an announced overall place and not second or third.
+    expect(html).not.toContain("overall</span>")
+    // Its own position still sits on the private scores block.
+    expect(html).toContain("1st of 19 overall &middot; 1st of 5 in Elimu: Mwalimu wa Grade 10")
   })
 
   it("a team ranked below the champion and every track winner: no overall claim, plain score-order track line", () => {
@@ -366,8 +465,8 @@ describe("impactLabResultsEmail — champion mode", () => {
       placement: ranked(4, 4, 7, false),
       rank: 7,
     })
-    expect(html).not.toMatch(/\d+(st|nd|rd|th) overall/)
-    expect(html).toContain("4th of 4 in Kilimo: Nitapata?")
+    expect(html).not.toContain("overall</span>")
+    expect(html).toContain("7th of 19 overall &middot; 4th of 4 in Kilimo: Nitapata?")
   })
 
   it("states one neutral sentence for how placings were decided, never 'top three' or 'follow the scores'", () => {

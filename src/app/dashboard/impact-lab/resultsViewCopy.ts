@@ -24,20 +24,18 @@ function ordinal(rank: number): string {
 }
 
 /**
- * The label shown beside a team's own project name — e.g. "3rd overall",
- * "Took part", or `null` (rendered nothing) for a scored team when no
- * overall ranking was ever announced. Never claims an overall placing that
- * was not announced; the caller still has the team's track name to show
- * alongside whatever this returns (or on its own, when this is `null`).
+ * The label shown beside a team's own project name — "2nd of 19 overall"
+ * for every scored team, or "Took part" for a team with no card.
+ *
+ * The team's own position in score order is shown to that team in every
+ * announcement mode (Build Day ruling, 2026-09-21): it is their own
+ * standing, stated as a position among the `ofRanked` scored teams, never
+ * as a score. `decidedByNote` below still says what the panel announced
+ * and what was ranked by score, so the two together stay true.
  */
-export function yourTeamOverallLabel(
-  hasCard: boolean,
-  hasAnnouncedOverall: boolean,
-  rank: number
-): string | null {
+export function yourTeamOverallLabel(hasCard: boolean, rank: number, ofRanked: number): string {
   if (!hasCard) return "Took part";
-  if (!hasAnnouncedOverall) return null;
-  return `${ordinal(rank)} overall`;
+  return `${ordinal(rank)} of ${ofRanked} overall`;
 }
 
 /**

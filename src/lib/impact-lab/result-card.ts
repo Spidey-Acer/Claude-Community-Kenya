@@ -146,6 +146,13 @@ export interface PublicResultCard {
    * true under the podium or tracks modes — see `isChampion`.
    */
   champion: boolean
+  /**
+   * The team's overall position across all tracks in score order (the
+   * snapshot's `rank`), or `null` for a team that took part unscored. A
+   * position, not a score: Build Day's ruling is that second and third
+   * overall are announced facts a card may print.
+   */
+  overallRank: number | null
   /** "Jane K." style — first name plus last initial, never a full surname. */
   members: string[]
 }
@@ -158,6 +165,20 @@ export interface PublicResultCard {
  */
 export function isChampion(snapshot: ResultsSnapshot, teamId: string): boolean {
   return (snapshot.announcementMode ?? "podium") === "champion" && snapshot.overall[0]?.teamId === teamId
+}
+
+/**
+ * The teams ranked second and third in score order (`snapshot.ranking`
+ * rows 2 and 3), shaped like announced winners so the email's winners
+ * strip can seat them beside the champion. The same source as the hero's
+ * "2nd overall" pill and the card's "SECOND OVERALL" line — Build Day
+ * ruling, 2026-09-21: the overall position is an announced fact.
+ */
+export function overallRunnersUp(snapshot: Pick<ResultsSnapshot, "ranking">): { rank: number; teamId: string; projectName: string }[] {
+  return snapshot.ranking
+    .filter((r) => r.rank === 2 || r.rank === 3)
+    .sort((a, b) => a.rank - b.rank)
+    .map((r) => ({ rank: r.rank, teamId: r.teamId, projectName: r.projectName }))
 }
 
 /**
@@ -236,25 +257,130 @@ export function toPublicResultCard(input: {
     track: input.placement.track,
     title: placementTitle(input.placement),
     champion: input.champion === true,
+    overallRank: input.placement.kind === "ranked" ? input.placement.overallRank : null,
     members: input.memberFullNames.map(shortName).filter((n) => n !== ""),
   }
 }
 
 // ─── Card copy ───────────────────────────────────────────────────────────────
 
+/** The fields the card's copy reads. `overallRank` may be absent on a legacy caller. */
+export type CardCopyInput = Pick<PublicResultCard, "title" | "champion" | "track" | "eventName"> &
+  Partial<Pick<PublicResultCard, "overallRank">>
+
+export type HonourKind =
+  | "champion"
+  | "track-winner"
+  | "second-overall"
+  | "third-overall"
+  | "track-runner-up"
+  | "track-third"
+  | "built"
+
 /**
- * The card's placing line, in the poster's caps: "CHAMPION", "DELIGHT
- * WINNER", "RUNNER-UP IN DELIGHT", "THIRD IN EVERYDAY", or "BUILT AT BUILD
- * DAY". A pure lookup over `title` + `champion` + `track` — the placing
- * itself is `placementFor`'s and is not re-derived here.
+ * One thing a team may print a card for. A team with two honours (the
+ * champion also won its track; a track winner also placed third overall)
+ * gets one card per honour, in `cardHonours` order — Build Day ruling,
+ * 2026-09-21: "since they win also a track, shouldn't we put up two cards
+ * for them?"
  */
-export function cardPlacingLine(card: Pick<PublicResultCard, "title" | "champion" | "track" | "eventName">): string {
-  const track = card.track.trim().toUpperCase()
-  if (card.champion) return "CHAMPION"
-  if (card.title === "Winner") return `${track} WINNER`
-  if (card.title === "Runner-up") return `RUNNER-UP IN ${track}`
-  if (card.title === "Third place") return `THIRD IN ${track}`
-  return `BUILT AT ${cardEventShortName(card.eventName)}`
+export interface Honour {
+  kind: HonourKind
+  /** Which of the four card surfaces this honour prints on. */
+  surface: CardStyle["kind"]
+  /** The placing line, in the poster's caps: "CHAMPION", "DELIGHT WINNER", "THIRD OVERALL". */
+  placingLine: string
+  /** The smaller line under the placing, or `null`: the track placing on an overall card. */
+  subline: string | null
+  /** Sentence case, for a heading beside the second card and beyond: "third overall", "Delight winner". */
+  label: string
+  /** Filename fragment: "champion", "everyday-winner", "third-overall". */
+  slug: string
+}
+
+function fileSlug(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "result"
+  )
+}
+
+/**
+ * Every honour a card may print, in this order: champion; track winner;
+ * second overall; third overall. A team with none of those gets its track
+ * runner-up or third place, and a team with nothing at all gets "built".
+ * A pure lookup over `title` + `champion` + `overallRank` + `track` — the
+ * placing itself is `placementFor`'s and is not re-derived here. The
+ * first honour is the primary card: the one the OG image, the email hero
+ * and the routes without an `honour` index render.
+ *
+ * A track runner-up who is second overall gets the overall card only (its
+ * track placing becomes that card's subline); a track winner who is third
+ * overall gets both, because each is its own announced fact.
+ */
+export function cardHonours(card: CardCopyInput): Honour[] {
+  const track = card.track.trim()
+  const TRACK = track.toUpperCase()
+  const honours: Honour[] = []
+
+  if (card.champion) {
+    honours.push({ kind: "champion", surface: "winner", placingLine: "CHAMPION", subline: null, label: "champion", slug: "champion" })
+  }
+  if (card.title === "Winner") {
+    honours.push({
+      kind: "track-winner",
+      surface: "winner",
+      placingLine: `${TRACK} WINNER`,
+      subline: null,
+      label: `${track} winner`,
+      slug: fileSlug(`${track} winner`),
+    })
+  }
+  if (card.overallRank === 2 || card.overallRank === 3) {
+    // The track placing beneath, or the track alone when the team holds no
+    // podium place there (a track winner's win has its own card above).
+    const subline =
+      card.title === "Runner-up" ? `Runner-up in ${track}` : card.title === "Third place" ? `Third in ${track}` : track ? `${track} track` : null
+    honours.push(
+      card.overallRank === 2
+        ? { kind: "second-overall", surface: "runner-up", placingLine: "SECOND OVERALL", subline, label: "second overall", slug: "second-overall" }
+        : { kind: "third-overall", surface: "third", placingLine: "THIRD OVERALL", subline, label: "third overall", slug: "third-overall" }
+    )
+  }
+  if (honours.length > 0) return honours
+
+  if (card.title === "Runner-up") {
+    return [{ kind: "track-runner-up", surface: "runner-up", placingLine: `RUNNER-UP IN ${TRACK}`, subline: null, label: `runner-up in ${track}`, slug: fileSlug(`runner-up ${track}`) }]
+  }
+  if (card.title === "Third place") {
+    return [{ kind: "track-third", surface: "third", placingLine: `THIRD IN ${TRACK}`, subline: null, label: `third in ${track}`, slug: fileSlug(`third ${track}`) }]
+  }
+  return [{ kind: "built", surface: "built", placingLine: `BUILT AT ${cardEventShortName(card.eventName)}`, subline: null, label: "built", slug: "built" }]
+}
+
+/** The primary honour's placing line — "CHAMPION", "DELIGHT WINNER", "SECOND OVERALL", "BUILT AT BUILD DAY". */
+export function cardPlacingLine(card: CardCopyInput): string {
+  return cardHonours(card)[0].placingLine
+}
+
+/** The primary honour's subline, or `null`. */
+export function cardSubline(card: CardCopyInput): string | null {
+  return cardHonours(card)[0].subline
+}
+
+/**
+ * The `?honour=` query value as an index into `cardHonours`: `null` or
+ * empty means the primary card; a whole number is that honour; anything
+ * else is `undefined` (the caller answers 400). Range is the caller's
+ * check, since it needs the card.
+ */
+export function parseHonourIndex(raw: string | null): number | undefined {
+  if (raw === null || raw.trim() === "") return 0
+  return /^\d{1,2}$/.test(raw.trim()) ? Number(raw.trim()) : undefined
 }
 
 /**
@@ -271,12 +397,27 @@ export function cardMembersLine(members: readonly string[], max = 6): string {
   return `${members.slice(0, max).join(" · ")} and ${members.length - max} more`
 }
 
-/** The card's one-line headline for titles, alt text and link previews. */
-export function cardHeadline(card: PublicResultCard): string {
-  if (card.champion) return `Champion of ${card.eventName}: ${card.projectName}`
-  return card.title === "Built"
-    ? `${card.projectName}, built at ${card.eventName}`
-    : `${card.title} in ${card.track}: ${card.projectName}`
+/**
+ * The one-line headline for titles, alt text and link previews — for one
+ * honour, the primary by default.
+ */
+export function cardHeadline(card: CardCopyInput & Pick<PublicResultCard, "projectName">, honour: Honour = cardHonours(card)[0]): string {
+  switch (honour.kind) {
+    case "champion":
+      return `Champion of ${card.eventName}: ${card.projectName}`
+    case "track-winner":
+      return `Winner in ${card.track}: ${card.projectName}`
+    case "second-overall":
+      return `Second overall at ${card.eventName}: ${card.projectName}`
+    case "third-overall":
+      return `Third overall at ${card.eventName}: ${card.projectName}`
+    case "track-runner-up":
+      return `Runner-up in ${card.track}: ${card.projectName}`
+    case "track-third":
+      return `Third place in ${card.track}: ${card.projectName}`
+    default:
+      return `${card.projectName}, built at ${card.eventName}`
+  }
 }
 
 // ─── Dark premium palette ────────────────────────────────────────────────────
@@ -328,14 +469,35 @@ export const CARD_GOLD = {
  */
 export const CARD_POSTER = { clay: CARD_DARK.orange, ink: "#141413", paper: "#FAF9F5" } as const
 
-/** Runner-up graphite, top to bottom, plus its silver pill colour. */
-export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
+/**
+ * Runner-up silver — metallic, on the same 165deg diagonal as the gold and
+ * with the same faint top-left highlight, so the two read as one family.
+ * Ink text, like gold. Replaces the flat graphite that read as matte next
+ * to the gold (Build Day, 2026-09-21).
+ */
+export const CARD_SILVER = {
+  from: "#8E8E96",
+  mid: "#C9C9D1",
+  to: "#F2F2F6",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#141413",
+} as const
 
 /**
- * Third-place bronze, top to bottom. Copper-red rather than warm brown: the
- * earlier #4E2A14 → #8C5A2B read as a second gold next to the winner card.
+ * Third-place copper — metallic, on the gold's and silver's 165deg diagonal
+ * with the same faint highlight, so the three podium surfaces read as one
+ * family. Ink text, like them. Deep red-brown to a light copper: the red
+ * keeps it apart from the gold, the warmth from the silver. Replaces the
+ * flat copper-red that read as matte next to the two metallics (Build
+ * Day, 2026-09-21).
  */
-export const CARD_BRONZE = { from: "#3F2418", to: "#7A4630" } as const
+export const CARD_BRONZE = {
+  from: "#8C4A1F",
+  mid: "#C47A3A",
+  to: "#E8B07A",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#141413",
+} as const
 
 export type CardStyle = {
   kind: "winner" | "runner-up" | "third" | "built"
@@ -350,8 +512,8 @@ export type CardStyle = {
   /**
    * Eyebrow, pill border/text and rule colour. Clay (`#A84E2D`) on the gold
    * winner surface, where the brighter Claude orange loses contrast against
-   * gold's own warmth; the brand orange everywhere else (graphite, bronze,
-   * built), which is dark enough to read against those surfaces.
+   * gold's own warmth, and on the silver and copper surfaces for the same
+   * reason; the brand orange on the flat built surface, where it reads.
    */
   accent: string
   /** Small placement pill — `null` where the design has none (third, built). */
@@ -387,22 +549,22 @@ export function cardStyleForTitle(title: string): CardStyle {
   if (title === "Runner-up") {
     return {
       kind: "runner-up",
-      gradient: [CARD_GRAPHITE.from, CARD_GRAPHITE.to],
-      angle: "to bottom",
-      ink: CARD_DARK.text,
-      muted: CARD_DARK.muted,
-      accent: CARD_DARK.orange,
-      pill: { label: "2nd in track", color: CARD_GRAPHITE.silver },
+      gradient: [CARD_SILVER.from, CARD_SILVER.mid, CARD_SILVER.to],
+      angle: "165deg",
+      ink: CARD_SILVER.ink,
+      muted: CARD_SILVER.ink,
+      accent: CARD_DARK.clay,
+      pill: { label: "2nd in track", color: CARD_DARK.clay },
     }
   }
   if (title === "Third place") {
     return {
       kind: "third",
-      gradient: [CARD_BRONZE.from, CARD_BRONZE.to],
-      angle: "to bottom",
-      ink: CARD_DARK.text,
-      muted: CARD_DARK.muted,
-      accent: CARD_DARK.orange,
+      gradient: [CARD_BRONZE.from, CARD_BRONZE.mid, CARD_BRONZE.to],
+      angle: "165deg",
+      ink: CARD_BRONZE.ink,
+      muted: CARD_BRONZE.ink,
+      accent: CARD_DARK.clay,
       pill: null,
     }
   }

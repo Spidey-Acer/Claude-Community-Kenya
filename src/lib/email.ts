@@ -15,10 +15,11 @@ import {
 import {
   CARD_BRONZE,
   CARD_GOLD,
-  CARD_GRAPHITE,
+  CARD_SILVER,
   CARD_POSTER,
+  cardHeadline,
+  cardHonours,
   cardPlacingLine,
-  isPodium,
   placementTitle,
   PODIUM_DEPTH,
   teamPlaceLabel,
@@ -565,7 +566,7 @@ const DARK = {
   hairline: "#2A261E",
   /** Primary text on dark surfaces. */
   text: "#F4EEE3",
-  /** Secondary text (criterion labels, hero eyebrows on graphite/bronze). */
+  /** Secondary text (criterion labels). */
   muted: "#B8AE9C",
   /** Tertiary text (range line, footer). */
   dim: "#7C7365",
@@ -595,8 +596,8 @@ const BODY_FONT = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helveti
  * `placement` (see `placementFor` in @/lib/impact-lab/result-card):
  *
  * - Track winner — a gold gradient hero: "Winner", the track, the project.
- * - Runner-up — the same hero on a graphite gradient, silver pill.
- * - Third place — the same hero on a bronze gradient.
+ * - Runner-up — the same hero on a metallic silver gradient.
+ * - Third place — the same hero on a metallic copper gradient.
  * - Everyone else — an elevated dark panel with an orange left rule that
  *   reads as achievement: "You built <project> at <event>". No placing is
  *   printed in the hero; the team's own position within its track sits on
@@ -660,6 +661,12 @@ export function impactLabResultsEmail(data: {
   /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
   /**
+   * How many teams the snapshot ranks (`snapshot.ranking.length`), so the
+   * scores block can say "2nd of 19 overall". Optional for a legacy caller,
+   * which then reads "2nd overall".
+   */
+  rankedCount?: number
+  /**
    * `"podium"` (an overall podium was announced), `"tracks"` (one winner per
    * track, no overall podium), or `"champion"` (one overall champion AND a
    * winner for one or more tracks, announced together). Drives the "how
@@ -683,6 +690,14 @@ export function impactLabResultsEmail(data: {
   basis: "demo" | "submission"
   overall: AnnouncedWinner[]
   trackWinners: ResultsTrackWinner[]
+  /**
+   * The teams second and third overall in score order (`overallRunnersUp`
+   * off the snapshot), for the champion-mode winners strip: the overall
+   * podium row is champion, second, third. Ignored in the other modes,
+   * where `overall` already carries the podium. Optional for a legacy
+   * caller, which then shows the champion alone on that row.
+   */
+  overallRunnersUp?: AnnouncedWinner[]
   dashboardUrl: string
   /**
    * The team's public result card. Omitted when no signing secret is
@@ -712,14 +727,18 @@ export function impactLabResultsEmail(data: {
   rubric: JudgingRubric
 }): { subject: string; html: string } {
   const mode = data.announcementMode ?? "podium"
-  const podium = isPodium(data.placement)
   const ranked = data.placement?.kind === "ranked" ? data.placement : null
   const track = data.placement?.track ?? null
-  // The public card image's alt text: the placing headline in words.
-  const shareCardAlt =
-    podium && ranked
-      ? `${placementTitle(ranked)} in ${ranked.track}: ${data.projectName}`
-      : `${data.projectName}, built at ${data.eventName}`
+  // Every card the team gets (see `cardHonours`): one per honour, each with
+  // its headline in words for the image's alt text.
+  const honourInput = {
+    title: placementTitle(data.placement),
+    champion: data.champion === true,
+    track: track ?? "",
+    eventName: data.eventName,
+    overallRank: ranked?.overallRank ?? null,
+  }
+  const honours = cardHonours(honourInput)
 
   // ── Subject ──────────────────────────────────────────────────────────────
   let subject: string
@@ -739,11 +758,11 @@ export function impactLabResultsEmail(data: {
     .join(" &middot; ")
 
   // Surface by placing, as `surfaceFor` in card-render.tsx: gold for a
-  // winner (the champion is a winner too), graphite for the runner-up,
-  // bronze for third, the poster's flat clay for everyone who built. Each
+  // winner (the champion is a winner too), silver for the runner-up,
+  // copper for third, the poster's flat clay for everyone who built. Each
   // gradient carries a solid fallback (Gmail drops `background-image`;
   // Outlook renders neither and falls back to `bgcolor`). Text mirrors the
-  // card: ink on clay and gold, paper on graphite and bronze — and on clay
+  // card: ink on every surface — and on clay
   // the serif line is ink while the sans lines are paper, as on the poster.
   const surface =
     ranked && ranked.position === 1
@@ -756,19 +775,19 @@ export function impactLabResultsEmail(data: {
         }
       : ranked && ranked.position === 2
         ? {
-            fallback: CARD_GRAPHITE.from,
-            gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`,
-            serif: CARD_POSTER.paper,
-            sans: CARD_POSTER.paper,
-            mark: "paper",
+            fallback: CARD_SILVER.mid,
+            gradient: `linear-gradient(165deg, ${CARD_SILVER.from} 0%, ${CARD_SILVER.mid} 55%, ${CARD_SILVER.to} 100%)`,
+            serif: CARD_SILVER.ink,
+            sans: CARD_SILVER.ink,
+            mark: "ink",
           }
         : ranked && ranked.position === 3
           ? {
-              fallback: CARD_BRONZE.to,
-              gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`,
-              serif: CARD_POSTER.paper,
-              sans: CARD_POSTER.paper,
-              mark: "paper",
+              fallback: CARD_BRONZE.mid,
+              gradient: `linear-gradient(165deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.mid} 55%, ${CARD_BRONZE.to} 100%)`,
+              serif: CARD_BRONZE.ink,
+              sans: CARD_BRONZE.ink,
+              mark: "ink",
             }
           : {
               fallback: CARD_POSTER.clay,
@@ -791,9 +810,15 @@ export function impactLabResultsEmail(data: {
   // `Placement`) still cannot render an overall placing nobody announced.
   // Not under a CHAMPION line: "1st overall" would only repeat it. A
   // podium-mode 1st/2nd/3rd keeps the pill, since its line names the track.
+  // Second and third overall in score order get the pill in every mode
+  // (Build Day ruling, 2026-09-21: the position is an announced fact, and
+  // the champion-mode runner-up's email said nothing about it). Rank 4+
+  // gets no pill; the scores block carries the position for everyone.
+  const announcedOverall = Boolean(ranked && ranked.announced && data.overall.length > 0)
+  const pillRank = announcedOverall && ranked ? ranked.overallRank : data.rank === 2 || data.rank === 3 ? data.rank : null
   const overallPill =
-    ranked && ranked.announced && data.overall.length > 0 && heroPlacing !== "CHAMPION"
-      ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
+    ranked && pillRank !== null && heroPlacing !== "CHAMPION"
+      ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(pillRank))} overall</span></p>`
       : ""
   // The placing line must never wrap mid-word on a 320px column; the longest
   // real line ("RUNNER-UP IN BREAKTHROUGH") fits at 13px with 2px tracking.
@@ -833,11 +858,18 @@ export function impactLabResultsEmail(data: {
       ? contents[0]
       : `${contents.slice(0, -1).join(", ")} and ${contents[contents.length - 1]}`
 
+  // Second and third overall lead with that, then their track placing;
+  // everyone else leads with the track sentence as before.
+  const trackPhrase = ranked
+    ? ranked.position === 1
+      ? `first in the ${esc(ranked.track)} track`
+      : `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track`
+    : null
   let opening: string
-  if (ranked && ranked.position === 1) {
-    opening = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track.`
-  } else if (ranked && ranked.position <= PODIUM_DEPTH) {
-    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track.`
+  if (ranked && trackPhrase && (data.rank === 2 || data.rank === 3)) {
+    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(data.rank))} overall and ${trackPhrase}.`
+  } else if (ranked && trackPhrase && ranked.position <= PODIUM_DEPTH) {
+    opening = `${esc(data.projectName)} finished ${trackPhrase}.`
   } else {
     opening = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day.`
   }
@@ -849,19 +881,31 @@ export function impactLabResultsEmail(data: {
   // nothing rather than an empty heading, so the note below never claims a
   // panel decision that didn't happen.
   //
-  // One strip of mini cards in the share-card system: the champion (or the
-  // overall podium, in podium mode) first, then every track winner, each on
-  // the surface its own card gets. Cells are fixed-width inline-block
-  // tables so Gmail lays them out in a row that wraps on a phone; Outlook
-  // ignores inline-block and stacks them one per row, which is the fallback
-  // the design allows. Four cells of 126px plus their margins (520px) sit
-  // inside the 536px inner column with room for rounding, and a 480px
-  // client wraps after three.
-  const CELL_WIDTH = 126
+  // A strip of mini cards in the share-card system, as two kinds of row:
+  // the overall podium first (champion, second overall, third overall in
+  // champion mode — the latter two in score order, the same source as the
+  // hero pill; the announced podium in podium mode), then the track
+  // winners in track order, each cell on the surface its own card gets. A
+  // team that holds two honours appears twice, once per row, as it gets
+  // two cards. Rows are explicit table rows of three fixed-width cells,
+  // so the podium row and the track row read as two rows in every client
+  // (inline-block wrapping put the fourth cell on its own line in some and
+  // stacked all of them in Outlook). Three cells of 170px plus their
+  // padding sit inside the 536px inner column.
   type WinnerCell = { teamId: string; placing: string; projectName: string; position: 1 | 2 | 3 | 4 }
-  const cells: WinnerCell[] =
+  const podiumCells: WinnerCell[] =
     mode === "champion"
-      ? data.overall.slice(0, 1).map((w) => ({ teamId: w.teamId, placing: "CHAMPION", projectName: w.projectName, position: 1 as const }))
+      ? [
+          ...data.overall.slice(0, 1).map((w) => ({ teamId: w.teamId, placing: "CHAMPION", projectName: w.projectName, position: 1 as const })),
+          ...(data.overallRunnersUp ?? [])
+            .filter((w) => w.rank === 2 || w.rank === 3)
+            .map((w) => ({
+              teamId: w.teamId,
+              placing: w.rank === 2 ? "SECOND OVERALL" : "THIRD OVERALL",
+              projectName: w.projectName,
+              position: w.rank === 2 ? (2 as const) : (3 as const),
+            })),
+        ]
       : data.overall.map((w) => ({
           teamId: w.teamId,
           placing:
@@ -869,18 +913,26 @@ export function impactLabResultsEmail(data: {
           projectName: w.projectName,
           position: w.rank === 1 ? 1 : w.rank === 2 ? 2 : w.rank === 3 ? 3 : 4,
         }))
-  for (const w of data.trackWinners) {
-    cells.push({ teamId: w.teamId, placing: `${w.track.toUpperCase()} WINNER`, projectName: w.projectName, position: 1 })
+  const trackCells: WinnerCell[] = [...data.trackWinners]
+    .sort((a, b) => a.track.localeCompare(b.track))
+    .map((w) => ({ teamId: w.teamId, placing: `${w.track.toUpperCase()} WINNER`, projectName: w.projectName, position: 1 as const }))
+  const cells = [...podiumCells, ...trackCells]
+  const CELLS_PER_ROW = 3
+  const chunk = (list: WinnerCell[]): WinnerCell[][] => {
+    const rows: WinnerCell[][] = []
+    for (let i = 0; i < list.length; i += CELLS_PER_ROW) rows.push(list.slice(i, i + CELLS_PER_ROW))
+    return rows
   }
+  const cellRows = [...chunk(podiumCells), ...chunk(trackCells)]
   // The same surfaces as the hero, by position; a rank past third (should a
   // panel ever announce one) sits on the card's plain dark panel.
   const cellSurface = (position: WinnerCell["position"]) =>
     position === 1
       ? { fallback: CARD_GOLD.mid, gradient: `linear-gradient(165deg, ${CARD_GOLD.from} 0%, ${CARD_GOLD.mid} 55%, ${CARD_GOLD.to} 100%)`, text: CARD_POSTER.ink }
       : position === 2
-        ? { fallback: CARD_GRAPHITE.from, gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`, text: CARD_POSTER.paper }
+        ? { fallback: CARD_SILVER.mid, gradient: `linear-gradient(165deg, ${CARD_SILVER.from} 0%, ${CARD_SILVER.mid} 55%, ${CARD_SILVER.to} 100%)`, text: CARD_SILVER.ink }
         : position === 3
-          ? { fallback: CARD_BRONZE.to, gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`, text: CARD_POSTER.paper }
+          ? { fallback: CARD_BRONZE.mid, gradient: `linear-gradient(165deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.mid} 55%, ${CARD_BRONZE.to} 100%)`, text: CARD_BRONZE.ink }
           : { fallback: DARK.card, gradient: "none", text: DARK.text }
   const readerIsAWinner = data.teamId !== undefined && cells.some((c) => c.teamId === data.teamId)
   const winnersSection =
@@ -888,23 +940,29 @@ export function impactLabResultsEmail(data: {
       ? `
             <p style="margin:0 0 10px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">The winners</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${readerIsAWinner ? 8 : 28}px;">
-              <tr>
-                <td align="center" style="text-align:center;font-size:0;line-height:0;">
-                  ${cells
-                    .map((c) => {
-                      const surface = cellSurface(c.position)
-                      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${CELL_WIDTH}" style="display:inline-block;width:${CELL_WIDTH}px;vertical-align:top;margin:0 2px 6px;">
+              ${cellRows
+                .map((row) => {
+                  // Empty cells pad a short row so every cell keeps a third of the width.
+                  const fillers = Array.from({ length: CELLS_PER_ROW - row.length }, () => `<td width="33%" style="width:33%;padding:0 3px 6px;"></td>`).join("")
+                  return `<tr>
+                ${row
+                  .map((c) => {
+                    const surface = cellSurface(c.position)
+                    return `<td width="33%" valign="top" style="width:33%;padding:0 3px 6px;vertical-align:top;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td bgcolor="${surface.fallback}" style="width:${CELL_WIDTH}px;background-color:${surface.fallback};background-image:${surface.gradient};border-radius:8px;padding:14px 10px 16px;text-align:center;vertical-align:top;">
+                      <td bgcolor="${surface.fallback}" style="background-color:${surface.fallback};background-image:${surface.gradient};border-radius:8px;padding:14px 10px 16px;text-align:center;vertical-align:top;">
                         <p style="margin:0 0 6px;min-height:24px;font-family:${BODY_FONT};font-size:9px;line-height:1.3;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:${surface.text};text-align:center;">${esc(c.placing)}</p>
                         <p style="margin:0;font-family:${DISPLAY_FONT};font-size:18px;line-height:1.2;color:${surface.text};text-align:center;">${esc(c.projectName)}</p>
                       </td>
                     </tr>
-                  </table>`
-                    })
-                    .join("")}
-                </td>
-              </tr>
+                  </table>
+                </td>`
+                  })
+                  .join("")}${fillers}
+              </tr>`
+                })
+                .join("")}
             </table>${
               readerIsAWinner
                 ? `
@@ -956,22 +1014,20 @@ export function impactLabResultsEmail(data: {
       ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${DARK.dim};">Score range across judges: ${data.low.toFixed(1)}&ndash;${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
-  // "Nth overall" only when an overall ranking was actually announced. In
-  // "podium" mode that means any overall winner exists (`data.overall.length
-  // > 0`) — every scored team genuinely has a place in that same ordering,
-  // even a team whose own exact position was not individually called out. In
-  // "champion" mode it means more: only the champion itself has an overall
-  // placing (`ranked.announced`, true only for the team in `data.overall`) —
-  // an announced track winner who is not the champion was never given an
-  // overall rank, only a track one, and printing "Nth overall" for them would
-  // claim a placing exactly as false as podium mode's "(by score)" ranks were
-  // before this field existed. `data.rank` is always populated (pure
-  // score-order in every mode, see buildRanking), so without this guard a
-  // tracks- or champion-mode team would read a claim about an overall placing
-  // that was never announced and does not exist as a published fact.
-  const hasOverallPlacing = mode === "champion" ? ranked?.announced === true : data.overall.length > 0
+  // The team's own position in score order, as a position among the ranked
+  // teams ("2nd of 19 overall"), in every announcement mode — Build Day
+  // ruling, 2026-09-21: a team is told its own standing, and the note
+  // above already says which placings the panel announced and which were
+  // ranked by score. `data.rank` is always populated (see buildRanking);
+  // `rankedCount` is the denominator when the caller has it.
+  const overallPart =
+    data.rank > 0
+      ? data.rankedCount
+        ? `${esc(resultsOrdinal(data.rank))} of ${data.rankedCount} overall`
+        : `${esc(resultsOrdinal(data.rank))} overall`
+      : null
   const placingLine = [
-    hasOverallPlacing ? `${esc(resultsOrdinal(data.rank))} overall` : null,
+    overallPart,
     ranked ? `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in ${esc(ranked.track)}` : null,
   ]
     .filter((s): s is string => Boolean(s))
@@ -1071,22 +1127,30 @@ export function impactLabResultsEmail(data: {
   // unbreakable 49-character URL was the one thing holding the layout wider
   // than a phone, and break-all on the paragraph would split the prose too.
   const breakable = (url: string) => `<span style="word-break:break-all;">${esc(url)}</span>`
-  // The card itself, under the line that describes it: the square PNG the
-  // share page serves (`card/square` beside the page URL), in a full-width
-  // cell so it centres, at 480px so it fits the 600px column with the card
-  // body's padding. `alt` carries the headline for clients that block
-  // remote images by default. Only with a share URL: no card, no image.
-  const shareCard = data.shareUrl
-    ? `
+  // The cards themselves, under the line that describes them: the square
+  // PNG the share page serves (`card/square` beside the page URL, one per
+  // honour via `?honour=`), stacked, each in a full-width cell so it
+  // centres, at 480px so it fits the 600px column with the card body's
+  // padding. `alt` carries the headline for clients that block remote
+  // images by default. Only with a share URL: no card, no image.
+  const shareUrl = data.shareUrl
+  const shareCard = shareUrl
+    ? honours
+        .map((honour, index) => {
+          const src = index === 0 ? `${shareUrl}/card/square` : `${shareUrl}/card/square?honour=${index}`
+          const alt = cardHeadline({ ...honourInput, projectName: data.projectName }, honour)
+          return `
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 18px;">
               <tr>
                 <td align="center" style="text-align:center;">
-                  <a href="${esc(data.shareUrl)}" style="display:inline-block;text-decoration:none;">
-                    <img src="${esc(`${data.shareUrl}/card/square`)}" width="480" alt="${esc(shareCardAlt)}" style="display:block;width:100%;max-width:480px;height:auto;border:0;border-radius:12px;" />
+                  <a href="${esc(shareUrl)}" style="display:inline-block;text-decoration:none;">
+                    <img src="${esc(src)}" width="480" alt="${esc(alt)}" style="display:block;width:100%;max-width:480px;height:auto;border:0;border-radius:12px;" />
                   </a>
                 </td>
               </tr>
             </table>`
+        })
+        .join("")
     : ""
   const shareLine = data.shareUrl
     ? `<p style="margin:0 0 6px;font-family:${BODY_FONT};font-size:12px;line-height:1.6;color:${DARK.dim};">Your public card shows the placing, the project and your first names with a last initial, never your scores. Post it anywhere: ${breakable(data.shareUrl)}</p>

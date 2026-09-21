@@ -7,6 +7,7 @@ import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/res
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
 import {
   isChampion,
+  overallRunnersUp,
   placementFor,
   placementTitle,
   placingsFollowScores,
@@ -279,12 +280,14 @@ export async function GET(request: NextRequest) {
     // is still the one the send will carry.
     shareUrl: resultCardUrl(APP_URL, run.id, teamId),
     rank: card.rank,
+    rankedCount: snapshot.ranking.length,
     criterionAverages: card.criterionAverages,
     low: card.low,
     high: card.high,
     basis: card.basis,
     overall: snapshot.overall,
     trackWinners: snapshot.trackWinners,
+    overallRunnersUp: overallRunnersUp(snapshot),
     dashboardUrl,
     judgeNotes: feedback?.judgeNotes ?? [],
     communityReview: feedback?.review ?? null,
