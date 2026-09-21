@@ -132,7 +132,9 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  *      morning session, so the links above can miss on the night itself.
  *      Requiring exactly one LIVE event is what keeps this from guessing: with
  *      two hackathons running there is no single right answer, and it declines
- *      rather than attach the wrong panel to a page.
+ *      rather than attach the wrong panel to a page. It is a guess, so only
+ *      the judges panel may use it: see `linkedCohortForPublicEvent` for the
+ *      strict resolver that everything published off a snapshot uses.
  *
  * The caller only asks for public events of type hackathon, which is why
  * fallback 4 does not re-check the type it cannot see from here.
@@ -142,6 +144,36 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  * asking about at all.
  */
 export async function cohortForPublicEvent(
+  eventId: string,
+  eventSlug: string,
+  eventTitle?: string
+): Promise<string | null> {
+  try {
+    const linked = await linkedCohortForPublicEvent(eventId, eventSlug, eventTitle)
+    return linked ?? (await singleLiveCohort())
+  } catch (error) {
+    if (isMissingTable(error)) return null
+    throw error
+  }
+}
+
+/**
+ * Links 1 to 3 alone: the cohort an organiser actually attached to this
+ * public event, never a guess.
+ *
+ * This is the resolver for anything that decides what a page *publishes*:
+ * the winners section, the recap's own event link, the band's team count.
+ * The LIVE fallback in `cohortForPublicEvent` exists so a panel appears on
+ * the night before anybody has wired the link, and a wrong judge list for a
+ * few hours is recoverable. A wrong winners list is not: on 2026-09-21 the
+ * AI Mashinani 02 page (2 September, unlinked) inherited the LIVE Build Day
+ * cohort and published Build Day's champions as its own. An event with no
+ * explicit link shows nothing, which is the honest answer.
+ *
+ * Returns null when no link holds, and pre-migration where the table does
+ * not exist.
+ */
+export async function linkedCohortForPublicEvent(
   eventId: string,
   eventSlug: string,
   eventTitle?: string
@@ -168,7 +200,7 @@ export async function cohortForPublicEvent(
       if (byTitle) return byTitle.cohort
     }
 
-    return await singleLiveCohort()
+    return null
   } catch (error) {
     if (isMissingTable(error)) return null
     throw error
@@ -178,7 +210,7 @@ export async function cohortForPublicEvent(
 /**
  * The one Impact Lab event that is LIVE, or null when there are zero or more
  * than one — guessing between two live events would be wrong, so this
- * declines instead. Shared by `cohortForPublicEvent`'s fallback 3 and by
+ * declines instead. Shared by `cohortForPublicEvent`'s fallback 4 and by
  * judge sign-in, which needs the same "which run applies right now" answer
  * for a request that did not name a cohort at all.
  */

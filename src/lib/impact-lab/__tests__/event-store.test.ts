@@ -16,7 +16,7 @@ vi.mock("@/lib/prisma", () => ({
 }))
 
 import { prisma } from "@/lib/prisma"
-import { cohortForPublicEvent, singleLiveCohort } from "../event-store"
+import { cohortForPublicEvent, linkedCohortForPublicEvent, singleLiveCohort } from "../event-store"
 
 const PUBLIC_ID = "evt_1"
 const PUBLIC_SLUG = "nairobi-claude-impact-lab-ai-mashinani-02-mt2jpq2a"
@@ -105,6 +105,58 @@ describe("cohortForPublicEvent", () => {
 
       await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, TITLE)).resolves.toBe("impact-lab-live")
     })
+  })
+})
+
+// The strict resolver: what a page may publish off a snapshot. On
+// 2026-09-21 the AI Mashinani 02 page (2 September, no explicit link)
+// inherited the LIVE Build Day cohort through `cohortForPublicEvent` and
+// published Build Day's champions as its own winners.
+describe("linkedCohortForPublicEvent", () => {
+  const MASHINANI_ID = "evt_mashinani"
+  const MASHINANI_SLUG = "nairobi-claude-impact-lab-ai-mashinani-02-mt2jpq2a"
+  const MASHINANI_TITLE = "Nairobi | Claude Impact Lab - AI Mashinani 02"
+  const BUILD_DAY_TITLE = "Nairobi | Fable 5.1 Build Day"
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValue(null as never)
+    vi.mocked(prisma.impactLabEvent.findUnique).mockResolvedValue(null as never)
+    // Build Day is LIVE. Nothing here may borrow it.
+    vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
+      { cohort: "build-day-2026-09" },
+    ] as never)
+  })
+
+  it("refuses a past event with no explicit link, even while a cohort is LIVE", async () => {
+    await expect(
+      linkedCohortForPublicEvent(MASHINANI_ID, MASHINANI_SLUG, MASHINANI_TITLE)
+    ).resolves.toBeNull()
+    expect(prisma.impactLabEvent.findMany).not.toHaveBeenCalled()
+
+    // The loose resolver still answers, which is exactly why the two exist.
+    await expect(
+      cohortForPublicEvent(MASHINANI_ID, MASHINANI_SLUG, MASHINANI_TITLE)
+    ).resolves.toBe("build-day-2026-09")
+  })
+
+  it("resolves an event whose title names its cohort", async () => {
+    vi.mocked(prisma.impactLabEvent.findFirst)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({ cohort: "build-day-2026-09" } as never)
+
+    await expect(
+      linkedCohortForPublicEvent("evt_build_day", "nairobi-fable-51-build-day-mubldmlo", BUILD_DAY_TITLE)
+    ).resolves.toBe("build-day-2026-09")
+  })
+
+  it("resolves the explicit link and the slug link", async () => {
+    vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValue({ cohort: "linked" } as never)
+    await expect(linkedCohortForPublicEvent(MASHINANI_ID, MASHINANI_SLUG)).resolves.toBe("linked")
+
+    vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValue(null as never)
+    vi.mocked(prisma.impactLabEvent.findUnique).mockResolvedValue({ cohort: "by-slug" } as never)
+    await expect(linkedCohortForPublicEvent(MASHINANI_ID, "by-slug")).resolves.toBe("by-slug")
   })
 })
 
