@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { ImpactLabDashboard } from "@/components/admin/impact-lab/ImpactLabDashboard"
 import { defaultAdminCohort } from "@/lib/impact-lab/event-store"
@@ -17,7 +18,12 @@ export default async function ImpactLabAdminPage() {
          * inside ImpactLabDashboard, which tracks the selected cohort as
          * state.
          */}
-        <ImpactLabDashboard cohort={cohort} />
+        {/* ImpactLabDashboard reads useSearchParams (tab/cohort restore on
+         * refresh) — Next requires a Suspense boundary around any client
+         * component that does, since this page itself is a server component. */}
+        <Suspense fallback={null}>
+          <ImpactLabDashboard cohort={cohort} />
+        </Suspense>
       </div>
     </div>
   )

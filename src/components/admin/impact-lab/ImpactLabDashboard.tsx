@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Users,
   Network,
@@ -29,19 +30,7 @@ import { ResultsTab } from "./ResultsTab"
 import { RubricTab } from "./RubricTab"
 import { EventsTab } from "./EventsTab"
 import { CardsTab } from "./CardsTab"
-
-type Tab =
-  | "events"
-  | "participants"
-  | "matching"
-  | "runs"
-  | "submissions"
-  | "checkin"
-  | "rubric"
-  | "leaderboard"
-  | "judges"
-  | "results"
-  | "cards"
+import { type Tab, tabFromQuery } from "./tabUrl"
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   // First: events span organisations and aren't scoped to the selected
@@ -70,12 +59,57 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
  * to any cohort the system knows about without a redeploy.
  */
 export function ImpactLabDashboard({ cohort: initialCohort }: { cohort: string }) {
-  const [cohort, setCohort] = useState(initialCohort)
-  const [tab, setTab] = useState<Tab>("participants")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const [cohort, setCohortState] = useState(() => searchParams.get("cohort") ?? initialCohort)
+  const [tab, setTabState] = useState<Tab>(() => tabFromQuery(searchParams.get("tab")))
   // Bumped when a run is saved so the Runs tab reloads.
   const [runsKey, setRunsKey] = useState(0)
 
   const { cohorts, loading: cohortsLoading, error: cohortsError } = useCohorts()
+
+  // Replaces (never pushes) so tab/cohort switches don't spam browser
+  // history, and never scrolls — this only updates the query string.
+  const updateQuery = useCallback(
+    (next: { tab?: Tab; cohort?: string }) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (next.tab !== undefined) params.set("tab", next.tab)
+      if (next.cohort !== undefined) params.set("cohort", next.cohort)
+      router.replace(`?${params.toString()}`, { scroll: false })
+    },
+    [router, searchParams]
+  )
+
+  const setTab = useCallback(
+    (next: Tab) => {
+      setTabState(next)
+      updateQuery({ tab: next })
+    },
+    [updateQuery]
+  )
+
+  const setCohort = useCallback(
+    (next: string) => {
+      setCohortState(next)
+      updateQuery({ cohort: next })
+    },
+    [updateQuery]
+  )
+
+  // Mount-only: a freshly opened link (no `?tab=`/`?cohort=` yet) gets both
+  // written in immediately, so the URL a user copies from here already
+  // restores this exact view — not just views reached by switching tabs.
+  useEffect(() => {
+    if (searchParams.has("tab") && searchParams.has("cohort")) return
+    const params = new URLSearchParams(searchParams.toString())
+    if (!params.has("tab")) params.set("tab", tab)
+    if (!params.has("cohort")) params.set("cohort", cohort)
+    router.replace(`?${params.toString()}`, { scroll: false })
+    // Mount-only by design — re-running on every tab/cohort change would
+    // fight the explicit setTab/setCohort writes above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Only trust "not live" once the list has actually loaded — before that,
   // `cohorts` is empty and every cohort would look inactive.
