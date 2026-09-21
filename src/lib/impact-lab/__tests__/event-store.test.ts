@@ -54,6 +54,58 @@ describe("cohortForPublicEvent", () => {
     await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG)).resolves.toBe("impact-lab-linked")
     expect(prisma.impactLabEvent.findMany).not.toHaveBeenCalled()
   })
+
+  // Build Day: the explicit link cannot be set (the PATCH only accepts a
+  // Conversations event) and the slug is immutable, so the title is the
+  // only link left that an organiser can make hold.
+  describe("title match", () => {
+    const TITLE = "Nairobi | Fable 5.1 Build Day"
+
+    it("resolves by the event title when both links miss, before the LIVE fallback", async () => {
+      // First findFirst is the explicit link (miss); the second is the title.
+      vi.mocked(prisma.impactLabEvent.findFirst)
+        .mockResolvedValueOnce(null as never)
+        .mockResolvedValueOnce({ cohort: "build-day-2026-09" } as never)
+      vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
+        { cohort: "impact-lab-live" },
+      ] as never)
+
+      await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, `  ${TITLE}  `)).resolves.toBe(
+        "build-day-2026-09"
+      )
+      expect(prisma.impactLabEvent.findFirst).toHaveBeenLastCalledWith({
+        where: { name: { equals: TITLE, mode: "insensitive" } },
+        select: { cohort: true },
+      })
+      expect(prisma.impactLabEvent.findMany).not.toHaveBeenCalled()
+    })
+
+    it("lets the slug win over the title", async () => {
+      vi.mocked(prisma.impactLabEvent.findUnique).mockResolvedValue({
+        cohort: "impact-lab-by-slug",
+      } as never)
+
+      await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, TITLE)).resolves.toBe("impact-lab-by-slug")
+      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(1)
+    })
+
+    it("skips the title query without a title, and on a blank one", async () => {
+      vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([] as never)
+
+      await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG)).resolves.toBeNull()
+      await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, "   ")).resolves.toBeNull()
+      // Only the explicit-link query, once per call.
+      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(2)
+    })
+
+    it("falls through to the LIVE fallback when the title misses too", async () => {
+      vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
+        { cohort: "impact-lab-live" },
+      ] as never)
+
+      await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, TITLE)).resolves.toBe("impact-lab-live")
+    })
+  })
 })
 
 // Extracted so judge-access's roster-mode check can reuse the exact same

@@ -4,13 +4,14 @@
  *
  * Runs in the root layout, so on every page. It stays cheap: the two event
  * reads run in parallel with the layout's other queries, and the Impact Lab
- * team count is only asked for when the latest event is still inside the
- * band's 14-day window. Any failure resolves to nulls rather than throwing,
+ * team count (cohort resolution plus one run read) is only asked for when
+ * the latest event is still inside the band's 14-day window. Any failure resolves to nulls rather than throwing,
  * because a throw here would 500 the whole site.
  */
 
 import { prisma } from "@/lib/prisma"
 import { getLatestPastEvent, getNextEvent } from "@/lib/data"
+import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
 import { isWithinRecentWindow } from "@/components/karibu/band-copy"
 import type { Event } from "@/lib/types"
 
@@ -23,31 +24,22 @@ export interface BandData {
 
 /**
  * Teams that submitted a project at this event, per the Impact Lab final run
- * with published results. Two round trips: the cohort behind the public
- * event (linked by `conversationsEventId`, or sharing the event's slug, the
- * same two links `cohortForPublicEvent` tries first), then that cohort's
- * published run with its submission count. Null when either is missing, or
- * when nobody submitted: the band then says the event is done, not "zero
- * teams shipped".
+ * with published results. The cohort comes from the shared resolver (the
+ * same links the event page uses, title match included), then that cohort's
+ * published run is read with its submission count. Null when either is
+ * missing, or when nobody submitted: the band then says the event is done,
+ * not "zero teams shipped".
  *
  * This is the recap page's `projectsSubmitted` figure, not the snapshot's
  * `ranking.length`: teams the panel never scored still shipped.
  */
 async function countTeamsSubmitted(event: Event): Promise<number | null> {
-  // `Event.id` is optional on the view type. An undefined value inside a
-  // Prisma `where` is "no filter", which would turn this OR into "any
-  // cohort", so the id branch is only added when there is an id to match.
-  const links = event.id
-    ? [{ conversationsEventId: event.id }, { cohort: event.slug }]
-    : [{ cohort: event.slug }]
-  const linked = await prisma.impactLabEvent.findFirst({
-    where: { OR: links },
-    select: { cohort: true },
-  })
-  if (!linked) return null
+  if (!event.id) return null
+  const cohort = await cohortForPublicEvent(event.id, event.slug, event.title)
+  if (!cohort) return null
 
   const run = await prisma.impactLabMatchRun.findFirst({
-    where: { cohort: linked.cohort, isFinal: true, resultsPublishedAt: { not: null } },
+    where: { cohort, isFinal: true, resultsPublishedAt: { not: null } },
     orderBy: { createdAt: "desc" },
     select: { _count: { select: { submissions: true } } },
   })

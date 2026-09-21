@@ -24,6 +24,8 @@ import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
 import { KaribuJudgesSection } from "@/components/karibu/KaribuJudgesSection";
+import { KaribuWinnersSection } from "@/components/karibu/KaribuWinnersSection";
+import type { EventResults } from "@/lib/impact-lab/event-results";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -62,6 +64,8 @@ interface KaribuEventDetailProps {
   judgesCohort: string | null;
   /** `/impact-lab/[cohort]` when this event's cohort has published a public recap, else null. */
   recapHref: string | null;
+  /** The published winners for this event's cohort; null until results are published. */
+  results: EventResults | null;
 }
 
 function parseDate(d: string): Date | null {
@@ -82,6 +86,7 @@ export function KaribuEventDetail({
   openQuestionSession,
   judgesCohort,
   recapHref,
+  results,
 }: KaribuEventDetailProps) {
   const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
@@ -170,6 +175,13 @@ export function KaribuEventDetail({
               </p>
             ))}
           </div>
+
+          {/* The winners, straight under the description once published */}
+          {results && (
+            <div className="mb-9">
+              <KaribuWinnersSection results={results} />
+            </div>
+          )}
 
           {/* Schedule */}
           {agendaEntries && agendaEntries.length > 0 && (

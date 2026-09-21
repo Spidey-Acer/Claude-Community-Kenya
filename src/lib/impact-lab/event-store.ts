@@ -118,17 +118,24 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  *      lowercase slugs in the same namespace (`impact-lab-02`), so a match is
  *      the same event by any reasonable reading, and a collision between two
  *      unrelated things would need somebody to name them identically.
- *   3. The one Impact Lab event that is LIVE, if there is exactly one. Real
+ *   3. The Impact Lab event whose name equals the public event's title,
+ *      trimmed and case-insensitive. Build Day (2026-09-19) needed this: the
+ *      admin PATCH only lets `conversationsEventId` point at a Conversations
+ *      event, and a public slug is immutable, so links 1 and 2 could never be
+ *      made to hold after the fact. Two hand-typed titles agreeing to the
+ *      character is the same event by any reasonable reading. Skipped when
+ *      the caller has no title to offer.
+ *   4. The one Impact Lab event that is LIVE, if there is exactly one. Real
  *      slugs diverge — a public page at
  *      `nairobi-claude-impact-lab-ai-mashinani-02-…` runs the cohort
  *      `impact-lab-2026-09` — and the explicit link may point at a separate
- *      morning session, so both links above can miss on the night itself.
+ *      morning session, so the links above can miss on the night itself.
  *      Requiring exactly one LIVE event is what keeps this from guessing: with
  *      two hackathons running there is no single right answer, and it declines
  *      rather than attach the wrong panel to a page.
  *
  * The caller only asks for public events of type hackathon, which is why
- * fallback 3 does not re-check the type it cannot see from here.
+ * fallback 4 does not re-check the type it cannot see from here.
  *
  * Returns null when none resolves, and pre-migration where the table does not
  * exist. Callers use it to decide whether a public page has a cohort worth
@@ -136,7 +143,8 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  */
 export async function cohortForPublicEvent(
   eventId: string,
-  eventSlug: string
+  eventSlug: string,
+  eventTitle?: string
 ): Promise<string | null> {
   try {
     const linked = await prisma.impactLabEvent.findFirst({
@@ -150,6 +158,15 @@ export async function cohortForPublicEvent(
       select: { cohort: true },
     })
     if (bySlug) return bySlug.cohort
+
+    const title = eventTitle?.trim()
+    if (title) {
+      const byTitle = await prisma.impactLabEvent.findFirst({
+        where: { name: { equals: title, mode: "insensitive" } },
+        select: { cohort: true },
+      })
+      if (byTitle) return byTitle.cohort
+    }
 
     return await singleLiveCohort()
   } catch (error) {

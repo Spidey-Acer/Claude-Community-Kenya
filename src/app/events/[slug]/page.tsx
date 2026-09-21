@@ -8,7 +8,7 @@ import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
 import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
-import { hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
+import { findPublicEventResults, hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
 
 export const revalidate = 1800;
 
@@ -65,7 +65,7 @@ export default async function EventDetailPage({
   // lookup and renders no judges section.
   const judgesCohortPromise =
     event.id && event.type === "hackathon"
-      ? cohortForPublicEvent(event.id, event.slug).catch(() => null)
+      ? cohortForPublicEvent(event.id, event.slug, event.title).catch(() => null)
       : Promise.resolve(null);
 
   const [approvedDemos, eventPhotos, openQuestionSession, judgesCohort] = await Promise.all([
@@ -80,10 +80,15 @@ export default async function EventDetailPage({
   // Only a cohort that has actually published its results is worth a link —
   // the recap page itself 404s otherwise, and `hasPublishedRecap` is one
   // cheap count rather than fetching the whole recap just to throw it away.
-  const recapHref =
-    judgesCohort && (await hasPublishedRecap(judgesCohort).catch(() => false))
-      ? `/impact-lab/${judgesCohort}`
-      : null;
+  // The winners section reads the published snapshot itself, in the same
+  // await, so a published cohort costs the page no extra sequential trip.
+  const [recapPublished, results] = judgesCohort
+    ? await Promise.all([
+        hasPublishedRecap(judgesCohort).catch(() => false),
+        findPublicEventResults(judgesCohort).catch(() => null),
+      ])
+    : [false, null];
+  const recapHref = recapPublished ? `/impact-lab/${judgesCohort}` : null;
 
   const relatedEvents = allEvents
     .filter((e) => e.slug !== event.slug)
@@ -171,6 +176,7 @@ export default async function EventDetailPage({
         openQuestionSession={openQuestionSession}
         judgesCohort={judgesCohort}
         recapHref={recapHref}
+        results={results}
       />
     </>
   );

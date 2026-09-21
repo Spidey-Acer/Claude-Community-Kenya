@@ -19,6 +19,8 @@ import {
   type PublicRecap,
 } from "./public-recap"
 import { isResultsSnapshot } from "./results"
+import { buildEventResults, type EventResults } from "./event-results"
+import { resultCardPath, resultCardSecret, resultCardSlug } from "./result-card"
 
 /** The public `Event` fields this page may read — never the full row. */
 interface LinkedPublicEvent {
@@ -39,10 +41,10 @@ interface LinkedPublicEvent {
 async function findLinkedPublicEvent(cohort: string): Promise<LinkedPublicEvent | null> {
   const candidates = await prisma.event.findMany({
     where: { type: "HACKATHON" },
-    select: { id: true, slug: true, venue: true, city: true },
+    select: { id: true, slug: true, title: true, venue: true, city: true },
   })
   for (const candidate of candidates) {
-    const matched = await cohortForPublicEvent(candidate.id, candidate.slug)
+    const matched = await cohortForPublicEvent(candidate.id, candidate.slug, candidate.title)
     if (matched === cohort) return candidate
   }
   return null
@@ -128,6 +130,32 @@ export async function hasPublishedRecap(cohortInput: string): Promise<boolean> {
     where: { cohort, isFinal: true, resultsPublishedAt: { not: null } },
   })
   return count > 0
+}
+
+/**
+ * The winners section for a public event page, or null when the cohort has
+ * no final run with published results (or the stored snapshot fails its
+ * shape check). Card links are relative paths signed with the site secret;
+ * without one, `buildEventResults` renders captions only.
+ */
+export async function findPublicEventResults(cohortInput: string): Promise<EventResults | null> {
+  const cohort = validCohort(cohortInput)
+  if (!cohort) return null
+
+  const [run, impactLabEvent] = await Promise.all([
+    prisma.impactLabMatchRun.findFirst({
+      where: { cohort, isFinal: true, resultsPublishedAt: { not: null } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, resultsSnapshot: true },
+    }),
+    getEventByCohort(cohort),
+  ])
+  if (!run || !isResultsSnapshot(run.resultsSnapshot)) return null
+
+  const secret = resultCardSecret()
+  const cardPathFor = (teamId: string) =>
+    secret ? resultCardPath(resultCardSlug(run.id, teamId, secret)) : null
+  return buildEventResults(run.resultsSnapshot, impactLabEvent?.name ?? cohort, cardPathFor)
 }
 
 /** Every cohort with a published recap, for the `/reports` index — newest first. */
