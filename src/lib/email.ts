@@ -660,6 +660,12 @@ export function impactLabResultsEmail(data: {
   /** Overall rank across all tracks — the snapshot's own `rank`. */
   rank: number
   /**
+   * How many teams the snapshot ranks (`snapshot.ranking.length`), so the
+   * scores block can say "2nd of 19 overall". Optional for a legacy caller,
+   * which then reads "2nd overall".
+   */
+  rankedCount?: number
+  /**
    * `"podium"` (an overall podium was announced), `"tracks"` (one winner per
    * track, no overall podium), or `"champion"` (one overall champion AND a
    * winner for one or more tracks, announced together). Drives the "how
@@ -791,9 +797,15 @@ export function impactLabResultsEmail(data: {
   // `Placement`) still cannot render an overall placing nobody announced.
   // Not under a CHAMPION line: "1st overall" would only repeat it. A
   // podium-mode 1st/2nd/3rd keeps the pill, since its line names the track.
+  // Second and third overall in score order get the pill in every mode
+  // (Build Day ruling, 2026-09-21: the position is an announced fact, and
+  // the champion-mode runner-up's email said nothing about it). Rank 4+
+  // gets no pill; the scores block carries the position for everyone.
+  const announcedOverall = Boolean(ranked && ranked.announced && data.overall.length > 0)
+  const pillRank = announcedOverall && ranked ? ranked.overallRank : data.rank === 2 || data.rank === 3 ? data.rank : null
   const overallPill =
-    ranked && ranked.announced && data.overall.length > 0 && heroPlacing !== "CHAMPION"
-      ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
+    ranked && pillRank !== null && heroPlacing !== "CHAMPION"
+      ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(pillRank))} overall</span></p>`
       : ""
   // The placing line must never wrap mid-word on a 320px column; the longest
   // real line ("RUNNER-UP IN BREAKTHROUGH") fits at 13px with 2px tracking.
@@ -833,11 +845,18 @@ export function impactLabResultsEmail(data: {
       ? contents[0]
       : `${contents.slice(0, -1).join(", ")} and ${contents[contents.length - 1]}`
 
+  // Second and third overall lead with that, then their track placing;
+  // everyone else leads with the track sentence as before.
+  const trackPhrase = ranked
+    ? ranked.position === 1
+      ? `first in the ${esc(ranked.track)} track`
+      : `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track`
+    : null
   let opening: string
-  if (ranked && ranked.position === 1) {
-    opening = `${esc(data.projectName)} finished first in the ${esc(ranked.track)} track.`
-  } else if (ranked && ranked.position <= PODIUM_DEPTH) {
-    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in the ${esc(ranked.track)} track.`
+  if (ranked && trackPhrase && (data.rank === 2 || data.rank === 3)) {
+    opening = `${esc(data.projectName)} finished ${esc(resultsOrdinal(data.rank))} overall and ${trackPhrase}.`
+  } else if (ranked && trackPhrase && ranked.position <= PODIUM_DEPTH) {
+    opening = `${esc(data.projectName)} finished ${trackPhrase}.`
   } else {
     opening = `You took ${esc(data.projectName)} from an idea to something the judges could assess in a single day.`
   }
@@ -956,22 +975,20 @@ export function impactLabResultsEmail(data: {
       ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${DARK.dim};">Score range across judges: ${data.low.toFixed(1)}&ndash;${data.high.toFixed(1)} / ${data.rubric.totalOutOf}</p>`
       : ""
 
-  // "Nth overall" only when an overall ranking was actually announced. In
-  // "podium" mode that means any overall winner exists (`data.overall.length
-  // > 0`) — every scored team genuinely has a place in that same ordering,
-  // even a team whose own exact position was not individually called out. In
-  // "champion" mode it means more: only the champion itself has an overall
-  // placing (`ranked.announced`, true only for the team in `data.overall`) —
-  // an announced track winner who is not the champion was never given an
-  // overall rank, only a track one, and printing "Nth overall" for them would
-  // claim a placing exactly as false as podium mode's "(by score)" ranks were
-  // before this field existed. `data.rank` is always populated (pure
-  // score-order in every mode, see buildRanking), so without this guard a
-  // tracks- or champion-mode team would read a claim about an overall placing
-  // that was never announced and does not exist as a published fact.
-  const hasOverallPlacing = mode === "champion" ? ranked?.announced === true : data.overall.length > 0
+  // The team's own position in score order, as a position among the ranked
+  // teams ("2nd of 19 overall"), in every announcement mode — Build Day
+  // ruling, 2026-09-21: a team is told its own standing, and the note
+  // above already says which placings the panel announced and which were
+  // ranked by score. `data.rank` is always populated (see buildRanking);
+  // `rankedCount` is the denominator when the caller has it.
+  const overallPart =
+    data.rank > 0
+      ? data.rankedCount
+        ? `${esc(resultsOrdinal(data.rank))} of ${data.rankedCount} overall`
+        : `${esc(resultsOrdinal(data.rank))} overall`
+      : null
   const placingLine = [
-    hasOverallPlacing ? `${esc(resultsOrdinal(data.rank))} overall` : null,
+    overallPart,
     ranked ? `${esc(resultsOrdinal(ranked.position))} of ${ranked.of} in ${esc(ranked.track)}` : null,
   ]
     .filter((s): s is string => Boolean(s))

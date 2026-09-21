@@ -81,6 +81,7 @@ describe("findResultCardBySlug", () => {
       // No `announcementMode` on this snapshot: it reads as podium, whose
       // rank 1 is a podium place, not a champion.
       champion: false,
+      overallRank: 1,
       members: ["Wanjiru K.", "Brian O."],
     })
     // Only published runs are ever scanned.

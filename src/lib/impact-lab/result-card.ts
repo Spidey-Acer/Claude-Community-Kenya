@@ -146,6 +146,13 @@ export interface PublicResultCard {
    * true under the podium or tracks modes — see `isChampion`.
    */
   champion: boolean
+  /**
+   * The team's overall position across all tracks in score order (the
+   * snapshot's `rank`), or `null` for a team that took part unscored. A
+   * position, not a score: Build Day's ruling is that second and third
+   * overall are announced facts a card may print.
+   */
+  overallRank: number | null
   /** "Jane K." style — first name plus last initial, never a full surname. */
   members: string[]
 }
@@ -236,25 +243,53 @@ export function toPublicResultCard(input: {
     track: input.placement.track,
     title: placementTitle(input.placement),
     champion: input.champion === true,
+    overallRank: input.placement.kind === "ranked" ? input.placement.overallRank : null,
     members: input.memberFullNames.map(shortName).filter((n) => n !== ""),
   }
 }
 
 // ─── Card copy ───────────────────────────────────────────────────────────────
 
+/** The fields the card's two copy lines read. `overallRank` may be absent on a legacy caller. */
+type CardCopyInput = Pick<PublicResultCard, "title" | "champion" | "track" | "eventName"> &
+  Partial<Pick<PublicResultCard, "overallRank">>
+
+/** True when the card leads with the overall position: second or third overall, and not a winner. */
+function leadsWithOverall(card: CardCopyInput): boolean {
+  return !card.champion && card.title !== "Winner" && (card.overallRank === 2 || card.overallRank === 3)
+}
+
 /**
  * The card's placing line, in the poster's caps: "CHAMPION", "DELIGHT
- * WINNER", "RUNNER-UP IN DELIGHT", "THIRD IN EVERYDAY", or "BUILT AT BUILD
- * DAY". A pure lookup over `title` + `champion` + `track` — the placing
- * itself is `placementFor`'s and is not re-derived here.
+ * WINNER", "SECOND OVERALL", "THIRD OVERALL", "RUNNER-UP IN DELIGHT",
+ * "THIRD IN EVERYDAY", or "BUILT AT BUILD DAY". A pure lookup over `title`
+ * + `champion` + `overallRank` + `track` — the placing itself is
+ * `placementFor`'s and is not re-derived here. Second and third overall
+ * lead with that (their track placing moves to `cardSubline`); the
+ * champion and the track winners keep their own lines.
  */
-export function cardPlacingLine(card: Pick<PublicResultCard, "title" | "champion" | "track" | "eventName">): string {
+export function cardPlacingLine(card: CardCopyInput): string {
   const track = card.track.trim().toUpperCase()
   if (card.champion) return "CHAMPION"
   if (card.title === "Winner") return `${track} WINNER`
+  if (leadsWithOverall(card)) return card.overallRank === 2 ? "SECOND OVERALL" : "THIRD OVERALL"
   if (card.title === "Runner-up") return `RUNNER-UP IN ${track}`
   if (card.title === "Third place") return `THIRD IN ${track}`
   return `BUILT AT ${cardEventShortName(card.eventName)}`
+}
+
+/**
+ * The smaller line under the placing, only for a card that leads with its
+ * overall position: its placing within its track ("Runner-up in Delight",
+ * "Third in Everyday"), or the track alone when it holds no podium place
+ * there. `null` for every other card.
+ */
+export function cardSubline(card: CardCopyInput): string | null {
+  if (!leadsWithOverall(card)) return null
+  const track = card.track.trim()
+  if (card.title === "Runner-up") return `Runner-up in ${track}`
+  if (card.title === "Third place") return `Third in ${track}`
+  return track ? `${track} track` : null
 }
 
 /**
@@ -274,6 +309,9 @@ export function cardMembersLine(members: readonly string[], max = 6): string {
 /** The card's one-line headline for titles, alt text and link previews. */
 export function cardHeadline(card: PublicResultCard): string {
   if (card.champion) return `Champion of ${card.eventName}: ${card.projectName}`
+  if (leadsWithOverall(card)) {
+    return `${card.overallRank === 2 ? "Second" : "Third"} overall at ${card.eventName}: ${card.projectName}`
+  }
   return card.title === "Built"
     ? `${card.projectName}, built at ${card.eventName}`
     : `${card.title} in ${card.track}: ${card.projectName}`

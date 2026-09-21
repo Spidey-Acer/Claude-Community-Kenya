@@ -279,6 +279,7 @@ export async function GET(request: NextRequest) {
     // is still the one the send will carry.
     shareUrl: resultCardUrl(APP_URL, run.id, teamId),
     rank: card.rank,
+    rankedCount: snapshot.ranking.length,
     criterionAverages: card.criterionAverages,
     low: card.low,
     high: card.high,

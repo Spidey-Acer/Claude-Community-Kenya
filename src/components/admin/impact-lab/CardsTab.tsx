@@ -34,8 +34,15 @@ interface CardTeam {
   projectName: string
   track: string
   placingLine: string
+  /** Score-order position across all tracks; `null` for a team that took part unscored. */
+  overallRank: number | null
   group: CardGroup
   members: string[]
+}
+
+const ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" }
+function ordinal(rank: number): string {
+  return ORDINALS[rank] ?? `${rank}th`
 }
 
 interface CardsData {
@@ -244,6 +251,7 @@ export function CardsView({
                     <p className="text-sm font-mono font-semibold text-[#e0e0e0]">{team.projectName}</p>
                     <p className="text-[11px] font-mono text-[#888]">
                       {team.teamName} &middot; {team.placingLine}
+                      {team.overallRank !== null ? ` \u00b7 ${ordinal(team.overallRank)} overall` : ""}
                     </p>
                     <p className="text-[11px] font-mono text-[#555]">
                       {team.members.length} member{team.members.length === 1 ? "" : "s"}

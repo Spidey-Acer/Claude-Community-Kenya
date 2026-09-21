@@ -122,17 +122,6 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
   // whether a card exists.
   const hasAnnouncedOverall = results.overall.length > 0;
   const hasAnnouncedTrackWinner = results.trackWinners.some((w) => w.basis === "announced");
-  // In "champion" mode `results.overall` holds only the champion (see
-  // `results.ts`'s own doc comment) — so unlike "podium" mode, where any
-  // scored team may claim an overall rank once a podium exists,
-  // "champion" mode's own overall rank belongs to the champion alone. An
-  // announced track winner who is not the champion has a track placing, not
-  // an overall one, and "your team"'s own claim below must say so.
-  const yourTeamIsChampion = Boolean(
-    yourTeam && results.overall.some((w) => w.teamId === yourTeam.teamId)
-  );
-  const yourTeamHasOverallPlacing =
-    results.announcementMode === "champion" ? yourTeamIsChampion : hasAnnouncedOverall;
 
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[rubric.criteria.length] ?? rubric.criteria.length} criteria`;
   // "the demo criterion" only when this rubric actually has one keyed
@@ -235,7 +224,7 @@ export function ResultsView({ results, yourTeam, rubric }: ResultsViewProps) {
             </h2>
             <span className="font-mono text-xs text-text-dim">
               {[
-                yourTeamOverallLabel(Boolean(yourTeam.card), yourTeamHasOverallPlacing, yourTeam.card?.rank ?? 0),
+                yourTeamOverallLabel(Boolean(yourTeam.card), yourTeam.card?.rank ?? 0, results.ranking.length),
                 yourTrack,
               ]
                 .filter((part): part is string => Boolean(part))

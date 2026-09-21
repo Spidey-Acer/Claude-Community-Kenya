@@ -332,6 +332,7 @@ export async function POST(request: NextRequest) {
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       shareUrl: resultCardUrl(APP_URL, run.runId, team.id),
       rank: card.rank,
+      rankedCount: run.snapshot.ranking.length,
       criterionAverages: card.criterionAverages,
       low: card.low,
       high: card.high,

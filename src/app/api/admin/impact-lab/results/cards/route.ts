@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         projectName: t.card.projectName,
         track: t.card.track,
         placingLine: t.placingLine,
+        overallRank: t.card.overallRank,
         group: t.group,
         members: t.card.members,
       })),

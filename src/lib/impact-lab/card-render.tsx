@@ -9,6 +9,7 @@ import {
   cardMembersLine,
   cardPlacingLine,
   cardStyleForTitle,
+  cardSubline,
   type PublicResultCard,
 } from "./result-card"
 
@@ -106,7 +107,7 @@ function surfaceFor(card: PublicResultCard): Surface {
  */
 function projectNameSize(name: string): { fontSize: number; wrap: boolean } {
   const n = name.trim().length
-  if (n <= 7) return { fontSize: 200, wrap: false }
+  if (n <= 7) return { fontSize: 190, wrap: false }
   if (n <= 10) return { fontSize: 168, wrap: false }
   if (n <= 14) return { fontSize: 124, wrap: false }
   if (n <= 18) return { fontSize: 106, wrap: false }
@@ -160,6 +161,7 @@ function pieces(
   project: { fontSize: number; wrap: boolean }
 ): Pieces {
   const placingLine = cardPlacingLine(card)
+  const subline = cardSubline(card)
   const membersLine = cardMembersLine(card.members)
   const alignItems = align === "center" ? "center" : "flex-start"
   const justifyContent = align === "center" ? "center" : "flex-start"
@@ -185,7 +187,13 @@ function pieces(
           fontFamily: CARD_SERIF,
           fontWeight: 300,
           fontSize: project.fontSize * scale,
-          lineHeight: 1,
+          // Not 1: a lowercase descender ("prism") at 190px reaches ~0.2em
+          // below the baseline and ran into the placing line.
+          lineHeight: 1.15,
+          // Never let yoga squash this box when a column runs long — that
+          // shows up as the name printed over the placing line, not as an
+          // overflow anyone notices.
+          flexShrink: 0,
           letterSpacing: "-0.01em",
           color: surface.serif,
           textAlign,
@@ -196,7 +204,7 @@ function pieces(
       </div>
     ),
     placing: (scale) => (
-      <div style={{ display: "flex", flexDirection: "column", alignItems, gap: 18 * scale }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems, gap: 18 * scale, flexShrink: 0 }}>
         <div
           style={{
             display: "flex",
@@ -211,6 +219,22 @@ function pieces(
         >
           {placingLine}
         </div>
+        {subline ? (
+          <div
+            style={{
+              display: "flex",
+              fontFamily: CARD_SANS,
+              fontWeight: 600,
+              fontSize: 30 * scale,
+              lineHeight: 1.1,
+              color: surface.sans,
+              opacity: 0.88,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {subline}
+          </div>
+        ) : null}
         {surface.rule ? (
           <div style={{ display: "flex", width: 120 * scale, height: Math.max(2, Math.round(2 * scale)), background: surface.rule }} />
         ) : null}
@@ -303,7 +327,10 @@ const column = (gap: number, extra: Record<string, string | number> = {}) => ({
  */
 function stackedLayout(p: Pieces, size: { width: number; height: number }, surface: Surface) {
   const tall = size.height > size.width
-  const g = tall ? { mark: 56, placing: 30, event: 84, members: 34, site: 48 } : { mark: 40, placing: 24, event: 60, members: 28, site: 36 }
+  // The square's budget is tight once a card carries a subline: 840px mark
+  // (358 high) + 190px name + placing + subline + event + members + site
+  // fits the 1000px inside the padding with these gaps and nothing to spare.
+  const g = tall ? { mark: 56, placing: 30, event: 84, members: 34, site: 48 } : { mark: 32, placing: 20, event: 48, members: 24, site: 28 }
   return (
     <div
       style={{
@@ -317,7 +344,7 @@ function stackedLayout(p: Pieces, size: { width: number; height: number }, surfa
         padding: "40px 60px",
       }}
     >
-      {p.mark(tall ? 960 : 900)}
+      {p.mark(tall ? 960 : 840)}
       <div style={{ display: "flex", height: g.mark }} />
       {p.project(1)}
       <div style={{ display: "flex", height: g.placing }} />
