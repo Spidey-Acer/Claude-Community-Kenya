@@ -110,72 +110,30 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
 /**
  * The Impact Lab cohort behind a row in the public `Event` table, or null.
  *
- * The links, in order of how explicit they are:
+ * There is no foreign key in the direction a public page needs, so this
+ * tries the links that exist, in order of how explicit they are:
  *
  *   1. `ImpactLabEvent.publicEventId` pointing at this event row. The one
  *      link that says exactly "this cohort ran at that public page", set by
- *      an organiser in admin. Everything else below exists for the cohorts
- *      that were set up before it did.
- *   2. `ImpactLabEvent.conversationsEventId` pointing back at this event row.
- *      Explicit, set by an organiser in admin, and the stronger signal — but
- *      that column was added to attach a Conversations write-up to a cohort's
- *      dashboard, so at an event with a separate morning session it may well
- *      point at a different row than the hackathon's own.
+ *      an organiser in admin (Impact Lab tab, "Public page"). Everything
+ *      below exists for the cohorts set up before it did.
+ *   2. `ImpactLabEvent.conversationsEventId` pointing back at this event
+ *      row. It means "the event whose written report these members should
+ *      see", which at an event with a separate morning session is a
+ *      different row, so it is a weaker signal than its name suggests.
  *   3. The event's slug read as a cohort slug. Both are hand-authored
- *      lowercase slugs in the same namespace (`impact-lab-02`), so a match is
- *      the same event by any reasonable reading, and a collision between two
- *      unrelated things would need somebody to name them identically.
+ *      lowercase slugs in the same namespace (`impact-lab-02`), so a match
+ *      is the same event by any reasonable reading.
  *   4. The Impact Lab event whose name equals the public event's title,
- *      trimmed and case-insensitive. Build Day (2026-09-19) needed this: the
- *      admin PATCH only lets `conversationsEventId` point at a Conversations
- *      event, and a public slug is immutable, so links 1 and 2 could never be
- *      made to hold after the fact. Two hand-typed titles agreeing to the
- *      character is the same event by any reasonable reading. Skipped when
- *      the caller has no title to offer.
- *   5. The one Impact Lab event that is LIVE, if there is exactly one. Real
- *      slugs diverge — a public page at
- *      `nairobi-claude-impact-lab-ai-mashinani-02-…` runs the cohort
- *      `impact-lab-2026-09` — and the explicit link may point at a separate
- *      morning session, so the links above can miss on the night itself.
- *      Requiring exactly one LIVE event is what keeps this from guessing: with
- *      two hackathons running there is no single right answer, and it declines
- *      rather than attach the wrong panel to a page. It is a guess, so only
- *      the judges panel may use it: see `linkedCohortForPublicEvent` for the
- *      strict resolver that everything published off a snapshot uses.
+ *      trimmed and case-insensitive. Two hand-typed titles agreeing to the
+ *      character is the same event; skipped when no title is offered.
  *
- * The caller only asks for public events of type hackathon, which is why
- * fallback 5 does not re-check the type it cannot see from here.
- *
- * Returns null when none resolves, and pre-migration where the table does not
- * exist. Callers use it to decide whether a public page has a cohort worth
- * asking about at all.
- */
-export async function cohortForPublicEvent(
-  eventId: string,
-  eventSlug: string,
-  eventTitle?: string
-): Promise<string | null> {
-  try {
-    const linked = await linkedCohortForPublicEvent(eventId, eventSlug, eventTitle)
-    return linked ?? (await singleLiveCohort())
-  } catch (error) {
-    if (isMissingTable(error)) return null
-    throw error
-  }
-}
-
-/**
- * Links 1 to 4 alone: the cohort an organiser actually attached to this
- * public event, never a guess.
- *
- * This is the resolver for anything that decides what a page *publishes*:
- * the winners section, the recap's own event link, the band's team count.
- * The LIVE fallback in `cohortForPublicEvent` exists so a panel appears on
- * the night before anybody has wired the link, and a wrong judge list for a
- * few hours is recoverable. A wrong winners list is not: on 2026-09-21 the
- * AI Mashinani 02 page (2 September, unlinked) inherited the LIVE Build Day
- * cohort and published Build Day's champions as its own. An event with no
- * explicit link shows nothing, which is the honest answer.
+ * What it will not do is guess. Until 2026-09-21 a fifth fallback answered
+ * "whichever cohort is LIVE" for any event none of the above matched, so
+ * the AI Mashinani 02 page (2 September, unlinked) published the LIVE Build
+ * Day cohort's champions as its own winners and linked its recap. An event
+ * with no link now shows no judges and no winners, which is the honest
+ * answer and is fixed by setting the link rather than by the page guessing.
  *
  * Returns null when no link holds, and pre-migration where the table does
  * not exist.
@@ -223,9 +181,11 @@ export async function linkedCohortForPublicEvent(
 /**
  * The one Impact Lab event that is LIVE, or null when there are zero or more
  * than one — guessing between two live events would be wrong, so this
- * declines instead. Shared by `cohortForPublicEvent`'s fallback 5 and by
- * judge sign-in, which needs the same "which run applies right now" answer
- * for a request that did not name a cohort at all.
+ * declines instead. Judge sign-in uses it for a request that did not name a
+ * cohort at all: there the visitor has already authenticated against a
+ * roster, so "the run happening now" is an answer about them, not a public
+ * claim about an event page. No public page may use it; see
+ * `linkedCohortForPublicEvent`.
  */
 export async function singleLiveCohort(): Promise<string | null> {
   try {
