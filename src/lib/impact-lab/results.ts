@@ -22,6 +22,8 @@
  */
 
 import { trackOf, type TeamStanding } from "./judging"
+import type { Placement } from "./result-card"
+import type { WinnerCards, YourTeamCards } from "./results-cards"
 import { REVIEW_SIGNATURE, type TeamJudgeNote } from "./reviews"
 
 /** How a team's placing was arrived at. */
@@ -351,6 +353,57 @@ export function buildTrackWinners(
 export type PublicRankedTeam = Omit<RankedTeam, "average">
 
 /**
+ * A team's placing within its track, or `null` when the snapshot does not
+ * mention the team at all (never submitted, or a stale id).
+ *
+ * Position is the team's index among the ranking rows that share its track,
+ * in ranking order — announced winners first, then by score — which is
+ * exactly how `buildTrackWinners` picks a track's winner. One deliberate
+ * extra: the entry named in `snapshot.trackWinners` is moved to the front of
+ * its track before positions are counted. For `announced`/`score` winners
+ * that is a no-op; for an `organiser`-assigned winner it is what keeps
+ * position 1 equal to the track winner every other artefact names, so no
+ * team is ever told "runner-up" under a headline that crowns it.
+ */
+export function placementFor(snapshot: ResultsSnapshot, teamId: string): Placement | null {
+  const row = snapshot.ranking.find((r) => r.teamId === teamId)
+  if (!row) {
+    const unranked = (snapshot.unranked ?? []).find((u) => u.teamId === teamId)
+    return unranked ? { kind: "participant", track: unranked.track } : null
+  }
+
+  const inTrack = snapshot.ranking.filter((r) => r.track === row.track)
+  const winnerId = snapshot.trackWinners.find((w) => w.track === row.track)?.teamId
+  const ordered =
+    winnerId && inTrack.some((r) => r.teamId === winnerId)
+      ? [...inTrack.filter((r) => r.teamId === winnerId), ...inTrack.filter((r) => r.teamId !== winnerId)]
+      : inTrack
+
+  return {
+    kind: "ranked",
+    track: row.track,
+    position: ordered.findIndex((r) => r.teamId === teamId) + 1,
+    of: ordered.length,
+    overallRank: row.rank,
+    announced: snapshot.overall.some((w) => w.teamId === teamId),
+  }
+}
+
+/**
+ * A ranking row as the member results page shows it: the public row plus
+ * the team's placing within its track, counted the way `placementFor`
+ * counts it (the named track winner first, then score order), so the
+ * "Track position" column can never contradict the winners above it. A
+ * position, not a score.
+ */
+export type MemberRankedTeam = PublicRankedTeam & {
+  /** 1-based position within `track`. */
+  trackPosition: number
+  /** How many ranked teams share `track`. */
+  trackOf: number
+}
+
+/**
  * The ranking with scores removed, for anything that crosses the wire to a
  * participant.
  *
@@ -411,10 +464,19 @@ export interface MemberResultsPayload {
     announcementMode: "podium" | "tracks" | "champion"
     overall: AnnouncedWinner[]
     trackWinners: ResultsTrackWinner[]
-    ranking: PublicRankedTeam[]
+    ranking: MemberRankedTeam[]
     /** Teams that took part but were never scored. Empty on most snapshots. */
     unranked: UnrankedTeam[]
+    /** The winners as Build Day cards. Attached by the route, which holds the card URLs. */
+    cards?: WinnerCards
   }
+  /**
+   * True when the viewer was on a team in the frozen run, whether or not
+   * that team is ranked — so the page can say "your team did not submit"
+   * to a member whose team never reached the ranking, and nothing to a
+   * member who had no team.
+   */
+  viewerHadTeam: boolean
   yourTeam?: {
     teamId: string
     projectName: string
@@ -431,6 +493,8 @@ export interface MemberResultsPayload {
     judgeNotes?: TeamJudgeNote[]
     /** Present only when the organiser has approved this team's review. */
     review?: TeamReviewPayload
+    /** The team's own public cards, one per honour. Attached by the route for a ranked team with a card URL. */
+    cards?: YourTeamCards
   }
 }
 
@@ -472,9 +536,16 @@ export function buildMemberPayload(
       announcementMode: snapshot.announcementMode ?? "podium",
       overall: snapshot.overall,
       trackWinners: snapshot.trackWinners,
-      ranking: toPublicRanking(snapshot.ranking),
+      ranking: toPublicRanking(snapshot.ranking).map((row) => {
+        const placement = placementFor(snapshot, row.teamId)
+        // Every ranking row is `ranked` by construction; the fallback only
+        // keeps the type honest.
+        const inTrack = placement?.kind === "ranked" ? placement : { position: row.rank, of: snapshot.ranking.length }
+        return { ...row, trackPosition: inTrack.position, trackOf: inTrack.of }
+      }),
       unranked: snapshot.unranked ?? [],
     },
+    viewerHadTeam: viewerTeamId !== null,
   }
 
   const card = viewerTeamId ? snapshot.perTeam[viewerTeamId] : undefined

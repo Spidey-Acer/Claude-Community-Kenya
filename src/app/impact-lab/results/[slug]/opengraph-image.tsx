@@ -13,6 +13,8 @@ import { cardResponseForSlug } from "@/lib/impact-lab/card-response"
  * that had won nothing; correcting it fixes the page, but a PNG left in the
  * route cache would keep serving the wrong placing to every link preview —
  * the right page and the wrong image, which is the version nobody checks.
+ * The response itself carries a five-minute public max-age (see
+ * `card-response.ts`), so a correction lags a crawler by at most that long.
  *
  * A valid page never gets a blank preview: an unknown slug, or a lookup
  * that fails mid-request, renders the generic community card rather than

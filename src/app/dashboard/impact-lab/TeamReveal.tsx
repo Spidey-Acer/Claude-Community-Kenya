@@ -255,7 +255,7 @@ export function TeamReveal({
                 className="inline-flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-green-primary/40 bg-green-primary/10 px-4 py-1.5 font-mono text-xs font-semibold text-green-primary transition-colors hover:bg-green-primary/20 disabled:opacity-50 sm:w-auto"
               >
                 <UserCheck className="h-3.5 w-3.5" />
-                {checkingIn ? "Checking in…" : "I'm here — check in"}
+                {checkingIn ? "Checking in…" : "I'm here, check in"}
               </button>
             )}
           </div>
@@ -387,12 +387,12 @@ export function TeamReveal({
         <ol className="space-y-2.5 rounded-lg border border-border-default bg-bg-secondary p-5 text-sm text-text-secondary">
           <li className="flex items-start gap-2.5">
             <span className="mt-0.5 font-mono text-xs text-green-primary">1.</span>
-            <span>Find your teammates in the room — say hi, sit together.</span>
+            <span>Find your teammates in the room. Say hi, sit together.</span>
           </li>
           <li className="flex items-start gap-2.5">
             <span className="mt-0.5 font-mono text-xs text-green-primary">2.</span>
             <span>
-              Agree on your track&apos;s problem — pick one angle from the
+              Agree on your track&apos;s problem. Pick one angle from the
               suggested direction above and commit to it.
             </span>
           </li>

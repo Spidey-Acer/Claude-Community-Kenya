@@ -291,7 +291,7 @@ export function TeamRoster({
                         </span>
                         {hit.kind === "participant" && hit.onTeam && !already && (
                           <span className="block text-xs text-amber">
-                            Currently on {hit.onTeam} — adding moves them here
+                            Currently on {hit.onTeam}. Adding moves them here
                           </span>
                         )}
                         {hit.kind === "account" && (
@@ -370,7 +370,7 @@ export function TeamRoster({
             </ul>
             <p className="mt-2 text-xs text-text-dim">
               You cannot remove yourself. If you have moved tables, ask your new
-              team to add you — that moves you across.
+              team to add you. That moves you across.
             </p>
           </div>
 

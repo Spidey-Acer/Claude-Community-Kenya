@@ -336,7 +336,7 @@ export function SubmitProject({
           <p className="font-mono text-sm text-text-secondary">
             {readOnly
               ? "Submissions are closed."
-              : "One entry per team — any teammate can update it."}
+              : "One entry per team. Any teammate can update it."}
           </p>
           {remaining && !readOnly && (
             <span className="rounded border border-amber/30 bg-amber/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber">
@@ -361,7 +361,7 @@ export function SubmitProject({
           {field(
             "slidesUrl",
             "Pitch deck link",
-            "Google Slides, Canva, Drive, PDF — any link judges can open."
+            "Google Slides, Canva, Drive, PDF: any link judges can open."
           )}
 
           <p className="pt-2 font-mono text-xs text-text-dim">
@@ -379,16 +379,16 @@ export function SubmitProject({
           {field(
             "worksVsMocked",
             "What works vs what's mocked",
-            "Be honest — a thin real slice beats a wide fake one.",
+            "Be honest. A thin real slice beats a wide fake one.",
             true
           )}
           {field(
             "claudeUsage",
             "How you used AI",
-            "Which AI tools you used — Claude, ChatGPT, Gemini, Copilot, or other — and what they actually did for you. No AI? Say so.",
+            "Which AI tools you used (Claude, ChatGPT, Gemini, Copilot, or other) and what they actually did for you. No AI? Say so.",
             true
           )}
-          {field("repoUrl", "Repo link", "github.com/you/project — https:// optional.")}
+          {field("repoUrl", "Repo link", "github.com/you/project, https:// optional.")}
           {field("demoUrl", "Demo link", "A live URL judges can click.")}
           {field("videoUrl", "Video link", "A walkthrough, in case the live demo dies.")}
           {field("screenshotUrl", "Screenshot link", "Optional image link.")}
@@ -424,7 +424,7 @@ export function SubmitProject({
                     Submitted
                   </p>
                   <p className="mt-1 font-mono text-xs text-green-primary/90">
-                    Saved — your teammates and the judges can see this. You can
+                    Saved. Your teammates and the judges can see this. You can
                     keep editing until submissions close.
                   </p>
                 </div>

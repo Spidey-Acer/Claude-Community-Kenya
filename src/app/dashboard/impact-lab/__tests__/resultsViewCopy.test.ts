@@ -9,7 +9,39 @@
  */
 
 import { describe, expect, it } from "vitest"
-import { decidedByNote, yourTeamOverallLabel } from "../resultsViewCopy"
+import { decidedByNote, didNotSubmitLine, resultsSubtitle, yourTeamOverallLabel, yourTeamTrackLabel } from "../resultsViewCopy"
+
+describe("resultsSubtitle", () => {
+  it("says results are in once published, naming the viewer's ranked project", () => {
+    expect(resultsSubtitle({ cohortActive: true, published: true, projectName: "prism" })).toBe("Results are in. Here is how prism did.")
+    expect(resultsSubtitle({ cohortActive: false, published: true, projectName: "prism" })).toBe("Results are in. Here is how prism did.")
+    expect(resultsSubtitle({ cohortActive: true, published: true, projectName: null })).toBe("Results are in.")
+    expect(resultsSubtitle({ cohortActive: true, published: true, projectName: null })).not.toContain("matching profile")
+  })
+
+  it("keeps the live prompt and the closed record line before publish", () => {
+    expect(resultsSubtitle({ cohortActive: true, published: false, projectName: null })).toBe(
+      "Complete your matching profile, then check back here for your team."
+    )
+    expect(resultsSubtitle({ cohortActive: false, published: false, projectName: null })).toBe(
+      "The event has wrapped. This is your record of it."
+    )
+  })
+})
+
+describe("didNotSubmitLine", () => {
+  it("explains an unranked team to its member, and says nothing to a member with no team", () => {
+    expect(didNotSubmitLine(true)).toBe("Your team did not submit, so it is not ranked.")
+    expect(didNotSubmitLine(false)).toBeNull()
+  })
+})
+
+describe("yourTeamTrackLabel", () => {
+  it("states the placing within the track", () => {
+    expect(yourTeamTrackLabel(2, 6, "Delight")).toBe("2nd of 6 in Delight")
+    expect(yourTeamTrackLabel(11, 12, "Everyday")).toBe("11th of 12 in Everyday")
+  })
+})
 
 describe("yourTeamOverallLabel", () => {
   it("states the team's own position among the ranked teams", () => {
