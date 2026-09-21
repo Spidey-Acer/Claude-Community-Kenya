@@ -41,10 +41,10 @@ interface LinkedPublicEvent {
 async function findLinkedPublicEvent(cohort: string): Promise<LinkedPublicEvent | null> {
   const candidates = await prisma.event.findMany({
     where: { type: "HACKATHON" },
-    select: { id: true, slug: true, venue: true, city: true },
+    select: { id: true, slug: true, title: true, venue: true, city: true },
   })
   for (const candidate of candidates) {
-    const matched = await cohortForPublicEvent(candidate.id, candidate.slug)
+    const matched = await cohortForPublicEvent(candidate.id, candidate.slug, candidate.title)
     if (matched === cohort) return candidate
   }
   return null
