@@ -67,12 +67,15 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
     setIsMac(navigator.platform.toUpperCase().includes("MAC"));
   }, []);
 
-  // Shrink + firm up the bar once the visitor scrolls past the hero band.
-  // Threshold is past the ticker's own height (36px desktop / 32px mobile)
-  // now that the ticker sits above this nav — otherwise the nav "firms up"
-  // before the ticker has even scrolled away.
+  // Shrink + firm up the bar once the visitor scrolls past the band above
+  // this nav; otherwise the nav "firms up" before the band has even scrolled
+  // away. The band's height depends on its sentence (one line on desktop,
+  // two on a phone), so it is measured rather than assumed.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      const band = document.querySelector<HTMLElement>("[data-marquee]");
+      setScrolled(window.scrollY > (band?.offsetHeight ?? 40));
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
