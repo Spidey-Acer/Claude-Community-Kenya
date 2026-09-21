@@ -1,10 +1,10 @@
 /**
- * Impact Lab results export — per-team project analyses.
+ * Impact Lab results export - per-team project analyses.
  *
  * The archived record needs a substantive written account of every project,
  * and the judges did not leave one: written notes exist for ten of the
  * twenty-seven submissions, from one judge, averaging a few words. This module
- * fills that gap the only honest way available — by writing an analysis FROM
+ * fills that gap the only honest way available - by writing an analysis FROM
  * THE TEAM'S OWN SUBMISSION, generated at export time, and labelling it as
  * exactly that everywhere it appears.
  *
@@ -15,7 +15,7 @@
  * 2. Ground every sentence in what the team wrote. If the submission does not
  *    say something, the analysis does not say it either.
  * 3. Fail soft. A team whose analysis cannot be generated simply has no
- *    analysis section — never a placeholder or an error string in a document
+ *    analysis section - never a placeholder or an error string in a document
  *    that leaves the building.
  *
  * Same model and error discipline as `judging/assist` (the in-event reading
@@ -37,7 +37,7 @@ export const ANALYSIS_LABEL = "Project analysis"
 
 /**
  * The provenance line that MUST accompany every rendered analysis. A reader
- * should never have to guess whether these words came from a judge — they
+ * should never have to guess whether these words came from a judge - they
  * did not, and the label says so before the reader can wonder.
  */
 export const ANALYSIS_PROVENANCE =
@@ -71,7 +71,7 @@ export type TeamAnalysis = z.infer<typeof analysisSchema>
 const SYSTEM = `You are writing the project profile for the permanent archived record of a hackathon. Your only source is the team's own written submission, quoted to you in full.
 
 Rules, all of them hard:
-- Ground every sentence in what the team actually wrote. If the submission does not say something, do not infer it, estimate it, or fill the gap — say plainly that the submission does not say.
+- Ground every sentence in what the team actually wrote. If the submission does not say something, do not infer it, estimate it, or fill the gap: say plainly that the submission does not say.
 - Describe; never evaluate. No verdicts, no scores, no "impressive", "strong", "promising", "unfortunately", or any other judgement of quality. The judges judged; you record.
 - Never speak as, for, or about the judges.
 - Plain English, specific and concrete. No marketing language, no filler.
@@ -80,7 +80,7 @@ Rules, all of them hard:
 /**
  * Generate an analysis for every team that has a submission.
  *
- * Returns a map keyed by teamId — the single-run cache: each team is analysed
+ * Returns a map keyed by teamId - the single-run cache: each team is analysed
  * exactly once per export, and both artefact builders read from the same map.
  * Teams whose generation fails are simply absent from the map (fail-soft rule
  * above); the error is logged so a wholly failed run is visible in server

@@ -1,5 +1,5 @@
 /**
- * Impact Lab results export — data assembly.
+ * Impact Lab results export - data assembly.
  *
  * Pure and dependency-free (no Prisma, no Next, no exceljs/pdfkit) so the
  * joins that decide what the archived record says can be asserted with
@@ -11,7 +11,7 @@
  * 1. The published placing is NOT the score order. The judging panel
  *    deliberated and announced winners; the raw averages disagree. Every rank
  *    shown carries its basis ("announced" vs score order), and both orderings
- *    are presented as what they are — never one silently dressed as the other.
+ *    are presented as what they are - never one silently dressed as the other.
  * 2. Some teams were scored from their written submission because no judge
  *    reached their table. That basis travels with the score wherever the
  *    score appears. It is a note about how the score was produced, never an
@@ -33,6 +33,7 @@ import {
   type ResultsSnapshot,
   type ResultsTrackWinner,
 } from "./results"
+import { teamPlaceLabel } from "./result-card"
 
 // ─── Source rows (what the loader hands in) ──────────────────────────────────
 
@@ -50,12 +51,19 @@ export interface SourceTeam {
    */
   track?: string
   /**
-   * The track the matcher actually built this team into — `Team.trackKey`
+   * The track the matcher actually built this team into - `Team.trackKey`
    * from the run's frozen result. Wins over `track` and the name when
    * present: it is what the team was judged as, not a label backfilled after
    * the fact. See `resolveTeamTrack`.
    */
   trackKey?: string
+  /**
+   * The venue's physical table number (see `member.ts`'s `FrozenTeam`), or
+   * absent/null on a run saved before tables existed. Feeds `teamPlaceLabel`
+   * for `tableLabel` below - without it, a team named "Table 30 · Breakthrough"
+   * has nothing to parse the table number back out of.
+   */
+  table?: number | null
 }
 
 export interface SourceParticipant {
@@ -91,12 +99,12 @@ export interface SourceScore {
 }
 
 /**
- * An APPROVED community review for one team — the organiser-read text that
+ * An APPROVED community review for one team - the organiser-read text that
  * also reaches the team's dashboard and results email. The loader must gate
  * rows through `publishableReview` (@/lib/impact-lab/reviews) before handing
  * them in; an unapproved draft never enters an artefact that leaves the
  * building. Where a team has one of these, it is the canonical written text
- * about that project — any machine-written fallback analysis must be skipped
+ * about that project - any machine-written fallback analysis must be skipped
  * for that team, and the two must never share a label (this is the
  * community's signed feedback; an analysis is not).
  */
@@ -113,11 +121,11 @@ export interface ExportSource {
   participants: SourceParticipant[]
   submissions: SourceSubmission[]
   scores: SourceScore[]
-  /** Approved community reviews only — see SourceReview. */
+  /** Approved community reviews only - see SourceReview. */
   reviews: SourceReview[]
   /**
    * The event's declared tracks, for resolving a team's `trackKey` to its
-   * label (see `resolveTeamTrack`). Defaults to `[]` — an event with no
+   * label (see `resolveTeamTrack`). Defaults to `[]` - an event with no
    * tracks configured, or a caller that has not loaded them, still gets a
    * team's raw `trackKey` (or `track`, or a name-parse) rather than a
    * missing field.
@@ -141,7 +149,7 @@ export interface ExportJudgeScore {
   judgeEmail: string
   /** Raw 1–5 by criterion key; null where the judge left a criterion blank. */
   criteria: Record<string, number | null>
-  /** This judge's weighted total /100 — `weightedTotal`, never re-derived. */
+  /** This judge's weighted total /100 - `weightedTotal`, never re-derived. */
   weightedTotal: number
   /** True when scored from the written submission, not a live demo. */
   writeupOnly: boolean
@@ -158,13 +166,18 @@ export interface ExportTeam {
   teamName: string
   /**
    * The project name to print. Falls back to the team name when the
-   * submission's project name is blank — an optional field some teams left
+   * submission's project name is blank - an optional field some teams left
    * empty. The single place every renderer must call instead of reading
    * `submission?.projectName` itself, so a blank field can never surface as
    * a blank heading, contents entry, or table cell.
    */
   projectDisplayName: string
-  /** The bit before the dash — "Table 12" — for the table column. */
+  /**
+   * "Table 12" (or the team's full name when no table number was recorded)
+   * for the table column - `teamPlaceLabel`, so a name like "Table 30 ·
+   * Breakthrough" prints just the table, not the whole name wrapped into a
+   * narrow column.
+   */
   tableLabel: string
   track: string
   members: ExportMember[]
@@ -186,7 +199,7 @@ export interface ExportTeam {
    */
   finalRank: number | null
   /**
-   * Basis of `finalRank` — "announced" for the panel's overall podium picks.
+   * Basis of `finalRank` - "announced" for the panel's overall podium picks.
    * Only ever set in `"podium"` announcement mode: `"tracks"` mode has no
    * overall podium, so the full ranking there is pure score order and this
    * is always "demo" or "submission" (see `ResultsExport.announcementMode`
@@ -206,6 +219,13 @@ export interface ExportTeam {
    * text about the project in both artefacts.
    */
   communityReview: string | null
+  /**
+   * An organiser-written commendation for this team, or `null` when none was
+   * recorded. Sourced from the published snapshot's optional `commendations`
+   * map (teamId to text) - see `ResultsSnapshot.commendations`. Entering one
+   * is a separate admin-UI concern; this module only carries it through.
+   */
+  commendation: string | null
 }
 
 export interface ExportWinner {
@@ -218,11 +238,11 @@ export interface ExportTrackWinner {
   track: string
   teamName: string
   projectName: string
-  /** Mirrors `ResultsTrackWinner["basis"]` — see that type for what each means. */
+  /** Mirrors `ResultsTrackWinner["basis"]` - see that type for what each means. */
   basis: ResultsTrackWinner["basis"]
 }
 
-/** One judge's footprint across the night — coverage, not judgement. */
+/** One judge's footprint across the night - coverage, not judgement. */
 export interface ExportJudgeSummary {
   judgeName: string
   judgeEmail: string
@@ -232,7 +252,7 @@ export interface ExportJudgeSummary {
   writeupSheets: number
   /** Scorecards on which this judge left a written note. */
   feedbackCount: number
-  /** Mean of this judge's weighted totals /100 — how they used the scale. */
+  /** Mean of this judge's weighted totals /100 - how they used the scale. */
   meanWeightedTotal: number
 }
 
@@ -261,7 +281,7 @@ export interface ExportSummary {
   /**
    * An organiser-supplied check-in count, when it was given AND disagrees
    * with `participantsCheckedIn` (see `buildResultsExport`'s `checkedInRecorded`
-   * option). Null means no override — the system count is the only figure,
+   * option). Null means no override - the system count is the only figure,
    * exactly as before this field existed. Never silently replaces
    * `participantsCheckedIn`; both are kept when both exist.
    */
@@ -281,7 +301,7 @@ export interface ExportSummary {
  * Whether the check-in figure this export prints is an organiser's own
  * recorded count (e.g. a door count read off Luma) rather than the site's
  * own self-service check-ins. Two systems ran at once at AI Mashinani 02 and
- * neither saw everyone in the room — the site only counts someone who
+ * neither saw everyone in the room - the site only counts someone who
  * tapped its own check-in link, so without an override its count is real
  * but partial. Shared by both the PDF and Excel builders so a check-in
  * figure is never printed as plain attendance unless an organiser actually
@@ -296,7 +316,7 @@ export interface ResultsExport {
   generatedAt: Date
   /**
    * The rubric this cohort was judged on. Carried on the export itself so the
-   * Excel and PDF renderers never fall back to a hardcoded default — every
+   * Excel and PDF renderers never fall back to a hardcoded default - every
    * criteria loop, column count, and denominator in this document is driven
    * by this rubric, not by the Impact Lab constant.
    */
@@ -307,14 +327,14 @@ export interface ResultsExport {
   /**
    * `"podium"` (an overall podium was announced), `"tracks"` (one winner per
    * track, no overall podium), or `"champion"` (one overall champion AND a
-   * winner for one or more tracks, announced together) — from the stored
+   * winner for one or more tracks, announced together) - from the stored
    * snapshot's own field, defaulting to `"podium"` before publication or for
    * a snapshot published before this field existed. Drives every renderer
    * decision between "the winners" (podium), "the track winners" (tracks),
    * and "the champion" (champion) in the PDF and Excel.
    */
   announcementMode: "podium" | "tracks" | "champion"
-  /** The podium as announced in the room. Empty before publication or in `"tracks"` mode — there is no podium. */
+  /** The podium as announced in the room. Empty before publication or in `"tracks"` mode - there is no podium. */
   announced: ExportWinner[]
   trackWinners: ExportTrackWinner[]
   /** Ordered: published placing first, then score order, then name. */
@@ -355,9 +375,19 @@ export function parseResultsSnapshot(value: unknown): ResultsSnapshot | null {
 
 // ─── Assembly ────────────────────────────────────────────────────────────────
 
-/** "Table 12 — Kilimo (Agriculture)" → "Table 12". */
+/**
+ * "Table 12 - Kilimo" → "Table 12" (splits on an em dash, en dash, or plain
+ * hyphen). Superseded by `teamPlaceLabel` for `tableLabel` below, which also
+ * handles a name with no dash at all ("Table 30 · Breakthrough") - kept here
+ * for a caller with only a name and no table number.
+ */
+// Em dash, en dash, hyphen - built from char codes, not literal characters,
+// so this file's own source carries no em dash (see the export's own
+// zero-em-dash rule, enforced by grepping this directory).
+const NAME_HEAD_SEPARATORS = new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}-]`)
+
 export function tableLabelOf(teamName: string): string {
-  const head = teamName.split(/[—–-]/)[0]?.trim()
+  const head = teamName.split(NAME_HEAD_SEPARATORS)[0]?.trim()
   return head || teamName
 }
 
@@ -365,7 +395,7 @@ const TRAILING_NUMBER = /^(.*?)(\d+)$/
 
 /**
  * Sorts items by the trailing integer in their label when every label in
- * the list shares the same non-numeric prefix — "Table 5", "Table 33" reads
+ * the list shares the same non-numeric prefix - "Table 5", "Table 33" reads
  * as 5, 33, not the "…33 · …5 · …7" a plain string sort produces. Falls back
  * to `localeCompare` on the full label otherwise: team names are not always
  * "Table N" (other cohorts use real project or team names), and a
@@ -391,18 +421,157 @@ export function sortByTrailingNumber<T>(items: readonly T[], labelOf: (item: T) 
   return sorted
 }
 
+// ─── Prose hygiene ───────────────────────────────────────────────────────────
+
+/**
+ * Zero-width and control characters stripped from every free-text field
+ * before it reaches either exporter - `\n` and `\t` are the only control
+ * characters a document should ever carry, and a zero-width character is
+ * invisible in the source and in the rendered page alike, so there is no
+ * honest reason to keep one.
+ *
+ * Built from char codes, not literal `\u` escapes in a regex literal or
+ * literal invisible characters: either survives a copy-paste round trip
+ * looking identical while silently changing what the regex matches.
+ */
+const ZERO_WIDTH_AND_CONTROL_CODES = [
+  0x200b, 0x200c, 0x200d, 0xfeff, // zero-width space/non-joiner/joiner, BOM
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // C0 controls before \t
+  0x0b, 0x0c, // vertical tab, form feed (between \t=0x09 and \n=0x0A's neighbours)
+  0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, // C0 controls after \n
+  0x7f, // DEL
+]
+const ZERO_WIDTH_AND_CONTROL = new RegExp(
+  `[${ZERO_WIDTH_AND_CONTROL_CODES.map((code) => String.fromCharCode(code)).join("")}]`,
+  "g"
+)
+
+/**
+ * Normalises one free-text field (pitch, problem, description, works-vs-
+ * mocked, AI usage, judge feedback, reviews) before it reaches either
+ * exporter. Windows line endings reach this system from participants typing
+ * in a browser on Windows - pdfkit's WinAnsi encoding has no glyph for a bare
+ * `\r`, so an un-normalised `\r\n` printed a "%Ž"-shaped artefact wherever a
+ * team's own line break survived into the PDF.
+ *
+ * - `\r\n` and lone `\r` become `\n` - the one line-break character every
+ *   downstream renderer (pdfkit, exceljs) actually understands.
+ * - U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) - characters a
+ *   rich-text paste can carry - become `\n` too, for the same reason.
+ * - Zero-width and control characters are stripped outright (see
+ *   `ZERO_WIDTH_AND_CONTROL`).
+ * - Three or more consecutive newlines collapse to two - one blank line
+ *   reads as a paragraph break; a wall of them is not a second fact.
+ * - Leading/trailing whitespace is trimmed.
+ */
+const LINE_AND_PARAGRAPH_SEPARATORS = new RegExp(
+  `[${String.fromCharCode(0x2028, 0x2029)}]`,
+  "g"
+)
+
+export function cleanProse(text: string): string {
+  return text
+    .replace(LINE_AND_PARAGRAPH_SEPARATORS, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(ZERO_WIDTH_AND_CONTROL, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+/** A line-start bullet marker: "* ", "- ", "+ ", or "1. " / "2. " etc. */
+const BULLET_LINE = /^\s{0,3}(?:[*+-]|\d+\.)\s+(.*)$/
+/** A line-start ATX heading marker: "#" through "######". */
+const HEADING_LINE = /^\s{0,3}#{1,6}\s+(.*)$/
+
+/**
+ * Strips inline markdown emphasis, inline code, and links from one line of
+ * already-cleaned prose, keeping the words. `[text](url)` becomes
+ * "text (url)" - a reader of a printed page or a spreadsheet cell cannot
+ * click a link, so the URL is kept in parentheses rather than dropped.
+ * Bold/italic markers are removed outright - this document's renderers do
+ * not carry inline bold runs, so "keeping" `**bold**` styling is not an
+ * option; the words are what must survive.
+ */
+function stripInlineMarkdown(line: string): string {
+  return (
+    line
+      // Links: [text](url) -> text (url). Matched before emphasis so a link
+      // label written in bold, e.g. [**docs**](url), is not stripped by the
+      // link pass into a bare "docs](url)".
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1 ($2)")
+      // Bold: **text** / __text__.
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+      .replace(/__([^_\n]+)__/g, "$1")
+      // Inline code: `text`.
+      .replace(/`([^`\n]+)`/g, "$1")
+      // Italic: *text* / _text_ - single markers, checked after bold/code so
+      // a bold run's own asterisks are already gone. A word boundary guard
+      // keeps a stray "_" inside an identifier like "claude_usage" untouched.
+      .replace(/(?<![*\w])\*([^*\n]+)\*(?![*\w])/g, "$1")
+      .replace(/(?<![_\w])_([^_\n]+)_(?![_\w])/g, "$1")
+  )
+}
+
+/** One line of prose, already markdown-stripped, and how it should render. */
+export interface ProseLine {
+  /** "bullet" for a line that opened with a list marker; "paragraph" otherwise. */
+  type: "paragraph" | "bullet"
+  text: string
+}
+
+/**
+ * Parses cleaned free text into lines a renderer can act on: a bullet line
+ * (list markers stripped, `text` is the item's own words) or a paragraph
+ * line (heading markers stripped the same way - this document has no
+ * sub-heading typography inside a free-text field, so a heading's words
+ * simply become a paragraph line). Blank lines are kept as empty paragraph
+ * lines so a blank-line paragraph break survives into the rendered output
+ * exactly as `cleanProse` left it.
+ *
+ * Shared by both exporters (see the module doc comment): the PDF renders a
+ * bullet line as a real bulleted line; the Excel builder (`markdownToPlainText`)
+ * flattens every bullet to a "• " line instead.
+ */
+export function parseProseLines(text: string): ProseLine[] {
+  const cleaned = cleanProse(text)
+  if (cleaned === "") return []
+  return cleaned.split("\n").map((rawLine): ProseLine => {
+    if (rawLine.trim() === "") return { type: "paragraph", text: "" }
+    const bullet = rawLine.match(BULLET_LINE)
+    if (bullet) return { type: "bullet", text: stripInlineMarkdown(bullet[1].trim()) }
+    const heading = rawLine.match(HEADING_LINE)
+    if (heading) return { type: "paragraph", text: stripInlineMarkdown(heading[1].trim()) }
+    return { type: "paragraph", text: stripInlineMarkdown(rawLine) }
+  })
+}
+
+/**
+ * Flattens cleaned free text to plain text for a context with no structured
+ * rendering (the Excel cell) - every bullet becomes its own "• " line, every
+ * markdown marker is gone, and a link reads as "text (url)". Excel's own
+ * wrapped cell already reflows this like any other multi-line string.
+ */
+export function markdownToPlainText(text: string): string {
+  return parseProseLines(text)
+    .map((line) => (line.type === "bullet" ? `• ${line.text}` : line.text))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 /**
  * Render-time display casing for a raw participant name. Registration data
  * holds names typed however the person happened to type them ("simon",
- * "christian ng'ang'a") — this fixes the one shape that is safe to fix
+ * "christian ng'ang'a") - this fixes the one shape that is safe to fix
  * without guessing: a token typed ENTIRELY lowercase gets its first
- * character upper-cased. Any other token — "Ge0frey", "Blu Chips",
- * "O'Donnell", "McArthur", "Pompompurin" — is left completely untouched,
+ * character upper-cased. Any other token - "Ge0frey", "Blu Chips",
+ * "O'Donnell", "McArthur", "Pompompurin" - is left completely untouched,
  * because "entirely lowercase" is the only signal honest enough to act on;
  * anything with a capital already in it, or none of the letters a name has
  * at all, is a name we do not get to correct.
  *
- * Render time only — never mutates the stored value, and never applied to
+ * Render time only - never mutates the stored value, and never applied to
  * the Excel workbook, which is the operational record and must show what
  * was actually typed.
  */
@@ -436,13 +605,14 @@ function toJudgeScore(score: SourceScore, rubric: JudgingRubric): ExportJudgeSco
     criteria[criterion.key] =
       typeof raw === "number" && !Number.isNaN(raw) ? raw : null
   }
+  const cleanedFeedback = score.feedback ? cleanProse(score.feedback) : ""
   return {
     judgeName: score.judgeName,
     judgeEmail: score.judgeEmail,
     criteria,
     weightedTotal: scoreTotal(score.sheet, rubric),
     writeupOnly: score.writeupOnly,
-    feedback: score.feedback?.trim() ? score.feedback.trim() : null,
+    feedback: cleanedFeedback === "" ? null : cleanedFeedback,
   }
 }
 
@@ -450,9 +620,9 @@ function toJudgeScore(score: SourceScore, rubric: JudgingRubric): ExportJudgeSco
  * Assemble everything the Excel and PDF builders render.
  *
  * All ranking arithmetic is `standings`/`scoreTotal`/`trackWinners` from
- * `./judging` — this module joins and labels, it never re-derives a number
+ * `./judging` - this module joins and labels, it never re-derives a number
  * that decides who won. `rubric` must be the one this cohort was actually
- * judged on (resolve it with `resolveRubric` before calling this — it stays
+ * judged on (resolve it with `resolveRubric` before calling this - it stays
  * pure and dependency-free, like `./judging`, so the caller owns the DB
  * lookup) or every criterion, total, and ranking below is scored against the
  * wrong event.
@@ -471,7 +641,13 @@ export function buildResultsExport(
 ): ResultsExport {
   const participantById = new Map(source.participants.map((p) => [p.id, p]))
   const submissionByTeam = new Map(source.submissions.map((s) => [s.teamId, s]))
-  const reviewByTeam = new Map(source.reviews.map((r) => [r.teamId, r.text]))
+  const reviewByTeam = new Map(source.reviews.map((r) => [r.teamId, cleanProse(r.text)]))
+  const commendationByTeam = new Map(
+    Object.entries(source.snapshot?.commendations ?? {}).map(([teamId, text]) => [
+      teamId,
+      cleanProse(text),
+    ])
+  )
 
   const scoresByTeam = new Map<string, SourceScore[]>()
   for (const score of source.scores) {
@@ -485,7 +661,7 @@ export function buildResultsExport(
     rubric
   )
   const standingByTeam = new Map(table.map((t) => [t.teamId, t]))
-  // `standings` is already sorted by average desc, id — position is score rank.
+  // `standings` is already sorted by average desc, id - position is score rank.
   const scoreRankByTeam = new Map(table.map((t, i) => [t.teamId, i + 1]))
 
   const snapshot = source.snapshot
@@ -496,7 +672,7 @@ export function buildResultsExport(
   const nameById = new Map(source.teams.map((t) => [t.id, t.name]))
 
   // How the team was actually matched (`trackKey`) wins over an organiser's
-  // frozen label, which in turn wins over parsing the team name — see
+  // frozen label, which in turn wins over parsing the team name - see
   // `resolveTeamTrack`. This mirrors `buildResultsInputFromRun`'s resolution
   // exactly: the matcher names a team "${track.label} ${n}" with no dash to
   // parse, so name-first (the old behaviour here) put every matcher-built
@@ -505,16 +681,16 @@ export function buildResultsExport(
   const trackById = new Map(source.teams.map((t) => [t.id, resolveTeamTrack(t, labelByKey)]))
 
   // Legacy snapshots (published before this field existed) carry no
-  // `announcementMode` at all — they are always `"podium"`, the only shape
+  // `announcementMode` at all - they are always `"podium"`, the only shape
   // that could have been published then.
   const announcementMode = snapshot?.announcementMode ?? "podium"
 
   // Overall winners: the published snapshot is the record once it exists.
   // Before publication, fall back to score order for the champion.
-  // `"tracks"` mode has no overall podium — `snapshot.overall` is already
+  // `"tracks"` mode has no overall podium - `snapshot.overall` is already
   // `[]` there, so `announced` and `championTeamId` fall out empty/null with
   // no extra branching. Track winners are handled separately, further
-  // below, once every team's corrected track and final rank are known — see
+  // below, once every team's corrected track and final rank are known - see
   // the comment there.
   let announced: ExportWinner[] = []
   let championTeamId: string | null = null
@@ -543,12 +719,14 @@ export function buildResultsExport(
       ? snapshotRow.basis === "submission"
       : judgeScores.length > 0 && judgeScores.every((s) => s.writeupOnly)
 
+    const track = trackById.get(team.id) ?? "Unassigned"
+
     return {
       teamId: team.id,
       teamName: team.name,
       projectDisplayName: submission?.projectName.trim() || team.name,
-      tableLabel: tableLabelOf(team.name),
-      track: trackById.get(team.id) ?? "Unassigned",
+      tableLabel: teamPlaceLabel(team.table ?? null, team.name, track),
+      track,
       members: team.memberIds
         .map((id) => participantById.get(id))
         .filter((p): p is SourceParticipant => p !== undefined)
@@ -556,11 +734,11 @@ export function buildResultsExport(
       submission: submission
         ? {
             projectName: submission.projectName,
-            pitch: submission.pitch,
-            problemTackled: submission.problemTackled,
-            description: submission.description,
-            worksVsMocked: submission.worksVsMocked,
-            claudeUsage: submission.claudeUsage,
+            pitch: cleanProse(submission.pitch),
+            problemTackled: cleanProse(submission.problemTackled),
+            description: cleanProse(submission.description),
+            worksVsMocked: cleanProse(submission.worksVsMocked),
+            claudeUsage: cleanProse(submission.claudeUsage),
             repoUrl: submission.repoUrl,
             demoUrl: submission.demoUrl,
             videoUrl: submission.videoUrl,
@@ -569,7 +747,7 @@ export function buildResultsExport(
         : null,
       judgeScores,
       average: standing?.average ?? null,
-      // Range across judges — presentation of totals `weightedTotal` already
+      // Range across judges - presentation of totals `weightedTotal` already
       // produced, not new score arithmetic.
       scoreLow: judgeScores.length
         ? Math.min(...judgeScores.map((s) => s.weightedTotal))
@@ -584,15 +762,16 @@ export function buildResultsExport(
       scoreRank: scoreRankByTeam.get(team.id) ?? null,
       scoredFromWriteup,
       // Patched once track winners are recomputed below, after the tail
-      // re-sort — a team's own track isn't final until then.
+      // re-sort - a team's own track isn't final until then.
       isTrackWinner: false,
       isChampion: team.id === championTeamId,
       communityReview: reviewByTeam.get(team.id) ?? null,
+      commendation: commendationByTeam.get(team.id) ?? null,
     }
   })
 
   // The stored snapshot's `ranking` array holds the non-announced remainder
-  // in whatever order the run produced on event day — arithmetic that this
+  // in whatever order the run produced on event day - arithmetic that this
   // export no longer trusts (see the July regression this fixed). The
   // announced podium is pinned exactly as the panel called it; everyone else
   // is re-sorted here by the average this export just recomputed, and their
@@ -621,7 +800,7 @@ export function buildResultsExport(
   )
 
   // Track winners: recomputed here, never trusted off `snapshot.trackWinners`
-  // wholesale — that array (like the old ranking order) was frozen before
+  // wholesale - that array (like the old ranking order) was frozen before
   // organiser track assignments existed, so its `track` values can lie. Feed
   // `buildTrackWinners` the same corrected order the tail re-sort just
   // produced (announced podium first, in podium mode) so "the champion
@@ -630,11 +809,11 @@ export function buildResultsExport(
   // no divide-by-zero below).
   //
   // `"tracks"` mode never marks a `finalRankBasis` "announced" (the whole
-  // point of that mode is a pure-score-order ranking — see `buildRanking`),
+  // point of that mode is a pure-score-order ranking - see `buildRanking`),
   // so `rankedForTracks` alone cannot say which team was declared each
   // track's winner. The snapshot's own `trackWinners` already recorded that,
   // written once at publish time by `buildSnapshot` from the real
-  // `announcedTeamIds` — reading it back here is the same pattern already
+  // `announcedTeamIds` - reading it back here is the same pattern already
   // used for an `organiser` override two lines below, applied to `announced`
   // too.
   const announcedForTracks = new Set(
@@ -642,8 +821,8 @@ export function buildResultsExport(
   )
 
   // A hand-authored `organiser` override in the snapshot is a human
-  // correction — an organiser deciding a team built outside its matched
-  // track — that recomputation cannot reproduce, so it still wins for its
+  // correction - an organiser deciding a team built outside its matched
+  // track - that recomputation cannot reproduce, so it still wins for its
   // own track, the same reasoning that pins an announced winner.
   const teamById = new Map(teams.map((t) => [t.teamId, t]))
   const rankedForTracks: RankedTeam[] = teams
@@ -758,7 +937,7 @@ export function buildResultsExport(
     : null
 
   const participantsCheckedIn = source.participants.filter((p) => p.checkedIn).length
-  // Only a real disagreement counts as an override — an organiser count that
+  // Only a real disagreement counts as an override - an organiser count that
   // happens to match the system's own is not a second fact worth carrying,
   // it is the same fact twice (see `ExportSummary.participantsCheckedInRecorded`).
   const participantsCheckedInRecorded =

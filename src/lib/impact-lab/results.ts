@@ -124,6 +124,16 @@ export interface ResultsSnapshot {
    * stored snapshot is never recomputed, so the old shape is permanent.
    */
   unranked?: UnrankedTeam[]
+  /**
+   * An organiser-written commendation per team, keyed by teamId. Optional
+   * because every snapshot published before this field existed does not
+   * carry it — a reader must treat a missing map exactly like an empty one,
+   * never as a reason to reject the snapshot (see `isResultsSnapshot` and
+   * `export-data.ts`'s `parseResultsSnapshot`, neither of which requires this
+   * key). Entering a commendation is a separate admin-UI concern; this shape
+   * only carries it through to the exports once one exists.
+   */
+  commendations?: Record<string, string>
 }
 
 export interface ResultsInput {

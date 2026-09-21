@@ -168,6 +168,7 @@ export async function GET(request: NextRequest) {
       leaderId: (t as { leaderId?: string | null }).leaderId ?? null,
       track: (t as { track?: string }).track,
       trackKey: (t as { trackKey?: string }).trackKey,
+      table: t.table ?? null,
     })),
     participants: participants.map((p) => ({
       id: p.id,

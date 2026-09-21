@@ -1,5 +1,5 @@
 /**
- * Impact Lab results export — vector chart primitives for the PDF.
+ * Impact Lab results export - vector chart primitives for the PDF.
  *
  * Pure pdfkit drawing: every function paints at a given (x, y, width) and
  * returns the height it consumed, so the document flow in `export-pdf` stays
@@ -8,7 +8,7 @@
  * Honesty rules these primitives enforce by construction:
  * - Every scale starts at zero. There is no way to pass a truncated axis.
  * - Magnitude is always one hue (CLAY); identity is carried by labels and
- *   position, never by colour alone — the charts survive greyscale printing.
+ *   position, never by colour alone - the charts survive greyscale printing.
  * - Grid and axes are solid hairlines, one shade off the paper; the data is
  *   the darkest thing in the plot.
  */
@@ -39,7 +39,7 @@ export interface StatTile {
 }
 
 /**
- * A row-wrapped grid of stat tiles — the "event in numbers" hero. Sans-serif
+ * A row-wrapped grid of stat tiles - the "event in numbers" hero. Sans-serif
  * figures (a display face on a number reads as decoration), small-caps labels.
  */
 export function drawStatTiles(
@@ -143,7 +143,7 @@ export function drawHistogram(
       })
   })
 
-  // Baseline axis — the zero line, slightly stronger than the grid.
+  // Baseline axis - the zero line, slightly stronger than the grid.
   doc.moveTo(x, baseline).lineTo(x + width, baseline).lineWidth(0.8).strokeColor(DIM).stroke()
 
   if (options.yLabel) {
@@ -160,10 +160,10 @@ export function drawHistogram(
 
 export interface HBarRow {
   label: string
-  /** Fainter line under the label — e.g. "9 teams · 7 submitted". */
+  /** Fainter line under the label - e.g. "9 teams · 7 submitted". */
   sublabel?: string
   value: number
-  /** Printed at the bar end — e.g. "62.4". */
+  /** Printed at the bar end - e.g. "62.4". */
   valueLabel: string
 }
 
@@ -186,7 +186,7 @@ export function drawHBars(
   const barHeight = 7
 
   // A row's height follows its own label's wrapped height, not a fixed
-  // increment — a long criterion name (e.g. "Value Proposition, Ideation
+  // increment - a long criterion name (e.g. "Value Proposition, Ideation
   // Depth & Solution Clarity (/10)") wraps to two lines, and a fixed
   // increment let the second line overstrike the row beneath it.
   doc.font(SANS).fontSize(LABEL_FONT)
@@ -248,7 +248,7 @@ export function drawHBars(
 export interface DotRow {
   label: string
   sublabel?: string
-  /** Individual values plotted as dots — e.g. each judge's total. */
+  /** Individual values plotted as dots - e.g. each judge's total. */
   dots: number[]
 }
 

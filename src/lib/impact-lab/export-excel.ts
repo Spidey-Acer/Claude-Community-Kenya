@@ -1,5 +1,5 @@
 /**
- * Impact Lab results export — the Excel workbook.
+ * Impact Lab results export - the Excel workbook.
  *
  * Renders a `ResultsExport` (see ./export-data) into up to eight sheets:
  * Results, Submissions, Judging detail, Judges, Tracks, Project analyses
@@ -8,19 +8,24 @@
  * Craft rules applied throughout: frozen header rows, autofilter on the wide
  * sheets, wrapped prose with estimated row heights so text is readable
  * in-cell, number formats on every score, and no merged cells inside data
- * ranges — merges break sorting and filtering, and this file exists to be
+ * ranges - merges break sorting and filtering, and this file exists to be
  * sorted and filtered.
  */
 
 import ExcelJS from "exceljs"
 import { totalOutOf } from "./judging"
-import { type ExportTeam, type ExportTrackWinner, type ResultsExport } from "./export-data"
+import {
+  markdownToPlainText,
+  type ExportTeam,
+  type ExportTrackWinner,
+  type ResultsExport,
+} from "./export-data"
 import { brandingForCohort } from "./event-branding"
 import { ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 
 // ─── Palette (print-safe echoes of the Terminal Noir tokens) ─────────────────
 
-const INK = "FF141414" // header fill — near-black
+const INK = "FF141414" // header fill - near-black
 const INK_TEXT = "FFF5F5F5"
 const GREEN = "FF00993D" // --green-primary, darkened for white paper
 const AMBER_FILL = "FFFDF3D7" // announced-podium row tint
@@ -28,7 +33,7 @@ const AMBER_TEXT = "FF8A5B00" // basis notes
 const DIM_TEXT = "FF666666"
 
 const SCORE_FMT = "0.0"
-const CLAY = "FFD97757" // Anthropic terracotta — the single data-bar hue
+const CLAY = "FFD97757" // Anthropic terracotta - the single data-bar hue
 
 /**
  * exceljs's `DataBarRuleType` omits `color` from its typings, but the writer
@@ -49,7 +54,7 @@ function columnLetter(column: number): string {
 }
 
 /**
- * In-cell data bars on a numeric column — the honest kind: anchored 0→max so
+ * In-cell data bars on a numeric column - the honest kind: anchored 0→max so
  * bar length is proportional to the value, never rescaled to the visible
  * range (Excel's default min–max anchoring exaggerates small differences).
  */
@@ -145,12 +150,12 @@ function estimateRowHeight(cells: { text: string; width: number }[]): number {
 
 /**
  * `trackWinnerBasis` is this team's own track-winner basis (undefined when
- * the team did not win its track) — passed in rather than looked up here so
+ * the team did not win its track) - passed in rather than looked up here so
  * the caller can key the lookup by track (see `addResultsSheet`), not by
  * team name, which two teams in different tracks could share.
  *
  * In `"tracks"` mode there is no overall podium (see `ResultsExport`'s own
- * doc comment), so `finalRankBasis` is never `"announced"` there — the
+ * doc comment), so `finalRankBasis` is never `"announced"` there - the
  * `"Announced by judging panel"` branch below cannot fire for a tracks-mode
  * team by construction, not by convention. A tracks-mode track winner gets
  * its own label instead.
@@ -196,7 +201,7 @@ function placingBasisLabel(
 }
 
 const WRITEUP_NOTE =
-  "Scored from the written submission — no judge reached this table during demos."
+  "Scored from the written submission: no judge reached this table during demos."
 
 // ─── Sheets ──────────────────────────────────────────────────────────────────
 
@@ -228,7 +233,7 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
   ]
   const sheet = addSheet(workbook, "Results", columns, { autoFilter: true })
 
-  // Keyed by track, not team name — two teams in different tracks could
+  // Keyed by track, not team name - two teams in different tracks could
   // share a name, and a track has exactly one winner.
   const trackWinnerByTrack = new Map(data.trackWinners.map((w) => [w.track, w]))
 
@@ -237,6 +242,9 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
       team.scoredFromWriteup ? WRITEUP_NOTE : null,
       team.submission === null ? "Did not submit a project." : null,
       team.average === null && team.submission !== null ? "Never scored." : null,
+      team.commendation !== null
+        ? `Judges' commendation: ${markdownToPlainText(team.commendation)}`
+        : null,
     ]
       .filter((n): n is string => n !== null)
       .join(" ")
@@ -246,23 +254,28 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
       : undefined
 
     const row = sheet.addRow({
-      finalRank: team.finalRank ?? "—",
+      finalRank: team.finalRank ?? "-",
       basis: placingBasisLabel(team, data.announcementMode, trackWinnerBasis),
-      team: team.teamName,
+      // `team.tableLabel` is already the deduplicated `teamPlaceLabel` value
+      // ("Table 30", not "Table 30 · Breakthrough") - this sheet's Team and
+      // Table columns sit right next to a Track column, so both take the
+      // same deduplicated value rather than the Team column repeating the
+      // track name the Track column already states.
+      team: team.tableLabel,
       table: team.tableLabel,
       track: team.track,
       project: team.projectDisplayName,
-      scoreRank: team.scoreRank ?? "—",
-      average: team.average ?? "—",
-      scoreLow: team.scoreLow ?? "—",
-      scoreHigh: team.scoreHigh ?? "—",
+      scoreRank: team.scoreRank ?? "-",
+      average: team.average ?? "-",
+      scoreLow: team.scoreLow ?? "-",
+      scoreHigh: team.scoreHigh ?? "-",
       spread:
         team.scoreLow !== null && team.scoreHigh !== null && team.judgeCount > 1
           ? Math.round((team.scoreHigh - team.scoreLow) * 10) / 10
-          : "—",
+          : "-",
       judges: team.judgeCount,
       ...Object.fromEntries(
-        rubric.criteria.map((c) => [`avg_${c.key}`, team.criterionAverages[c.key] ?? "—"])
+        rubric.criteria.map((c) => [`avg_${c.key}`, team.criterionAverages[c.key] ?? "-"])
       ),
       trackWinner: team.isTrackWinner ? "Yes" : "",
       champion: team.isChampion ? "Yes" : "",
@@ -301,7 +314,7 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
     { header: "Video URL", key: "videoUrl", width: 30 },
     { header: "Slides URL", key: "slidesUrl", width: 30 },
     { header: "Scoring basis", key: "scoringBasis", width: 30, wrap: true },
-    // The approved community review — signed feedback from the host
+    // The approved community review - signed feedback from the host
     // community, never judge commentary; the header says whose words these
     // are so the label travels with any copy of the sheet.
     { header: "Impact Lab review (Claude Community Kenya)", key: "communityReview", width: 70, wrap: true },
@@ -311,30 +324,40 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
   for (const team of data.teams) {
     if (!team.submission) continue
     const s = team.submission
+    // Markdown-flattened for a plain cell: markers stripped, bullets become
+    // "• " lines - see `markdownToPlainText`. Windows line breaks are already
+    // gone by the time these fields reach here (`cleanProse`, applied in
+    // `buildResultsExport`).
+    const pitch = markdownToPlainText(s.pitch)
+    const problem = markdownToPlainText(s.problemTackled)
+    const description = markdownToPlainText(s.description)
+    const worksVsMocked = markdownToPlainText(s.worksVsMocked)
+    const claudeUsage = markdownToPlainText(s.claudeUsage)
+    const communityReview = team.communityReview ? markdownToPlainText(team.communityReview) : ""
     const row = sheet.addRow({
-      finalRank: team.finalRank ?? "—",
+      finalRank: team.finalRank ?? "-",
       team: team.teamName,
       track: team.track,
       project: team.projectDisplayName,
-      pitch: s.pitch,
-      problem: s.problemTackled,
-      description: s.description,
-      worksVsMocked: s.worksVsMocked,
-      claudeUsage: s.claudeUsage,
+      pitch,
+      problem,
+      description,
+      worksVsMocked,
+      claudeUsage,
       repoUrl: s.repoUrl,
       demoUrl: s.demoUrl ?? "",
       videoUrl: s.videoUrl ?? "",
       slidesUrl: s.slidesUrl ?? "",
       scoringBasis: team.scoredFromWriteup ? WRITEUP_NOTE : "Scored at the table (live demo).",
-      communityReview: team.communityReview ?? "",
+      communityReview,
     })
     row.height = estimateRowHeight([
-      { text: s.pitch, width: 46 },
-      { text: s.problemTackled, width: 40 },
-      { text: s.description, width: 56 },
-      { text: s.worksVsMocked, width: 46 },
-      { text: s.claudeUsage, width: 46 },
-      { text: team.communityReview ?? "", width: 70 },
+      { text: pitch, width: 46 },
+      { text: problem, width: 40 },
+      { text: description, width: 56 },
+      { text: worksVsMocked, width: 46 },
+      { text: claudeUsage, width: 46 },
+      { text: communityReview, width: 70 },
     ])
     if (team.scoredFromWriteup) {
       row.getCell("scoringBasis").font = { size: 9, color: { argb: AMBER_TEXT } }
@@ -371,8 +394,9 @@ function addJudgingSheet(
 
   for (const team of data.teams) {
     for (const score of team.judgeScores) {
+      const feedback = score.feedback ? markdownToPlainText(score.feedback) : ""
       const row = sheet.addRow({
-        finalRank: team.finalRank ?? "—",
+        finalRank: team.finalRank ?? "-",
         team: team.teamName,
         project: team.projectDisplayName,
         track: team.track,
@@ -380,13 +404,13 @@ function addJudgingSheet(
         ...(includeContacts ? { judgeEmail: score.judgeEmail } : {}),
         basis: score.writeupOnly ? "Written submission" : "Live demo",
         ...Object.fromEntries(
-          rubric.criteria.map((c) => [`crit_${c.key}`, score.criteria[c.key] ?? "—"])
+          rubric.criteria.map((c) => [`crit_${c.key}`, score.criteria[c.key] ?? "-"])
         ),
         total: score.weightedTotal,
-        feedback: score.feedback ?? "",
+        feedback,
       })
-      if (score.feedback) {
-        row.height = estimateRowHeight([{ text: score.feedback, width: 70 }])
+      if (feedback) {
+        row.height = estimateRowHeight([{ text: feedback, width: 70 }])
       }
       if (score.writeupOnly) {
         row.getCell("basis").font = { size: 9, color: { argb: AMBER_TEXT } }
@@ -450,17 +474,17 @@ function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
       formed: track.teamsFormed,
       submitted: track.teamsSubmitted,
       scored: track.teamsScored,
-      mean: track.meanAverage ?? "—",
-      winnerProject: track.winnerProjectName ?? "—",
-      winnerTeam: track.winnerTeamName ?? "—",
+      mean: track.meanAverage ?? "-",
+      winnerProject: track.winnerProjectName ?? "-",
+      winnerTeam: track.winnerTeamName ?? "-",
       basis:
         track.winnerBasis === "announced"
           ? "Announced by judging panel"
           : track.winnerBasis === "score"
             ? "Top of track by score"
             : track.winnerBasis === "organiser"
-              ? "Assigned by organisers — see note"
-              : "—",
+              ? "Assigned by organisers, see note"
+              : "-",
     })
   }
   addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, denom)
@@ -491,7 +515,7 @@ function addAnalysesSheet(
     const analysis = analyses.get(team.teamId)
     if (!analysis || !team.submission) continue
     const row = sheet.addRow({
-      finalRank: team.finalRank ?? "—",
+      finalRank: team.finalRank ?? "-",
       team: team.teamName,
       project: team.projectDisplayName,
       built: analysis.whatTheyBuilt,
@@ -529,7 +553,7 @@ function addParticipantsSheet(
   ]
   const sheet = addSheet(workbook, "Participants", columns, { autoFilter: true })
 
-  // A shareable copy carries only the people who actually showed up — the
+  // A shareable copy carries only the people who actually showed up - the
   // full roster (including no-shows) is organiser detail that belongs with
   // the contact list it is filtered alongside, not in a copy meant to leave
   // the organising team.
@@ -541,7 +565,9 @@ function addParticipantsSheet(
       sheet.addRow({
         name: member.fullName,
         ...(includeContacts ? { email: member.email } : {}),
-        team: team.teamName,
+        // Deduplicated, same reasoning as the Results sheet - Team, Table and
+        // Track sit in three adjacent columns here.
+        team: team.tableLabel,
         table: team.tableLabel,
         track: team.track,
         project: team.projectDisplayName,
@@ -557,7 +583,7 @@ function addParticipantsSheet(
     const row = sheet.addRow({
       name: member.fullName,
       ...(includeContacts ? { email: member.email } : {}),
-      team: "— not on a team —",
+      team: "(not on a team)",
       table: "",
       track: "",
       project: "",
@@ -624,12 +650,12 @@ async function addSummarySheet(
   const s = data.summary
   fact("Participants registered", s.participantsRegistered)
   // An organiser-recorded count (e.g. from Luma) is added alongside the
-  // system's own, never in place of it — the two are different facts (who
+  // system's own, never in place of it - the two are different facts (who
   // Impact Lab's own check-in flow saw vs who the door recorded), and a
   // reader comparing them against each other needs both on the page. With
   // no override the site's own count is the only figure available, and it
-  // is labelled as what it is — self-service check-ins, not the room's full
-  // attendance — never printed as a bare "checked in" that reads as a total.
+  // is labelled as what it is - self-service check-ins, not the room's full
+  // attendance - never printed as a bare "checked in" that reads as a total.
   if (s.participantsCheckedInRecorded !== null) {
     fact("Participants checked in (system)", s.participantsCheckedIn)
     fact("Participants checked in (recorded)", s.participantsCheckedInRecorded)
@@ -642,34 +668,34 @@ async function addSummarySheet(
   fact("Teams scored from their writeup", s.teamsScoredFromWriteup)
   fact("Judges on the floor", s.judges)
   fact("Scorecards recorded", s.scorecards)
-  fact(`Mean team score (/${totalOutOf(data.rubric)})`, s.meanTeamAverage ?? "—")
+  fact(`Mean team score (/${totalOutOf(data.rubric)})`, s.meanTeamAverage ?? "-")
   fact("Tracks", s.tracks)
   gap()
 
   section("Winners")
   // No overall podium exists in "tracks" mode (see `ResultsExport`'s own doc
-  // comment) — `data.announced` is always `[]` there, published or not, so
+  // comment) - `data.announced` is always `[]` there, published or not, so
   // the unpublished branch below must never run for a published tracks-mode
   // run: it would print "Results not yet published" over a result that has
   // been.
   if (data.announcementMode === "tracks") {
     fact(
       "Overall podium",
-      "Not announced — this event named one winner per track instead. See the track rows below."
+      "Not announced. This event named one winner per track instead. See the track rows below."
     )
   } else if (data.announced.length > 0) {
     for (const winner of data.announced) {
       const label =
         data.announcementMode === "champion" ? "Champion (announced)" : `#${winner.rank} (announced)`
-      fact(label, `${winner.projectName} — ${winner.teamName}`)
+      fact(label, `${winner.projectName} · ${winner.teamName}`)
     }
   } else {
     fact("Announced winners", "Results not yet published.")
   }
   for (const w of data.trackWinners) {
     fact(
-      `Track — ${w.track}`,
-      `${w.projectName} — ${w.teamName}${
+      `Track · ${w.track}`,
+      `${w.projectName} · ${w.teamName}${
         w.basis === "announced"
           ? " (announced)"
           : w.basis === "organiser"
@@ -684,7 +710,7 @@ async function addSummarySheet(
   const rubric = data.rubric
   for (const criterion of rubric.criteria) {
     fact(
-      `${criterion.label} — ${
+      `${criterion.label} · ${
         rubric.scoring === "points" ? `${criterion.min}–${criterion.max} pts` : `${criterion.weight} pts`
       }`,
       criterion.guidance,
@@ -700,7 +726,7 @@ async function addSummarySheet(
           ". A criterion contributes (score - min) / (max - min) of its weight; a team's number is " +
           "the mean of its judges' weighted totals."
       : "Each criterion's raw score IS its points, on the scale stated in its own guidance above " +
-          "(no shared anchor text — the panel published a points rubric, not a normalised one). A " +
+          "(no shared anchor text: the panel published a points rubric, not a normalised one). A " +
           "team's number is the mean of its judges' totals.",
     true
   )
@@ -723,10 +749,10 @@ async function addSummarySheet(
     "Contact details",
     includeContacts
       ? "This workbook carries participant and judge emails and is the organisers' operational " +
-          "record — treat it accordingly. Generate it with contacts=off to share a copy outside " +
+          "record; treat it accordingly. Generate it with contacts=off to share a copy outside " +
           "the organising team; the PDF built for sharing omits all contact details regardless."
       : "Generated with contacts=off: every participant and judge email column has been omitted, " +
-          "and the Participants sheet is filtered to people who actually checked in — a no-show's " +
+          "and the Participants sheet is filtered to people who actually checked in; a no-show's " +
           "name is organiser detail, not something this copy carries. Re-generate without that " +
           "flag for the organisers' own operational record.",
     true
@@ -737,7 +763,7 @@ async function addSummarySheet(
   fact(
     "Final placing vs score rank",
     data.announcementMode === "tracks"
-      ? "There was no overall podium at this event — the panel named one winner per track instead " +
+      ? "There was no overall podium at this event; the panel named one winner per track instead " +
           "(see “Winners” above). “Final placing” here is pure score order throughout, and does not " +
           "imply or reproduce which team led its track; “Score rank” is the same order restated. " +
           "Each row's “Placing basis” says whether that row is a declared track winner or plain " +
@@ -745,11 +771,11 @@ async function addSummarySheet(
       : data.announcementMode === "champion"
         ? "The judging panel announced a champion and a winner for each track; the raw score " +
             "averages order everyone else. “Final placing” is the published result (the champion " +
-            "first, then score order), “Score rank” is the raw average order — the two columns " +
+            "first, then score order), “Score rank” is the raw average order; the two columns " +
             "disagree by design for the champion, and each row's “Placing basis” says which applies."
         : "The judging panel deliberated and announced the podium; the raw score averages order the rest. " +
             "“Final placing” is the published result (announced winners first), “Score rank” is the raw " +
-            "average order — the two columns disagree by design, and each row's “Placing basis” says " +
+            "average order; the two columns disagree by design, and each row's “Placing basis” says " +
             "which applies.",
     true
   )
@@ -765,12 +791,12 @@ async function addSummarySheet(
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 /**
- * Build the workbook — Results, Submissions, Judging detail, Judges, Tracks,
- * Project analyses (when generated), Participants, Summary — and return it as
+ * Build the workbook - Results, Submissions, Judging detail, Judges, Tracks,
+ * Project analyses (when generated), Participants, Summary - and return it as
  * a Node buffer to stream. A missing analyses map simply omits that sheet
  * (the fail-soft rule from export-analysis).
  *
- * `includeContacts` defaults to true — the organisers' own operational
+ * `includeContacts` defaults to true - the organisers' own operational
  * record, unchanged from before this option existed. Pass `false` (the
  * export route's `contacts=off`) to omit every participant and judge email
  * column and filter the Participants sheet to people who checked in,

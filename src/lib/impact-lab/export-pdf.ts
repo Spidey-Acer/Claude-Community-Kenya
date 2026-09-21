@@ -1,23 +1,23 @@
 /**
- * Impact Lab results export — the PDF.
+ * Impact Lab results export - the PDF.
  *
  * The artefact that leaves the building: the permanent record of Kenya's
  * first Claude hackathon, built to be read by Anthropic. A4, print-first,
  * greyscale-safe. Structure: cover → contents → how this record was produced
  * → the event in numbers (infographics) → winners → full ranking → one
- * profile per team → appendix. Server-only (pdfkit, streamed to a buffer —
+ * profile per team → appendix. Server-only (pdfkit, streamed to a buffer -
  * nothing touches disk).
  *
  * The honesty rules, enforced in layout as much as in words:
  *
  * 1. Announced placings are the panel's decision; score order is shown
  *    separately as what it is. Every placing names its basis.
- * 2. Writeup-scored teams carry that basis wherever their scores appear — a
+ * 2. Writeup-scored teams carry that basis wherever their scores appear - a
  *    note on how the score was produced, never a mark against the team.
  * 3. Judge notes are printed verbatim and attributed; generated project
  *    analyses are labelled with their provenance every time they appear and
  *    never sit inside the judging section.
- * 4. Participant contact details never enter this document — names and roles
+ * 4. Participant contact details never enter this document - names and roles
  *    only. The Excel workbook is the organisers' operational record.
  */
 
@@ -26,8 +26,11 @@ import { totalOutOf } from "./judging"
 import {
   checkedInIsRecorded,
   formatDisplayName,
+  markdownToPlainText,
+  parseProseLines,
   sortByTrailingNumber,
   type ExportTeam,
+  type ProseLine,
   type ResultsExport,
 } from "./export-data"
 import { brandingForCohort, REPORT_PRODUCER, type EventBranding } from "./event-branding"
@@ -72,7 +75,7 @@ const CONTENT_BOTTOM = FOOTER_Y - 18
 const HEADER_Y = 26
 
 const WRITEUP_NOTE =
-  "Scored from the written submission — no judge reached this table during live demos. " +
+  "Scored from the written submission: no judge reached this table during live demos. " +
   "The team submitted on time; this is a note on how the score was produced, not on the team."
 
 type Doc = PDFKit.PDFDocument
@@ -109,7 +112,7 @@ function ensureSpace(doc: Doc, needed: number): void {
   if (doc.y + needed > CONTENT_BOTTOM) doc.addPage()
 }
 
-/** Small-caps kicker in clay — the label above every heading. */
+/** Small-caps kicker in clay - the label above every heading. */
 function kicker(doc: Doc, text: string, color = CLAY_DEEP): void {
   doc
     .font(SANS_BOLD)
@@ -144,22 +147,77 @@ function rule(doc: Doc, color = RULE, width = 0.6): void {
   doc.moveDown(0.5)
 }
 
+/** A run of consecutive `ProseLine`s of the same kind, ready to draw. */
+interface ProseGroup {
+  type: "paragraph" | "bullet"
+  /** A paragraph group's lines joined by "\n" (preserving blank-line breaks); a bullet group holds one item. */
+  text: string
+}
+
+/**
+ * Groups parsed prose lines so consecutive paragraph lines draw as one
+ * wrapped block (preserving `cleanProse`'s blank-line paragraph breaks) while
+ * every bullet line stays its own group, each rendered as its own hanging-
+ * indent line.
+ */
+function groupProseLines(lines: ProseLine[]): ProseGroup[] {
+  const groups: ProseGroup[] = []
+  for (const line of lines) {
+    if (line.type === "bullet") {
+      groups.push({ type: "bullet", text: line.text })
+      continue
+    }
+    const last = groups[groups.length - 1]
+    if (last && last.type === "paragraph") last.text += `\n${line.text}`
+    else groups.push({ type: "paragraph", text: line.text })
+  }
+  return groups
+}
+
+const BULLET_INDENT = 14
+
+/**
+ * Draws already-cleaned free text (see `cleanProse`/`parseProseLines`): a
+ * paragraph line wraps and flows exactly as plain text always has here; a
+ * bullet line gets a real "•" hanging indent, drawn as its own line so a
+ * markdown list never collapses back into a run-on sentence. `ensureSpace`
+ * is called per group, not once for the whole body, so a long list can
+ * split across a page break like any other content in this file.
+ */
+function drawProseBody(doc: Doc, text: string, width: number = CONTENT_WIDTH): void {
+  for (const group of groupProseLines(parseProseLines(text))) {
+    doc.font(SANS).fontSize(9)
+    if (group.type === "bullet") {
+      const bulletWidth = width - BULLET_INDENT
+      ensureSpace(doc, doc.heightOfString(group.text, { width: bulletWidth, lineGap: 2.5 }) + 4)
+      const top = doc.y
+      doc.font(SANS_BOLD).fillColor(INK).text("•", MARGIN, top, {
+        width: BULLET_INDENT,
+        lineBreak: false,
+      })
+      doc.font(SANS).fillColor(INK).text(group.text, MARGIN + BULLET_INDENT, top, {
+        width: bulletWidth,
+        lineGap: 2.5,
+      })
+      doc.x = MARGIN
+      doc.moveDown(0.15)
+    } else {
+      ensureSpace(doc, doc.heightOfString(group.text, { width, lineGap: 2.5 }))
+      doc.fillColor(INK).text(group.text, MARGIN, doc.y, { width, lineGap: 2.5 })
+    }
+  }
+}
+
 function paragraph(doc: Doc, label: string, text: string): void {
-  const body = text.trim() || "—"
-  ensureSpace(
-    doc,
-    24 + doc.font(SANS).fontSize(9).heightOfString(body, { width: CONTENT_WIDTH, lineGap: 2.5 })
-  )
+  const body = text.trim() || "not provided"
+  ensureSpace(doc, 24)
   doc
     .font(SANS_BOLD)
     .fontSize(7)
     .fillColor(FAINT)
     .text(label.toUpperCase(), MARGIN, doc.y, { characterSpacing: 1.1, width: CONTENT_WIDTH })
   doc.moveDown(0.25)
-  doc.font(SANS).fontSize(9).fillColor(INK).text(body, MARGIN, doc.y, {
-    width: CONTENT_WIDTH,
-    lineGap: 2.5,
-  })
+  drawProseBody(doc, body, CONTENT_WIDTH)
   doc.moveDown(0.85)
 }
 
@@ -218,7 +276,7 @@ export function checkedInCount(data: ResultsExport): number {
 /**
  * The cover: warm paper, clay band, serif display title, the event in six
  * figures, and the provenance line. Longer than 50 lines because a cover is
- * one composition — splitting it would scatter its geometry.
+ * one composition - splitting it would scatter its geometry.
  */
 function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): void {
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT).fillColor(PAPER).fill()
@@ -237,7 +295,7 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
     .text(data.cohort, MARGIN, 64, { width: CONTENT_WIDTH, align: "right" })
 
   doc.y = 168
-  kicker(doc, "Hackathon results — the complete record", CLAY_DEEP)
+  kicker(doc, "Hackathon results: the complete record", CLAY_DEEP)
   doc.font(SERIF).fontSize(44).fillColor(INK).text(branding.titleLead, MARGIN, doc.y, {
     width: CONTENT_WIDTH,
   })
@@ -262,16 +320,16 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   doc.y += 12
 
   const s = data.summary
-  // A count of 1 needs the singular form — "1 TRACKS" printed on a real
+  // A count of 1 needs the singular form - "1 TRACKS" printed on a real
   // cohort's cover before this fix.
   const plural = (n: number, word: string): string => `${word}${n === 1 ? "" : "s"}`
   // The system's own check-in count, overridden by an organiser's recorded
-  // count when one was given and disagrees (see `checkedInCount`) — the
+  // count when one was given and disagrees (see `checkedInCount`) - the
   // cover printed "159 BUILDERS" (everyone who ever registered) to a room
   // where only a fraction checked in. Registrants stay in the record; the
   // headline figure is who was actually there. Without an override the tile
   // says so plainly ("checked in on site") rather than dressing the site's
-  // own partial count as attendance — see `checkedInIsRecorded`.
+  // own partial count as attendance - see `checkedInIsRecorded`.
   const checkedIn = checkedInCount(data)
   const checkedInRecorded = checkedInIsRecorded(data.summary)
   drawStatTiles(
@@ -299,7 +357,7 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
   doc.y += 2 * 58 + 12
   rule(doc, INK, 1)
 
-  // The one result worth putting on the front — a champion when an overall
+  // The one result worth putting on the front - a champion when an overall
   // podium was announced, or the per-track winners when it was not. There is
   // no overall winner to print in "tracks" mode; printing one anyway is
   // exactly the bug this mode exists to remove.
@@ -313,7 +371,7 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
           .font(SERIF)
           .fontSize(13)
           .fillColor(INK)
-          .text(`${w.projectName} — ${w.teamName}`, MARGIN, doc.y, { width: CONTENT_WIDTH })
+          .text(`${w.projectName} · ${w.teamName}`, MARGIN, doc.y, { width: CONTENT_WIDTH })
       }
     }
   } else {
@@ -325,14 +383,14 @@ function renderCover(doc: Doc, data: ResultsExport, branding: EventBranding): vo
         .font(SERIF)
         .fontSize(17)
         .fillColor(INK)
-        .text(`${champion.projectName} — ${champion.teamName}`, MARGIN, doc.y, {
+        .text(`${champion.projectName} · ${champion.teamName}`, MARGIN, doc.y, {
           width: CONTENT_WIDTH,
         })
     }
   }
 
   // Writing inside the bottom margin would auto-add a page (the pdfkit
-  // gotcha renderFurniture also dodges) — lift the margin for the footer.
+  // gotcha renderFurniture also dodges) - lift the margin for the footer.
   doc.page.margins.bottom = 0
   doc
     .font(SANS)
@@ -359,7 +417,7 @@ function reserveContentsPage(doc: Doc, state: RenderState): void {
 }
 
 /**
- * Fill the reserved contents page. Two columns when the team list is long —
+ * Fill the reserved contents page. Two columns when the team list is long -
  * every profile is listed because "find one team fast" is the reader's most
  * likely task. Longer than 50 lines: one composition, one place.
  */
@@ -441,8 +499,8 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   const rubric = data.rubric
   const denom = totalOutOf(rubric)
 
-  // 1 — Scoring model. The two rubrics score in different kinds of
-  // arithmetic (see judging-rubrics.ts) — this paragraph must say which one
+  // 1 - Scoring model. The two rubrics score in different kinds of
+  // arithmetic (see judging-rubrics.ts) - this paragraph must say which one
   // actually ran, never assert the other rubric's rule as if it were general.
   kicker(doc, "The scoring model")
   doc
@@ -457,12 +515,12 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
             "same way for everyone. The lowest score on each criterion means “not shown” and earns " +
             "none of that criterion's weight; the scale is normalised so a criterion contributes " +
             `(score - min) / (max - min) of its weight, out of ${denom}. A team's number is the mean ` +
-            "of its judges' totals — judges are averaged, not summed, so a team seen by two judges " +
+            "of its judges' totals; judges are averaged, not summed, so a team seen by two judges " +
             "is not beaten by an identical team seen by four."
         : `Judges scored each project on ${rubric.criteria.length} published criteria, each with its ` +
             "own point scale set by the panel. The raw score on each criterion IS the points it " +
-            `earns — a team's total is the sum of its criteria, out of ${denom}. A team's number is ` +
-            "the mean of its judges' totals — judges are averaged, not summed, so a team seen by " +
+            `earns; a team's total is the sum of its criteria, out of ${denom}. A team's number is ` +
+            "the mean of its judges' totals; judges are averaged, not summed, so a team seen by " +
             "two judges is not beaten by an identical team seen by four.",
       MARGIN,
       doc.y,
@@ -521,9 +579,9 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   }
   doc.moveDown(1.1)
 
-  // 1.5 — Who counts as checked in. Two systems can run at once at an event
-  // — the site's own self-service check-in, and an organiser's door count
-  // (e.g. read off Luma) — and they do not have to agree: someone who walks
+  // 1.5 - Who counts as checked in. Two systems can run at once at an event
+  // - the site's own self-service check-in, and an organiser's door count
+  // (e.g. read off Luma) - and they do not have to agree: someone who walks
   // in and starts building without opening the site is invisible to the
   // site's own count. Whichever figure this document quotes, this is the
   // one place that says which it is.
@@ -538,7 +596,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
             "at the door. It may exceed the platform's own self-service check-ins, which only " +
             "capture attendees who tapped the check-in link themselves."
         : "The check-in figure quoted throughout this document is the platform's own self-service " +
-            "count — attendees who tapped the check-in link themselves. It does not include anyone " +
+            "count: attendees who tapped the check-in link themselves. It does not include anyone " +
             "who walked in and started building without opening the site.",
       MARGIN,
       doc.y,
@@ -546,7 +604,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     )
   doc.moveDown(1.1)
 
-  // 2 — Coverage and the writeup rule.
+  // 2 - Coverage and the writeup rule.
   const scoredTeams = data.teams.filter((t) => t.judgeCount > 0)
   const coverageMin = Math.min(...scoredTeams.map((t) => t.judgeCount))
   const coverageMax = Math.max(...scoredTeams.map((t) => t.judgeCount))
@@ -562,7 +620,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
         `and each team's profile states how many judges saw it. ` +
         `${data.summary.teamsScoredFromWriteup} team${data.summary.teamsScoredFromWriteup === 1 ? " was" : "s were"} ` +
         "scored from their written submission because no judge reached their table during live " +
-        "demos — that basis is marked wherever those scores appear, as a note on how the score " +
+        "demos: that basis is marked wherever those scores appear, as a note on how the score " +
         "was produced, never on the team.",
       MARGIN,
       doc.y,
@@ -570,9 +628,9 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     )
   doc.moveDown(1.1)
 
-  // 3 — How the winners were decided. This event may have announced an
+  // 3 - How the winners were decided. This event may have announced an
   // overall podium, one winner per track, or a champion plus track winners
-  // together — never more than one shape, and never assumed; see
+  // together - never more than one shape, and never assumed; see
   // `ResultsExport.announcementMode`.
   kicker(
     doc,
@@ -589,18 +647,18 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     .text(
       data.announcementMode === "tracks"
         ? "There was no overall podium at this event. The judging panel deliberated, after " +
-            "watching the demos, and named one winner per track — that decision is not " +
+            "watching the demos, and named one winner per track: that decision is not " +
             "reproduced by the raw score order, which ranks every other team. Both appear in " +
             "this document, each labelled as what it is: “announced” track winners are the " +
             "panel's decision; “score order” is the arithmetic. Neither is silently dressed as " +
             "the other."
         : data.announcementMode === "champion"
           ? "The judging panel announced a champion and a winner for each track, after watching " +
-              "the demos and deliberating — neither is reproduced by the raw score order, which " +
+              "the demos and deliberating: neither is reproduced by the raw score order, which " +
               "ranks every other team. Both appear in this document, each labelled as what it " +
               "is: “announced” placings are the panel's decision; “score order” is the " +
               "arithmetic. Neither is silently dressed as the other."
-          : "The podium was decided by the judging panel in deliberation, after watching the demos — " +
+          : "The podium was decided by the judging panel in deliberation, after watching the demos, " +
               "not by the raw score order, which it does not reproduce. Both orderings appear in this " +
               "document, each labelled as what it is: “announced” placings are the panel's decision; " +
               "“score order” is the arithmetic. Neither is silently dressed as the other.",
@@ -610,7 +668,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
     )
   doc.moveDown(1.1)
 
-  // 4 — Written words: what the judges left, and what was written afterwards.
+  // 4 - Written words: what the judges left, and what was written afterwards.
   const judgesWithNotes = data.judgeSummaries.filter((j) => j.feedbackCount > 0)
   const notesTotal = judgesWithNotes.reduce((sum, j) => sum + j.feedbackCount, 0)
   const teamsWithNotes = data.teams.filter((t) =>
@@ -627,7 +685,7 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
         : judgesWithNotes.length === 1
           ? `Written notes were left by one judge, ${judgesWithNotes[0].judgeName}, on ` +
             `${notesTotal} scorecard${notesTotal === 1 ? "" : "s"} covering ${teamsWithNotes} ` +
-            `project${teamsWithNotes === 1 ? "" : "s"} — brief working notes, printed verbatim and ` +
+            `project${teamsWithNotes === 1 ? "" : "s"}, brief working notes, printed verbatim and ` +
             "attributed on the team profiles. "
           : `Written notes were left by ${judgesWithNotes.length} judges on ${notesTotal} ` +
             `scorecards covering ${teamsWithNotes} projects, printed verbatim and attributed on ` +
@@ -640,21 +698,21 @@ function renderMethodology(doc: Doc, data: ResultsExport, state: RenderState): v
   doc.moveDown(0.7)
   callout(
     doc,
-    `Each team profile also carries a “${ANALYSIS_LABEL}” — a descriptive account written after ` +
+    `Each team profile also carries a “${ANALYSIS_LABEL}”, a descriptive account written after ` +
       "the event, drawn solely from that team's own submission. The analyses describe what each " +
-      "team built, who it serves, what was working versus mocked, and how AI was used — in " +
+      "team built, who it serves, what was working versus mocked, and how AI was used, in " +
       "the team's own terms, with nothing inferred beyond what they wrote. They are labelled " +
       "wherever they appear and are not judge commentary."
   )
 
-  // 5 — Privacy.
+  // 5 - Privacy.
   kicker(doc, "What is deliberately left out")
   doc
     .font(SANS)
     .fontSize(9)
     .fillColor(INK)
     .text(
-      "This document names builders and their roles — that is the record. Personal contact " +
+      "This document names builders and their roles: that is the record. Personal contact " +
         "details (email addresses) are deliberately omitted for every participant and judge. The " +
         "companion Excel workbook, held by the organisers, is the operational record.",
       MARGIN,
@@ -682,7 +740,7 @@ function scoreBins(teams: ExportTeam[], denom: number): HistogramBin[] {
 
 /**
  * The infographic spread: distribution, tracks, coverage, and the judge
- * panel — every figure computed from the data, none asserted. Longer than 50
+ * panel - every figure computed from the data, none asserted. Longer than 50
  * lines because it is one composed page of charts.
  */
 function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState): void {
@@ -691,7 +749,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     doc,
     "The field",
     "The event in numbers",
-    "How the scores fell across the whole field — read alongside the methodology on the " +
+    "How the scores fell across the whole field, read alongside the methodology on the " +
       `previous page. Score charts show weighted averages out of ${denom}; ` +
       (data.announcementMode === "tracks"
         ? "the track winners were decided by the panel, not by these charts."
@@ -703,12 +761,12 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
 
   // The funnel: how many of the people who registered were actually in the
   // room. The cover states the checked-in figure as the headline; this line
-  // is where the full drop-off — including the registrants who never
-  // checked in at all — is on the record.
+  // is where the full drop-off - including the registrants who never
+  // checked in at all - is on the record.
   const s = data.summary
   // Mirrors the cover tile's wording rule: an organiser's recorded count
   // reads as plain "checked in", but the site's own self-service count
-  // — partial by construction, see `checkedInIsRecorded` — says so.
+  // - partial by construction, see `checkedInIsRecorded` - says so.
   const checkedInPhrase = checkedInIsRecorded(data.summary) ? "checked in" : "checked in on the site"
   doc
     .font(SANS)
@@ -749,12 +807,12 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
       label: t.track,
       sublabel: `${t.teamsFormed} teams · ${t.teamsSubmitted} submitted · ${t.teamsScored} scored`,
       value: t.meanAverage ?? 0,
-      valueLabel: t.meanAverage !== null ? fmt1(t.meanAverage) : "—",
+      valueLabel: t.meanAverage !== null ? fmt1(t.meanAverage) : "-",
     }))
   doc.y += drawHBars(doc, MARGIN, doc.y, CONTENT_WIDTH, trackRows, {
     max: denom,
     labelWidth: 168,
-    scaleNote: `Mean of scored teams' weighted averages, 0–${denom}. Track sizes differ — see sublabels.`,
+    scaleNote: `Mean of scored teams' weighted averages, 0–${denom}. Track sizes differ, see sublabels.`,
   })
   doc.moveDown(1.2)
 
@@ -786,7 +844,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     .fillColor(FAINT)
     .text(
       `Each judge's mean weighted total across their own scorecards (/${denom}). Judges saw ` +
-        "different, overlapping sets of teams, so these are calibration profiles — not rankings " +
+        "different, overlapping sets of teams, so these are calibration profiles, not rankings " +
         "of the judges and not comparable head-to-head.",
       MARGIN,
       doc.y,
@@ -808,7 +866,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
   })
   doc.moveDown(0.6)
 
-  // The spread finding — computed, not asserted.
+  // The spread finding - computed, not asserted.
   const judgeMeans = data.judgeSummaries.map((j) => j.meanWeightedTotal)
   const widest = data.teams
     .filter((t) => t.judgeCount >= 2 && t.scoreLow !== null && t.scoreHigh !== null)
@@ -824,7 +882,7 @@ function renderEventInNumbers(doc: Doc, data: ResultsExport, state: RenderState)
     callout(
       doc,
       `The spread is part of the record. Judge means ranged from ${fmt1(Math.min(...judgeMeans))} ` +
-        `to ${fmt1(Math.max(...judgeMeans))} — the panel used the scale differently, which is why ` +
+        `to ${fmt1(Math.max(...judgeMeans))}: the panel used the scale differently, which is why ` +
         `teams are averaged across their judges rather than summed. The widest disagreement on a ` +
         `single project was ${widest.projectDisplayName}, where ${widest.judgeCount} judges ` +
         `scored from ${fmt1(widest.scoreLow ?? 0)} to ${fmt1(widest.scoreHigh ?? 0)}. Honest ` +
@@ -889,7 +947,7 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       .font(SANS)
       .fontSize(8.5)
       .fillColor(DIM)
-      // The team name already carries table and track — nothing to append.
+      // The team name already carries table and track - nothing to append.
       .text(
         winner.teamName +
           (team?.average !== null && team?.average !== undefined
@@ -908,7 +966,13 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
   for (const w of data.trackWinners) {
     ensureSpace(doc, 26)
     const top = doc.y
-    const middle = `${w.projectName} — ${w.teamName}`
+    // The Track column to the left already states the track; a team named
+    // "Table 30 · Breakthrough" would otherwise repeat it here. `tableLabel`
+    // is the deduplicated form (see `teamPlaceLabel`); fall back to the raw
+    // name only for the edge case where this team isn't in `data.teams` at
+    // all (a hand-authored `organiser` override naming a stale id).
+    const teamLabel = teamByName.get(w.teamName)?.tableLabel ?? w.teamName
+    const middle = `${w.projectName} · ${teamLabel}`
     const middleWidth = CONTENT_WIDTH - 184 - 70
     // Rows advance by measured height so a wrapping name never overstrikes
     // the next row.
@@ -953,14 +1017,14 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
       (data.announcementMode === "tracks"
         ? "“Announced” track winners are the panel's declared winner for that track; "
         : data.announcementMode === "champion"
-          ? "“Announced” track winners are the panel's declared winner for that track — the " +
+          ? "“Announced” track winners are the panel's declared winner for that track, the " +
             "champion's own track winner is the champion; "
           : "“Announced” track winners follow from the podium (the champion leads its own track); ") +
         "“by score” winners top their track on weighted average. An “organiser decision” means the " +
         "organisers assigned the award rather than taking score order: teams were matched into a " +
         "track before building and judged at that track's tables, so a team that built outside its " +
         "track can top the group with a project that does not belong to it. Every team's score and " +
-        "placing is unaffected — only which track the award is filed under.",
+        "placing is unaffected; only which track the award is filed under.",
       MARGIN,
       doc.y,
       { width: CONTENT_WIDTH, lineGap: 2 }
@@ -969,7 +1033,7 @@ function renderWinners(doc: Doc, data: ResultsExport, state: RenderState): void 
 
 // ─── Full ranking ────────────────────────────────────────────────────────────
 
-// The team name is "Table N — Track", so a Team column would print the table
+// The team name is "Table N - Track", so a Team column would print the table
 // and track twice; Table + Track columns carry the same facts without the
 // noise. Headers sized to stay on one line at 7pt.
 function rankCols(denom: number) {
@@ -1007,10 +1071,10 @@ function rankingHeader(doc: Doc, cols: ReturnType<typeof rankCols>): void {
 function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void {
   const tracksMode = data.announcementMode === "tracks"
   const championMode = data.announcementMode === "champion"
-  // Keyed by track, not team name — same reasoning as export-excel.ts's own
+  // Keyed by track, not team name - same reasoning as export-excel.ts's own
   // `trackWinnerByTrack`: a track has exactly one winner. Used below so a
   // champion-mode track winner that is not the champion itself (its own
-  // ranking row is score order, not "announced" — see `results.ts`'s
+  // ranking row is score order, not "announced" - see `results.ts`'s
   // `buildRanking`) still reads "panel" here rather than "score".
   const trackWinnerByTrack = new Map(data.trackWinners.map((w) => [w.track, w]))
   sectionOpener(
@@ -1018,15 +1082,15 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
     "Results",
     "Every team, and how its placing was decided",
     tracksMode
-      ? "The ranking below is raw score order throughout — there was no overall podium at this " +
+      ? "The ranking below is raw score order throughout; there was no overall podium at this " +
         "event. The panel announced one winner per track separately; see “The winners”. The " +
-        "averages are the archival record — they order this list, nothing here was announced."
+        "averages are the archival record; they order this list, nothing here was announced."
       : championMode
         ? "The champion was announced by the panel; every other scored team, including each " +
           "track's own announced winner, follows in raw score order. The averages are the " +
-          "archival record — they order this list, they did not decide the champion."
+          "archival record; they order this list, they did not decide the champion."
         : "Placings 1–3 were announced by the panel; every other scored team follows in raw score " +
-          "order. The averages are the archival record — they order this list, they did not decide " +
+          "order. The averages are the archival record; they order this list, they did not decide " +
           "the podium."
   )
   markSection(doc, state, "Full ranking")
@@ -1044,10 +1108,10 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       team.projectDisplayName,
       team.tableLabel,
       team.track,
-      team.average !== null ? fmt1(team.average) : "—",
+      team.average !== null ? fmt1(team.average) : "-",
       team.scoreLow !== null && team.scoreHigh !== null && team.judgeCount > 1
         ? `${fmt1(team.scoreLow)}–${fmt1(team.scoreHigh)}`
-        : "—",
+        : "-",
       String(team.judgeCount),
       team.finalRankBasis === "announced" || isAnnouncedTrackWinner
         ? "panel"
@@ -1056,23 +1120,33 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
           : "score",
     ]
     doc.font(SANS).fontSize(8)
-    const rowHeight =
+    const cellsHeight =
       Math.max(...cells.map((text, i) => doc.heightOfString(text, { width: cols[i].width - 6 }))) +
       7
+    // A one-line commendation under the row, flattened to a single line -
+    // "a short line", not a second free-text block competing with the table.
+    const commendationText = team.commendation
+      ? markdownToPlainText(team.commendation).replace(/\s*\n+\s*/g, " ")
+      : null
+    doc.font(SANS_ITALIC).fontSize(7.5)
+    const commendationHeight = commendationText
+      ? doc.heightOfString(commendationText, { width: CONTENT_WIDTH - 12, lineGap: 1.5 }) + 5
+      : 0
+    const rowHeight = cellsHeight + commendationHeight
     if (doc.y + rowHeight > CONTENT_BOTTOM) {
       doc.addPage()
       doc.y = MARGIN + 8
       rankingHeader(doc, cols)
     }
     const top = doc.y
-    // In "tracks" mode no row is an announced overall placing — there is no
-    // podium — so tinting on `finalRankBasis === "announced"` would tint
+    // In "tracks" mode no row is an announced overall placing - there is no
+    // podium - so tinting on `finalRankBasis === "announced"` would tint
     // nothing here even though the honesty rule (a real result, marked) still
     // applies. "champion" mode has both: the champion's own row IS an
     // announced overall placing (clay, same as podium mode), but a track
     // winner who is not the champion is score order on this row (see
     // `results.ts`'s `buildRanking`) and needs the olive track-winner tint
-    // exactly like "tracks" mode gives its own winners — so both branches
+    // exactly like "tracks" mode gives its own winners - so both branches
     // apply together here, not one or the other.
     if (!tracksMode && team.finalRankBasis === "announced") {
       doc.rect(MARGIN - 6, top - 3, CONTENT_WIDTH + 12, rowHeight).fillColor(CALLOUT_BG).fill()
@@ -1090,6 +1164,16 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
         .text(text, x, top, { width: cols[i].width - 6 })
       x += cols[i].width
     })
+    if (commendationText) {
+      doc
+        .font(SANS_ITALIC)
+        .fontSize(7.5)
+        .fillColor(CLAY_DEEP)
+        .text(`Judges' commendation: ${commendationText}`, MARGIN + 6, top + cellsHeight - 5, {
+          width: CONTENT_WIDTH - 12,
+          lineGap: 1.5,
+        })
+    }
     doc.x = MARGIN
     doc.y = top + rowHeight
     doc
@@ -1102,7 +1186,7 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
 
   doc.moveDown(0.6)
   // Only when a rendered row actually carries the basis this footnote marks
-  // — page 4 has stated "0 teams were scored from their written submission"
+  // - page 4 has stated "0 teams were scored from their written submission"
   // under this exact footnote before, with no † anywhere on the page.
   if (anyScoredFromWriteup) {
     doc
@@ -1117,7 +1201,7 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
     .fontSize(7.5)
     .fillColor(DIM)
     .text(
-      "“Judge range” is the lowest and highest weighted total among that team's judges — the " +
+      "“Judge range” is the lowest and highest weighted total among that team's judges, the " +
         "spread discussed in “The event in numbers”.",
       MARGIN,
       doc.y,
@@ -1130,7 +1214,7 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       .fontSize(7.5)
       .fillColor(OLIVE)
       .text(
-        "Rows tinted here are each track's announced winner — see “The winners” for the full list.",
+        "Rows tinted here are each track's announced winner; see “The winners” for the full list.",
         MARGIN,
         doc.y,
         { width: CONTENT_WIDTH, lineGap: 2 }
@@ -1150,7 +1234,7 @@ function renderRanking(doc: Doc, data: ResultsExport, state: RenderState): void 
       .fillColor(DIM)
       .text(
         unscored
-          .map((t) => `${t.teamName}${t.submission ? ` — ${t.submission.projectName}` : ""}`)
+          .map((t) => `${t.teamName}${t.submission ? ` · ${t.submission.projectName}` : ""}`)
           .join("  ·  "),
         MARGIN,
         doc.y,
@@ -1170,7 +1254,7 @@ const ROSTER_NAME_W = 134
 const ROSTER_ROLE_W = 190
 const ROSTER_INST_W = CONTENT_WIDTH - ROSTER_NAME_W - ROSTER_ROLE_W
 const ROSTER_PAD = 7
-/** Free-text cells are clipped after three lines — see renderMembers. */
+/** Free-text cells are clipped after three lines - see renderMembers. */
 const ROSTER_MAX_CELL_LINES = 3
 const ROSTER_LINE = 10.6
 
@@ -1234,8 +1318,8 @@ function renderMembers(doc: Doc, team: ExportTeam): void {
   const cellCap = ROSTER_MAX_CELL_LINES * ROSTER_LINE + 2
   team.members.forEach((m, i) => {
     const name = `${formatDisplayName(m.fullName)}${m.isLeader ? " (lead)" : ""}`
-    const role = m.primaryRole || "—"
-    const institution = m.institution || "—"
+    const role = m.primaryRole || "-"
+    const institution = m.institution || "-"
 
     doc.font(m.isLeader ? SANS_BOLD : SANS).fontSize(8.5)
     const nameH = doc.heightOfString(name, { width: ROSTER_NAME_W - ROSTER_PAD * 2, lineGap: 1.4 })
@@ -1361,12 +1445,12 @@ function renderSubmission(doc: Doc, team: ExportTeam): void {
   }
   const s = team.submission
   ensureSpace(doc, 60)
-  kicker(doc, "The submission — in the team's own words", DIM)
+  kicker(doc, "The submission, in the team's own words", DIM)
   doc
     .font(SERIF_ITALIC)
     .fontSize(11)
     .fillColor(INK)
-    .text(`“${s.pitch.trim()}”`, MARGIN, doc.y, { width: CONTENT_WIDTH * 0.92, lineGap: 3 })
+    .text(`“${markdownToPlainText(s.pitch)}”`, MARGIN, doc.y, { width: CONTENT_WIDTH * 0.92, lineGap: 3 })
   doc.moveDown(0.8)
   paragraph(doc, "Problem tackled", s.problemTackled)
   paragraph(doc, "What it does", s.description)
@@ -1406,7 +1490,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   if (team.judgeScores.length === 0) return
   const denom = totalOutOf(rubric)
   ensureSpace(doc, 200)
-  // No divider when the block landed at the top of a fresh page — it would
+  // No divider when the block landed at the top of a fresh page - it would
   // double the running header's rule.
   if (doc.y > MARGIN + 24) {
     rule(doc)
@@ -1417,10 +1501,10 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   // Criterion profile: every published criterion, averaged across judges.
   // Criteria can carry different maxima (the Afretec rubric does), so the
   // bars share the largest one and each row states its own out of its label
-  // — one shared `max` would draw a 4-of-4 and a 4-of-10 identically.
+  // - one shared `max` would draw a 4-of-4 and a 4-of-10 identically.
   if (team.average !== null) {
     const criteriaMax = Math.max(...rubric.criteria.map((c) => c.max))
-    // Numbered — this is the legend for the "C1".."Cn" columns in the
+    // Numbered - this is the legend for the "C1".."Cn" columns in the
     // per-judge table below, so a reader can match a bar to its column.
     const rows: HBarRow[] = rubric.criteria.map((criterion, i) => ({
       label:
@@ -1443,7 +1527,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   }
 
   // Per-judge table. Column width shrinks to fit however many criteria the
-  // rubric has — 42pt fits five (July) exactly; eight (Afretec) needs
+  // rubric has - 42pt fits five (July) exactly; eight (Afretec) needs
   // narrower columns to leave room for the name, basis and total columns.
   const nameWidth = 104
   const basisWidth = 62
@@ -1460,7 +1544,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
   x += nameWidth
   doc.text("BASIS", x, headTop, { width: basisWidth - 6 })
   x += basisWidth
-  // Compact numbered keys, not the criterion names — with up to eight
+  // Compact numbered keys, not the criterion names - with up to eight
   // criteria the full labels wrapped and overlapped each other and the
   // first data row. "C1".."Cn" match the numbered bars above, in rubric
   // order, and always fit on one fixed-height line.
@@ -1494,7 +1578,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
         .font(SANS)
         .fontSize(8)
         .fillColor(INK)
-        .text(value === null ? "—" : String(value), cx, top, {
+        .text(value === null ? "-" : String(value), cx, top, {
           width: critWidth - 4,
           lineBreak: false,
         })
@@ -1526,7 +1610,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
     doc.moveDown(0.4)
   }
 
-  // Verbatim notes — the only judge words in the document.
+  // Verbatim notes - the only judge words in the document.
   const withFeedback = team.judgeScores.filter((s) => s.feedback !== null)
   if (withFeedback.length > 0) {
     doc.moveDown(0.3)
@@ -1534,12 +1618,15 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
       .font(SANS_BOLD)
       .fontSize(7)
       .fillColor(FAINT)
-      .text("JUDGE NOTES — RECORDED DURING JUDGING, VERBATIM", MARGIN, doc.y, {
+      .text("JUDGE NOTES · RECORDED DURING JUDGING, VERBATIM", MARGIN, doc.y, {
         characterSpacing: 1,
       })
     doc.moveDown(0.4)
     for (const score of withFeedback) {
-      const body = score.feedback ?? ""
+      // Markdown-flattened, not restructured into bullets - these render as
+      // one quoted line, and a judge's handwritten note is not a place to
+      // grow a bulleted list.
+      const body = markdownToPlainText(score.feedback ?? "")
       doc.font(SERIF_ITALIC).fontSize(9.5)
       ensureSpace(doc, 16 + doc.heightOfString(body, { width: CONTENT_WIDTH - 16, lineGap: 2 }))
       doc
@@ -1552,7 +1639,7 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
         .fontSize(7.5)
         .fillColor(DIM)
         .text(
-          `— ${score.judgeName}` + (score.writeupOnly ? ", from the written submission" : ""),
+          `· ${score.judgeName}` + (score.writeupOnly ? ", from the written submission" : ""),
           MARGIN,
           doc.y + 1
         )
@@ -1564,28 +1651,42 @@ function renderJudging(doc: Doc, team: ExportTeam, rubric: ResultsExport["rubric
 /**
  * The approved community review, printed under the community's own name.
  * Distinct label and an explicit provenance line, so these words can never
- * be read as judge commentary — judge words render only in renderFeedback,
+ * be read as judge commentary - judge words render only in renderFeedback,
  * under the judge who wrote them.
  */
 function renderCommunityReview(doc: Doc, team: ExportTeam): void {
   if (team.communityReview === null) return
-  const body = team.communityReview
-  doc.font(SANS).fontSize(9)
-  ensureSpace(doc, 34 + doc.heightOfString(body, { width: CONTENT_WIDTH, lineGap: 2 }))
+  ensureSpace(doc, 34)
   // `kicker` is the redesign's section-label primitive; the reviews branch was
   // written against `sectionLabel`, which that rebuild replaced.
-  kicker(doc, `Impact Lab review — ${REVIEW_SIGNATURE}`)
-  doc
-    .font(SANS)
-    .fontSize(9)
-    .fillColor(INK)
-    .text(body, MARGIN, doc.y, { width: CONTENT_WIDTH, lineGap: 2, paragraphGap: 5 })
+  kicker(doc, `Impact Lab review · ${REVIEW_SIGNATURE}`)
+  drawProseBody(doc, team.communityReview, CONTENT_WIDTH)
+  doc.moveDown(0.3)
   doc
     .font(SANS_ITALIC)
     .fontSize(7.5)
     .fillColor(FAINT)
     .text(REVIEW_PROVENANCE, MARGIN, doc.y + 4, { width: CONTENT_WIDTH, lineGap: 2 })
   doc.moveDown(0.8)
+}
+
+/**
+ * An organiser-written commendation, labelled and set apart from the panel's
+ * own scores and notes - it is an organiser's addition to the record, not a
+ * judge's word, so it earns its own short label right under the placing it
+ * follows.
+ */
+function renderCommendation(doc: Doc, team: ExportTeam): void {
+  if (team.commendation === null) return
+  doc.moveDown(0.3)
+  ensureSpace(doc, 24)
+  doc
+    .font(SANS_BOLD)
+    .fontSize(7)
+    .fillColor(CLAY_DEEP)
+    .text("JUDGES' COMMENDATION", MARGIN, doc.y, { characterSpacing: 1.1, width: CONTENT_WIDTH })
+  doc.moveDown(0.2)
+  drawProseBody(doc, team.commendation, CONTENT_WIDTH)
 }
 
 /**
@@ -1609,7 +1710,7 @@ function renderTeamProfile(
   if (team.isChampion || team.isTrackWinner) {
     const afterKicker = doc.y
     const chip = team.isChampion ? "CHAMPION" : "TRACK WINNER"
-    // widthOfString ignores characterSpacing — add it per character.
+    // widthOfString ignores characterSpacing - add it per character.
     const chipWidth =
       doc.font(SANS_BOLD).fontSize(7).widthOfString(chip) + chip.length * 0.8 + 16
     doc
@@ -1656,6 +1757,7 @@ function renderTeamProfile(
         { width: CONTENT_WIDTH }
       )
   }
+  renderCommendation(doc, team)
   doc.moveDown(0.6)
   rule(doc, INK, 0.9)
   doc.moveDown(0.4)
@@ -1688,7 +1790,7 @@ function renderAppendix(
     "A complete record includes the teams that formed but did not submit, and the builders " +
       "who registered without landing on a frozen team."
   )
-  markSection(doc, state, "Appendix — the rest of the room")
+  markSection(doc, state, "Appendix: the rest of the room")
 
   const noSubmission = sortByTrailingNumber(
     data.teams.filter((t) => t.submission === null),
@@ -1707,7 +1809,7 @@ function renderAppendix(
     doc.moveDown(1)
   }
 
-  // Most of a registration list never sets foot in the room — printing every
+  // Most of a registration list never sets foot in the room - printing every
   // name here once claimed all of them "were part of the night too." Only
   // the people who actually checked in are named; everyone else is a count.
   const uncheckedInUnassigned = data.unassignedParticipants.filter((m) => m.checkedIn)
@@ -1722,7 +1824,7 @@ function renderAppendix(
       .fillColor(DIM)
       .text(
         uncheckedInUnassigned
-          .map((m) => `${formatDisplayName(m.fullName)} — ${m.primaryRole}`)
+          .map((m) => `${formatDisplayName(m.fullName)} · ${m.primaryRole}`)
           .join("  ·  "),
         MARGIN,
         doc.y,
@@ -1761,7 +1863,7 @@ function renderAppendix(
     .fillColor(DIM)
     .text(
       // Producer and host are the same for our own events and deliberately
-      // different for someone else's — see REPORT_PRODUCER.
+      // different for someone else's - see REPORT_PRODUCER.
       `Produced by ${REPORT_PRODUCER} from the operational records of ` +
         (branding.host === REPORT_PRODUCER
           ? "the event."
@@ -1788,8 +1890,8 @@ function renderFurniture(doc: Doc, state: RenderState, branding: EventBranding):
   for (let i = range.start + 1; i < range.start + range.count; i++) {
     doc.switchToPage(i)
     const printed = i + 1
-    // Writing inside the margins would trigger an automatic page add — the
-    // classic pdfkit footer gotcha — so lift them for the furniture pass.
+    // Writing inside the margins would trigger an automatic page add - the
+    // classic pdfkit footer gotcha - so lift them for the furniture pass.
     doc.page.margins.bottom = 0
     doc.page.margins.top = 0
 
@@ -1822,7 +1924,7 @@ function renderFurniture(doc: Doc, state: RenderState, branding: EventBranding):
       .font(SANS)
       .fontSize(7.5)
       .fillColor(FAINT)
-      .text(`${branding.host} — hackathon results`, MARGIN, FOOTER_Y, {
+      .text(`${branding.host} · hackathon results`, MARGIN, FOOTER_Y, {
         width: CONTENT_WIDTH / 2,
         lineBreak: false,
       })
@@ -1854,7 +1956,7 @@ export async function buildResultsPdf(
       margins: { top: MARGIN, bottom: 60, left: MARGIN, right: MARGIN },
       bufferPages: true,
       info: {
-        Title: `${branding.title} — Results`,
+        Title: `${branding.title}: Results`,
         Author: branding.host,
         Subject: `Hackathon results, ${branding.dates}, ${branding.location}`,
       },
