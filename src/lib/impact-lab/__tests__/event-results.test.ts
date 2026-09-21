@@ -82,6 +82,14 @@ describe("eventCommendations", () => {
     ])
   })
 
+  it("trims the project name, which prints immediately before a full stop", () => {
+    const padded = {
+      ...CHAMPION,
+      ranking: CHAMPION.ranking.map((r) => (r.teamId === "t5" ? { ...r, projectName: " Kitabu " } : r)),
+    }
+    expect(eventCommendations(padded)[0].projectName).toBe("Kitabu")
+  })
+
   it("drops blank entries and teams the snapshot does not name", () => {
     const names = eventCommendations(CHAMPION).map((c) => c.projectName)
     expect(names).not.toContain("Gleam")

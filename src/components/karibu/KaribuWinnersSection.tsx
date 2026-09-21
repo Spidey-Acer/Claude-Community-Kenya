@@ -38,7 +38,10 @@ export function KaribuWinnersSection({ results }: { results: EventResults }) {
         <ul className="mt-6 space-y-2">
           {commendations.map((c, i) => (
             <li key={`${c.projectName}-${i}`} className="font-inter text-[15px] leading-[1.6] text-ink-soft">
-              <span className="font-semibold text-ink">Judges&apos; commendation: {c.projectName}.</span> {c.text}
+              {/* One string, not three: an interpolation splits the text node,
+                * and the split shows up as a gap before the full stop. */}
+              <span className="font-semibold text-ink">{`Judges' commendation: ${c.projectName}.`}</span>{" "}
+              {c.text}
             </li>
           ))}
         </ul>

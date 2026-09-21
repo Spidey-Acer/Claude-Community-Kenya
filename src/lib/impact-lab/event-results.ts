@@ -56,7 +56,9 @@ export function eventCommendations(snapshot: ResultsSnapshot): EventCommendation
   const out: EventCommendation[] = []
   for (const row of named) {
     const text = map[row.teamId]?.trim()
-    if (text) out.push({ projectName: row.projectName, text })
+    // The name is trimmed too: the line prints it immediately before a full
+    // stop, where a stored trailing space reads as a typo.
+    if (text) out.push({ projectName: row.projectName.trim(), text })
   }
   return out
 }
