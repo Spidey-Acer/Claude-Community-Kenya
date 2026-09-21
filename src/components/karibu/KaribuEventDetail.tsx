@@ -176,7 +176,9 @@ export function KaribuEventDetail({
             ))}
           </div>
 
-          {/* The winners, straight under the description once published */}
+          {/* The winners, straight under the description once published.
+            * Absent for the same reason as the judges panel above, or
+            * because the cohort's results are not published yet. */}
           {results && (
             <div className="mb-9">
               <KaribuWinnersSection results={results} />
@@ -277,7 +279,9 @@ export function KaribuEventDetail({
             </div>
           )}
 
-          {/* Meet the judges — hackathons linked to an Impact Lab cohort */}
+          {/* Meet the judges. An event with no cohort linked to it shows no
+            * panel at all (rather than a live cohort's, which it once did):
+            * set it in admin, Impact Lab tab, the "Public page" select. */}
           {judgesCohort && <KaribuJudgesSection cohort={judgesCohort} />}
 
           {/* The public recap — once results are published */}

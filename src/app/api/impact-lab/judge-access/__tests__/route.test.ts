@@ -10,8 +10,10 @@
 // caller that sends NO cohort at all — JudgeGate's typed-name form never
 // does (it posts `{ name, code }`), so a judge on a stale tab could sign in
 // free-text even after an organiser switched the live cohort to roster mode.
-// The fix resolves the cohort server-side via the same single-LIVE-cohort
-// fallback `cohortForPublicEvent` uses, before deciding whether to refuse.
+// The fix resolves the cohort server-side via `singleLiveCohort`, before
+// deciding whether to refuse. That helper is now judge sign-in's alone: no
+// public page may infer a cohort from what is LIVE (see
+// `linkedCohortForPublicEvent`).
 //
 // Follows the mocking pattern from
 // src/app/api/admin/impact-lab/judging/__tests__/route.test.ts.
