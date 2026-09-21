@@ -266,6 +266,7 @@ export async function GET(request: NextRequest) {
     fullName: "there",
     projectName: rankingRow.projectName,
     teamName,
+    teamId,
     table,
     eventName: event?.name ?? "Impact Lab",
     eventDates: event?.dates ?? "",
