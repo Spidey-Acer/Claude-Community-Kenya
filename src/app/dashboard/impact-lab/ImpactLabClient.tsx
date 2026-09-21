@@ -53,6 +53,7 @@ interface ResultsResponse {
   success?: boolean;
   published?: boolean;
   results?: ResultsViewProps["results"];
+  viewerHadTeam?: boolean;
   yourTeam?: ResultsViewProps["yourTeam"];
   rubric?: ResultsViewProps["rubric"];
   error?: string;
@@ -188,6 +189,7 @@ export function ImpactLabClient({
         if (resultsJson.published && resultsJson.results && resultsJson.rubric) {
           setResults({
             results: resultsJson.results,
+            viewerHadTeam: resultsJson.viewerHadTeam === true,
             yourTeam: resultsJson.yourTeam,
             rubric: resultsJson.rubric,
           });
@@ -311,6 +313,7 @@ export function ImpactLabClient({
       return (
         <ResultsView
           results={results.results}
+          viewerHadTeam={results.viewerHadTeam}
           yourTeam={results.yourTeam}
           rubric={results.rubric}
         />

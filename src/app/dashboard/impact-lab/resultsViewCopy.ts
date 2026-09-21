@@ -1,11 +1,11 @@
 /**
  * Pure copy helpers for ResultsView.tsx's mode-aware sentences.
  *
- * Split out from the component (which renders under vitest's "node"
- * environment — no jsdom/testing-library in this repo, so a component-render
- * test isn't practical here) purely so the string logic itself is unit
- * testable, the same way `announcementHeadline` (preview-email/route.ts) and
- * `placingBasisLabel` (export-excel.ts) are.
+ * Split out from the component so the string logic is unit testable on its
+ * own, the same way `placingBasisLabel` (export-excel.ts) is. The component
+ * itself is rendered to static markup under vitest's "node" environment in
+ * `ResultsView.test.ts` (react-dom/server needs no DOM), which covers the
+ * layout; these tests cover the words.
  *
  * The bug both functions guard against: `results.overall` is `[]` both in
  * "tracks" mode (one winner per track, no overall podium at all) and when a
@@ -36,6 +36,42 @@ function ordinal(rank: number): string {
 export function yourTeamOverallLabel(hasCard: boolean, rank: number, ofRanked: number): string {
   if (!hasCard) return "Took part";
   return `${ordinal(rank)} of ${ofRanked} overall`;
+}
+
+/** "2nd of 6 in Delight": the team's placing within its track, the same count `placementFor` makes. */
+export function yourTeamTrackLabel(position: number, of: number, track: string): string {
+  return `${ordinal(position)} of ${of} in ${track}`;
+}
+
+/**
+ * The page header's subtitle. Once results are published it says so to
+ * everyone, and names the viewer's own project when they are on a ranked
+ * team; before that, the live event's prompt or the closed event's record
+ * line as before. `projectName` is only ever a ranked team's — the caller
+ * passes `null` for an unranked or absent team, so the subtitle never
+ * promises a result the page does not show.
+ */
+export function resultsSubtitle(input: {
+  cohortActive: boolean;
+  published: boolean;
+  projectName: string | null;
+}): string {
+  if (input.published) {
+    return input.projectName ? `Results are in. Here is how ${input.projectName} did.` : "Results are in.";
+  }
+  return input.cohortActive
+    ? "Complete your matching profile, then check back here for your team."
+    : "The event has wrapped — this is your record of it.";
+}
+
+/**
+ * The one line an unranked viewer sees in place of "your team": only when
+ * they had a team (a team that never reached the ranking did not submit,
+ * or was not scored); a member with no team is told nothing, since there
+ * is nothing to explain.
+ */
+export function didNotSubmitLine(hadTeam: boolean): string | null {
+  return hadTeam ? "Your team did not submit, so it is not ranked." : null;
 }
 
 /**

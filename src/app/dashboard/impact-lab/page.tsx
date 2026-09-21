@@ -11,7 +11,10 @@ import { resolveRubric } from "@/lib/impact-lab/rubric-store";
 import { totalOutOf } from "@/lib/impact-lab/judging";
 import { getConversationsReportForEvent } from "@/lib/conversations/queries";
 import { VerifyEmailBanner } from "../VerifyEmailBanner";
+import { extractFrozenTeams } from "@/lib/impact-lab/member";
+import { isResultsSnapshot, type ResultsSnapshot } from "@/lib/impact-lab/results";
 import { ImpactLabClient } from "./ImpactLabClient";
+import { resultsSubtitle } from "./resultsViewCopy";
 
 export const metadata: Metadata = {
   title: "Impact Lab | Claude Community Kenya",
@@ -72,6 +75,25 @@ export default async function ImpactLabPage({
         dates: activeEvent.dates,
       }
     : null;
+  // Whether this event's results are out, and the viewer's own ranked
+  // project if so — for the header line only. The client fetches the full
+  // payload itself; this reads just enough of the same published run to
+  // say "Results are in" above it on first paint, and never an unpublished
+  // snapshot (the guard is the results route's own).
+  const finalRun = activeEvent
+    ? await prisma.impactLabMatchRun.findFirst({
+        where: { cohort: activeEvent.cohort, isFinal: true },
+        orderBy: { createdAt: "desc" },
+        select: { result: true, resultsPublishedAt: true, resultsSnapshot: true },
+      })
+    : null;
+  const resultsPublished = Boolean(finalRun?.resultsPublishedAt && isResultsSnapshot(finalRun.resultsSnapshot));
+  let viewerProject: string | null = null;
+  if (resultsPublished && finalRun && picked) {
+    const snapshot = finalRun.resultsSnapshot as unknown as ResultsSnapshot;
+    const team = extractFrozenTeams(finalRun.result)?.find((t) => t.memberIds.includes(picked.participantId));
+    viewerProject = team ? (snapshot.ranking.find((r) => r.teamId === team.id)?.projectName ?? null) : null;
+  }
   const fullRubric = activeEvent ? await resolveRubric(activeEvent.cohort) : null;
   const rubric = fullRubric
     ? {
@@ -101,9 +123,7 @@ export default async function ImpactLabPage({
             {cohortActive && activeEvent?.name ? activeEvent.name : "Impact Lab Hackathon"}
           </h1>
           <p className="mt-2 font-mono text-sm text-text-dim">
-            {cohortActive
-              ? "Complete your matching profile, then check back here for your team."
-              : "The event has wrapped — this is your record of it."}
+            {resultsSubtitle({ cohortActive: Boolean(cohortActive), published: resultsPublished, projectName: viewerProject })}
           </p>
         </header>
 

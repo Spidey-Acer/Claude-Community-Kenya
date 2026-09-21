@@ -11,6 +11,9 @@ import {
   type TeamFeedback,
 } from "@/lib/impact-lab/results"
 import { serializeRubric } from "@/lib/impact-lab/judging"
+import { resultCardUrl } from "@/lib/impact-lab/result-card"
+import { buildWinnerCards, buildYourTeamCards } from "@/lib/impact-lab/results-cards"
+import { APP_URL } from "@/lib/email"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { presentableJudgeNote, publishableReview } from "@/lib/impact-lab/reviews"
 
@@ -134,9 +137,25 @@ export async function GET(request: NextRequest) {
     feedback = { judgeNotes, review: publishableReview(reviewRow) }
   }
 
+  // The Build Day cards, by public URL. Derived here because the slug needs
+  // the signing secret (`resultCardUrl`); without one there are no cards
+  // and the page shows names alone. Every winner's card is public by link
+  // already (the winner posts it), so handing a signed-in member those
+  // links widens who holds them, not what they show.
+  const payload = buildMemberPayload(snapshot, viewerTeamId, feedback)
+  const eventName = displayName ?? displayCohort
+  const cardUrlFor = (teamId: string) => resultCardUrl(APP_URL, run.id, teamId)
+  if (payload.results) {
+    payload.results.cards = buildWinnerCards(snapshot, eventName, cardUrlFor)
+  }
+  if (payload.yourTeam && viewerTeamId) {
+    const cards = buildYourTeamCards(snapshot, viewerTeamId, eventName, cardUrlFor(viewerTeamId))
+    if (cards) payload.yourTeam.cards = cards
+  }
+
   return NextResponse.json({
-    ...buildMemberPayload(snapshot, viewerTeamId, feedback),
-    eventName: displayName ?? displayCohort,
+    ...payload,
+    eventName,
     eventCohort: displayCohort,
     rubric,
   })
