@@ -22,7 +22,7 @@
  */
 
 import { trackOf, type TeamStanding } from "./judging"
-import { placementFor } from "./result-card"
+import type { Placement } from "./result-card"
 import type { WinnerCards, YourTeamCards } from "./results-cards"
 import { REVIEW_SIGNATURE, type TeamJudgeNote } from "./reviews"
 
@@ -351,6 +351,43 @@ export function buildTrackWinners(
 
 /** A ranking row as participants may receive it. */
 export type PublicRankedTeam = Omit<RankedTeam, "average">
+
+/**
+ * A team's placing within its track, or `null` when the snapshot does not
+ * mention the team at all (never submitted, or a stale id).
+ *
+ * Position is the team's index among the ranking rows that share its track,
+ * in ranking order — announced winners first, then by score — which is
+ * exactly how `buildTrackWinners` picks a track's winner. One deliberate
+ * extra: the entry named in `snapshot.trackWinners` is moved to the front of
+ * its track before positions are counted. For `announced`/`score` winners
+ * that is a no-op; for an `organiser`-assigned winner it is what keeps
+ * position 1 equal to the track winner every other artefact names, so no
+ * team is ever told "runner-up" under a headline that crowns it.
+ */
+export function placementFor(snapshot: ResultsSnapshot, teamId: string): Placement | null {
+  const row = snapshot.ranking.find((r) => r.teamId === teamId)
+  if (!row) {
+    const unranked = (snapshot.unranked ?? []).find((u) => u.teamId === teamId)
+    return unranked ? { kind: "participant", track: unranked.track } : null
+  }
+
+  const inTrack = snapshot.ranking.filter((r) => r.track === row.track)
+  const winnerId = snapshot.trackWinners.find((w) => w.track === row.track)?.teamId
+  const ordered =
+    winnerId && inTrack.some((r) => r.teamId === winnerId)
+      ? [...inTrack.filter((r) => r.teamId === winnerId), ...inTrack.filter((r) => r.teamId !== winnerId)]
+      : inTrack
+
+  return {
+    kind: "ranked",
+    track: row.track,
+    position: ordered.findIndex((r) => r.teamId === teamId) + 1,
+    of: ordered.length,
+    overallRank: row.rank,
+    announced: snapshot.overall.some((w) => w.teamId === teamId),
+  }
+}
 
 /**
  * A ranking row as the member results page shows it: the public row plus
