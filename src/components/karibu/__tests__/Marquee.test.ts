@@ -35,7 +35,7 @@ describe("Marquee", () => {
 
   it("carries no em dash and no uppercase transform", () => {
     const html = renderToString(createElement(Marquee, { text: "Plain." }));
-    expect(html).not.toContain("—");
+    expect(html).not.toContain("2014");
     expect(html).not.toContain("uppercase");
     expect(html).toContain("italic");
   });

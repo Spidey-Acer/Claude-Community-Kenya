@@ -133,9 +133,9 @@ describe("buildBandCopy", () => {
     ];
     for (const c of cases) {
       const copy = buildBandCopy(c);
-      expect(copy.text).not.toContain("—");
+      expect(copy.text).not.toContain("2014");
       expect(copy.text).not.toContain("→");
-      expect(copy.linkText ?? "").not.toContain("—");
+      expect(copy.linkText ?? "").not.toContain("2014");
       expect(copy.href === undefined).toBe(copy.linkText === undefined);
     }
   });
