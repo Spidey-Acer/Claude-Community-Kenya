@@ -71,6 +71,11 @@ export interface ResultsViewProps {
   rubric: SerializedRubric;
 }
 
+const ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" };
+function ordinal(rank: number): string {
+  return ORDINALS[rank] ?? `${rank}th`;
+}
+
 // Spelled out, matching the original Impact Lab copy's "same five criteria"
 // rather than switching to a numeral once a second rubric exists.
 const CRITERIA_COUNT_WORDS: Record<number, string> = {
@@ -344,15 +349,23 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
       {/* ── 3. Full ranking ────────────────────────────────────────────── */}
       <motion.section variants={item} aria-label="Full ranking">
         <h2 className={`mb-3 ${SECTION_LABEL}`}>{"// ./full-ranking"}</h2>
+        {/* Four columns from sm up. At phone width the track and the track
+            position fold into the project cell as a second line, so the
+            table needs no sideways scroll and nothing is hidden. */}
         <div className="overflow-x-auto rounded-lg border border-border-default">
-          <table className="w-full min-w-[520px] border-collapse">
+          <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border-default bg-bg-secondary">
-                {["Position", "Project", "Track", "Track position"].map((h) => (
+                {[
+                  ["Position", ""],
+                  ["Project", ""],
+                  ["Track", "hidden sm:table-cell"],
+                  ["Track position", "hidden sm:table-cell"],
+                ].map(([h, extra]) => (
                   <th
                     key={h}
                     scope="col"
-                    className="whitespace-nowrap px-4 py-2.5 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-text-dim"
+                    className={`whitespace-nowrap px-4 py-2.5 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-text-dim ${extra}`}
                   >
                     {h}
                   </th>
@@ -362,9 +375,10 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
             <tbody className="divide-y divide-border-default">
               {results.ranking.map((row) => {
                 const isSelf = row.teamId === yourTeam?.teamId;
+                const trackPosition = `${ordinal(row.trackPosition)} of ${row.trackOf}`;
                 return (
                   <tr key={row.teamId} className={isSelf ? "bg-green-primary/10" : undefined}>
-                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-dim">{row.rank}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 align-top font-mono text-xs text-text-dim">{row.rank}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-text-primary">
                       <span className="inline-flex flex-wrap items-center gap-2">
                         {row.projectName}
@@ -379,11 +393,12 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
                           </span>
                         )}
                       </span>
+                      <span className="mt-1 block font-mono text-[11px] text-text-dim sm:hidden">
+                        {row.track} &middot; {trackPosition}
+                      </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary">{row.track}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary">
-                      {row.trackPosition === 1 ? "1st" : row.trackPosition === 2 ? "2nd" : row.trackPosition === 3 ? "3rd" : `${row.trackPosition}th`} of {row.trackOf}
-                    </td>
+                    <td className="hidden whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary sm:table-cell">{row.track}</td>
+                    <td className="hidden whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary sm:table-cell">{trackPosition}</td>
                   </tr>
                 );
               })}
