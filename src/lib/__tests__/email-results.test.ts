@@ -62,9 +62,11 @@ describe("impactLabResultsEmail variants", () => {
 
   it("champion: gold hero reading CHAMPION, not the track", () => {
     const { html } = build({ champion: true, announcementMode: "champion", overall: [OVERALL[0]] })
-    expect(html).toContain(">CHAMPION<")
+    // The hero's placing line is the 13px one; the winners strip lower down
+    // prints the track winners at 9px.
+    expect(html).toMatch(/font-size:13px;[^>]*>CHAMPION</)
     expect(html).toContain("background-color:#D4AF37")
-    expect(html).not.toContain("WINNER<")
+    expect(html).not.toMatch(/font-size:13px;[^>]*WINNER</)
   })
 
   it("runner-up and third place: graphite and bronze heroes with the card's lines and their subjects", () => {
@@ -88,9 +90,7 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("/images/buildday/mark-poster.png")
     expect(html).toContain(">BUILT AT IMPACT LAB: AI MASHINANI 02<")
     expect(html).not.toContain("You built this")
-    expect(html).not.toContain("WINNER<")
-    expect(html).not.toContain("RUNNER-UP")
-    expect(html).not.toContain("THIRD IN")
+    expect(html).not.toMatch(/font-size:13px;[^>]*>[^<]*(WINNER|RUNNER-UP|THIRD IN)[^<]*</)
     // Their own position still sits on the private scores block.
     expect(html).toContain("7th overall &middot; 4th of 4 in Kilimo: Nitapata?")
   })
@@ -246,9 +246,30 @@ describe("impactLabResultsEmail content rules", () => {
 
   it("renders nothing for winners when none were announced", () => {
     const { html } = build({ overall: [], trackWinners: [] })
-    expect(html).not.toContain("Overall winners")
-    expect(html).not.toContain("Track winners")
+    expect(html).not.toContain("The winners")
+    expect(html).not.toContain("That is you.")
     expect(html).toContain("Every project was ranked by score")
+  })
+
+  it("podium mode: the winners strip carries the podium on gold, graphite and bronze, then the track winners", () => {
+    const { html } = build({ teamId: "k2", placement: ranked(2), rank: 3 })
+    const strip = html.slice(html.indexOf("The winners"))
+    expect(strip).toMatch(/background-color:#D4AF37;[^>]*>[\s\S]*?>WINNER<[\s\S]*?>Shamba Bot</)
+    expect(strip).toMatch(/background-color:#2A2A2E;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
+    expect(strip).toMatch(/background-color:#7A4630;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
+    expect(strip).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
+    expect(strip).toContain(">KILIMO: NITAPATA? WINNER<")
+    expect(strip).not.toMatch(/>\d+\.?</)
+    expect(strip).not.toContain("—")
+    // k2 is Soko Link, third overall: the note is for them.
+    expect(strip).toContain("That is you.")
+  })
+
+  it("says 'That is you.' only when the reader's team is on the strip", () => {
+    expect(build({ teamId: "k1" }).html).toContain("That is you.")
+    expect(build({ teamId: "k9", placement: ranked(4, 4, 7, false), rank: 7 }).html).not.toContain("That is you.")
+    // No team id (the test send's sample card): no note either way.
+    expect(build().html).not.toContain("That is you.")
   })
 
   it("never claims an overall placing in the recipient's own scores line or hero pill when none was announced", () => {
@@ -293,16 +314,25 @@ describe("impactLabResultsEmail — champion mode", () => {
     { track: "Kilimo: Nitapata?", teamId: "k1", projectName: "Shamba Bot", basis: "announced" as const },
   ]
 
-  it("the champion's own email: 'Overall champion' singular, not the plural podium table, and claims its overall rank", () => {
+  it("the champion's own email: a CHAMPION cell first, every track winner after it, and its overall rank", () => {
     const { html } = build({
       announcementMode: "champion",
       overall: CHAMPION_OVERALL,
       trackWinners: CHAMPION_TRACK_WINNERS,
       placement: ranked(1),
       rank: 1,
+      teamId: "k1",
     })
-    expect(html).toContain("Overall champion")
-    expect(html).not.toContain("Overall winners")
+    const strip = html.slice(html.indexOf("The winners"))
+    const champion = strip.indexOf(">CHAMPION<")
+    expect(champion).toBeGreaterThan(0)
+    expect(strip.slice(champion)).toMatch(/^>CHAMPION<[\s\S]*?>Shamba Bot</)
+    expect(strip.indexOf(">ELIMU: MWALIMU WA GRADE 10 WINNER<")).toBeGreaterThan(champion)
+    expect(strip).toMatch(/>ELIMU: MWALIMU WA GRADE 10 WINNER<[\s\S]*?>Mwalimu AI</)
+    expect(strip).toMatch(/>KILIMO: NITAPATA\? WINNER<[\s\S]*?>Shamba Bot</)
+    // Champion mode has no plural podium.
+    expect(strip).not.toContain(">RUNNER-UP<")
+    expect(strip).toContain("That is you.")
     expect(html).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
     expect(html).toContain(">1st overall<") // hero pill
   })

@@ -574,10 +574,6 @@ const DARK = {
   orangeHover: "#E58A6B",
   /** Text on the orange share button. */
   ink: "#16140F",
-  /** Rank colours in the overall-winners list. */
-  rankGold: "#C9A227",
-  rankSilver: "#C0C0C8",
-  rankBronze: "#B87333",
   /** Community review card's border — a gold hairline, mixed to a solid hex rather than an alpha colour so Outlook renders it too. */
   goldHairline: "#5A4A1E",
 } as const
@@ -636,6 +632,12 @@ export function impactLabResultsEmail(data: {
   projectName: string
   /** The team's internal name ("Kilimo 3"), shown beside its table. */
   teamName: string
+  /**
+   * The team's id in the snapshot, so the winners strip can say "That is
+   * you." when the reader's team is on it. Optional: the test send's sample
+   * team has no id and gets no note.
+   */
+  teamId?: string
   /** The venue table the team built at, or null on runs saved before tables existed. */
   table: number | null
   /** The event's display name, e.g. "Impact Lab: AI Mashinani 02". */
@@ -841,59 +843,73 @@ export function impactLabResultsEmail(data: {
 
   // ── Winners ──────────────────────────────────────────────────────────────
   // Publishing with zero announced winners is a legal (if unusual) state —
-  // the publish panel warns rather than blocks it. Guard each block the same
-  // way ResultsView.tsx does, so an empty list renders nothing rather than an
-  // empty heading, and so the note below never claims a panel decision that
-  // didn't happen.
-  // Same gold/silver/bronze as the hero pills — a rank past 3rd (should the
-  // panel ever announce more) falls back to plain cream rather than an
-  // undefined colour.
-  const rankColor = (rank: number): string =>
-    rank === 1 ? DARK.rankGold : rank === 2 ? DARK.rankSilver : rank === 3 ? DARK.rankBronze : DARK.text
-
-  // A champion is one team, not a plural list with one row under it — the
-  // heading and the row both say so, with no ordinal cell (there is nothing
-  // to rank a single champion against). Podium mode keeps its plural table,
-  // ranks and all, however many winners were actually announced (a genuine
-  // 1-winner podium is still a podium, not a champion).
+  // the publish panel warns rather than blocks it. An empty list renders
+  // nothing rather than an empty heading, so the note below never claims a
+  // panel decision that didn't happen.
+  //
+  // One strip of mini cards in the share-card system: the champion (or the
+  // overall podium, in podium mode) first, then every track winner, each on
+  // the surface its own card gets. Cells are fixed-width inline-block
+  // tables so Gmail lays them out in a row that wraps on a phone; Outlook
+  // ignores inline-block and stacks them one per row, which is the fallback
+  // the design allows. Four cells of 126px plus their margins (520px) sit
+  // inside the 536px inner column with room for rounding, and a 480px
+  // client wraps after three.
+  const CELL_WIDTH = 126
+  type WinnerCell = { teamId: string; placing: string; projectName: string; position: 1 | 2 | 3 | 4 }
+  const cells: WinnerCell[] =
+    mode === "champion"
+      ? data.overall.slice(0, 1).map((w) => ({ teamId: w.teamId, placing: "CHAMPION", projectName: w.projectName, position: 1 as const }))
+      : data.overall.map((w) => ({
+          teamId: w.teamId,
+          placing:
+            w.rank === 1 ? "WINNER" : w.rank === 2 ? "RUNNER-UP" : w.rank === 3 ? "THIRD PLACE" : `${resultsOrdinal(w.rank).toUpperCase()} OVERALL`,
+          projectName: w.projectName,
+          position: w.rank === 1 ? 1 : w.rank === 2 ? 2 : w.rank === 3 ? 3 : 4,
+        }))
+  for (const w of data.trackWinners) {
+    cells.push({ teamId: w.teamId, placing: `${w.track.toUpperCase()} WINNER`, projectName: w.projectName, position: 1 })
+  }
+  // The same surfaces as the hero, by position; a rank past third (should a
+  // panel ever announce one) sits on the card's plain dark panel.
+  const cellSurface = (position: WinnerCell["position"]) =>
+    position === 1
+      ? { fallback: CARD_GOLD.mid, gradient: `linear-gradient(165deg, ${CARD_GOLD.from} 0%, ${CARD_GOLD.mid} 55%, ${CARD_GOLD.to} 100%)`, text: CARD_POSTER.ink }
+      : position === 2
+        ? { fallback: CARD_GRAPHITE.from, gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`, text: CARD_POSTER.paper }
+        : position === 3
+          ? { fallback: CARD_BRONZE.to, gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`, text: CARD_POSTER.paper }
+          : { fallback: DARK.card, gradient: "none", text: DARK.text }
+  const readerIsAWinner = data.teamId !== undefined && cells.some((c) => c.teamId === data.teamId)
   const winnersSection =
-    mode === "champion" && data.overall.length > 0
+    cells.length > 0
       ? `
-            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">Overall champion</p>
-            <p style="margin:0 0 20px;font-family:${DISPLAY_FONT};font-size:16px;line-height:1.4;color:${DARK.text};">${esc(data.overall[0].projectName)}</p>`
-      : data.overall.length > 0
-        ? `
-            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">Overall winners</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
-              ${data.overall
-                .map(
-                  (w) => `
+            <p style="margin:0 0 10px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">The winners</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${readerIsAWinner ? 8 : 28}px;">
               <tr>
-                <td style="padding:7px 0;border-bottom:1px solid ${DARK.hairline};font-family:${DISPLAY_FONT};font-size:15px;color:${rankColor(w.rank)};white-space:nowrap;width:52px;vertical-align:top;">${esc(resultsOrdinal(w.rank))}</td>
-                <td style="padding:7px 0;border-bottom:1px solid ${DARK.hairline};font-family:${BODY_FONT};font-size:14px;line-height:1.4;color:${DARK.text};">${esc(w.projectName)}</td>
-              </tr>`
-                )
-                .join("")}
-            </table>`
-        : ""
-
-  const trackSection =
-    data.trackWinners.length > 0
-      ? `
-            <p style="margin:0 0 8px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${DARK.orange};">Track winners</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
-              ${data.trackWinners
-                .map(
-                  (w) => `
-              <tr>
-                <td style="padding:7px 0;border-bottom:1px solid ${DARK.hairline};font-family:${BODY_FONT};font-size:12px;line-height:1.4;color:${DARK.muted};vertical-align:top;width:170px;">${esc(w.track)}</td>
-                <td style="padding:7px 0;border-bottom:1px solid ${DARK.hairline};font-family:${BODY_FONT};font-size:14px;line-height:1.4;color:${DARK.text};">${esc(w.projectName)}</td>
-              </tr>`
-                )
-                .join("")}
-            </table>`
+                <td align="center" style="text-align:center;font-size:0;line-height:0;">
+                  ${cells
+                    .map((c) => {
+                      const surface = cellSurface(c.position)
+                      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${CELL_WIDTH}" style="display:inline-block;width:${CELL_WIDTH}px;vertical-align:top;margin:0 2px 6px;">
+                    <tr>
+                      <td bgcolor="${surface.fallback}" style="width:${CELL_WIDTH}px;background-color:${surface.fallback};background-image:${surface.gradient};border-radius:8px;padding:14px 10px 16px;text-align:center;vertical-align:top;">
+                        <p style="margin:0 0 6px;min-height:24px;font-family:${BODY_FONT};font-size:9px;line-height:1.3;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:${surface.text};text-align:center;">${esc(c.placing)}</p>
+                        <p style="margin:0;font-family:${DISPLAY_FONT};font-size:18px;line-height:1.2;color:${surface.text};text-align:center;">${esc(c.projectName)}</p>
+                      </td>
+                    </tr>
+                  </table>`
+                    })
+                    .join("")}
+                </td>
+              </tr>
+            </table>${
+              readerIsAWinner
+                ? `
+            <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${DARK.orange};text-align:center;">That is you.</p>`
+                : ""
+            }`
       : ""
-
   // Spelled out, matching the original Impact Lab copy's "same five criteria"
   // rather than switching to a numeral once a second rubric exists.
   const CRITERIA_COUNT_WORDS: Record<number, string> = {
@@ -1109,7 +1125,6 @@ export function impactLabResultsEmail(data: {
             <p style="margin:0 0 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.7;color:${DARK.muted};">${note}</p>
 
             ${winnersSection}
-            ${trackSection}
 
             ${shareButton}
             ${dashboardButton}

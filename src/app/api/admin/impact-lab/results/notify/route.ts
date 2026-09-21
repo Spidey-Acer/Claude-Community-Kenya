@@ -320,6 +320,7 @@ export async function POST(request: NextRequest) {
       fullName: nameById.get(row.participantId) ?? "there",
       projectName: rankingRow.projectName,
       teamName: team.name,
+      teamId: team.id,
       table: team.table ?? null,
       eventName,
       eventDates: event?.dates ?? "",
