@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBandCopy,
   isWithinRecentWindow,
+  shortEventLabel,
   spellNumber,
   weekdayDayMonth,
   type BandCopyInput,
@@ -10,8 +11,9 @@ import {
 // A Sunday morning in Nairobi, one day after Build Day.
 const NOW = new Date("2026-09-21T06:00:00Z");
 
-const buildDay = { slug: "nairobi-build-day-2026", title: "Nairobi Build Day", date: "2026-09-20" };
-const meetup = { slug: "claude-conversations-nairobi", title: "Claude Conversations", date: "2026-09-12" };
+// The real admin title: city-namespaced, and it already names the model.
+const buildDay = { slug: "nairobi-build-day-2026", title: "Nairobi | Fable 5.1 Build Day", date: "2026-09-20" };
+const meetup = { slug: "claude-conversations-nairobi", title: "Nairobi | Claude Conversations", date: "2026-09-12" };
 const upcoming = { slug: "mombasa-meetup-october", title: "Mombasa Meetup", date: "2026-10-03" };
 
 function input(overrides: Partial<BandCopyInput>): BandCopyInput {
@@ -38,6 +40,33 @@ describe("spellNumber", () => {
   it("leaves non-integers and negatives alone", () => {
     expect(spellNumber(2.5)).toBe("2.5");
     expect(spellNumber(-3)).toBe("-3");
+  });
+});
+
+describe("shortEventLabel", () => {
+  it("drops the city pipe and a phrase the sentence already used", () => {
+    expect(shortEventLabel("Nairobi | Fable 5.1 Build Day", ["Fable 5.1"])).toBe("Nairobi Build Day");
+  });
+
+  it("keeps the words after the pipe when nothing was said before", () => {
+    expect(shortEventLabel("Nairobi | Claude Conversations")).toBe("Nairobi Claude Conversations");
+  });
+
+  it("leaves a title with no pipe alone", () => {
+    expect(shortEventLabel("Mombasa Meetup")).toBe("Mombasa Meetup");
+    expect(shortEventLabel("Mombasa Meetup", ["Fable 5.1"])).toBe("Mombasa Meetup");
+  });
+
+  it("does not repeat the city when the title already does, and matches case-insensitively", () => {
+    expect(shortEventLabel("Nairobi | Nairobi Build Day")).toBe("Nairobi Build Day");
+    expect(shortEventLabel("Nairobi | FABLE 5.1 Build Day", ["fable 5.1"])).toBe("Nairobi Build Day");
+  });
+
+  it("keeps the title rather than emptying it, and squashes stray spacing", () => {
+    // Removing the phrase would leave nothing to name the event by.
+    expect(shortEventLabel("Nairobi | Fable 5.1", ["Fable 5.1"])).toBe("Nairobi Fable 5.1");
+    expect(shortEventLabel("   Nairobi |  Fable 5.1   Build  Day ", ["Fable 5.1"])).toBe("Nairobi Build Day");
+    expect(shortEventLabel("   ")).toBe("");
   });
 });
 
@@ -71,6 +100,8 @@ describe("buildBandCopy", () => {
     expect(`${copy.text}${copy.linkText}`).toBe(
       "Nineteen teams shipped overnight on Fable 5.1 at Nairobi Build Day. See the winners →",
     );
+    // The model is named once, never twice.
+    expect(copy.text.split("Fable 5.1").length - 1).toBe(1);
     expect(copy.href).toBe("/events/nairobi-build-day-2026#results");
   });
 
@@ -82,7 +113,7 @@ describe("buildBandCopy", () => {
   it("state 1, any other event: generic 'teams shipped' sentence with a results link", () => {
     const copy = buildBandCopy(input({ latestPastEvent: meetup, teamsSubmitted: 7 }));
     expect(copy).toEqual({
-      text: "Claude Conversations: Seven teams shipped. ",
+      text: "Nairobi Claude Conversations: Seven teams shipped. ",
       href: "/events/claude-conversations-nairobi#results",
       linkText: "See the results →",
     });
@@ -92,7 +123,7 @@ describe("buildBandCopy", () => {
     for (const teamsSubmitted of [null, 0]) {
       const copy = buildBandCopy(input({ latestPastEvent: buildDay, teamsSubmitted }));
       expect(copy).toEqual({
-        text: "Nairobi Build Day is done. ",
+        text: "Nairobi Fable 5.1 Build Day is done. ",
         href: "/events/nairobi-build-day-2026",
         linkText: "See what was built →",
       });
@@ -101,7 +132,7 @@ describe("buildBandCopy", () => {
 
   it("state 1 wins over state 2 while the event is inside the window", () => {
     const copy = buildBandCopy(input({ latestPastEvent: meetup, teamsSubmitted: null, nextEvent: upcoming }));
-    expect(copy.text).toBe("Claude Conversations is done. ");
+    expect(copy.text).toBe("Nairobi Claude Conversations is done. ");
   });
 
   it("state 2: an event older than 14 days yields to the next event", () => {

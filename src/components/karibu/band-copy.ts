@@ -122,6 +122,62 @@ export function isWithinRecentWindow(date: string, now: Date): boolean {
   return ageDays >= 0 && ageDays <= RECENT_EVENT_WINDOW_DAYS;
 }
 
+/**
+ * The model the band's Build Day sentence names. Shared with
+ * `shortEventLabel` so the sentence can never say it twice: the admin title
+ * for Build Day is "Nairobi | Fable 5.1 Build Day", and "on Fable 5.1 at
+ * Nairobi | Fable 5.1 Build Day" is what happens when it does.
+ */
+const MODEL_NAME = "Fable 5.1";
+
+/**
+ * Every case-insensitive occurrence of `phrase` removed, matched literally.
+ * Literal rather than a regex because the phrases are event and model names
+ * ("Fable 5.1"), where a dot is a dot.
+ */
+function removePhrase(text: string, phrase: string): string {
+  const haystack = text.toLowerCase();
+  const needle = phrase.toLowerCase();
+  let out = "";
+  let from = 0;
+  for (let at = haystack.indexOf(needle, from); at !== -1; at = haystack.indexOf(needle, from)) {
+    out += `${text.slice(from, at)} `;
+    from = at + needle.length;
+  }
+  return out + text.slice(from);
+}
+
+function squash(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The event as a sentence names it: "Nairobi | Fable 5.1 Build Day" becomes
+ * "Nairobi Build Day".
+ *
+ * Admin titles are namespaced with a leading city and a pipe, which is a
+ * filing device rather than part of the name, and the words after the pipe
+ * may repeat something the sentence has already said. So the label is the
+ * city, then the rest of the title with every phrase in `alreadySaid`
+ * removed. Anything that would leave the label empty is ignored and the
+ * trimmed title stands.
+ */
+export function shortEventLabel(title: string, alreadySaid: readonly string[] = []): string {
+  const full = squash(title);
+  const pipe = full.indexOf("|");
+  const city = pipe === -1 ? "" : squash(full.slice(0, pipe));
+  let rest = squash(pipe === -1 ? full : full.slice(pipe + 1));
+
+  for (const phrase of [...alreadySaid, city]) {
+    if (!phrase) continue;
+    const without = squash(removePhrase(rest, phrase));
+    if (without) rest = without;
+  }
+
+  const label = squash(`${city} ${rest}`);
+  return label || full;
+}
+
 /** Build Day editions get their own wording; every other event is generic. */
 export function isBuildDay(event: Pick<Event, "slug" | "title">): boolean {
   return event.slug.includes("build-day") || /build day/i.test(event.title);
@@ -132,7 +188,11 @@ function recentEventCopy(
   teamsSubmitted: number | null,
 ): BandCopy {
   if (teamsSubmitted === null || teamsSubmitted <= 0) {
-    return { text: `${event.title} is done. `, href: `/events/${event.slug}`, linkText: "See what was built →" };
+    return {
+      text: `${shortEventLabel(event.title)} is done. `,
+      href: `/events/${event.slug}`,
+      linkText: "See what was built →",
+    };
   }
   // A count means results are published, so the link lands on the event
   // page's winners section rather than its top.
@@ -140,13 +200,13 @@ function recentEventCopy(
   const count = capitalise(spellNumber(teamsSubmitted));
   if (isBuildDay(event)) {
     return {
-      text: `${count} teams shipped overnight on Fable 5.1 at ${event.title}. `,
+      text: `${count} teams shipped overnight on ${MODEL_NAME} at ${shortEventLabel(event.title, [MODEL_NAME])}. `,
       href,
       linkText: "See the winners →",
     };
   }
   return {
-    text: `${event.title}: ${count} teams shipped. `,
+    text: `${shortEventLabel(event.title)}: ${count} teams shipped. `,
     href,
     linkText: "See the results →",
   };
@@ -155,7 +215,7 @@ function recentEventCopy(
 /** Every DB event has a slug, so the link is always its own page, never Luma. */
 function nextEventCopy(event: Pick<Event, "slug" | "title" | "date">): BandCopy {
   return {
-    text: `Next: ${event.title}, ${weekdayDayMonth(event.date)}. `,
+    text: `Next: ${shortEventLabel(event.title)}, ${weekdayDayMonth(event.date)}. `,
     href: `/events/${event.slug}`,
     linkText: "Save your seat →",
   };
