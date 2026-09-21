@@ -7,7 +7,7 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
-import { cohortForPublicEvent, linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
+import { linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
 import { findPublicEventResults, hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
 
 export const revalidate = 1800;
@@ -60,40 +60,37 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  // Two resolvers, deliberately. The judges panel may use the loose one: its
-  // whole job is to show a panel on the night, before anybody has wired the
-  // link, and it re-fetches client-side anyway. Anything published off a
-  // snapshot (the winners, the recap link) uses the strict one, because
-  // the loose resolver's LIVE fallback handed the AI Mashinani 02 page Build
-  // Day's champions on 2026-09-21.
-  const isHackathon = Boolean(event.id) && event.type === "hackathon";
-  const judgesCohortPromise =
-    isHackathon && event.id
-      ? cohortForPublicEvent(event.id, event.slug, event.title).catch(() => null)
-      : Promise.resolve(null);
+  // One resolver, and it only accepts a link an organiser actually set.
+  // Everything below that names a cohort (the judges panel, the winners
+  // section, the recap link) is a claim about whose event this is, and the
+  // guess this used to fall back on, "whichever cohort is LIVE", published
+  // the Build Day winners on the AI Mashinani 02 page on 2026-09-21.
+  //
+  // So when `linkedCohort` is null every one of those renders nothing, and
+  // that is why an Impact Lab event page can look bare. It means no cohort
+  // points at this event, not that there were no judges or no winners. The
+  // fix is the link, never a guess: admin, Impact Lab tab, the "Public
+  // page" select on that cohort's row, which sets
+  // `ImpactLabEvent.publicEventId`.
   const linkedCohortPromise =
-    isHackathon && event.id
+    event.id && event.type === "hackathon"
       ? linkedCohortForPublicEvent(event.id, event.slug, event.title).catch(() => null)
       : Promise.resolve(null);
 
-  const [approvedDemos, eventPhotos, openQuestionSession, judgesCohort, linkedCohort] =
-    await Promise.all([
-      event.id
-        ? getApprovedDemosByEventId(event.id).catch(() => [])
-        : Promise.resolve([]),
-      getEventPhotos(event.slug).catch(() => []),
-      event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
-      judgesCohortPromise,
-      linkedCohortPromise,
-    ]);
+  const [approvedDemos, eventPhotos, openQuestionSession, linkedCohort] = await Promise.all([
+    event.id
+      ? getApprovedDemosByEventId(event.id).catch(() => [])
+      : Promise.resolve([]),
+    getEventPhotos(event.slug).catch(() => []),
+    event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
+    linkedCohortPromise,
+  ]);
 
   // Only a cohort that has actually published its results is worth a link —
   // the recap page itself 404s otherwise, and `hasPublishedRecap` is one
   // cheap count rather than fetching the whole recap just to throw it away.
   // The winners section reads the published snapshot itself, in the same
   // await, so a published cohort costs the page no extra sequential trip.
-  // Both read `linkedCohort`: a recap link is a public claim about whose
-  // results these are, exactly like the winners rows.
   const [recapPublished, results] = linkedCohort
     ? await Promise.all([
         hasPublishedRecap(linkedCohort).catch(() => false),
@@ -186,7 +183,7 @@ export default async function EventDetailPage({
         linkedInShareUrl={linkedInShareUrl}
         photos={eventPhotos}
         openQuestionSession={openQuestionSession}
-        judgesCohort={judgesCohort}
+        judgesCohort={linkedCohort}
         recapHref={recapHref}
         results={results}
       />

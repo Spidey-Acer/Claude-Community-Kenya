@@ -381,7 +381,9 @@ model Event {
   /// Impact Lab events that link their matching pool's report back to this
   /// Conversations event. onDelete: SetNull on the child side — deleting the
   /// Conversations event un-links, it never takes the Impact Lab event with it.
-  impactLabEvents      ImpactLabEvent[]
+  impactLabEvents      ImpactLabEvent[] @relation("ImpactLabConversationsEvent")
+  /// Impact Lab cohorts that ran at this event (see ImpactLabEvent.publicEventId).
+  impactLabCohorts     ImpactLabEvent[] @relation("ImpactLabPublicEvent")
 
   @@map("events")
 }
@@ -1189,17 +1191,34 @@ model ImpactLabEvent {
 
   /// The Claude Conversations event whose written report this cohort's
   /// members should see on their dashboard. Null = no linked report.
+  ///
+  /// NOT a "which public page is this cohort" link: it names the event where
+  /// tracks were chosen, which is usually a different row. Use publicEventId
+  /// for the public page.
   conversationsEventId String?
+
+  /// The public `Event` this cohort ran at: the page that may publish its
+  /// winners, and the page its recap links back to.
+  ///
+  /// Added 2026-09-21 because no existing link could express it. The slug is
+  /// immutable, `name` is the masthead on the cohort's exports and emails so
+  /// it cannot be bent to match a public title, and `conversationsEventId`
+  /// means something else and was already taken. Without it, AI Mashinani 02
+  /// could only be resolved by the LIVE guess, which is how the Build Day
+  /// winners came to be published on its page.
+  publicEventId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organisation       Organisation @relation(fields: [organisationId], references: [id])
-  conversationsEvent Event?       @relation(fields: [conversationsEventId], references: [id], onDelete: SetNull)
+  conversationsEvent Event?       @relation("ImpactLabConversationsEvent", fields: [conversationsEventId], references: [id], onDelete: SetNull)
+  publicEvent        Event?       @relation("ImpactLabPublicEvent", fields: [publicEventId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
   @@index([status])
   @@index([conversationsEventId])
+  @@index([publicEventId])
   @@map("impact_lab_events")
 }
 
