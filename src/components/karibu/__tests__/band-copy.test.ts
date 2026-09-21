@@ -71,7 +71,7 @@ describe("buildBandCopy", () => {
     expect(`${copy.text}${copy.linkText}`).toBe(
       "Nineteen teams shipped overnight on Fable 5.1 at Nairobi Build Day. See the winners →",
     );
-    expect(copy.href).toBe("/events/nairobi-build-day-2026");
+    expect(copy.href).toBe("/events/nairobi-build-day-2026#results");
   });
 
   it("state 1, Build Day: a different count changes the number, not the sentence", () => {
@@ -83,7 +83,7 @@ describe("buildBandCopy", () => {
     const copy = buildBandCopy(input({ latestPastEvent: meetup, teamsSubmitted: 7 }));
     expect(copy).toEqual({
       text: "Claude Conversations: Seven teams shipped. ",
-      href: "/events/claude-conversations-nairobi",
+      href: "/events/claude-conversations-nairobi#results",
       linkText: "See the results →",
     });
   });

@@ -131,10 +131,12 @@ function recentEventCopy(
   event: Pick<Event, "slug" | "title">,
   teamsSubmitted: number | null,
 ): BandCopy {
-  const href = `/events/${event.slug}`;
   if (teamsSubmitted === null || teamsSubmitted <= 0) {
-    return { text: `${event.title} is done. `, href, linkText: "See what was built →" };
+    return { text: `${event.title} is done. `, href: `/events/${event.slug}`, linkText: "See what was built →" };
   }
+  // A count means results are published, so the link lands on the event
+  // page's winners section rather than its top.
+  const href = `/events/${event.slug}#results`;
   const count = capitalise(spellNumber(teamsSubmitted));
   if (isBuildDay(event)) {
     return {
