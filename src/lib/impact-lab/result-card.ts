@@ -366,8 +366,19 @@ export const CARD_GOLD = {
  */
 export const CARD_POSTER = { clay: CARD_DARK.orange, ink: "#141413", paper: "#FAF9F5" } as const
 
-/** Runner-up graphite, top to bottom, plus its silver pill colour. */
-export const CARD_GRAPHITE = { from: "#2A2A2E", to: "#3A3A40", silver: "#C0C0C8" } as const
+/**
+ * Runner-up silver — metallic, on the same 165deg diagonal as the gold and
+ * with the same faint top-left highlight, so the two read as one family.
+ * Ink text, like gold. Replaces the flat graphite that read as matte next
+ * to the gold (Build Day, 2026-09-21).
+ */
+export const CARD_SILVER = {
+  from: "#8E8E96",
+  mid: "#C9C9D1",
+  to: "#F2F2F6",
+  radialHighlight: "rgba(255, 255, 255, 0.10)",
+  ink: "#141413",
+} as const
 
 /**
  * Third-place bronze, top to bottom. Copper-red rather than warm brown: the
@@ -388,7 +399,7 @@ export type CardStyle = {
   /**
    * Eyebrow, pill border/text and rule colour. Clay (`#A84E2D`) on the gold
    * winner surface, where the brighter Claude orange loses contrast against
-   * gold's own warmth; the brand orange everywhere else (graphite, bronze,
+   * gold's own warmth; the brand orange everywhere else (bronze,
    * built), which is dark enough to read against those surfaces.
    */
   accent: string
@@ -425,12 +436,12 @@ export function cardStyleForTitle(title: string): CardStyle {
   if (title === "Runner-up") {
     return {
       kind: "runner-up",
-      gradient: [CARD_GRAPHITE.from, CARD_GRAPHITE.to],
-      angle: "to bottom",
-      ink: CARD_DARK.text,
-      muted: CARD_DARK.muted,
-      accent: CARD_DARK.orange,
-      pill: { label: "2nd in track", color: CARD_GRAPHITE.silver },
+      gradient: [CARD_SILVER.from, CARD_SILVER.mid, CARD_SILVER.to],
+      angle: "165deg",
+      ink: CARD_SILVER.ink,
+      muted: CARD_SILVER.ink,
+      accent: CARD_DARK.clay,
+      pill: { label: "2nd in track", color: CARD_DARK.clay },
     }
   }
   if (title === "Third place") {

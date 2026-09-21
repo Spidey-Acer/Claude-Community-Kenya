@@ -15,7 +15,7 @@ import {
 import {
   CARD_BRONZE,
   CARD_GOLD,
-  CARD_GRAPHITE,
+  CARD_SILVER,
   CARD_POSTER,
   cardPlacingLine,
   isPodium,
@@ -565,7 +565,7 @@ const DARK = {
   hairline: "#2A261E",
   /** Primary text on dark surfaces. */
   text: "#F4EEE3",
-  /** Secondary text (criterion labels, hero eyebrows on graphite/bronze). */
+  /** Secondary text (criterion labels). */
   muted: "#B8AE9C",
   /** Tertiary text (range line, footer). */
   dim: "#7C7365",
@@ -595,7 +595,7 @@ const BODY_FONT = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helveti
  * `placement` (see `placementFor` in @/lib/impact-lab/result-card):
  *
  * - Track winner — a gold gradient hero: "Winner", the track, the project.
- * - Runner-up — the same hero on a graphite gradient, silver pill.
+ * - Runner-up — the same hero on a metallic silver gradient.
  * - Third place — the same hero on a bronze gradient.
  * - Everyone else — an elevated dark panel with an orange left rule that
  *   reads as achievement: "You built <project> at <event>". No placing is
@@ -745,11 +745,11 @@ export function impactLabResultsEmail(data: {
     .join(" &middot; ")
 
   // Surface by placing, as `surfaceFor` in card-render.tsx: gold for a
-  // winner (the champion is a winner too), graphite for the runner-up,
+  // winner (the champion is a winner too), silver for the runner-up,
   // bronze for third, the poster's flat clay for everyone who built. Each
   // gradient carries a solid fallback (Gmail drops `background-image`;
   // Outlook renders neither and falls back to `bgcolor`). Text mirrors the
-  // card: ink on clay and gold, paper on graphite and bronze — and on clay
+  // card: ink on clay, gold and silver, paper on bronze — and on clay
   // the serif line is ink while the sans lines are paper, as on the poster.
   const surface =
     ranked && ranked.position === 1
@@ -762,11 +762,11 @@ export function impactLabResultsEmail(data: {
         }
       : ranked && ranked.position === 2
         ? {
-            fallback: CARD_GRAPHITE.from,
-            gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`,
-            serif: CARD_POSTER.paper,
-            sans: CARD_POSTER.paper,
-            mark: "paper",
+            fallback: CARD_SILVER.mid,
+            gradient: `linear-gradient(165deg, ${CARD_SILVER.from} 0%, ${CARD_SILVER.mid} 55%, ${CARD_SILVER.to} 100%)`,
+            serif: CARD_SILVER.ink,
+            sans: CARD_SILVER.ink,
+            mark: "ink",
           }
         : ranked && ranked.position === 3
           ? {
@@ -897,7 +897,7 @@ export function impactLabResultsEmail(data: {
     position === 1
       ? { fallback: CARD_GOLD.mid, gradient: `linear-gradient(165deg, ${CARD_GOLD.from} 0%, ${CARD_GOLD.mid} 55%, ${CARD_GOLD.to} 100%)`, text: CARD_POSTER.ink }
       : position === 2
-        ? { fallback: CARD_GRAPHITE.from, gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`, text: CARD_POSTER.paper }
+        ? { fallback: CARD_SILVER.mid, gradient: `linear-gradient(165deg, ${CARD_SILVER.from} 0%, ${CARD_SILVER.mid} 55%, ${CARD_SILVER.to} 100%)`, text: CARD_SILVER.ink }
         : position === 3
           ? { fallback: CARD_BRONZE.to, gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`, text: CARD_POSTER.paper }
           : { fallback: DARK.card, gradient: "none", text: DARK.text }

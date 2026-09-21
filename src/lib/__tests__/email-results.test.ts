@@ -74,12 +74,12 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toContain("1st of 19 overall &middot;")
   })
 
-  it("runner-up and third place: graphite and bronze heroes with the card's lines and their subjects", () => {
+  it("runner-up and third place: silver and bronze heroes with the card's lines and their subjects", () => {
     const second = build({ placement: ranked(2), rank: 3 })
     expect(second.subject).toBe("Runner-up in Kilimo: Nitapata? at Impact Lab: AI Mashinani 02")
     expect(second.html).toContain(">RUNNER-UP IN KILIMO: NITAPATA?<")
-    expect(second.html).toContain("background-color:#2A2A2E")
-    expect(second.html).toContain("/images/buildday/mark-paper.png")
+    expect(second.html).toContain("background-color:#C9C9D1")
+    expect(second.html).toContain("/images/buildday/mark-ink.png")
     expect(second.html).toContain("2nd of 4 in Kilimo: Nitapata?")
 
     const third = build({ placement: ranked(3), rank: 5 })
@@ -289,11 +289,11 @@ describe("impactLabResultsEmail content rules", () => {
     expect(html).toContain("Every project was ranked by score")
   })
 
-  it("podium mode: the winners strip carries the podium on gold, graphite and bronze, then the track winners", () => {
+  it("podium mode: the winners strip carries the podium on gold, silver and bronze, then the track winners", () => {
     const { html } = build({ teamId: "k2", placement: ranked(2), rank: 3 })
     const strip = html.slice(html.indexOf("The winners"))
     expect(strip).toMatch(/background-color:#D4AF37;[^>]*>[\s\S]*?>WINNER<[\s\S]*?>Shamba Bot</)
-    expect(strip).toMatch(/background-color:#2A2A2E;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
+    expect(strip).toMatch(/background-color:#C9C9D1;[^>]*>[\s\S]*?>RUNNER-UP<[\s\S]*?>Mwalimu AI</)
     expect(strip).toMatch(/background-color:#7A4630;[^>]*>[\s\S]*?>THIRD PLACE<[\s\S]*?>Soko Link</)
     expect(strip).toContain(">ELIMU: MWALIMU WA GRADE 10 WINNER<")
     expect(strip).toContain(">KILIMO: NITAPATA? WINNER<")
