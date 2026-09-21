@@ -7,7 +7,7 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { KaribuEventDetail } from "@/components/karibu/KaribuEventDetail";
 import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
-import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
+import { cohortForPublicEvent, linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
 import { findPublicEventResults, hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
 
 export const revalidate = 1800;
@@ -60,35 +60,47 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  // Only a hackathon has a judge panel, and only one that resolves to an
-  // Impact Lab cohort has anywhere to read it from. Everything else skips the
-  // lookup and renders no judges section.
+  // Two resolvers, deliberately. The judges panel may use the loose one: its
+  // whole job is to show a panel on the night, before anybody has wired the
+  // link, and it re-fetches client-side anyway. Anything published off a
+  // snapshot (the winners, the recap link) uses the strict one, because
+  // the loose resolver's LIVE fallback handed the AI Mashinani 02 page Build
+  // Day's champions on 2026-09-21.
+  const isHackathon = Boolean(event.id) && event.type === "hackathon";
   const judgesCohortPromise =
-    event.id && event.type === "hackathon"
+    isHackathon && event.id
       ? cohortForPublicEvent(event.id, event.slug, event.title).catch(() => null)
       : Promise.resolve(null);
+  const linkedCohortPromise =
+    isHackathon && event.id
+      ? linkedCohortForPublicEvent(event.id, event.slug, event.title).catch(() => null)
+      : Promise.resolve(null);
 
-  const [approvedDemos, eventPhotos, openQuestionSession, judgesCohort] = await Promise.all([
-    event.id
-      ? getApprovedDemosByEventId(event.id).catch(() => [])
-      : Promise.resolve([]),
-    getEventPhotos(event.slug).catch(() => []),
-    event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
-    judgesCohortPromise,
-  ]);
+  const [approvedDemos, eventPhotos, openQuestionSession, judgesCohort, linkedCohort] =
+    await Promise.all([
+      event.id
+        ? getApprovedDemosByEventId(event.id).catch(() => [])
+        : Promise.resolve([]),
+      getEventPhotos(event.slug).catch(() => []),
+      event.id ? getOpenQuestionSession(event.id).catch(() => null) : Promise.resolve(null),
+      judgesCohortPromise,
+      linkedCohortPromise,
+    ]);
 
   // Only a cohort that has actually published its results is worth a link —
   // the recap page itself 404s otherwise, and `hasPublishedRecap` is one
   // cheap count rather than fetching the whole recap just to throw it away.
   // The winners section reads the published snapshot itself, in the same
   // await, so a published cohort costs the page no extra sequential trip.
-  const [recapPublished, results] = judgesCohort
+  // Both read `linkedCohort`: a recap link is a public claim about whose
+  // results these are, exactly like the winners rows.
+  const [recapPublished, results] = linkedCohort
     ? await Promise.all([
-        hasPublishedRecap(judgesCohort).catch(() => false),
-        findPublicEventResults(judgesCohort).catch(() => null),
+        hasPublishedRecap(linkedCohort).catch(() => false),
+        findPublicEventResults(linkedCohort).catch(() => null),
       ])
     : [false, null];
-  const recapHref = recapPublished ? `/impact-lab/${judgesCohort}` : null;
+  const recapHref = recapPublished ? `/impact-lab/${linkedCohort}` : null;
 
   const relatedEvents = allEvents
     .filter((e) => e.slug !== event.slug)

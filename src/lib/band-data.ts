@@ -11,7 +11,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getLatestPastEvent, getNextEvent } from "@/lib/data"
-import { cohortForPublicEvent } from "@/lib/impact-lab/event-store"
+import { linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
 import { isWithinRecentWindow } from "@/components/karibu/band-copy"
 import type { Event } from "@/lib/types"
 
@@ -24,9 +24,10 @@ export interface BandData {
 
 /**
  * Teams that submitted a project at this event, per the Impact Lab final run
- * with published results. The cohort comes from the shared resolver (the
- * same links the event page uses, title match included), then that cohort's
- * published run is read with its submission count. Null when either is
+ * with published results. The cohort comes from the strict resolver (an
+ * organiser's explicit link, never the LIVE guess, since the band would
+ * otherwise print one event's team count under another's name), then that
+ * cohort's published run is read with its submission count. Null when either is
  * missing, or when nobody submitted: the band then says the event is done,
  * not "zero teams shipped".
  *
@@ -35,7 +36,7 @@ export interface BandData {
  */
 async function countTeamsSubmitted(event: Event): Promise<number | null> {
   if (!event.id) return null
-  const cohort = await cohortForPublicEvent(event.id, event.slug, event.title)
+  const cohort = await linkedCohortForPublicEvent(event.id, event.slug, event.title)
   if (!cohort) return null
 
   const run = await prisma.impactLabMatchRun.findFirst({

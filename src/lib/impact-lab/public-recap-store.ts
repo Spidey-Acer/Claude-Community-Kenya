@@ -9,7 +9,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { validCohort } from "./event-lifecycle"
-import { cohortForPublicEvent, getEventByCohort } from "./event-store"
+import { getEventByCohort, linkedCohortForPublicEvent } from "./event-store"
 import { extractFrozenTeams } from "./member"
 import {
   championFromSnapshot,
@@ -33,10 +33,14 @@ interface LinkedPublicEvent {
  * The public `Event` behind a cohort, or null when none resolves.
  *
  * There is no FK from `ImpactLabEvent` to the public `Event` table in the
- * direction this page needs — `cohortForPublicEvent` only goes the other
- * way (public event → cohort). A hackathon's event list is small, so this
- * asks that resolver once per public HACKATHON event and keeps the one that
- * answers with this cohort, rather than adding a second link column.
+ * direction this page needs; the resolver only goes the other way (public
+ * event → cohort). A hackathon's event list is small, so this asks it once
+ * per public HACKATHON event and keeps the one that answers with this
+ * cohort, rather than adding a second link column.
+ *
+ * Strict on purpose: with the LIVE fallback, every unlinked hackathon
+ * "resolves" to whichever cohort is running, so the first row the query
+ * returned would be adopted as this cohort's venue, city and event link.
  */
 async function findLinkedPublicEvent(cohort: string): Promise<LinkedPublicEvent | null> {
   const candidates = await prisma.event.findMany({
@@ -44,7 +48,7 @@ async function findLinkedPublicEvent(cohort: string): Promise<LinkedPublicEvent 
     select: { id: true, slug: true, title: true, venue: true, city: true },
   })
   for (const candidate of candidates) {
-    const matched = await cohortForPublicEvent(candidate.id, candidate.slug, candidate.title)
+    const matched = await linkedCohortForPublicEvent(candidate.id, candidate.slug, candidate.title)
     if (matched === cohort) return candidate
   }
   return null
