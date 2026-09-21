@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Award, Medal, Trophy } from "lucide-react";
 import type { SerializedRubric } from "@/lib/impact-lab/judging";
 import type {
   AnnouncedWinner,
@@ -11,7 +10,7 @@ import type {
   TeamReviewPayload,
   UnrankedTeam,
 } from "@/lib/impact-lab/results";
-import type { YourTeamCards } from "@/lib/impact-lab/results-cards";
+import type { WinnerCardCell, WinnerCards, YourTeamCards } from "@/lib/impact-lab/results-cards";
 import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
 import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
 import { CopyLinkButton } from "@/app/impact-lab/results/[slug]/CopyLinkButton";
@@ -36,6 +35,12 @@ export interface ResultsViewProps {
      * published before the finals ran in heats, so always read through `?? []`.
      */
     unranked?: UnrankedTeam[];
+    /**
+     * The winners as Build Day cards, attached by the route when a card URL
+     * can be derived. Absent (or with `imageUrl: null` cells) on a server
+     * without the signing secret: the rows then show captions alone.
+     */
+    cards?: WinnerCards;
   };
   /** True when the viewer was on a team in the run, ranked or not. */
   viewerHadTeam?: boolean;
@@ -64,12 +69,6 @@ export interface ResultsViewProps {
    * range) is only meaningful read against the rubric it was scored on.
    */
   rubric: SerializedRubric;
-}
-
-const ORDINALS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" };
-
-function ordinal(rank: number): string {
-  return ORDINALS[rank] ?? `${rank}th`;
 }
 
 // Spelled out, matching the original Impact Lab copy's "same five criteria"
@@ -146,6 +145,47 @@ function YourTeamCardBlocks({ cards, projectName }: { cards: YourTeamCards; proj
   );
 }
 
+/** One winner's card with its caption; a caption alone when no image URL could be derived. */
+function WinnerCard({ cell }: { cell: WinnerCardCell }) {
+  return (
+    <figure className="min-w-0">
+      {cell.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- rendered per request by the card route, never through the optimiser's cache
+        <img
+          src={cell.imageUrl}
+          width={1080}
+          height={1080}
+          loading="lazy"
+          alt={`${cell.caption}: ${cell.projectName}`}
+          className="block aspect-square w-full rounded-lg border border-border-default"
+        />
+      ) : (
+        <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border-default bg-bg-secondary p-4">
+          <span className="text-center font-mono text-sm font-semibold text-text-primary">{cell.projectName}</span>
+        </div>
+      )}
+      <figcaption className="mt-2 truncate font-mono text-[11px] uppercase tracking-wider text-text-dim">
+        {cell.caption} <span className="text-text-secondary">&middot; {cell.projectName}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** A row of winner cards: three across, a column at phone width. */
+function WinnerRow({ label, cells }: { label: string; cells: WinnerCardCell[] }) {
+  if (cells.length === 0) return null;
+  return (
+    <div>
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-text-dim">{label}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {cells.map((cell, i) => (
+          <WinnerCard key={`${cell.teamId}-${i}`} cell={cell} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Results view — the payoff page. In order: the viewer's own team (its
  * Build Day cards, its placing, then the scores, the judges' notes and the
@@ -178,7 +218,20 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
   const hasAnnouncedTrackWinner = results.trackWinners.some((w) => w.basis === "announced");
   const notSubmitted = ranked ? null : didNotSubmitLine(viewerHadTeam || yourTeam !== undefined);
 
-  const [champion, ...runnersUp] = results.overall;
+  // Winners: the podium row and the track row as cards when the route
+  // attached them; otherwise the same two rows from the announced names.
+  const cards: WinnerCards = results.cards ?? {
+    podium:
+      results.announcementMode === "tracks"
+        ? []
+        : results.overall.map((w) => ({
+            teamId: w.teamId,
+            projectName: w.projectName,
+            caption: results.announcementMode === "champion" ? "Champion" : `${w.rank === 1 ? "1st" : w.rank === 2 ? "2nd" : w.rank === 3 ? "3rd" : `${w.rank}th`} place`,
+            imageUrl: null,
+          })),
+    tracks: results.trackWinners.map((w) => ({ teamId: w.teamId, projectName: w.projectName, caption: `${w.track} winner`, imageUrl: null })),
+  };
 
   const criteriaPhrase = `the same ${CRITERIA_COUNT_WORDS[rubric.criteria.length] ?? rubric.criteria.length} criteria`;
   // "the demo criterion" only when this rubric actually has one keyed
@@ -210,15 +263,11 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
               .join(" · ")}
           </p>
 
-          {/* Scores, as the results email lays them out: eyebrow, the
-              placing line, a row per criterion, the range. */}
+          {/* Scores, as the results email lays them out: eyebrow, a row per
+              criterion, the range. The placing line sits above, under the cards. */}
           {ranked.card && (
             <div className="rounded-lg border border-border-default bg-bg-secondary p-5">
               <p className={EYEBROW}>Your scores</p>
-              <p className="mt-1 font-mono text-sm text-text-primary">
-                {yourTeamOverallLabel(true, ranked.card.rank, results.ranking.length)}
-                {yourRow ? ` · ${yourTeamTrackLabel(yourRow.trackPosition, yourRow.trackOf, yourRow.track)}` : ""}
-              </p>
 
               {ranked.card.basis === "submission" && (
                 <p className="mt-3 rounded border border-border-default bg-bg-card p-3 text-xs leading-relaxed text-text-secondary">
@@ -284,90 +333,22 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
       )}
 
       {/* ── 2. Winners ─────────────────────────────────────────────────── */}
-      {(champion || results.trackWinners.length > 0) && (
-        <motion.section variants={item} aria-label="Winners">
-          <h2 className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-dim">
-            <Trophy className="h-3.5 w-3.5 text-amber" />
-            {"// ./winners"}
-          </h2>
-
-          {champion && (
-            <div className="relative overflow-hidden rounded-lg border border-amber/30 bg-amber/10 p-6">
-              <div className="relative flex flex-wrap items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded border border-amber/40 bg-amber/15">
-                  <Trophy className="h-7 w-7 text-amber" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-amber">
-                    Champion
-                  </p>
-                  <p className="mt-1 truncate font-mono text-xl font-bold text-text-primary sm:text-2xl">
-                    {champion.projectName}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {runnersUp.length > 0 && (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {runnersUp.map((winner) => (
-                <div
-                  key={winner.teamId}
-                  className="flex items-center gap-3 rounded-lg border border-border-default bg-bg-secondary p-4"
-                >
-                  <Medal className="h-5 w-5 shrink-0 text-text-dim" aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-dim">
-                      {ordinal(winner.rank)} place
-                    </p>
-                    <p className="truncate font-mono text-sm font-semibold text-text-primary">
-                      {winner.projectName}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {results.trackWinners.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-text-dim">
-                Track winners
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {results.trackWinners.map((winner) => (
-                  <div
-                    key={winner.track}
-                    className="flex items-start gap-2 rounded border border-border-default bg-bg-secondary p-3"
-                  >
-                    <Award className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan" aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-[10px] uppercase tracking-wider text-text-dim">
-                        {winner.track}
-                      </p>
-                      <p className="truncate font-mono text-xs font-semibold text-text-primary">
-                        {winner.projectName}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      {(cards.podium.length > 0 || cards.tracks.length > 0) && (
+        <motion.section variants={item} aria-label="Winners" className="space-y-5">
+          <h2 className={SECTION_LABEL}>{"// ./winners"}</h2>
+          <WinnerRow label={results.announcementMode === "champion" ? "Overall" : "Podium"} cells={cards.podium} />
+          <WinnerRow label="Track winners" cells={cards.tracks} />
         </motion.section>
       )}
 
       {/* ── 3. Full ranking ────────────────────────────────────────────── */}
       <motion.section variants={item} aria-label="Full ranking">
-        <h2 className="mb-3 font-mono text-xs uppercase tracking-wider text-text-dim">
-          {"// ./full-ranking"}
-        </h2>
+        <h2 className={`mb-3 ${SECTION_LABEL}`}>{"// ./full-ranking"}</h2>
         <div className="overflow-x-auto rounded-lg border border-border-default">
-          <table className="w-full min-w-[420px] border-collapse">
+          <table className="w-full min-w-[520px] border-collapse">
             <thead>
               <tr className="border-b border-border-default bg-bg-secondary">
-                {["Position", "Project", "Track"].map((h) => (
+                {["Position", "Project", "Track", "Track position"].map((h) => (
                   <th
                     key={h}
                     scope="col"
@@ -382,13 +363,8 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
               {results.ranking.map((row) => {
                 const isSelf = row.teamId === yourTeam?.teamId;
                 return (
-                  <tr
-                    key={row.teamId}
-                    className={isSelf ? "bg-green-primary/10" : undefined}
-                  >
-                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-dim">
-                      {row.rank}
-                    </td>
+                  <tr key={row.teamId} className={isSelf ? "bg-green-primary/10" : undefined}>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-dim">{row.rank}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-text-primary">
                       <span className="inline-flex flex-wrap items-center gap-2">
                         {row.projectName}
@@ -404,8 +380,9 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
                         )}
                       </span>
                     </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary">{row.track}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary">
-                      {row.track}
+                      {row.trackPosition === 1 ? "1st" : row.trackPosition === 2 ? "2nd" : row.trackPosition === 3 ? "3rd" : `${row.trackPosition}th`} of {row.trackOf}
                     </td>
                   </tr>
                 );

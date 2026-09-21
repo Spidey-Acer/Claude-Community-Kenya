@@ -28,6 +28,17 @@ const results: ResultsViewProps["results"] = {
     { rank: 4, teamId: "t5", projectName: "Kitabu", track: "Everyday", basis: "submission", trackPosition: 2, trackOf: 2 },
   ],
   unranked: [],
+  cards: {
+    podium: [
+      { teamId: "t1", projectName: "Gleam", caption: "Champion", imageUrl: `${URL}/s1/card/square` },
+      { teamId: "t2", projectName: "prism", caption: "Second overall", imageUrl: `${URL}/s2/card/square` },
+      { teamId: "t3", projectName: "AgentrixOS", caption: "Third overall", imageUrl: `${URL}/s3/card/square?honour=1` },
+    ],
+    tracks: [
+      { teamId: "t1", projectName: "Gleam", caption: "Delight winner", imageUrl: `${URL}/s1/card/square?honour=1` },
+      { teamId: "t3", projectName: "AgentrixOS", caption: "Everyday winner", imageUrl: `${URL}/s3/card/square` },
+    ],
+  },
 }
 
 const card = { rank: 3, criterionAverages: { impact: 4.6, demo: 4.2, claude: 4.8, clarity: 3.9, presentation: 4.1 }, low: 71.5, high: 88, basis: "demo" as const }
@@ -88,6 +99,22 @@ describe("ResultsView", () => {
     expect(html).not.toContain("Also:")
     expect(html).toContain("4th of 4 overall · 2nd of 2 in Everyday")
     expect(html).toContain("reviewed from your written submission")
+  })
+
+  it("winners as cards on two rows, with captions, and the ranking with track positions and the viewer's row marked", () => {
+    const html = render({ viewerHadTeam: true, yourTeam: { teamId: "t2", projectName: "prism", card: { ...card, rank: 2 } } })
+    const winners = html.slice(html.indexOf("./winners"), html.indexOf("./full-ranking"))
+    expect(winners).toContain(`src="${URL}/s1/card/square"`)
+    expect(winners).toContain(`src="${URL}/s3/card/square?honour=1"`)
+    expect(winners).toContain(`src="${URL}/s1/card/square?honour=1"`)
+    expect(winners.indexOf("Champion")).toBeLessThan(winners.indexOf("Second overall"))
+    expect(winners.indexOf("Third overall")).toBeLessThan(winners.indexOf("Delight winner"))
+    expect(winners).not.toContain("<svg") // no trophy icons
+    const ranking = html.slice(html.indexOf("./full-ranking"))
+    expect(ranking).toContain("Track position")
+    expect(ranking).toContain(">2nd of 2<")
+    expect(ranking).toMatch(/bg-green-primary\/10[^>]*>[\s\S]*?prism/)
+    expect(ranking).toContain(">you<")
   })
 
   it("a member with no team sees no team block and no line; one whose team did not submit sees the line only", () => {
