@@ -1,5 +1,5 @@
 /**
- * Marquee — the clay band that sits above the nav on every Karibu page.
+ * Marquee: the clay band that sits above the nav on every Karibu page.
  *
  * Static, despite the name (kept so the import site does not churn). It used
  * to scroll on an infinite CSS loop; Peter's ruling on 2026-09-06 was that a

@@ -259,7 +259,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   return rows.map(mapPrismaEvent)
 }
 
-/** The soonest upcoming event alone — for the sitewide band, which names one. */
+/** The soonest upcoming event alone, for the sitewide band, which names one. */
 export async function getNextEvent(): Promise<Event | null> {
   const row = await prisma.event.findFirst({
     where: upcomingWhere(),

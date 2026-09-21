@@ -1,5 +1,5 @@
 /**
- * band-copy — the one sentence the clay band above the nav carries.
+ * band-copy: the one sentence the clay band above the nav carries.
  *
  * Pure: no Prisma, no React, no clock of its own (`now` is an argument so
  * the 14-day window is testable). The root layout gathers the live data and
