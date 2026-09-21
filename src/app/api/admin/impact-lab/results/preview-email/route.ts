@@ -6,6 +6,7 @@ import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { buildResultsInputFromRun, loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { buildSnapshot, isResultsSnapshot, type ResultsInput, type ResultsSnapshot } from "@/lib/impact-lab/results"
 import {
+  isChampion,
   placementFor,
   placementTitle,
   placingsFollowScores,
@@ -265,9 +266,12 @@ export async function GET(request: NextRequest) {
     fullName: "there",
     projectName: rankingRow.projectName,
     teamName,
+    teamId,
     table,
     eventName: event?.name ?? "Impact Lab",
+    eventDates: event?.dates ?? "",
     placement,
+    champion: isChampion(snapshot, teamId),
     announcementMode: effectiveMode,
     panelOverrodeScores: !placingsFollowScores(snapshot),
     // The real card URL, so the organiser can click through from the preview.
