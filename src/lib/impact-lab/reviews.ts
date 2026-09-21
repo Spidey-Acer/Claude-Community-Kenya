@@ -29,7 +29,7 @@ export const REVIEW_SIGNATURE = "Claude Community Kenya"
  * can quietly soften it.
  */
 export const REVIEW_PROVENANCE =
-  "Written by the Claude Community Kenya team after reading your submission — this is the community's review, not a judge's."
+  "Written by the Claude Community Kenya team after reading your submission: this is the community's review, not a judge's."
 
 // ─── Judge notes ─────────────────────────────────────────────────────────────
 
