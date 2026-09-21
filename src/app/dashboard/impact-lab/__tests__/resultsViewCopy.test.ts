@@ -12,17 +12,17 @@ import { describe, expect, it } from "vitest"
 import { decidedByNote, yourTeamOverallLabel } from "../resultsViewCopy"
 
 describe("yourTeamOverallLabel", () => {
-  it("says the ordinal overall placing when an overall ranking was announced", () => {
-    expect(yourTeamOverallLabel(true, true, 3)).toBe("3rd overall")
+  it("states the team's own position among the ranked teams", () => {
+    expect(yourTeamOverallLabel(true, 3, 19)).toBe("3rd of 19 overall")
+    expect(yourTeamOverallLabel(true, 12, 19)).toBe("12th of 19 overall")
   })
 
-  it("never claims an overall placing when none was announced, even though the team has a card", () => {
-    expect(yourTeamOverallLabel(true, false, 12)).toBeNull()
+  it("never mentions a score or 'by score'", () => {
+    expect(yourTeamOverallLabel(true, 2, 19)).not.toMatch(/score/i)
   })
 
   it("says the team took part when it has no card at all", () => {
-    expect(yourTeamOverallLabel(false, true, 0)).toBe("Took part")
-    expect(yourTeamOverallLabel(false, false, 0)).toBe("Took part")
+    expect(yourTeamOverallLabel(false, 0, 19)).toBe("Took part")
   })
 })
 

@@ -30,6 +30,7 @@ const FALLBACK_CARD: PublicResultCard = {
   track: "",
   title: "Built",
   champion: false,
+  overallRank: null,
   members: [],
 }
 

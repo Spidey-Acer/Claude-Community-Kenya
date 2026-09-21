@@ -4,11 +4,12 @@ import { CARD_SANS, CARD_SERIF, loadCardAssets, type MarkVariant } from "./card-
 import {
   CARD_BRONZE,
   CARD_GOLD,
-  CARD_GRAPHITE,
+  CARD_SILVER,
   CARD_POSTER,
   cardMembersLine,
   cardPlacingLine,
   cardStyleForTitle,
+  cardSubline,
   type PublicResultCard,
 } from "./result-card"
 
@@ -27,8 +28,8 @@ import {
  * Surface by placing (`cardStyleForTitle(card.title).kind`):
  *   built      flat clay, serif ink, sans paper, the poster's own colours
  *   winner     `CARD_GOLD`, ink text (the champion is a winner too)
- *   runner-up  `CARD_GRAPHITE`, paper text, thin silver rule under the placing
- *   third      `CARD_BRONZE`, paper text (copper-red so it never reads as gold)
+ *   runner-up  `CARD_SILVER`, ink text, the same diagonal and highlight as gold
+ *   third      `CARD_BRONZE`, paper text (copper-red so it never reads as gold or silver)
  *
  * Satori rules, all of which this file obeys: inline styles only, no CSS
  * variables, `display: flex` on every element with children, text set by
@@ -45,7 +46,7 @@ export const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
   og: { width: 1200, height: 630 },
 }
 
-/** Everything a surface decides: field, text colours, which mark, the rule. */
+/** Everything a surface decides: field, text colours, which mark, the highlight. */
 interface Surface {
   background: string
   /** The serif project name. */
@@ -53,8 +54,8 @@ interface Surface {
   /** The sans lines (placing, event, members, site). */
   sans: string
   mark: MarkVariant
-  /** Colour of the rule under the placing line, or `null` for none. */
-  rule: string | null
+  /** A faint top-left radial highlight over the field (the metallic surfaces), or `null`. */
+  highlight: string | null
 }
 
 function surfaceFor(card: PublicResultCard): Surface {
@@ -65,16 +66,16 @@ function surfaceFor(card: PublicResultCard): Surface {
       serif: CARD_POSTER.ink,
       sans: CARD_POSTER.ink,
       mark: "ink",
-      rule: null,
+      highlight: CARD_GOLD.radialHighlight,
     }
   }
   if (kind === "runner-up") {
     return {
-      background: `linear-gradient(180deg, ${CARD_GRAPHITE.from}, ${CARD_GRAPHITE.to})`,
-      serif: CARD_POSTER.paper,
-      sans: CARD_POSTER.paper,
-      mark: "paper",
-      rule: CARD_GRAPHITE.silver,
+      background: `linear-gradient(165deg, ${CARD_SILVER.from}, ${CARD_SILVER.mid}, ${CARD_SILVER.to})`,
+      serif: CARD_SILVER.ink,
+      sans: CARD_SILVER.ink,
+      mark: "ink",
+      highlight: CARD_SILVER.radialHighlight,
     }
   }
   if (kind === "third") {
@@ -83,7 +84,7 @@ function surfaceFor(card: PublicResultCard): Surface {
       serif: CARD_POSTER.paper,
       sans: CARD_POSTER.paper,
       mark: "paper",
-      rule: null,
+      highlight: null,
     }
   }
   return {
@@ -91,7 +92,7 @@ function surfaceFor(card: PublicResultCard): Surface {
     serif: CARD_POSTER.ink,
     sans: CARD_POSTER.paper,
     mark: "poster",
-    rule: null,
+    highlight: null,
   }
 }
 
@@ -106,7 +107,7 @@ function surfaceFor(card: PublicResultCard): Surface {
  */
 function projectNameSize(name: string): { fontSize: number; wrap: boolean } {
   const n = name.trim().length
-  if (n <= 7) return { fontSize: 200, wrap: false }
+  if (n <= 7) return { fontSize: 190, wrap: false }
   if (n <= 10) return { fontSize: 168, wrap: false }
   if (n <= 14) return { fontSize: 124, wrap: false }
   if (n <= 18) return { fontSize: 106, wrap: false }
@@ -160,6 +161,7 @@ function pieces(
   project: { fontSize: number; wrap: boolean }
 ): Pieces {
   const placingLine = cardPlacingLine(card)
+  const subline = cardSubline(card)
   const membersLine = cardMembersLine(card.members)
   const alignItems = align === "center" ? "center" : "flex-start"
   const justifyContent = align === "center" ? "center" : "flex-start"
@@ -185,7 +187,13 @@ function pieces(
           fontFamily: CARD_SERIF,
           fontWeight: 300,
           fontSize: project.fontSize * scale,
-          lineHeight: 1,
+          // Not 1: a lowercase descender ("prism") at 190px reaches ~0.2em
+          // below the baseline and ran into the placing line.
+          lineHeight: 1.15,
+          // Never let yoga squash this box when a column runs long — that
+          // shows up as the name printed over the placing line, not as an
+          // overflow anyone notices.
+          flexShrink: 0,
           letterSpacing: "-0.01em",
           color: surface.serif,
           textAlign,
@@ -196,7 +204,7 @@ function pieces(
       </div>
     ),
     placing: (scale) => (
-      <div style={{ display: "flex", flexDirection: "column", alignItems, gap: 18 * scale }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems, gap: 18 * scale, flexShrink: 0 }}>
         <div
           style={{
             display: "flex",
@@ -211,8 +219,21 @@ function pieces(
         >
           {placingLine}
         </div>
-        {surface.rule ? (
-          <div style={{ display: "flex", width: 120 * scale, height: Math.max(2, Math.round(2 * scale)), background: surface.rule }} />
+        {subline ? (
+          <div
+            style={{
+              display: "flex",
+              fontFamily: CARD_SANS,
+              fontWeight: 600,
+              fontSize: 30 * scale,
+              lineHeight: 1.1,
+              color: surface.sans,
+              opacity: 0.88,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {subline}
+          </div>
         ) : null}
       </div>
     ),
@@ -288,6 +309,28 @@ function pieces(
 
 // ─── Layouts ─────────────────────────────────────────────────────────────────
 
+/**
+ * The faint top-left radial highlight the metallic surfaces carry (the web
+ * page drew the same one over its gold panel). Absolutely positioned over
+ * the field, under the content; `null` on the flat and bronze surfaces.
+ */
+function highlightLayer(surface: Surface) {
+  if (!surface.highlight) return null
+  return (
+    <div
+      style={{
+        display: "flex",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `radial-gradient(circle at top left, ${surface.highlight}, transparent 60%)`,
+      }}
+    />
+  )
+}
+
 const column = (gap: number, extra: Record<string, string | number> = {}) => ({
   display: "flex" as const,
   flexDirection: "column" as const,
@@ -303,7 +346,10 @@ const column = (gap: number, extra: Record<string, string | number> = {}) => ({
  */
 function stackedLayout(p: Pieces, size: { width: number; height: number }, surface: Surface) {
   const tall = size.height > size.width
-  const g = tall ? { mark: 56, placing: 30, event: 84, members: 34, site: 48 } : { mark: 40, placing: 24, event: 60, members: 28, site: 36 }
+  // The square's budget is tight once a card carries a subline: 840px mark
+  // (358 high) + 190px name + placing + subline + event + members + site
+  // fits the 1000px inside the padding with these gaps and nothing to spare.
+  const g = tall ? { mark: 56, placing: 30, event: 84, members: 34, site: 48 } : { mark: 32, placing: 20, event: 48, members: 24, site: 28 }
   return (
     <div
       style={{
@@ -313,11 +359,13 @@ function stackedLayout(p: Pieces, size: { width: number; height: number }, surfa
         justifyContent: "center",
         width: "100%",
         height: "100%",
+        position: "relative",
         background: surface.background,
         padding: "40px 60px",
       }}
     >
-      {p.mark(tall ? 960 : 900)}
+      {highlightLayer(surface)}
+      {p.mark(tall ? 960 : 840)}
       <div style={{ display: "flex", height: g.mark }} />
       {p.project(1)}
       <div style={{ display: "flex", height: g.placing }} />
@@ -346,10 +394,12 @@ function storyLayout(p: Pieces, surface: Surface) {
         alignItems: "center",
         width: "100%",
         height: "100%",
+        position: "relative",
         background: surface.background,
         padding: "220px 60px 240px",
       }}
     >
+      {highlightLayer(surface)}
       <div style={{ display: "flex", flexGrow: 1, alignItems: "center", justifyContent: "center", width: "100%" }}>
         <div style={column(0)}>
           {p.mark(930)}
@@ -383,11 +433,13 @@ function ogLayout(p: Pieces, surface: Surface) {
         alignItems: "center",
         width: "100%",
         height: "100%",
+        position: "relative",
         background: surface.background,
         padding: "48px 64px",
         gap: 44,
       }}
     >
+      {highlightLayer(surface)}
       <div style={{ display: "flex", flexShrink: 0 }}>{p.mark(400)}</div>
       <div
         style={{
