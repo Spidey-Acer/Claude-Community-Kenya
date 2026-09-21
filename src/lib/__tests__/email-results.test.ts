@@ -67,6 +67,9 @@ describe("impactLabResultsEmail variants", () => {
     expect(html).toMatch(/font-size:13px;[^>]*>CHAMPION</)
     expect(html).toContain("background-color:#D4AF37")
     expect(html).not.toMatch(/font-size:13px;[^>]*WINNER</)
+    // "1st overall" under CHAMPION would only repeat it; the scores block still says it.
+    expect(html).not.toContain(">1st overall<")
+    expect(html).toContain("1st overall &middot;")
   })
 
   it("runner-up and third place: graphite and bronze heroes with the card's lines and their subjects", () => {
@@ -322,6 +325,7 @@ describe("impactLabResultsEmail — champion mode", () => {
       placement: ranked(1),
       rank: 1,
       teamId: "k1",
+      champion: true,
     })
     const strip = html.slice(html.indexOf("The winners"))
     const champion = strip.indexOf(">CHAMPION<")
@@ -334,7 +338,7 @@ describe("impactLabResultsEmail — champion mode", () => {
     expect(strip).not.toContain(">RUNNER-UP<")
     expect(strip).toContain("That is you.")
     expect(html).toContain("1st overall &middot; 1st of 4 in Kilimo: Nitapata?")
-    expect(html).toContain(">1st overall<") // hero pill
+    expect(html).not.toContain(">1st overall<") // no pill under CHAMPION
   })
 
   it("an announced non-champion track winner: no 'Nth overall' claim, but keeps its track position and Winner hero", () => {

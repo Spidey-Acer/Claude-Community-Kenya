@@ -789,8 +789,10 @@ export function impactLabResultsEmail(data: {
   // too, not `ranked.announced` alone, means a caller that ever passed the
   // two out of sync (or an empty-overall "tracks" mode with a stale
   // `Placement`) still cannot render an overall placing nobody announced.
+  // Not under a CHAMPION line: "1st overall" would only repeat it. A
+  // podium-mode 1st/2nd/3rd keeps the pill, since its line names the track.
   const overallPill =
-    ranked && ranked.announced && data.overall.length > 0
+    ranked && ranked.announced && data.overall.length > 0 && heroPlacing !== "CHAMPION"
       ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
       : ""
   // The placing line must never wrap mid-word on a 320px column; the longest
