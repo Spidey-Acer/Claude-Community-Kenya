@@ -479,6 +479,8 @@ export interface MemberResultsPayload {
     unranked: UnrankedTeam[]
     /** The winners as Build Day cards. Attached by the route, which holds the card URLs. */
     cards?: WinnerCards
+    /** The judges' commendations, teamId to text, when any were written. Public: the exports print them too. */
+    commendations?: Record<string, string>
   }
   /**
    * True when the viewer was on a team in the frozen run, whether or not
@@ -557,6 +559,9 @@ export function buildMemberPayload(
     },
     viewerHadTeam: viewerTeamId !== null,
   }
+  if (snapshot.commendations && Object.keys(snapshot.commendations).length > 0 && payload.results) {
+    payload.results.commendations = snapshot.commendations
+  }
 
   const card = viewerTeamId ? snapshot.perTeam[viewerTeamId] : undefined
   const rankingRow = viewerTeamId
@@ -614,6 +619,56 @@ export function isResultsSnapshot(value: unknown): value is ResultsSnapshot {
     typeof v.perTeam === "object" &&
     v.perTeam !== null
   )
+}
+
+/** A commendation is one to `COMMENDATION_MAX` characters once trimmed. */
+export const COMMENDATION_MAX = 400
+
+/**
+ * The judges' commendations after an organiser's edit: `patch` maps a
+ * teamId to its new text (trimmed; an empty string deletes that team's
+ * entry). Every patched teamId must be in the snapshot's ranking, or the
+ * whole patch is refused and nothing changes. Pure: the route validates the
+ * shape, this decides the outcome.
+ */
+export function mergeCommendations(
+  snapshot: Pick<ResultsSnapshot, "ranking" | "commendations">,
+  patch: Record<string, string>
+): { ok: true; commendations: Record<string, string> } | { ok: false; error: string } {
+  const ranked = new Set(snapshot.ranking.map((r) => r.teamId))
+  const unknown = Object.keys(patch).filter((teamId) => !ranked.has(teamId))
+  if (unknown.length > 0) {
+    return { ok: false, error: `Not in this run's ranking: ${unknown.join(", ")}` }
+  }
+  const next: Record<string, string> = { ...(snapshot.commendations ?? {}) }
+  for (const [teamId, raw] of Object.entries(patch)) {
+    const text = raw.trim()
+    if (text === "") {
+      delete next[teamId]
+    } else if (text.length > COMMENDATION_MAX) {
+      return { ok: false, error: `A commendation is at most ${COMMENDATION_MAX} characters (${teamId}).` }
+    } else {
+      next[teamId] = text
+    }
+  }
+  return { ok: true, commendations: next }
+}
+
+/**
+ * A rebuilt snapshot with the previous one's commendations carried over:
+ * `buildSnapshot` knows nothing about them, so a correction that rebuilt
+ * the placings would otherwise silently drop what an organiser wrote.
+ * Only teams still in the new ranking keep theirs. The key is omitted, not
+ * set to `{}`, when there is nothing to carry, so a snapshot that never had
+ * one stays byte-for-byte as `buildSnapshot` made it.
+ */
+export function carryCommendations(previous: Pick<ResultsSnapshot, "commendations"> | null, next: ResultsSnapshot): ResultsSnapshot {
+  const ranked = new Set(next.ranking.map((r) => r.teamId))
+  const kept = Object.fromEntries(
+    Object.entries(previous?.commendations ?? {}).filter(([teamId, text]) => ranked.has(teamId) && text.trim() !== "")
+  )
+  if (Object.keys(kept).length === 0) return next
+  return { ...next, commendations: kept }
 }
 
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {

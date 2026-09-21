@@ -95,7 +95,7 @@ export const IMPACT_LAB_RUBRIC: JudgingRubric = {
       key: "impact",
       label: "Impact on the named beneficiary",
       guidance:
-        "Does this measurably help the specific person the team named? Not a market — a person.",
+        "Does this measurably help the specific person the team named? Not a market, a person.",
       min: 1,
       max: 5,
       weight: 25,
