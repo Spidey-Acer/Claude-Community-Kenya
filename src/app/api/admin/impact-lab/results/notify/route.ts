@@ -10,7 +10,13 @@ import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import { isResultsSnapshot } from "@/lib/impact-lab/results"
 import { loadTeamFeedback } from "@/lib/impact-lab/results-input"
 import { totalOutOf, type JudgingRubric } from "@/lib/impact-lab/judging"
-import { placementFor, placingsFollowScores, resultCardUrl, type Placement } from "@/lib/impact-lab/result-card"
+import {
+  isChampion,
+  placementFor,
+  placingsFollowScores,
+  resultCardUrl,
+  type Placement,
+} from "@/lib/impact-lab/result-card"
 import { resolveRubric } from "@/lib/impact-lab/rubric-store"
 import { APP_URL, impactLabResultsEmail, sendEmailBatchTracked, type BatchEmailItem } from "@/lib/email"
 
@@ -214,6 +220,7 @@ export async function POST(request: NextRequest) {
       fullName: "there",
       ...sampleCard(rubric),
       eventName,
+      eventDates: event?.dates ?? "",
       announcementMode: run.snapshot.announcementMode ?? "podium",
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       overall: run.snapshot.overall,
@@ -315,9 +322,11 @@ export async function POST(request: NextRequest) {
       teamName: team.name,
       table: team.table ?? null,
       eventName,
+      eventDates: event?.dates ?? "",
       // Read off the frozen snapshot, like everything else in this email —
       // the same rows the leaderboard groups by track.
       placement: placementFor(run.snapshot, team.id),
+      champion: isChampion(run.snapshot, team.id),
       announcementMode: run.snapshot.announcementMode ?? "podium",
       panelOverrodeScores: !placingsFollowScores(run.snapshot),
       shareUrl: resultCardUrl(APP_URL, run.runId, team.id),

@@ -13,6 +13,11 @@ import {
   type TeamJudgeNote,
 } from "@/lib/impact-lab/reviews"
 import {
+  CARD_BRONZE,
+  CARD_GOLD,
+  CARD_GRAPHITE,
+  CARD_POSTER,
+  cardPlacingLine,
   isPodium,
   placementTitle,
   PODIUM_DEPTH,
@@ -556,8 +561,6 @@ const DARK = {
   bg: "#0B0A09",
   /** The card itself, and most content panels (header, body, scores, judge note, review). */
   card: "#16140F",
-  /** One step lighter than card — used only where a panel should visibly sit up off it (the "you built this" hero). */
-  elevated: "#1E1B15",
   /** Hairline borders and rules. */
   hairline: "#2A261E",
   /** Primary text on dark surfaces. */
@@ -569,23 +572,8 @@ const DARK = {
   /** Claude orange — rules, pills, the primary button, small-caps labels. */
   orange: "#D97757",
   orangeHover: "#E58A6B",
-  /** Deeper clay — used instead of the Claude orange only on the gold winner hero, where #D97757 reads low-contrast against gold. */
-  clay: "#A84E2D",
-  /** Winner hero: gold gradient, top to bottom, plus its top highlight line. */
-  goldTop: "#B8860B",
-  goldMid: "#D4AF37",
-  goldBottom: "#F0D77A",
-  goldHighlight: "#F3DFA0",
-  /** Text on the gold hero. */
+  /** Text on the orange share button. */
   ink: "#16140F",
-  /** Text on the gold hero that needs to recede (the table/team meta line). */
-  inkMuted: "rgba(22,20,15,0.62)",
-  /** Runner-up hero gradient. */
-  graphiteTop: "#2A2A2E",
-  graphiteBottom: "#3A3A40",
-  /** Third-place hero gradient. */
-  bronzeTop: "#4E2A14",
-  bronzeBottom: "#8C5A2B",
   /** Rank colours in the overall-winners list. */
   rankGold: "#C9A227",
   rankSilver: "#C0C0C8",
@@ -652,6 +640,15 @@ export function impactLabResultsEmail(data: {
   table: number | null
   /** The event's display name, e.g. "Impact Lab: AI Mashinani 02". */
   eventName: string
+  /** The event's own `dates` string, printed under the event name on the hero. Empty hides the line. */
+  eventDates?: string
+  /**
+   * True for the announced overall champion of a `"champion"`-mode run (see
+   * `isChampion` in result-card.ts). The hero then reads "CHAMPION" rather
+   * than "<TRACK> WINNER", exactly as the team's share card does. Defaults
+   * to false: the claim must be earned.
+   */
+  champion?: boolean
   /**
    * Where the team finished within its track — drives the hero variant and
    * the subject line. `null` is tolerated (renders the "built" variant) so a
@@ -730,104 +727,86 @@ export function impactLabResultsEmail(data: {
   else subject = `Your ${data.eventName} results: ${data.projectName}`
 
   // ── Hero ─────────────────────────────────────────────────────────────────
+  // The team's share card, in email-safe HTML: the same surface, mark and
+  // lines `renderCard` draws (card-render.tsx), one hero for every placing.
   // "Table 36 · Kilimo 3", or "Table 36" alone when the team is named after
   // its table — see teamPlaceLabel. The middle dot is re-encoded for email.
   const tableLine = esc(teamPlaceLabel(data.table, data.teamName, track)).replace(/ · /g, " &middot; ")
+  const metaLine = [tableLine || null, track ? `${esc(track)} track` : null]
+    .filter((s): s is string => Boolean(s))
+    .join(" &middot; ")
 
-  let hero: string
-  if (podium && ranked) {
-    // Gold for the winner, graphite for the runner-up, bronze for third —
-    // each its own gradient with a solid fallback (Gmail drops
-    // `background-image`; Outlook renders neither and falls back to
-    // `bgcolor`). The winner's eyebrow, pill and rule use the deeper clay
-    // rather than the Claude orange — #D97757 reads low-contrast against
-    // gold. The orange stays everywhere else (dark surfaces, labels,
-    // buttons), including the rule on the two non-gold heroes.
-    const variant =
-      ranked.position === 1
+  // Surface by placing, as `surfaceFor` in card-render.tsx: gold for a
+  // winner (the champion is a winner too), graphite for the runner-up,
+  // bronze for third, the poster's flat clay for everyone who built. Each
+  // gradient carries a solid fallback (Gmail drops `background-image`;
+  // Outlook renders neither and falls back to `bgcolor`). Text mirrors the
+  // card: ink on clay and gold, paper on graphite and bronze — and on clay
+  // the serif line is ink while the sans lines are paper, as on the poster.
+  const surface =
+    ranked && ranked.position === 1
+      ? {
+          fallback: CARD_GOLD.mid,
+          gradient: `linear-gradient(165deg, ${CARD_GOLD.from} 0%, ${CARD_GOLD.mid} 55%, ${CARD_GOLD.to} 100%)`,
+          serif: CARD_POSTER.ink,
+          sans: CARD_POSTER.ink,
+          mark: "ink",
+        }
+      : ranked && ranked.position === 2
         ? {
-            bgFallback: DARK.goldMid,
-            bgGradient: `linear-gradient(180deg, ${DARK.goldTop} 0%, ${DARK.goldMid} 55%, ${DARK.goldBottom} 100%)`,
-            highlight: DARK.goldHighlight,
-            fg: DARK.ink,
-            metaFg: DARK.inkMuted,
-            eyebrow: DARK.clay,
-            rule: DARK.clay,
-            pillBorder: DARK.clay,
-            pillText: DARK.clay,
+            fallback: CARD_GRAPHITE.from,
+            gradient: `linear-gradient(180deg, ${CARD_GRAPHITE.from} 0%, ${CARD_GRAPHITE.to} 100%)`,
+            serif: CARD_POSTER.paper,
+            sans: CARD_POSTER.paper,
+            mark: "paper",
           }
-        : ranked.position === 2
-        ? {
-            bgFallback: DARK.graphiteTop,
-            bgGradient: `linear-gradient(180deg, ${DARK.graphiteTop} 0%, ${DARK.graphiteBottom} 100%)`,
-            highlight: null,
-            fg: DARK.text,
-            metaFg: DARK.muted,
-            eyebrow: DARK.muted,
-            rule: DARK.orange,
-            pillBorder: DARK.rankSilver,
-            pillText: DARK.text,
-          }
-        : {
-            bgFallback: DARK.bronzeTop,
-            bgGradient: `linear-gradient(180deg, ${DARK.bronzeTop} 0%, ${DARK.bronzeBottom} 100%)`,
-            highlight: null,
-            fg: DARK.text,
-            metaFg: DARK.muted,
-            eyebrow: DARK.muted,
-            rule: DARK.orange,
-            pillBorder: DARK.rankBronze,
-            pillText: DARK.text,
-          }
-    const highlightRule = variant.highlight
-      ? `border-top:2px solid ${variant.highlight};`
+        : ranked && ranked.position === 3
+          ? {
+              fallback: CARD_BRONZE.to,
+              gradient: `linear-gradient(180deg, ${CARD_BRONZE.from} 0%, ${CARD_BRONZE.to} 100%)`,
+              serif: CARD_POSTER.paper,
+              sans: CARD_POSTER.paper,
+              mark: "paper",
+            }
+          : {
+              fallback: CARD_POSTER.clay,
+              gradient: "none",
+              serif: CARD_POSTER.ink,
+              sans: CARD_POSTER.paper,
+              mark: "poster",
+            }
+  const heroPlacing = cardPlacingLine({
+    title: placementTitle(data.placement),
+    champion: data.champion === true,
+    track: track ?? "",
+    eventName: data.eventName,
+  })
+  // `ranked.announced` and `data.overall` both come from the same snapshot
+  // in every real caller, but this pill is the one place in the hero that
+  // states an overall placing was announced — checking `data.overall.length`
+  // too, not `ranked.announced` alone, means a caller that ever passed the
+  // two out of sync (or an empty-overall "tracks" mode with a stale
+  // `Placement`) still cannot render an overall placing nobody announced.
+  const overallPill =
+    ranked && ranked.announced && data.overall.length > 0
+      ? `<p style="margin:12px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${surface.sans};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${surface.sans};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
       : ""
-    // Its own line rather than inline with the headline: "Runner-up" plus a
-    // pill does not fit a 360px screen at 46px. Centred per Peter's note —
-    // eyebrow, placement word, rule, project name and table line all read
-    // as one centred block. The placement word itself is the longest
-    // fixed string in the template ("Runner-up", "Third place") and must
-    // never wrap mid-word on a 320px column, hence `white-space:nowrap`
-    // and a size (44px) chosen to fit that column at that constraint —
-    // there's no `<style>`/media-query in this template (email clients
-    // ignore `<style>` blocks here, see the file-level note above), so
-    // this is a single fixed size rather than a responsive one.
-    // `ranked.announced` and `data.overall` both come from the same snapshot
-    // in every real caller, but this line is the one place in the hero that
-    // states an overall placing was announced — checking `data.overall.length`
-    // too, not `ranked.announced` alone, means a caller that ever passed the
-    // two out of sync (or an empty-overall "tracks" mode with a stale
-    // `Placement`) still cannot render an overall placing nobody announced.
-    const overallPill = ranked.announced && data.overall.length > 0
-      ? `<p style="margin:14px 0 0;text-align:center;"><span style="display:inline-block;padding:4px 12px;border:1px solid ${variant.pillBorder};border-radius:999px;font-family:${BODY_FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${variant.pillText};">${esc(resultsOrdinal(ranked.overallRank))} overall</span></p>`
-      : ""
-    hero = `
+  // The placing line must never wrap mid-word on a 320px column; the longest
+  // real line ("RUNNER-UP IN BREAKTHROUGH") fits at 13px with 2px tracking.
+  // There is no `<style>`/media-query in this template (see the file-level
+  // note), so sizes are fixed rather than responsive.
+  const hero = `
         <tr>
-          <td bgcolor="${variant.bgFallback}" style="${highlightRule}background-color:${variant.bgFallback};background-image:${variant.bgGradient};padding:36px 32px 32px;border-radius:14px 14px 0 0;text-align:center;">
-            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${variant.eyebrow};text-align:center;">${esc(ranked.track)}</p>
-            <p style="margin:0;font-family:${DISPLAY_FONT};font-size:44px;line-height:1.05;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${variant.fg};text-align:center;">${esc(placementTitle(ranked))}</p>
+          <td bgcolor="${surface.fallback}" style="background-color:${surface.fallback};background-image:${surface.gradient};padding:32px 24px 28px;border-radius:14px 14px 0 0;text-align:center;">
+            <img src="${APP_URL}/images/buildday/mark-${surface.mark}.png" width="200" alt="" style="display:block;margin:0 auto 18px;width:200px;height:auto;border:0;" />
+            <p style="margin:0 0 10px;font-family:${DISPLAY_FONT};font-size:40px;line-height:1.05;font-weight:400;letter-spacing:-0.01em;color:${surface.serif};text-align:center;">${esc(data.projectName)}</p>
+            <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.4;font-weight:600;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:${surface.sans};text-align:center;">${esc(heroPlacing)}</p>
             ${overallPill}
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto 18px;">
-              <tr><td bgcolor="${variant.rule}" style="width:48px;height:2px;background-color:${variant.rule};font-size:0;line-height:0;">&nbsp;</td></tr>
-            </table>
-            <p style="margin:0 0 8px;font-family:${DISPLAY_FONT};font-size:26px;line-height:1.2;font-weight:500;color:${variant.fg};text-align:center;">${esc(data.projectName)}</p>
-            <p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${variant.metaFg};text-align:center;">${tableLine}</p>
+            <p style="margin:20px 0 0;font-family:${BODY_FONT};font-size:14px;line-height:1.4;font-weight:600;color:${surface.sans};text-align:center;">${esc(data.eventName)}</p>
+            ${data.eventDates ? `<p style="margin:2px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.4;font-weight:600;color:${surface.sans};text-align:center;">${esc(data.eventDates)}</p>` : ""}
+            ${metaLine ? `<p style="margin:12px 0 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${surface.sans};text-align:center;">${metaLine}</p>` : ""}
           </td>
         </tr>`
-  } else {
-    const meta = [track ? `${esc(track)} track` : null, tableLine || null]
-      .filter((s): s is string => Boolean(s))
-      .join(" &middot; ")
-    hero = `
-        <tr>
-          <td bgcolor="${DARK.elevated}" style="background-color:${DARK.elevated};padding:36px 32px 28px 28px;border-left:4px solid ${DARK.orange};border-radius:14px 14px 0 0;">
-            <p style="margin:0 0 14px;font-family:${BODY_FONT};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${DARK.orange};">You built this</p>
-            <p style="margin:0 0 10px;font-family:${DISPLAY_FONT};font-size:34px;line-height:1.1;font-weight:600;letter-spacing:-0.02em;color:${DARK.text};">${esc(data.projectName)}</p>
-            <p style="margin:0 0 16px;font-family:${DISPLAY_FONT};font-size:18px;line-height:1.35;font-style:italic;color:${DARK.muted};">at ${esc(data.eventName)}</p>
-            ${meta ? `<p style="margin:0;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${DARK.dim};">${meta}</p>` : ""}
-          </td>
-        </tr>`
-  }
 
   // ── Lead sentence ────────────────────────────────────────────────────────
   // Careful with attribution: a track winner may have been decided by score
