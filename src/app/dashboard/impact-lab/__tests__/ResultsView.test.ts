@@ -130,6 +130,18 @@ describe("ResultsView", () => {
     expect(unsubmitted).not.toContain("Download square")
   })
 
+  it("shows a judges' commendation under that team's ranking row, and on the team's own block", () => {
+    const commended = { ...results, commendations: { t2: "Defended the build under questioning." } }
+    const own = render({ results: commended, viewerHadTeam: true, yourTeam: { teamId: "t2", projectName: "prism", card: { ...card, rank: 2 } } })
+    expect(own.match(/Judges&#x27; commendation:/g)).toHaveLength(2) // own block + ranking row
+    expect(own).toContain("Defended the build under questioning.")
+    expect(own.indexOf("Judges&#x27; commendation:")).toBeLessThan(own.indexOf("Your scores"))
+
+    const other = render({ results: commended, viewerHadTeam: true, yourTeam: { teamId: "t3", projectName: "AgentrixOS", card } })
+    expect(other.match(/Judges&#x27; commendation:/g)).toHaveLength(1) // ranking row only
+    expect(render({ viewerHadTeam: false })).not.toContain("commendation")
+  })
+
   it("never renders a score for any team but the viewer's", () => {
     const html = render({ viewerHadTeam: true, yourTeam: { teamId: "t2", projectName: "prism", card: { ...card, rank: 2 } } })
     // Only the viewer's five criterion values and range appear, nothing per ranking row.

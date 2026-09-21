@@ -9,6 +9,7 @@ import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-sto
 import { buildResultsInputFromRun, looksLikePerTrackWinners } from "@/lib/impact-lab/results-input"
 import {
   buildSnapshot,
+  carryCommendations,
   isResultsSnapshot,
   type AnnouncedWinner,
   type ResultsInput,
@@ -241,7 +242,7 @@ export async function POST(request: NextRequest) {
 
     const run = await tx.impactLabMatchRun.findUnique({
       where: { id: runId },
-      select: { id: true, result: true, resultsPublishedAt: true },
+      select: { id: true, result: true, resultsPublishedAt: true, resultsSnapshot: true },
     })
     if (!run) return { ok: false, status: 404, error: "Run not found." }
 
@@ -407,7 +408,11 @@ export async function POST(request: NextRequest) {
       announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       unrankedTeamIds,
     }
-    const snapshot = buildSnapshot(input)
+    // The judges' commendations live on the snapshot and are written after
+    // publish (runs/[id] PATCH); a rebuild must carry them over or a
+    // correction to the placings would silently erase them.
+    const previous = isResultsSnapshot(run.resultsSnapshot) ? run.resultsSnapshot : null
+    const snapshot = carryCommendations(previous, buildSnapshot(input))
 
     // Rewrites the frozen record in place. `resultsPublishedAt`,
     // `submissionsCloseAt` and `judgingClosedAt` are deliberately absent from

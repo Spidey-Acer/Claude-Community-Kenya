@@ -19,6 +19,7 @@ import {
   type OnStage,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
+import { COMMENDATION_MAX, isResultsSnapshot, mergeCommendations } from "@/lib/impact-lab/results"
 import { getEventByCohort } from "@/lib/impact-lab/event-store"
 
 const moveSchema = z.object({
@@ -701,6 +702,80 @@ async function handleSetCheckedIn(
   return NextResponse.json({ success: true, data: updated })
 }
 
+/**
+ * teamId to commendation text. Each text is trimmed and kept to one line of
+ * at most `COMMENDATION_MAX` characters; an empty string deletes that
+ * team's entry. Capped at 50 teams per request.
+ */
+const commendationsSchema = z.record(z.string().min(1).max(40), z.string().max(COMMENDATION_MAX * 2)).refine(
+  (map) => Object.keys(map).length > 0 && Object.keys(map).length <= 50,
+  { message: "Send between 1 and 50 teams." }
+)
+
+/**
+ * Write the judges' commendations onto the published results snapshot —
+ * the map `ResultsSnapshot.commendations` that the exports and the member
+ * dashboard read. Allowed after publish, since it changes no placing; it
+ * has nowhere to live before publish, so an unpublished run is a 409.
+ * Every teamId must be in the snapshot's ranking (`mergeCommendations`),
+ * which is exactly the set of teams a commendation can be shown against.
+ * Written under the run lock so it cannot interleave with a correction's
+ * snapshot rewrite (which carries commendations over, see
+ * `carryCommendations`).
+ */
+async function handleSetCommendations(
+  request: NextRequest,
+  runId: string,
+  patchMap: Record<string, string>,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await tx.impactLabMatchRun.findUnique({
+      where: { id: runId },
+      select: { resultsPublishedAt: true, resultsSnapshot: true },
+    })
+    const current: unknown = fresh?.resultsSnapshot
+    if (!fresh?.resultsPublishedAt || !isResultsSnapshot(current)) {
+      return { status: "not_published" as const }
+    }
+    const merged = mergeCommendations(current, patchMap)
+    if (!merged.ok) return { status: "invalid" as const, error: merged.error }
+    // Omit the key entirely when nothing is left, so an emptied snapshot
+    // matches one that never had a commendation.
+    const nextSnapshot: Record<string, unknown> = { ...current, commendations: merged.commendations }
+    if (Object.keys(merged.commendations).length === 0) delete nextSnapshot.commendations
+    await tx.impactLabMatchRun.update({
+      where: { id: runId },
+      data: { resultsSnapshot: JSON.parse(JSON.stringify(nextSnapshot)) },
+    })
+    return { status: "ok" as const, commendations: merged.commendations }
+  })
+
+  if (outcome.status === "not_published") {
+    return NextResponse.json(
+      { success: false, error: "Results are not published yet; a commendation is written onto the published results." },
+      { status: 409 }
+    )
+  }
+  if (outcome.status === "invalid") {
+    return NextResponse.json({ success: false, error: outcome.error }, { status: 400 })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { commendations: patchMap },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: { ...updated, commendations: outcome.commendations } })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -775,6 +850,9 @@ const updateSchema = z.object({
   // is: `null` is meaningful (clear a recorded count back to "none"), so it
   // needs the explicit `!== undefined` check below.
   checkedInRecorded: z.number().int().min(0).max(100000).nullable().optional(),
+  // The judges' commendations, teamId to text, merged onto the published
+  // snapshot — see `handleSetCommendations`. Its own branch like `judges`.
+  commendations: commendationsSchema.optional(),
 })
 
 /**
@@ -853,6 +931,9 @@ export async function PATCH(
       existing.resultsPublishedAt,
       check.user
     )
+  }
+  if (validation.data.commendations !== undefined) {
+    return handleSetCommendations(request, id, validation.data.commendations, check.user)
   }
   if (validation.data.checkedInRecorded !== undefined) {
     return handleSetCheckedIn(

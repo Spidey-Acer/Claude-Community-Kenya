@@ -41,6 +41,8 @@ export interface ResultsViewProps {
      * without the signing secret: the rows then show captions alone.
      */
     cards?: WinnerCards;
+    /** The judges' commendations, teamId to text, when any were written. */
+    commendations?: Record<string, string>;
   };
   /** True when the viewer was on a team in the run, ranked or not. */
   viewerHadTeam?: boolean;
@@ -219,6 +221,8 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
 
   const ranked = yourTeam?.card ? yourTeam : undefined;
   const yourRow = ranked ? results.ranking.find((r) => r.teamId === ranked.teamId) : undefined;
+  const commendations = results.commendations ?? {};
+  const yourCommendation = ranked ? commendations[ranked.teamId] : undefined;
   const hasAnnouncedOverall = results.overall.length > 0;
   const hasAnnouncedTrackWinner = results.trackWinners.some((w) => w.basis === "announced");
   const notSubmitted = ranked ? null : didNotSubmitLine(viewerHadTeam || yourTeam !== undefined);
@@ -267,6 +271,12 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
               .filter((part): part is string => part !== null)
               .join(" · ")}
           </p>
+          {yourCommendation && (
+            <p className="text-center font-mono text-[11px] text-text-dim">
+              <span className="uppercase tracking-wider text-amber">Judges&apos; commendation:</span>{" "}
+              <span className="text-text-secondary">{yourCommendation}</span>
+            </p>
+          )}
 
           {/* Scores, as the results email lays them out: eyebrow, a row per
               criterion, the range. The placing line sits above, under the cards. */}
@@ -396,6 +406,12 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
                       <span className="mt-1 block font-mono text-[11px] text-text-dim sm:hidden">
                         {row.track} &middot; {trackPosition}
                       </span>
+                      {commendations[row.teamId] && (
+                        <span className="mt-1 block font-mono text-[11px] text-text-dim">
+                          <span className="uppercase tracking-wider text-amber">Judges&apos; commendation:</span>{" "}
+                          <span className="text-text-secondary">{commendations[row.teamId]}</span>
+                        </span>
+                      )}
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary sm:table-cell">{row.track}</td>
                     <td className="hidden whitespace-nowrap px-4 py-2.5 font-mono text-xs text-text-secondary sm:table-cell">{trackPosition}</td>

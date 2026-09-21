@@ -14,9 +14,13 @@
 
 import { describe, expect, it } from "vitest"
 import {
+  buildMemberPayload,
   buildRanking,
   buildSnapshot,
+  carryCommendations,
+  COMMENDATION_MAX,
   isResultsSnapshot,
+  mergeCommendations,
   type ResultsInput,
   type ResultsSnapshot,
   type TeamCard,
@@ -185,6 +189,48 @@ describe("buildRanking / buildSnapshot — legacy (no announcementMode)", () => 
     // Every reader must default the missing field to "podium" — see the
     // field's own doc comment on `ResultsSnapshot`.
     expect(snapshot.announcementMode ?? "podium").toBe("podium")
+  })
+})
+
+describe("judges' commendations", () => {
+  const published = () =>
+    buildSnapshot(baseInput({ announcementMode: "podium", announcedTeamIds: ["team-fourth", "team-elimu", "team-kilimo"] }))
+
+  it("merges a patch onto the snapshot: trimmed, empty deletes, unknown teams refused", () => {
+    const first = mergeCommendations(published(), { "team-kazi": "  Defended the build under questioning.  " })
+    expect(first).toEqual({ ok: true, commendations: { "team-kazi": "Defended the build under questioning." } })
+    if (!first.ok) throw new Error("unreachable")
+
+    const withTwo = mergeCommendations({ ...published(), commendations: first.commendations }, { "team-elimu": "Clear beneficiary." })
+    expect(withTwo.ok && withTwo.commendations).toEqual({
+      "team-kazi": "Defended the build under questioning.",
+      "team-elimu": "Clear beneficiary.",
+    })
+
+    const cleared = mergeCommendations({ ...published(), commendations: first.commendations }, { "team-kazi": "" })
+    expect(cleared).toEqual({ ok: true, commendations: {} })
+
+    expect(mergeCommendations(published(), { "team-nope": "x" })).toEqual({ ok: false, error: "Not in this run's ranking: team-nope" })
+    expect(mergeCommendations(published(), { "team-kazi": "x".repeat(COMMENDATION_MAX + 1) }).ok).toBe(false)
+    expect(mergeCommendations(published(), { "team-kazi": "x".repeat(COMMENDATION_MAX) }).ok).toBe(true)
+  })
+
+  it("survives a correction: the rebuilt snapshot carries the previous commendations for teams still ranked", () => {
+    const previous = { ...published(), commendations: { "team-kazi": "Defended the build.", "team-gone": "Stale." } }
+    const corrected = carryCommendations(
+      previous,
+      buildSnapshot(baseInput({ announcementMode: "tracks", announcedTeamIds: ["team-elimu", "team-kilimo", "team-kazi"] }))
+    )
+    expect(corrected.commendations).toEqual({ "team-kazi": "Defended the build." })
+    // Nothing to carry: the key is absent, not an empty map.
+    expect("commendations" in carryCommendations(null, published())).toBe(false)
+    expect("commendations" in carryCommendations({ commendations: {} }, published())).toBe(false)
+  })
+
+  it("reaches the member payload only when one exists", () => {
+    const snapshot = { ...published(), commendations: { "team-kazi": "Defended the build." } }
+    expect(buildMemberPayload(snapshot, null).results?.commendations).toEqual({ "team-kazi": "Defended the build." })
+    expect("commendations" in (buildMemberPayload(published(), null).results ?? {})).toBe(false)
   })
 })
 
