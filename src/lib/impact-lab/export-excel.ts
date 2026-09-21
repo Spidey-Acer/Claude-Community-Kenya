@@ -2,14 +2,19 @@
  * Impact Lab results export - the Excel workbook.
  *
  * Renders a `ResultsExport` (see ./export-data) into up to eight sheets:
- * Results, Submissions, Judging detail, Judges, Tracks, Project analyses
- * (when generated), Participants, Summary. Server-only (exceljs).
+ * Summary, Results, Submissions, Judging detail, Judges, Tracks, Project
+ * analyses (when generated), Participants. Server-only (exceljs).
  *
- * Craft rules applied throughout: frozen header rows, autofilter on the wide
- * sheets, wrapped prose with estimated row heights so text is readable
+ * Craft rules applied throughout: frozen header rows, autofilter on every
+ * sheet, wrapped prose with estimated row heights so text is readable
  * in-cell, number formats on every score, and no merged cells inside data
  * ranges - merges break sorting and filtering, and this file exists to be
  * sorted and filtered.
+ *
+ * Themed in Karibu, the same warm-light palette as claudekenya.org's public
+ * site (see `CLAUDE.md`'s "Design systems" section) - this is a document a
+ * team or sponsor opens after the event, and it should read as a Claude
+ * Community Kenya artefact, not a raw data dump.
  */
 
 import ExcelJS from "exceljs"
@@ -23,17 +28,24 @@ import {
 import { brandingForCohort } from "./event-branding"
 import { ANALYSIS_PROVENANCE, type TeamAnalysis } from "./export-analysis"
 
-// ─── Palette (print-safe echoes of the Terminal Noir tokens) ─────────────────
+// ─── Palette (Karibu - the public site's own warm-light tokens) ──────────────
 
-const INK = "FF141414" // header fill - near-black
-const INK_TEXT = "FFF5F5F5"
-const GREEN = "FF00993D" // --green-primary, darkened for white paper
-const AMBER_FILL = "FFFDF3D7" // announced-podium row tint
-const AMBER_TEXT = "FF8A5B00" // basis notes
-const DIM_TEXT = "FF666666"
+const PAPER = "FFF4EEE3" // --paper
+const PAPER_CARD = "FFFBF7F0" // --paper-card - zebra tint
+const INK = "FF23201B" // --ink
+const INK_MUTED = "FF6A6155" // --ink-muted
+const CLAY = "FFA84E2D" // --clay - header fill, the single data-bar hue
+const CLAY_DARK = "FF8F4023" // --clay-dark - small accent text on paper
+const SAND = "FFE4DAC8" // --sand - hairlines and thin borders
+
+// Placing tints - final-placing 1/2/3 on the Results sheet only.
+const GOLD = "FFF3E2A8"
+const SILVER = "FFE4E4EA"
+const COPPER = "FFE7C9B0"
 
 const SCORE_FMT = "0.0"
-const CLAY = "FFD97757" // Anthropic terracotta - the single data-bar hue
+const BODY_FONT = "Arial"
+const FOOTER_TEXT = "Claude Community Kenya · hackathon results · Page &P of &N"
 
 /**
  * exceljs's `DataBarRuleType` omits `color` from its typings, but the writer
@@ -94,41 +106,89 @@ interface ColumnSpec {
   wrap?: boolean
 }
 
+const THIN_SAND_BORDER = {
+  top: { style: "thin" as const, color: { argb: SAND } },
+  left: { style: "thin" as const, color: { argb: SAND } },
+  bottom: { style: "thin" as const, color: { argb: SAND } },
+  right: { style: "thin" as const, color: { argb: SAND } },
+}
+
+/**
+ * Every sheet's shared Karibu finish: clay header (paper text, bold, 22px
+ * tall), frozen header row, autofilter, landscape print fit to one page
+ * wide with the header row repeated on every printed page, and a sand-tan
+ * tab colour (Results overrides it to gold; Summary sets its own clay tab
+ * directly, since it is built outside this helper - see `addSummarySheet`).
+ */
 function addSheet(
   workbook: ExcelJS.Workbook,
   name: string,
   columns: ColumnSpec[],
-  options: { autoFilter?: boolean } = {}
+  options: { autoFilter?: boolean; tabColor?: string } = {}
 ): ExcelJS.Worksheet {
+  const { autoFilter = true, tabColor = SAND } = options
   const sheet = workbook.addWorksheet(name, {
     views: [{ state: "frozen", ySplit: 1 }],
+    properties: { tabColor: { argb: tabColor } },
   })
   sheet.columns = columns.map((c) => ({
     header: c.header,
     key: c.key,
     width: c.width,
     style: {
-      alignment: { vertical: "top", wrapText: c.wrap ?? false },
+      font: { name: BODY_FONT, size: 10, color: { argb: INK } },
+      alignment: {
+        vertical: "top",
+        wrapText: c.wrap ?? false,
+        ...(c.numFmt ? { horizontal: "right" as const } : {}),
+      },
       ...(c.numFmt ? { numFmt: c.numFmt } : {}),
     },
   }))
 
   const header = sheet.getRow(1)
-  header.height = 28
+  header.height = 22
   header.eachCell((cell) => {
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: INK } }
-    cell.font = { bold: true, size: 10, color: { argb: INK_TEXT } }
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLAY } }
+    cell.font = { bold: true, size: 10, name: BODY_FONT, color: { argb: PAPER } }
     cell.alignment = { vertical: "middle", wrapText: true }
-    cell.border = { bottom: { style: "medium", color: { argb: GREEN } } }
+    cell.border = THIN_SAND_BORDER
   })
 
-  if (options.autoFilter) {
+  if (autoFilter) {
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: 1, column: columns.length },
     }
   }
+
+  sheet.pageSetup = {
+    orientation: "landscape",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    printTitlesRow: "1:1",
+  }
+  sheet.headerFooter = { oddFooter: FOOTER_TEXT }
+
   return sheet
+}
+
+/**
+ * Karibu finish for one data row - alternating paper-card zebra fill on
+ * every even row, and a thin sand border around every cell. Called right
+ * after `sheet.addRow`, before any row-specific override (podium fills,
+ * bold "Yes" cells, dim italic for a no-show or no-submit) - those apply on
+ * top of this base.
+ */
+function styleDataRow(row: ExcelJS.Row): void {
+  const zebra = row.number % 2 === 0
+  row.eachCell({ includeEmpty: true }, (cell) => {
+    if (zebra) {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PAPER_CARD } }
+    }
+    cell.border = THIN_SAND_BORDER
+  })
 }
 
 /**
@@ -203,6 +263,9 @@ function placingBasisLabel(
 const WRITEUP_NOTE =
   "Scored from the written submission: no judge reached this table during demos."
 
+/** Placing-tint fill for a final placing of 1, 2 or 3. `undefined` otherwise. */
+const PLACING_FILL: Record<number, string> = { 1: GOLD, 2: SILVER, 3: COPPER }
+
 // ─── Sheets ──────────────────────────────────────────────────────────────────
 
 function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
@@ -215,23 +278,23 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
     { header: "Table", key: "table", width: 10 },
     { header: "Track", key: "track", width: 22 },
     { header: "Project", key: "project", width: 26 },
-    { header: "Score rank", key: "scoreRank", width: 11, numFmt: "0" },
-    { header: `Weighted average (/${denom})`, key: "average", width: 16, numFmt: SCORE_FMT },
-    { header: `Judge low (/${denom})`, key: "scoreLow", width: 11, numFmt: SCORE_FMT },
-    { header: `Judge high (/${denom})`, key: "scoreHigh", width: 11, numFmt: SCORE_FMT },
-    { header: "Judge spread", key: "spread", width: 11, numFmt: SCORE_FMT },
-    { header: "Judges", key: "judges", width: 8, numFmt: "0" },
+    { header: "Score rank", key: "scoreRank", width: 12, numFmt: "0" },
+    { header: `Weighted average (/${denom})`, key: "average", width: 12, numFmt: SCORE_FMT },
+    { header: `Judge low (/${denom})`, key: "scoreLow", width: 12, numFmt: SCORE_FMT },
+    { header: `Judge high (/${denom})`, key: "scoreHigh", width: 12, numFmt: SCORE_FMT },
+    { header: "Judge spread", key: "spread", width: 12, numFmt: SCORE_FMT },
+    { header: "Judges", key: "judges", width: 10, numFmt: "0" },
     ...rubric.criteria.map((c) => ({
       header: `${c.label} (avg /${c.max})`,
       key: `avg_${c.key}`,
-      width: 13,
+      width: 12,
       numFmt: SCORE_FMT,
     })),
     { header: "Track winner", key: "trackWinner", width: 12 },
     { header: "Champion", key: "champion", width: 10 },
-    { header: "Note", key: "note", width: 52, wrap: true },
+    { header: "Note", key: "note", width: 60, wrap: true },
   ]
-  const sheet = addSheet(workbook, "Results", columns, { autoFilter: true })
+  const sheet = addSheet(workbook, "Results", columns, { tabColor: GOLD })
 
   // Keyed by track, not team name - two teams in different tracks could
   // share a name, and a track has exactly one winner.
@@ -281,15 +344,41 @@ function addResultsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void 
       champion: team.isChampion ? "Yes" : "",
       note,
     })
+    styleDataRow(row)
 
-    if (team.finalRankBasis === "announced") {
+    if (team.submission === null) {
       row.eachCell((cell) => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AMBER_FILL } }
-        cell.font = { ...cell.font, bold: team.isChampion }
+        cell.font = { ...cell.font, italic: true, color: { argb: INK_MUTED } }
       })
     }
+
+    const placingFill = team.finalRank !== null ? PLACING_FILL[team.finalRank] : undefined
+    if (placingFill) {
+      const fill: ExcelJS.Fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: placingFill },
+      }
+      row.getCell("finalRank").fill = fill
+      row.getCell("project").fill = fill
+    }
+
+    if (team.isTrackWinner) {
+      row.getCell("trackWinner").font = {
+        ...row.getCell("trackWinner").font,
+        bold: true,
+        color: { argb: CLAY },
+      }
+    }
+    if (team.isChampion) {
+      row.getCell("champion").font = {
+        ...row.getCell("champion").font,
+        bold: true,
+        color: { argb: CLAY },
+      }
+    }
     if (note) {
-      row.getCell("note").font = { size: 9, color: { argb: AMBER_TEXT } }
+      row.getCell("note").font = { ...row.getCell("note").font, size: 9, color: { argb: CLAY_DARK } }
     }
   }
 
@@ -302,13 +391,13 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
   const columns: ColumnSpec[] = [
     { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
     { header: "Team", key: "team", width: 26 },
-    { header: "Track", key: "track", width: 20 },
+    { header: "Track", key: "track", width: 22 },
     { header: "Project", key: "project", width: 24 },
-    { header: "Pitch", key: "pitch", width: 46, wrap: true },
-    { header: "Problem tackled", key: "problem", width: 40, wrap: true },
-    { header: "What it does", key: "description", width: 56, wrap: true },
-    { header: "What works vs mocked", key: "worksVsMocked", width: 46, wrap: true },
-    { header: "How AI was used", key: "claudeUsage", width: 46, wrap: true },
+    { header: "Pitch", key: "pitch", width: 60, wrap: true },
+    { header: "Problem tackled", key: "problem", width: 60, wrap: true },
+    { header: "What it does", key: "description", width: 60, wrap: true },
+    { header: "What works vs mocked", key: "worksVsMocked", width: 60, wrap: true },
+    { header: "How AI was used", key: "claudeUsage", width: 60, wrap: true },
     { header: "Repo URL", key: "repoUrl", width: 34 },
     { header: "Demo URL", key: "demoUrl", width: 30 },
     { header: "Video URL", key: "videoUrl", width: 30 },
@@ -317,9 +406,9 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
     // The approved community review - signed feedback from the host
     // community, never judge commentary; the header says whose words these
     // are so the label travels with any copy of the sheet.
-    { header: "Impact Lab review (Claude Community Kenya)", key: "communityReview", width: 70, wrap: true },
+    { header: "Impact Lab review (Claude Community Kenya)", key: "communityReview", width: 60, wrap: true },
   ]
-  const sheet = addSheet(workbook, "Submissions", columns, { autoFilter: true })
+  const sheet = addSheet(workbook, "Submissions", columns)
 
   for (const team of data.teams) {
     if (!team.submission) continue
@@ -351,16 +440,21 @@ function addSubmissionsSheet(workbook: ExcelJS.Workbook, data: ResultsExport): v
       scoringBasis: team.scoredFromWriteup ? WRITEUP_NOTE : "Scored at the table (live demo).",
       communityReview,
     })
+    styleDataRow(row)
     row.height = estimateRowHeight([
-      { text: pitch, width: 46 },
-      { text: problem, width: 40 },
-      { text: description, width: 56 },
-      { text: worksVsMocked, width: 46 },
-      { text: claudeUsage, width: 46 },
-      { text: communityReview, width: 70 },
+      { text: pitch, width: 60 },
+      { text: problem, width: 60 },
+      { text: description, width: 60 },
+      { text: worksVsMocked, width: 60 },
+      { text: claudeUsage, width: 60 },
+      { text: communityReview, width: 60 },
     ])
     if (team.scoredFromWriteup) {
-      row.getCell("scoringBasis").font = { size: 9, color: { argb: AMBER_TEXT } }
+      row.getCell("scoringBasis").font = {
+        ...row.getCell("scoringBasis").font,
+        size: 9,
+        color: { argb: CLAY_DARK },
+      }
     }
   }
 }
@@ -375,8 +469,8 @@ function addJudgingSheet(
     { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
     { header: "Team", key: "team", width: 26 },
     { header: "Project", key: "project", width: 24 },
-    { header: "Track", key: "track", width: 20 },
-    { header: "Judge", key: "judge", width: 20 },
+    { header: "Track", key: "track", width: 22 },
+    { header: "Judge", key: "judge", width: 22 },
     ...(includeContacts
       ? [{ header: "Judge email", key: "judgeEmail", width: 26 }]
       : []),
@@ -384,13 +478,13 @@ function addJudgingSheet(
     ...rubric.criteria.map((c) => ({
       header: `${c.label} (${c.min}–${c.max})`,
       key: `crit_${c.key}`,
-      width: 13,
+      width: 12,
       numFmt: "0",
     })),
-    { header: `Weighted total (/${totalOutOf(rubric)})`, key: "total", width: 13, numFmt: SCORE_FMT },
-    { header: "Feedback", key: "feedback", width: 70, wrap: true },
+    { header: `Weighted total (/${totalOutOf(rubric)})`, key: "total", width: 12, numFmt: SCORE_FMT },
+    { header: "Feedback", key: "feedback", width: 60, wrap: true },
   ]
-  const sheet = addSheet(workbook, "Judging detail", columns, { autoFilter: true })
+  const sheet = addSheet(workbook, "Judging detail", columns)
 
   for (const team of data.teams) {
     for (const score of team.judgeScores) {
@@ -409,11 +503,13 @@ function addJudgingSheet(
         total: score.weightedTotal,
         feedback,
       })
+      styleDataRow(row)
+      row.getCell("judge").font = { ...row.getCell("judge").font, bold: true }
       if (feedback) {
-        row.height = estimateRowHeight([{ text: feedback, width: 70 }])
+        row.height = estimateRowHeight([{ text: feedback, width: 60 }])
       }
       if (score.writeupOnly) {
-        row.getCell("basis").font = { size: 9, color: { argb: AMBER_TEXT } }
+        row.getCell("basis").font = { ...row.getCell("basis").font, size: 9, color: { argb: CLAY_DARK } }
       }
     }
   }
@@ -429,15 +525,15 @@ function addJudgesSheet(
   const columns: ColumnSpec[] = [
     { header: "Judge", key: "judge", width: 22 },
     ...(includeContacts ? [{ header: "Judge email", key: "email", width: 28 }] : []),
-    { header: "Scorecards", key: "sheets", width: 11, numFmt: "0" },
-    { header: "Live demos", key: "live", width: 11, numFmt: "0" },
+    { header: "Scorecards", key: "sheets", width: 12, numFmt: "0" },
+    { header: "Live demos", key: "live", width: 12, numFmt: "0" },
     { header: "From writeups", key: "writeup", width: 12, numFmt: "0" },
-    { header: "Written notes left", key: "notes", width: 14, numFmt: "0" },
-    { header: `Mean weighted total (/${denom})`, key: "mean", width: 16, numFmt: SCORE_FMT },
+    { header: "Written notes left", key: "notes", width: 12, numFmt: "0" },
+    { header: `Mean weighted total (/${denom})`, key: "mean", width: 12, numFmt: SCORE_FMT },
   ]
   const sheet = addSheet(workbook, "Judges", columns)
   for (const judge of data.judgeSummaries) {
-    sheet.addRow({
+    const row = sheet.addRow({
       judge: judge.judgeName,
       ...(includeContacts ? { email: judge.judgeEmail } : {}),
       sheets: judge.sheets,
@@ -446,12 +542,14 @@ function addJudgesSheet(
       notes: judge.feedbackCount,
       mean: judge.meanWeightedTotal,
     })
+    styleDataRow(row)
   }
   addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.judgeSummaries.length, denom)
   const note = sheet.addRow({})
+  styleDataRow(note)
   note.getCell("judge").value =
     "Judges saw different, overlapping sets of teams; mean totals show how each judge used the scale, not a ranking of judges."
-  note.getCell("judge").font = { size: 9, italic: true, color: { argb: DIM_TEXT } }
+  note.getCell("judge").font = { name: BODY_FONT, size: 9, italic: true, color: { argb: INK_MUTED } }
 }
 
 /** One row per track: participation, outcome, winner with its basis. */
@@ -460,16 +558,16 @@ function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
   const columns: ColumnSpec[] = [
     { header: "Track", key: "track", width: 26 },
     { header: "Teams formed", key: "formed", width: 12, numFmt: "0" },
-    { header: "Teams submitted", key: "submitted", width: 13, numFmt: "0" },
+    { header: "Teams submitted", key: "submitted", width: 12, numFmt: "0" },
     { header: "Teams scored", key: "scored", width: 12, numFmt: "0" },
-    { header: `Mean average (/${denom})`, key: "mean", width: 16, numFmt: SCORE_FMT },
+    { header: `Mean average (/${denom})`, key: "mean", width: 12, numFmt: SCORE_FMT },
     { header: "Track winner (project)", key: "winnerProject", width: 24 },
     { header: "Track winner (team)", key: "winnerTeam", width: 28 },
     { header: "Winner basis", key: "basis", width: 22 },
   ]
   const sheet = addSheet(workbook, "Tracks", columns)
   for (const track of data.trackSummaries) {
-    sheet.addRow({
+    const row = sheet.addRow({
       track: track.track,
       formed: track.teamsFormed,
       submitted: track.teamsSubmitted,
@@ -486,6 +584,7 @@ function addTracksSheet(workbook: ExcelJS.Workbook, data: ResultsExport): void {
               ? "Assigned by organisers, see note"
               : "-",
     })
+    styleDataRow(row)
   }
   addDataBars(sheet, columns.findIndex((c) => c.key === "mean") + 1, data.trackSummaries.length, denom)
 }
@@ -504,13 +603,13 @@ function addAnalysesSheet(
     { header: "Final placing", key: "finalRank", width: 12, numFmt: "0" },
     { header: "Team", key: "team", width: 26 },
     { header: "Project", key: "project", width: 24 },
-    { header: "What they built", key: "built", width: 52, wrap: true },
-    { header: "Who it serves", key: "serves", width: 44, wrap: true },
-    { header: "Working vs mocked", key: "working", width: 52, wrap: true },
-    { header: "How AI was used", key: "claude", width: 48, wrap: true },
-    { header: "Provenance", key: "provenance", width: 40, wrap: true },
+    { header: "What they built", key: "built", width: 60, wrap: true },
+    { header: "Who it serves", key: "serves", width: 60, wrap: true },
+    { header: "Working vs mocked", key: "working", width: 60, wrap: true },
+    { header: "How AI was used", key: "claude", width: 60, wrap: true },
+    { header: "Provenance", key: "provenance", width: 60, wrap: true },
   ]
-  const sheet = addSheet(workbook, "Project analyses", columns, { autoFilter: true })
+  const sheet = addSheet(workbook, "Project analyses", columns)
   for (const team of data.teams) {
     const analysis = analyses.get(team.teamId)
     if (!analysis || !team.submission) continue
@@ -524,13 +623,19 @@ function addAnalysesSheet(
       claude: analysis.claudeUse,
       provenance: ANALYSIS_PROVENANCE,
     })
+    styleDataRow(row)
     row.height = estimateRowHeight([
-      { text: analysis.whatTheyBuilt, width: 52 },
-      { text: analysis.whoItServes, width: 44 },
-      { text: analysis.workingVsMocked, width: 52 },
-      { text: analysis.claudeUse, width: 48 },
+      { text: analysis.whatTheyBuilt, width: 60 },
+      { text: analysis.whoItServes, width: 60 },
+      { text: analysis.workingVsMocked, width: 60 },
+      { text: analysis.claudeUse, width: 60 },
     ])
-    row.getCell("provenance").font = { size: 9, italic: true, color: { argb: DIM_TEXT } }
+    row.getCell("provenance").font = {
+      ...row.getCell("provenance").font,
+      size: 9,
+      italic: true,
+      color: { argb: INK_MUTED },
+    }
   }
 }
 
@@ -544,14 +649,14 @@ function addParticipantsSheet(
     ...(includeContacts ? [{ header: "Email", key: "email", width: 32 }] : []),
     { header: "Team", key: "team", width: 28 },
     { header: "Table", key: "table", width: 10 },
-    { header: "Track", key: "track", width: 20 },
+    { header: "Track", key: "track", width: 22 },
     { header: "Project", key: "project", width: 24 },
     { header: "Role", key: "role", width: 22 },
     { header: "Institution", key: "institution", width: 26 },
     { header: "Team leader", key: "leader", width: 11 },
     { header: "Checked in", key: "checkedIn", width: 10 },
   ]
-  const sheet = addSheet(workbook, "Participants", columns, { autoFilter: true })
+  const sheet = addSheet(workbook, "Participants", columns)
 
   // A shareable copy carries only the people who actually showed up - the
   // full roster (including no-shows) is organiser detail that belongs with
@@ -562,7 +667,7 @@ function addParticipantsSheet(
   for (const team of data.teams) {
     for (const member of team.members) {
       if (!includeMember(member.checkedIn)) continue
-      sheet.addRow({
+      const row = sheet.addRow({
         name: member.fullName,
         ...(includeContacts ? { email: member.email } : {}),
         // Deduplicated, same reasoning as the Results sheet - Team, Table and
@@ -576,6 +681,7 @@ function addParticipantsSheet(
         leader: member.isLeader ? "Yes" : "",
         checkedIn: member.checkedIn ? "Yes" : "No",
       })
+      styleDataRow(row)
     }
   }
   for (const member of data.unassignedParticipants) {
@@ -592,37 +698,66 @@ function addParticipantsSheet(
       leader: "",
       checkedIn: member.checkedIn ? "Yes" : "No",
     })
-    row.getCell("team").font = { color: { argb: DIM_TEXT }, italic: true }
+    styleDataRow(row)
+    row.getCell("team").font = { ...row.getCell("team").font, color: { argb: INK_MUTED }, italic: true }
   }
 }
 
+/**
+ * The Summary sheet as a cover, not a data table: masthead (event name,
+ * host), then label/value sections with no header row, no autofilter and no
+ * gridlines - see `buildResultsWorkbook`, which builds this one first so it
+ * is the workbook's first tab.
+ */
 async function addSummarySheet(
   workbook: ExcelJS.Workbook,
   data: ResultsExport,
   includeContacts: boolean
 ): Promise<void> {
-  const sheet = workbook.addWorksheet("Summary")
+  const sheet = workbook.addWorksheet("Summary", {
+    views: [{ showGridLines: false }],
+    properties: { tabColor: { argb: CLAY } },
+  })
+  sheet.pageSetup = {
+    orientation: "landscape",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    printTitlesRow: "1:1",
+  }
+  sheet.headerFooter = { oddFooter: FOOTER_TEXT }
   sheet.columns = [
-    { key: "label", width: 34, style: { alignment: { vertical: "top" } } },
-    { key: "value", width: 78, style: { alignment: { vertical: "top", wrapText: true } } },
+    { key: "label", width: 34, style: { font: { name: BODY_FONT, size: 10 }, alignment: { vertical: "top" } } },
+    {
+      key: "value",
+      width: 78,
+      style: { font: { name: BODY_FONT, size: 10 }, alignment: { vertical: "top", wrapText: true } },
+    },
   ]
 
+  // Section title band: clay fill, paper bold caps - the same header
+  // language as every other sheet's column header, so the cover still reads
+  // as part of the same workbook.
   const section = (title: string): void => {
-    const row = sheet.addRow({ label: title })
+    const row = sheet.addRow({ label: title.toUpperCase() })
     row.height = 24
     row.eachCell({ includeEmpty: true }, (cell, col) => {
       if (col > 2) return
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: INK } }
-      cell.font = { bold: true, size: 10, color: { argb: INK_TEXT } }
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLAY } }
+      cell.font = { bold: true, size: 10, name: BODY_FONT, color: { argb: PAPER } }
       cell.alignment = { vertical: "middle" }
-      cell.border = { bottom: { style: "medium", color: { argb: GREEN } } }
     })
   }
-  const fact = (label: string, value: string | number, note = false): void => {
+  const fact = (label: string, value: string | number, note = false, valueSize?: number): void => {
     const row = sheet.addRow({ label, value })
-    row.getCell("label").font = { bold: true, size: 10 }
+    row.getCell("label").font = { bold: true, size: 10, name: BODY_FONT, color: { argb: INK } }
+    row.getCell("value").font = {
+      size: valueSize ?? (note ? 9 : 10),
+      name: BODY_FONT,
+      italic: note,
+      color: { argb: note ? CLAY_DARK : INK },
+    }
     if (note) {
-      row.getCell("value").font = { size: 9, color: { argb: AMBER_TEXT } }
       row.height = estimateRowHeight([{ text: String(value), width: 78 }])
     }
   }
@@ -632,9 +767,15 @@ async function addSummarySheet(
 
   const branding = await brandingForCohort(data.cohort)
 
+  // ── Masthead ──────────────────────────────────────────────────────────────
+  const titleRow = sheet.addRow({ label: branding.title })
+  titleRow.height = 30
+  titleRow.getCell("label").font = { bold: true, size: 20, name: BODY_FONT, color: { argb: INK } }
+  const hostRow = sheet.addRow({ label: `Hosted by ${branding.host}` })
+  hostRow.getCell("label").font = { size: 12, italic: true, name: BODY_FONT, color: { argb: INK_MUTED } }
+  gap()
+
   section("Event")
-  fact("Event", branding.title)
-  fact("Hosted by", branding.host)
   if (branding.platformNote) fact("Platform", branding.platformNote)
   fact("Dates", branding.dates)
   fact("Location", branding.location)
@@ -648,7 +789,7 @@ async function addSummarySheet(
 
   section("The event in numbers")
   const s = data.summary
-  fact("Participants registered", s.participantsRegistered)
+  fact("Participants registered", s.participantsRegistered, false, 14)
   // An organiser-recorded count (e.g. from Luma) is added alongside the
   // system's own, never in place of it - the two are different facts (who
   // Impact Lab's own check-in flow saw vs who the door recorded), and a
@@ -657,19 +798,19 @@ async function addSummarySheet(
   // is labelled as what it is - self-service check-ins, not the room's full
   // attendance - never printed as a bare "checked in" that reads as a total.
   if (s.participantsCheckedInRecorded !== null) {
-    fact("Participants checked in (system)", s.participantsCheckedIn)
-    fact("Participants checked in (recorded)", s.participantsCheckedInRecorded)
+    fact("Participants checked in (system)", s.participantsCheckedIn, false, 14)
+    fact("Participants checked in (recorded)", s.participantsCheckedInRecorded, false, 14)
   } else {
-    fact("Participants checked in (site)", s.participantsCheckedIn)
+    fact("Participants checked in (site)", s.participantsCheckedIn, false, 14)
   }
-  fact("Teams formed", s.teamsFormed)
-  fact("Teams that submitted", s.teamsSubmitted)
-  fact("Teams scored", s.teamsScored)
-  fact("Teams scored from their writeup", s.teamsScoredFromWriteup)
-  fact("Judges on the floor", s.judges)
-  fact("Scorecards recorded", s.scorecards)
-  fact(`Mean team score (/${totalOutOf(data.rubric)})`, s.meanTeamAverage ?? "-")
-  fact("Tracks", s.tracks)
+  fact("Teams formed", s.teamsFormed, false, 14)
+  fact("Teams that submitted", s.teamsSubmitted, false, 14)
+  fact("Teams scored", s.teamsScored, false, 14)
+  fact("Teams scored from their writeup", s.teamsScoredFromWriteup, false, 14)
+  fact("Judges on the floor", s.judges, false, 14)
+  fact("Scorecards recorded", s.scorecards, false, 14)
+  fact(`Mean team score (/${totalOutOf(data.rubric)})`, s.meanTeamAverage ?? "-", false, 14)
+  fact("Tracks", s.tracks, false, 14)
   gap()
 
   section("Winners")
@@ -791,10 +932,12 @@ async function addSummarySheet(
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 /**
- * Build the workbook - Results, Submissions, Judging detail, Judges, Tracks,
- * Project analyses (when generated), Participants, Summary - and return it as
- * a Node buffer to stream. A missing analyses map simply omits that sheet
- * (the fail-soft rule from export-analysis).
+ * Build the workbook - Summary, Results, Submissions, Judging detail,
+ * Judges, Tracks, Project analyses (when generated), Participants - and
+ * return it as a Node buffer to stream. A missing analyses map simply omits
+ * that sheet (the fail-soft rule from export-analysis). Summary is built
+ * first so it lands as the workbook's first tab, the cover a reader sees on
+ * open.
  *
  * `includeContacts` defaults to true - the organisers' own operational
  * record, unchanged from before this option existed. Pass `false` (the
@@ -812,6 +955,7 @@ export async function buildResultsWorkbook(
   workbook.creator = (await brandingForCohort(data.cohort)).host
   workbook.created = data.generatedAt
 
+  await addSummarySheet(workbook, data, includeContacts)
   addResultsSheet(workbook, data)
   addSubmissionsSheet(workbook, data)
   addJudgingSheet(workbook, data, includeContacts)
@@ -819,7 +963,6 @@ export async function buildResultsWorkbook(
   addTracksSheet(workbook, data)
   addAnalysesSheet(workbook, data, analyses)
   addParticipantsSheet(workbook, data, includeContacts)
-  await addSummarySheet(workbook, data, includeContacts)
 
   return Buffer.from(await workbook.xlsx.writeBuffer())
 }
