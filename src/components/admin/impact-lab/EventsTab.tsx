@@ -59,6 +59,7 @@ interface EventRow {
   groundRules: string | null
   tracks: Track[]
   conversationsEventId: string | null
+  publicEventId: string | null
   createdAt: string
 }
 
@@ -99,6 +100,8 @@ interface EventsData {
   events: EventRow[]
   organisations: OrganisationOption[]
   conversationsEvents: ConversationsEventOption[]
+  /** Every public event, newest first: what a cohort's page link may point at. */
+  publicEvents: ConversationsEventOption[]
 }
 
 const STATUS_COLOR: Record<EventStatus, string> = {
@@ -195,7 +198,16 @@ export function EventsTab() {
     }
   }
 
-  const linkConversationsEvent = async (cohort: string, conversationsEventId: string | null) => {
+  /**
+   * Set or clear one of the cohort's event links. `null` clears; the two
+   * links mean different things (see the column headers), so the caller
+   * names which one it is setting.
+   */
+  const linkEvent = async (
+    cohort: string,
+    patch: { conversationsEventId: string | null } | { publicEventId: string | null },
+    failure: string,
+  ) => {
     setLinking(cohort)
     setRowErrors((prev) => {
       if (!(cohort in prev)) return prev
@@ -204,12 +216,12 @@ export function EventsTab() {
       return next
     })
     try {
-      await apiSend("/api/admin/impact-lab/events", "PATCH", { cohort, conversationsEventId })
+      await apiSend("/api/admin/impact-lab/events", "PATCH", { cohort, ...patch })
       await load()
     } catch (e) {
       setRowErrors((prev) => ({
         ...prev,
-        [cohort]: e instanceof Error ? e.message : "Could not link the report",
+        [cohort]: e instanceof Error ? e.message : failure,
       }))
     } finally {
       setLinking(null)
@@ -512,7 +524,7 @@ export function EventsTab() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#1e1e1e]">
-                  {["Name", "Organisation", "Cohort", "Status", "Tracks", "Report", "Created", ""].map((h) => (
+                  {["Name", "Organisation", "Cohort", "Status", "Tracks", "Report", "Public page", "Created", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-[10px] font-mono font-semibold uppercase tracking-wider text-[#555]"
@@ -559,7 +571,11 @@ export function EventsTab() {
                           aria-label={`Linked Conversations event for ${event.name}`}
                           value={event.conversationsEventId ?? ""}
                           onChange={(e) =>
-                            void linkConversationsEvent(event.cohort, e.target.value || null)
+                            void linkEvent(
+                              event.cohort,
+                              { conversationsEventId: e.target.value || null },
+                              "Could not link the report",
+                            )
                           }
                           disabled={linking === event.cohort}
                           className="w-full max-w-[180px] rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono text-[#888] focus:border-[#00ff41]/50 focus:outline-none disabled:opacity-40"
@@ -568,6 +584,32 @@ export function EventsTab() {
                           {data.conversationsEvents.map((ce) => (
                             <option key={ce.id} value={ce.id}>
                               {ce.title}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      {/* The public page that may publish this cohort's
+                        * winners. Without it a page can only be matched by
+                        * slug or title, which is how AI Mashinani 02 ended up
+                        * showing another cohort's results. */}
+                      <td className="px-4 py-3">
+                        <select
+                          aria-label={`Public event page for ${event.name}`}
+                          value={event.publicEventId ?? ""}
+                          onChange={(e) =>
+                            void linkEvent(
+                              event.cohort,
+                              { publicEventId: e.target.value || null },
+                              "Could not link the public page",
+                            )
+                          }
+                          disabled={linking === event.cohort}
+                          className="w-full max-w-[180px] rounded border border-[#1e1e1e] bg-[#111] px-2 py-1 text-[10px] font-mono text-[#888] focus:border-[#00ff41]/50 focus:outline-none disabled:opacity-40"
+                        >
+                          <option value="">None</option>
+                          {data.publicEvents.map((pe) => (
+                            <option key={pe.id} value={pe.id}>
+                              {pe.title}
                             </option>
                           ))}
                         </select>
@@ -596,7 +638,7 @@ export function EventsTab() {
                     </tr>
                     {rowErrors[event.cohort] && (
                       <tr className="bg-[#0a0a0a]">
-                        <td colSpan={8} className="px-4 py-2">
+                        <td colSpan={9} className="px-4 py-2">
                           <p
                             role="alert"
                             className="flex items-start gap-2 text-[11px] font-mono text-[#ff3333]"
@@ -609,7 +651,7 @@ export function EventsTab() {
                     )}
                     {editingTracksCohort === event.cohort && (
                       <tr className="bg-[#0a0a0a]">
-                        <td colSpan={8} className="px-4 py-4">
+                        <td colSpan={9} className="px-4 py-4">
                           <div className="space-y-3">
                             <p className={LEGEND}>
                               Tracks for {event.name} — participants pick one at registration;

@@ -81,15 +81,20 @@ const patchSchema = z.strictObject({
   /** null clears the link; the Conversations event to surface this cohort's
    * members' dashboard report from. Validated to actually have a page below. */
   conversationsEventId: z.string().min(1).nullable().optional(),
+  /** null clears the link; the public event this cohort ran at, which is what
+   * lets that page publish these winners. Any event type: a cohort can run at
+   * a hackathon, a workshop or a meetup. Validated to exist below. */
+  publicEventId: z.string().min(1).nullable().optional(),
 })
 
-/** GET — every event plus the organisations available to assign one to, and
- * the events that have a Conversations page available to link. */
+/** GET: every event plus the organisations available to assign one to, the
+ * events that have a Conversations page available to link, and the public
+ * events a cohort can be attached to. */
 export async function GET() {
   const check = await checkApiPermission("impact-lab", "view")
   if (!check.authorized) return check.response
 
-  const [events, organisations, conversationsEvents] = await Promise.all([
+  const [events, organisations, conversationsEvents, publicEvents] = await Promise.all([
     listEvents(),
     prisma.organisation
       .findMany({ select: { id: true, slug: true, name: true }, orderBy: { name: "asc" } })
@@ -101,10 +106,19 @@ export async function GET() {
         orderBy: { date: "desc" },
       })
       .catch(() => []),
+    // Unfiltered by type on purpose: a cohort runs at whatever the public
+    // page was created as, and the resolver does not care either.
+    prisma.event
+      .findMany({
+        select: { id: true, title: true, slug: true },
+        orderBy: { date: "desc" },
+        take: 60,
+      })
+      .catch(() => []),
   ])
   return NextResponse.json({
     success: true,
-    data: { events: events.map(serialize), organisations, conversationsEvents },
+    data: { events: events.map(serialize), organisations, conversationsEvents, publicEvents },
   })
 }
 
@@ -255,8 +269,19 @@ async function handlePatch(request: NextRequest) {
     )
   }
 
-  const { status, name, titleLead, titleAccent, dates, location, formatNote, groundRules, tracks, conversationsEventId } =
-    parsed.data
+  const {
+    status,
+    name,
+    titleLead,
+    titleAccent,
+    dates,
+    location,
+    formatNote,
+    groundRules,
+    tracks,
+    conversationsEventId,
+    publicEventId,
+  } = parsed.data
 
   if (status && status !== access.event.status) {
     const verdict = canTransition(access.event.status, status, await eventHasParticipants(cohort))
@@ -281,11 +306,27 @@ async function handlePatch(request: NextRequest) {
     }
   }
 
+  // Same re-check for the public event, and for the same reason. No type
+  // filter: the link says which page publishes this cohort's results, and a
+  // cohort can run at an event filed as anything.
+  if (publicEventId) {
+    const exists = await prisma.event.findUnique({
+      where: { id: publicEventId },
+      select: { id: true },
+    })
+    if (!exists) {
+      return NextResponse.json(
+        { success: false, error: "That public event does not exist." },
+        { status: 400 }
+      )
+    }
+  }
+
   // Passing `undefined` for an untouched field is deliberate, not an
   // omission — Prisma drops undefined properties from the update, so this
   // reads as "only the fields the caller sent" without a manual filter.
-  // `conversationsEventId` is the exception: `null` must reach Prisma to
-  // clear the link, so it is spread only when the caller actually sent it.
+  // The two link fields are the exception: `null` must reach Prisma to clear
+  // a link, so each is spread only when the caller actually sent it.
   await prisma.impactLabEvent.update({
     where: { cohort },
     data: {
@@ -299,6 +340,7 @@ async function handlePatch(request: NextRequest) {
       groundRules,
       tracks,
       ...(conversationsEventId !== undefined && { conversationsEventId }),
+      ...(publicEventId !== undefined && { publicEventId }),
     },
   })
 
@@ -323,6 +365,7 @@ async function handlePatch(request: NextRequest) {
         groundRules,
         tracks,
         conversationsEventId,
+        publicEventId,
       })
         .filter(([, v]) => v !== undefined)
         .map(([k]) => k),

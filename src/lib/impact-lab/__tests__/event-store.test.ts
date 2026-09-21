@@ -61,9 +61,10 @@ describe("cohortForPublicEvent", () => {
   describe("title match", () => {
     const TITLE = "Nairobi | Fable 5.1 Build Day"
 
-    it("resolves by the event title when both links miss, before the LIVE fallback", async () => {
-      // First findFirst is the explicit link (miss); the second is the title.
+    it("resolves by the event title when the other links miss, before the LIVE fallback", async () => {
+      // findFirst runs three times: publicEventId, conversationsEventId, name.
       vi.mocked(prisma.impactLabEvent.findFirst)
+        .mockResolvedValueOnce(null as never)
         .mockResolvedValueOnce(null as never)
         .mockResolvedValueOnce({ cohort: "build-day-2026-09" } as never)
       vi.mocked(prisma.impactLabEvent.findMany).mockResolvedValue([
@@ -86,7 +87,8 @@ describe("cohortForPublicEvent", () => {
       } as never)
 
       await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, TITLE)).resolves.toBe("impact-lab-by-slug")
-      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(1)
+      // publicEventId and conversationsEventId only: the title is never asked.
+      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(2)
     })
 
     it("skips the title query without a title, and on a blank one", async () => {
@@ -94,8 +96,8 @@ describe("cohortForPublicEvent", () => {
 
       await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG)).resolves.toBeNull()
       await expect(cohortForPublicEvent(PUBLIC_ID, PUBLIC_SLUG, "   ")).resolves.toBeNull()
-      // Only the explicit-link query, once per call.
-      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(2)
+      // Two explicit-link queries per call, and no title query.
+      expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(4)
     })
 
     it("falls through to the LIVE fallback when the title misses too", async () => {
@@ -141,7 +143,9 @@ describe("linkedCohortForPublicEvent", () => {
   })
 
   it("resolves an event whose title names its cohort", async () => {
+    // publicEventId, then conversationsEventId, both miss; the title answers.
     vi.mocked(prisma.impactLabEvent.findFirst)
+      .mockResolvedValueOnce(null as never)
       .mockResolvedValueOnce(null as never)
       .mockResolvedValueOnce({ cohort: "build-day-2026-09" } as never)
 
@@ -150,8 +154,30 @@ describe("linkedCohortForPublicEvent", () => {
     ).resolves.toBe("build-day-2026-09")
   })
 
+  it("takes publicEventId ahead of every other link", async () => {
+    // First findFirst is the publicEventId query. If it answers, the
+    // conversations/slug/title queries must not run at all.
+    vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValueOnce({
+      cohort: "impact-lab-2026-09",
+    } as never)
+    vi.mocked(prisma.impactLabEvent.findUnique).mockResolvedValue({ cohort: "by-slug" } as never)
+
+    await expect(
+      linkedCohortForPublicEvent(MASHINANI_ID, MASHINANI_SLUG, MASHINANI_TITLE)
+    ).resolves.toBe("impact-lab-2026-09")
+    expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledTimes(1)
+    expect(prisma.impactLabEvent.findFirst).toHaveBeenCalledWith({
+      where: { publicEventId: MASHINANI_ID },
+      select: { cohort: true },
+    })
+    expect(prisma.impactLabEvent.findUnique).not.toHaveBeenCalled()
+  })
+
   it("resolves the explicit link and the slug link", async () => {
-    vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValue({ cohort: "linked" } as never)
+    // publicEventId misses, conversationsEventId answers.
+    vi.mocked(prisma.impactLabEvent.findFirst)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({ cohort: "linked" } as never)
     await expect(linkedCohortForPublicEvent(MASHINANI_ID, MASHINANI_SLUG)).resolves.toBe("linked")
 
     vi.mocked(prisma.impactLabEvent.findFirst).mockResolvedValue(null as never)

@@ -35,6 +35,8 @@ export interface EventRecord {
   tracks: Track[]
   /** Event whose Conversations report this cohort's members should see, if any. */
   conversationsEventId: string | null
+  /** The public event this cohort ran at, if an organiser has linked one. */
+  publicEventId: string | null
   createdAt: Date
 }
 
@@ -65,6 +67,7 @@ const EVENT_SELECT = {
   groundRules: true,
   tracks: true,
   conversationsEventId: true,
+  publicEventId: true,
   createdAt: true,
   organisation: { select: { name: true } },
 } as const
@@ -83,6 +86,7 @@ type EventRow = {
   groundRules: string | null
   tracks: unknown
   conversationsEventId: string | null
+  publicEventId: string | null
   createdAt: Date
   organisation: { name: string }
 }
@@ -106,26 +110,29 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
 /**
  * The Impact Lab cohort behind a row in the public `Event` table, or null.
  *
- * There is no foreign key from a public event to a cohort, so this tries the
- * two links that do exist, in order of how explicit they are:
+ * The links, in order of how explicit they are:
  *
- *   1. `ImpactLabEvent.conversationsEventId` pointing back at this event row.
+ *   1. `ImpactLabEvent.publicEventId` pointing at this event row. The one
+ *      link that says exactly "this cohort ran at that public page", set by
+ *      an organiser in admin. Everything else below exists for the cohorts
+ *      that were set up before it did.
+ *   2. `ImpactLabEvent.conversationsEventId` pointing back at this event row.
  *      Explicit, set by an organiser in admin, and the stronger signal — but
  *      that column was added to attach a Conversations write-up to a cohort's
  *      dashboard, so at an event with a separate morning session it may well
  *      point at a different row than the hackathon's own.
- *   2. The event's slug read as a cohort slug. Both are hand-authored
+ *   3. The event's slug read as a cohort slug. Both are hand-authored
  *      lowercase slugs in the same namespace (`impact-lab-02`), so a match is
  *      the same event by any reasonable reading, and a collision between two
  *      unrelated things would need somebody to name them identically.
- *   3. The Impact Lab event whose name equals the public event's title,
+ *   4. The Impact Lab event whose name equals the public event's title,
  *      trimmed and case-insensitive. Build Day (2026-09-19) needed this: the
  *      admin PATCH only lets `conversationsEventId` point at a Conversations
  *      event, and a public slug is immutable, so links 1 and 2 could never be
  *      made to hold after the fact. Two hand-typed titles agreeing to the
  *      character is the same event by any reasonable reading. Skipped when
  *      the caller has no title to offer.
- *   4. The one Impact Lab event that is LIVE, if there is exactly one. Real
+ *   5. The one Impact Lab event that is LIVE, if there is exactly one. Real
  *      slugs diverge — a public page at
  *      `nairobi-claude-impact-lab-ai-mashinani-02-…` runs the cohort
  *      `impact-lab-2026-09` — and the explicit link may point at a separate
@@ -137,7 +144,7 @@ export async function getEventByCohort(cohort: string): Promise<EventRecord | nu
  *      strict resolver that everything published off a snapshot uses.
  *
  * The caller only asks for public events of type hackathon, which is why
- * fallback 4 does not re-check the type it cannot see from here.
+ * fallback 5 does not re-check the type it cannot see from here.
  *
  * Returns null when none resolves, and pre-migration where the table does not
  * exist. Callers use it to decide whether a public page has a cohort worth
@@ -158,7 +165,7 @@ export async function cohortForPublicEvent(
 }
 
 /**
- * Links 1 to 3 alone: the cohort an organiser actually attached to this
+ * Links 1 to 4 alone: the cohort an organiser actually attached to this
  * public event, never a guess.
  *
  * This is the resolver for anything that decides what a page *publishes*:
@@ -179,6 +186,12 @@ export async function linkedCohortForPublicEvent(
   eventTitle?: string
 ): Promise<string | null> {
   try {
+    const byPublicEvent = await prisma.impactLabEvent.findFirst({
+      where: { publicEventId: eventId },
+      select: { cohort: true },
+    })
+    if (byPublicEvent) return byPublicEvent.cohort
+
     const linked = await prisma.impactLabEvent.findFirst({
       where: { conversationsEventId: eventId },
       select: { cohort: true },
@@ -210,7 +223,7 @@ export async function linkedCohortForPublicEvent(
 /**
  * The one Impact Lab event that is LIVE, or null when there are zero or more
  * than one — guessing between two live events would be wrong, so this
- * declines instead. Shared by `cohortForPublicEvent`'s fallback 4 and by
+ * declines instead. Shared by `cohortForPublicEvent`'s fallback 5 and by
  * judge sign-in, which needs the same "which run applies right now" answer
  * for a request that did not name a cohort at all.
  */
@@ -306,6 +319,7 @@ export async function resolveMemberEvents(email: string): Promise<MemberEvent[]>
             groundRules: null,
             tracks: [],
             conversationsEventId: null,
+            publicEventId: null,
             createdAt: new Date(0),
             participantId: fallback.id,
           },
