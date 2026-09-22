@@ -25,6 +25,7 @@ import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
 import { KaribuJudgesSection } from "@/components/karibu/KaribuJudgesSection";
 import { KaribuWinnersSection } from "@/components/karibu/KaribuWinnersSection";
+import { EventTabs, type EventTab } from "@/components/karibu/EventTabs";
 import type { EventResults } from "@/lib/impact-lab/event-results";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
@@ -95,6 +96,174 @@ export function KaribuEventDetail({
   // Status alone is not enough — it is set by hand in admin. See lib/event-dates.
   const isPast = event.status === "completed" || isEventPast(event.date);
   const cover = eventCover(event.posterUrl);
+
+  // The About tab: everything in the body except the winners and judges
+  // sections, which get their own tabs below.
+  const aboutPanel = (
+    <>
+      {/* About */}
+      <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
+        About this {TYPE_LABEL[event.type].toLowerCase()}
+      </h2>
+      <div className="mb-7 space-y-4">
+        {descriptionParagraphs.map((p, i) => (
+          <p key={i} className="font-inter text-[15.5px] leading-[1.65] text-ink-soft">
+            {p}
+          </p>
+        ))}
+      </div>
+
+      {/* Schedule */}
+      {agendaEntries && agendaEntries.length > 0 && (
+        <>
+          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
+            The day, roughly
+          </h2>
+          <div className="mb-7 flex flex-col gap-2.5">
+            {agendaEntries.map((a) => (
+              <div key={a.hash} className="flex gap-3 font-inter text-[15px] text-ink-soft">
+                {a.date && <span className="font-bold text-clay">{a.date}</span>}
+                <span>{a.title}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Highlights / who it's for */}
+      {event.highlights && event.highlights.length > 0 ? (
+        <>
+          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Highlights</h2>
+          <ul className="mb-7 space-y-2">
+            {event.highlights.map((h, i) => (
+              <li key={i} className="flex gap-2.5 font-inter text-[15.5px] leading-[1.6] text-ink-soft">
+                <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-clay" />
+                {h}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <>
+          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Who it&apos;s for</h2>
+          <p className="mb-7 font-inter text-[15.5px] leading-[1.65] text-ink-soft">
+            Anyone curious — students, founders, and developers. If you can
+            open a laptop, you can take part. Bring a charger.
+          </p>
+        </>
+      )}
+
+      {/* Photos */}
+      {photos.length > 0 && <PhotoStrip photos={photos} eventSlug={event.slug} />}
+
+      {/* Scheduled demos */}
+      {approvedDemos.length > 0 && (
+        <div className="mt-9">
+          <h2 className="mb-4 font-newsreader text-[24px] font-medium text-ink">Scheduled demos</h2>
+          <div className="space-y-3">
+            {approvedDemos.map((demo) => (
+              <div key={demo.id} className="rounded-2xl border border-sand bg-paper-card p-5">
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-newsreader text-[19px] text-ink">{demo.projectTitle}</span>
+                  <span className="font-inter text-[12.5px] text-ink-muted">
+                    {demo.estimatedTime} min
+                  </span>
+                </div>
+                <p className="mb-2 font-inter text-[14.5px] leading-[1.55] text-ink-soft">
+                  {demo.description}
+                </p>
+                <div className="flex flex-wrap items-center gap-3 font-inter text-[13px] text-ink-muted">
+                  <span>by {demo.name}</span>
+                  {demo.demoUrl && (
+                    <a
+                      href={demo.demoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-clay hover:underline"
+                    >
+                      Live demo →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Demo request form: upcoming meetups and workshops only. A hackathon's
+          demos come from its heats and the logged-in dashboard submission,
+          and Conversations events have their own participation forms. */}
+      {!isPast && event.type !== "hackathon" && event.type !== "conversations" && (
+        <div className="mt-9">
+          <h2 className="mb-2 font-newsreader text-[24px] font-medium text-ink">
+            Request a demo slot
+          </h2>
+          <p className="mb-5 font-inter text-[15px] leading-[1.6] text-ink-soft">
+            Have something to show? Request a slot to demo your project to the
+            room.
+          </p>
+          <KaribuDemoRequestForm eventSlug={event.slug} />
+        </div>
+      )}
+
+      {/* The public recap — once results are published */}
+      {recapHref && (
+        <div className="mt-9">
+          <Link
+            href={recapHref}
+            className="inline-flex items-center rounded-full bg-clay px-5 py-2.5 font-inter text-[13.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+          >
+            See the results →
+          </Link>
+        </div>
+      )}
+
+      {/* Q&A — only when this event has an open EventQuestionSession */}
+      {openQuestionSession && (
+        <EventQaBlock eventSlug={event.slug} session={openQuestionSession} />
+      )}
+
+      {/* Share */}
+      <div className="mt-9 flex items-center gap-3 border-t border-sand pt-6">
+        <span className="font-inter text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+          Share
+        </span>
+        <ShareLink href={twitterShareUrl} label="Share on X">
+          <Twitter className="h-4 w-4" />
+        </ShareLink>
+        <ShareLink href={linkedInShareUrl} label="Share on LinkedIn">
+          <Linkedin className="h-4 w-4" />
+        </ShareLink>
+        <ShareLink href={`/events/${event.slug}`} label="Event link" internal>
+          <LinkIcon className="h-4 w-4" />
+        </ShareLink>
+      </div>
+    </>
+  );
+
+  const bodyTabs: EventTab[] = [
+    { id: "about", label: "About", children: aboutPanel },
+    ...(results
+      ? [
+          {
+            id: "winners",
+            label: "Winners",
+            // The winners, straight under the description once published.
+            children: (
+              <div className="mb-9">
+                <KaribuWinnersSection results={results} />
+              </div>
+            ),
+          },
+        ]
+      : []),
+    // Meet the judges — hackathons linked to an Impact Lab cohort.
+    ...(judgesCohort
+      ? [{ id: "judges", label: "Judges", children: <KaribuJudgesSection cohort={judgesCohort} /> }]
+      : []),
+  ];
+  const defaultTabId = results ? "winners" : "about";
 
   return (
     <>
@@ -228,156 +397,17 @@ export function KaribuEventDetail({
           </div>
         </Reveal>
 
-        {/* Body: About onward, continuing straight below the header text */}
+        {/* Body: About onward, continuing straight below the header text.
+            Once winners and judges are published this column runs long, so
+            it splits into tabs (About / Winners / Judges) — see EventTabs.
+            An ordinary event with neither has only the About tab, and gets
+            no tab bar: `bodyTabs.length > 1` below is the switch. */}
         <Reveal className="min-w-0 lg:col-start-1 lg:row-start-2">
-          {/* About */}
-          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
-            About this {TYPE_LABEL[event.type].toLowerCase()}
-          </h2>
-          <div className="mb-7 space-y-4">
-            {descriptionParagraphs.map((p, i) => (
-              <p key={i} className="font-inter text-[15.5px] leading-[1.65] text-ink-soft">
-                {p}
-              </p>
-            ))}
-          </div>
-
-          {/* The winners, straight under the description once published */}
-          {results && (
-            <div className="mb-9">
-              <KaribuWinnersSection results={results} />
-            </div>
-          )}
-
-          {/* Schedule */}
-          {agendaEntries && agendaEntries.length > 0 && (
-            <>
-              <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
-                The day, roughly
-              </h2>
-              <div className="mb-7 flex flex-col gap-2.5">
-                {agendaEntries.map((a) => (
-                  <div key={a.hash} className="flex gap-3 font-inter text-[15px] text-ink-soft">
-                    {a.date && <span className="font-bold text-clay">{a.date}</span>}
-                    <span>{a.title}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Highlights / who it's for */}
-          {event.highlights && event.highlights.length > 0 ? (
-            <>
-              <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Highlights</h2>
-              <ul className="mb-7 space-y-2">
-                {event.highlights.map((h, i) => (
-                  <li key={i} className="flex gap-2.5 font-inter text-[15.5px] leading-[1.6] text-ink-soft">
-                    <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-clay" />
-                    {h}
-                  </li>
-                ))}
-              </ul>
-            </>
+          {bodyTabs.length > 1 ? (
+            <EventTabs tabs={bodyTabs} defaultId={defaultTabId} />
           ) : (
-            <>
-              <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Who it&apos;s for</h2>
-              <p className="mb-7 font-inter text-[15.5px] leading-[1.65] text-ink-soft">
-                Anyone curious — students, founders, and developers. If you can
-                open a laptop, you can take part. Bring a charger.
-              </p>
-            </>
+            aboutPanel
           )}
-
-          {/* Photos */}
-          {photos.length > 0 && <PhotoStrip photos={photos} eventSlug={event.slug} />}
-
-          {/* Scheduled demos */}
-          {approvedDemos.length > 0 && (
-            <div className="mt-9">
-              <h2 className="mb-4 font-newsreader text-[24px] font-medium text-ink">Scheduled demos</h2>
-              <div className="space-y-3">
-                {approvedDemos.map((demo) => (
-                  <div key={demo.id} className="rounded-2xl border border-sand bg-paper-card p-5">
-                    <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-newsreader text-[19px] text-ink">{demo.projectTitle}</span>
-                      <span className="font-inter text-[12.5px] text-ink-muted">
-                        {demo.estimatedTime} min
-                      </span>
-                    </div>
-                    <p className="mb-2 font-inter text-[14.5px] leading-[1.55] text-ink-soft">
-                      {demo.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 font-inter text-[13px] text-ink-muted">
-                      <span>by {demo.name}</span>
-                      {demo.demoUrl && (
-                        <a
-                          href={demo.demoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-semibold text-clay hover:underline"
-                        >
-                          Live demo →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Demo request form: upcoming meetups and workshops only. A hackathon's
-              demos come from its heats and the logged-in dashboard submission,
-              and Conversations events have their own participation forms. */}
-          {!isPast && event.type !== "hackathon" && event.type !== "conversations" && (
-            <div className="mt-9">
-              <h2 className="mb-2 font-newsreader text-[24px] font-medium text-ink">
-                Request a demo slot
-              </h2>
-              <p className="mb-5 font-inter text-[15px] leading-[1.6] text-ink-soft">
-                Have something to show? Request a slot to demo your project to the
-                room.
-              </p>
-              <KaribuDemoRequestForm eventSlug={event.slug} />
-            </div>
-          )}
-
-          {/* Meet the judges — hackathons linked to an Impact Lab cohort */}
-          {judgesCohort && <KaribuJudgesSection cohort={judgesCohort} />}
-
-          {/* The public recap — once results are published */}
-          {recapHref && (
-            <div className="mt-9">
-              <Link
-                href={recapHref}
-                className="inline-flex items-center rounded-full bg-clay px-5 py-2.5 font-inter text-[13.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-              >
-                See the results →
-              </Link>
-            </div>
-          )}
-
-          {/* Q&A — only when this event has an open EventQuestionSession */}
-          {openQuestionSession && (
-            <EventQaBlock eventSlug={event.slug} session={openQuestionSession} />
-          )}
-
-          {/* Share */}
-          <div className="mt-9 flex items-center gap-3 border-t border-sand pt-6">
-            <span className="font-inter text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-              Share
-            </span>
-            <ShareLink href={twitterShareUrl} label="Share on X">
-              <Twitter className="h-4 w-4" />
-            </ShareLink>
-            <ShareLink href={linkedInShareUrl} label="Share on LinkedIn">
-              <Linkedin className="h-4 w-4" />
-            </ShareLink>
-            <ShareLink href={`/events/${event.slug}`} label="Event link" internal>
-              <LinkIcon className="h-4 w-4" />
-            </ShareLink>
-          </div>
         </Reveal>
       </section>
 
