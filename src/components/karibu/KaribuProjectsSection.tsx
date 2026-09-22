@@ -10,6 +10,7 @@
  */
 
 import type { EventProject } from "@/lib/impact-lab/event-projects";
+import { REVIEW_PROVENANCE_PUBLIC } from "@/lib/impact-lab/reviews";
 
 const FIRST_PARAGRAPHS = 3;
 
@@ -22,7 +23,7 @@ export function KaribuProjectsSection({ projects }: { projects: EventProject[] }
         What was built
       </h2>
       <p className="mb-6 font-inter text-[14.5px] leading-[1.6] text-ink-soft">
-        Every project submitted before the 4 AM lock, in the teams&apos; own words.
+        Every project submitted before the lock, in the teams&apos; own words.
       </p>
       <ul className="space-y-4">
         {projects.map((project) => (
@@ -60,6 +61,7 @@ function ProjectCard({ project }: { project: EventProject }) {
             {project.review.text}
           </p>
           <p className="mt-1 font-inter text-[13px] text-ink-muted">{project.review.signedBy}</p>
+          <p className="font-inter text-[13px] text-ink-muted">{REVIEW_PROVENANCE_PUBLIC}</p>
         </div>
       )}
 

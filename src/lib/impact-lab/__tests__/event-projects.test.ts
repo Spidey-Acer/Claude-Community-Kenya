@@ -29,6 +29,10 @@ const SNAPSHOT: ResultsSnapshot = {
     { rank: 2, teamId: "team-2", projectName: "Beta", track: "Kazi", average: 90, basis: "demo" },
     { rank: 3, teamId: "team-3", projectName: "Gamma", track: "Kazi", average: 85, basis: "demo" },
     { rank: 4, teamId: "team-4", projectName: "Delta", track: "Elimu", average: 80, basis: "demo" },
+    // team-7 placed second WITHIN Elimu (behind team-4, the announced
+    // winner) but sits at rank 5 overall — outside the top three. Its only
+    // honour would be an un-announced track-runner-up, which must not leak.
+    { rank: 5, teamId: "team-7", projectName: "Epsilon", track: "Elimu", average: 70, basis: "demo" },
     // team-5 and team-6 submitted but were never scored — no ranking row,
     // no unranked entry either, so they carry no honour at all.
   ],
@@ -46,6 +50,7 @@ function source(): EventProjectsSource {
       { id: "team-4", name: "Table 4", memberIds: ["p5"], trackKey: "elimu" },
       { id: "team-5", name: "Table 5", memberIds: ["p6"], trackKey: "elimu" },
       { id: "team-6", name: "Table 6", memberIds: ["p7"], trackKey: "elimu" },
+      { id: "team-7", name: "Table 7", memberIds: ["p8"], trackKey: "elimu" },
     ],
     participants: [
       { id: "p1", fullName: "jane wanjiru" },
@@ -55,6 +60,7 @@ function source(): EventProjectsSource {
       { id: "p5", fullName: "grace njeri" },
       { id: "p6", fullName: "samuel kiptoo" },
       { id: "p7", fullName: "esther wambui" },
+      { id: "p8", fullName: "brian ochieng" },
     ],
     submissions: [
       {
@@ -111,6 +117,15 @@ function source(): EventProjectsSource {
         demoUrl: null,
         videoUrl: null,
       },
+      {
+        teamId: "team-7",
+        projectName: "Epsilon",
+        pitch: "Epsilon pitch.",
+        description: "Epsilon description.",
+        repoUrl: "https://github.com/team7/epsilon",
+        demoUrl: null,
+        videoUrl: null,
+      },
     ],
     reviews: [
       { teamId: "team-1", text: "Great work, team one.", approvedAt: new Date("2026-09-20T20:00:00.000Z") },
@@ -129,6 +144,7 @@ describe("buildEventProjects — ordering", () => {
       "team-4", // remaining track winner (Elimu)
       "team-6", // "acorn" — everyone else, alphabetical
       "team-2", // "Beta"
+      "team-7", // "Epsilon" — track runner-up, but no announced honour
       "team-3", // "Gamma"
       "team-5", // "zeta"
     ])
@@ -234,6 +250,15 @@ describe("buildEventProjects — honours", () => {
     expect(projects.find((p) => p.teamId === "team-5")?.honour).toBeNull()
     expect(projects.find((p) => p.teamId === "team-6")?.honour).toBeNull()
   })
+
+  it("never leaks an un-announced track placing (runner-up/third-in-track) as an honour", () => {
+    // team-7 is second within Elimu (behind the announced winner, team-4)
+    // but outside the overall top three — the panel never announced it as
+    // anything. Showing "Runner-up in Elimu" here would reconstruct the
+    // track's top three on a public page nothing else on the site prints.
+    const projects = buildEventProjects(source())
+    expect(projects.find((p) => p.teamId === "team-7")?.honour).toBeNull()
+  })
 })
 
 describe("buildEventProjects — description", () => {
@@ -251,12 +276,15 @@ describe("buildEventProjects — description", () => {
     expect(projects.find((p) => p.teamId === "team-3")?.name).toBe("Gamma")
   })
 
-  it("falls back to the team name when the submission left the project name blank", () => {
+  it("falls back to a placeholder, never the frozen team name or teamId, when the project name is blank", () => {
     const src = source()
     const team1 = src.submissions.find((s) => s.teamId === "team-1")
     if (team1) team1.projectName = "  "
     const projects = buildEventProjects(src)
-    expect(projects.find((p) => p.teamId === "team-1")?.name).toBe("Table 1")
+    const name = projects.find((p) => p.teamId === "team-1")?.name
+    expect(name).toBe("Untitled project")
+    expect(name).not.toBe("Table 1")
+    expect(name).not.toBe("team-1")
   })
 })
 

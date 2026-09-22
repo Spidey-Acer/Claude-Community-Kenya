@@ -31,6 +31,14 @@ export const REVIEW_SIGNATURE = "Claude Community Kenya"
 export const REVIEW_PROVENANCE =
   "Written by the Claude Community Kenya team after reading your submission: this is the community's review, not a judge's."
 
+/**
+ * The same provenance, for a reader who isn't the team ("the submission",
+ * not "your submission") — the public Projects tab, where any visitor may
+ * read a team's review.
+ */
+export const REVIEW_PROVENANCE_PUBLIC =
+  "Written by the Claude Community Kenya team after reading the submission."
+
 // ─── Judge notes ─────────────────────────────────────────────────────────────
 
 /**

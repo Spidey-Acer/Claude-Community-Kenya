@@ -30,7 +30,7 @@ import { getEventByCohort } from "./event-store"
 import { extractFrozenTeams } from "./member"
 import { resolveTeamTrack, trackLabelIndex, type TrackedTeam } from "./judging"
 import { cleanProse, markdownToPlainText } from "./export-data"
-import { isChampion, cardHonours, placementTitle, shortName, type CardCopyInput } from "./result-card"
+import { isChampion, cardHonours, placementTitle, shortName, type CardCopyInput, type Honour } from "./result-card"
 import { isResultsSnapshot, placementFor, type ResultsSnapshot } from "./results"
 import { publishableReview, REVIEW_SIGNATURE, type ReviewGateInput } from "./reviews"
 
@@ -118,11 +118,28 @@ function buildLinks(sub: EventProjectSourceSubmission): EventProjectLink[] {
 }
 
 /**
- * The honour badge, or `null` for a team that only "built" — the same
- * primary honour `cardHonours` gives the winner cards (Champion, a track
- * winner, second/third overall), sentence-cased for a badge next to a name
- * rather than the poster's all-caps line. A team the snapshot never ranked
- * (took part, never scored) also gets `null` here.
+ * Honour kinds this tab may show — every one the panel actually announced:
+ * the champion, a track's own winner, and second/third overall. Explicitly
+ * NOT `track-runner-up` or `track-third` (`cardHonours`' fallback for a
+ * team that placed but was never named) or `built` (no honour at all) —
+ * printing those would let a reader reconstruct every track's top three
+ * from this public tab, which is exactly the score-adjacent ranking the
+ * rest of this module goes out of its way never to publish.
+ */
+const ANNOUNCED_HONOUR_KINDS = new Set<Honour["kind"]>([
+  "champion",
+  "track-winner",
+  "second-overall",
+  "third-overall",
+])
+
+/**
+ * The honour badge, or `null` for a team with no announced honour — the
+ * same primary honour `cardHonours` gives the winner cards (Champion, a
+ * track winner, second/third overall), sentence-cased for a badge next to a
+ * name rather than the poster's all-caps line. `null` also for a team the
+ * snapshot never ranked (took part, never scored), and for a team whose
+ * only honour is an un-announced track placing — see `ANNOUNCED_HONOUR_KINDS`.
  */
 function primaryHonourLabel(
   snapshot: ResultsSnapshot,
@@ -140,7 +157,7 @@ function primaryHonourLabel(
     overallRank: placement.overallRank,
   }
   const honour = cardHonours(input)[0]
-  if (honour.kind === "built") return null
+  if (!ANNOUNCED_HONOUR_KINDS.has(honour.kind)) return null
   return honour.label.charAt(0).toUpperCase() + honour.label.slice(1)
 }
 
@@ -179,7 +196,10 @@ export function buildEventProjects(source: EventProjectsSource): EventProject[] 
     // team's own project name (e.g. "kada ya moko") into something they
     // never wrote, on the one surface that is supposed to be their own
     // words verbatim — the cards, emails and winners section never do this.
-    const name = submission.projectName.trim() || team?.name || teamId
+    // A blank name never falls back to the frozen team name or the raw
+    // teamId on THIS tab — "Table 12" or "team-6" printed as a project name
+    // reads as a real (if odd) title rather than the placeholder it is.
+    const name = submission.projectName.trim() || "Untitled project"
 
     const members = (team?.memberIds ?? [])
       .map((id) => participantById.get(id))
