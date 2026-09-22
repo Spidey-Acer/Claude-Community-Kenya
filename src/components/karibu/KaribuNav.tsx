@@ -41,8 +41,10 @@ const CommandPalette = dynamic(
   { ssr: false },
 );
 
+// The palette's shortcut listener sits on `window`; a constructed event does
+// not bubble unless told to, so without `bubbles` the click never reaches it.
 function openCommandPalette() {
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 }
 
 export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
