@@ -12,8 +12,9 @@
  * is in the page tab order), and Left/Right/Home/End move focus and select
  * together.
  *
- * Hash sync: `#results` and `#winners` select the winners tab, `#judges`
- * selects judges, `#about` selects about, anything else keeps `defaultId`.
+ * Hash sync: `#results` and `#winners` select the winners tab, `#projects`
+ * selects projects, `#judges` selects judges, `#about` selects about,
+ * anything else keeps `defaultId`.
  * Selecting a tab replaces the hash (no history entry, no scroll jump).
  * `hashchange` is watched too, so an in-page link elsewhere on the page
  * (`href="#results"`) still switches tabs after mount — see

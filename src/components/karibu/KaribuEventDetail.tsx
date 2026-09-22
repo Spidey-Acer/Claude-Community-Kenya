@@ -24,8 +24,10 @@ import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
 import { KaribuWinnersSection } from "@/components/karibu/KaribuWinnersSection";
+import { KaribuProjectsSection } from "@/components/karibu/KaribuProjectsSection";
 import { EventBodyTabs } from "@/components/karibu/EventBodyTabs";
 import type { EventResults } from "@/lib/impact-lab/event-results";
+import type { EventProject } from "@/lib/impact-lab/event-projects";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -66,6 +68,8 @@ interface KaribuEventDetailProps {
   recapHref: string | null;
   /** The published winners for this event's cohort; null until results are published. */
   results: EventResults | null;
+  /** Every submitted project for this event's cohort, from the published record; null until published. */
+  projects: EventProject[] | null;
 }
 
 function parseDate(d: string): Date | null {
@@ -87,6 +91,7 @@ export function KaribuEventDetail({
   judgesCohort,
   recapHref,
   results,
+  projects,
 }: KaribuEventDetailProps) {
   const { whatsapp } = useSocialLinks();
   const dt = parseDate(event.date);
@@ -248,6 +253,13 @@ export function KaribuEventDetail({
     </div>
   ) : undefined;
 
+  // Every submitted project, its own tab once published.
+  const projectsPanel = projects && projects.length > 0 ? (
+    <div className="mb-9">
+      <KaribuProjectsSection projects={projects} />
+    </div>
+  ) : undefined;
+
   return (
     <>
       {/* Back link */}
@@ -385,12 +397,18 @@ export function KaribuEventDetail({
         </Reveal>
 
         {/* Body: About onward, continuing straight below the header text.
-            Once winners and judges are published this column runs long, so
-            it splits into tabs (About / Winners / Judges) — see EventBodyTabs.
-            The judges tab appears only once its panel has loaded with someone
-            in it; an ordinary event with neither gets no tab bar. */}
+            Once winners, projects and judges are published this column runs
+            long, so it splits into tabs (About / Winners / Projects / Judges)
+            — see EventBodyTabs. The judges tab appears only once its panel
+            has loaded with someone in it; an ordinary event with none of
+            these gets no tab bar. */}
         <Reveal className="min-w-0 lg:col-start-1 lg:row-start-2">
-          <EventBodyTabs about={aboutPanel} winners={winnersPanel} judgesCohort={judgesCohort} />
+          <EventBodyTabs
+            about={aboutPanel}
+            winners={winnersPanel}
+            projects={projectsPanel}
+            judgesCohort={judgesCohort}
+          />
         </Reveal>
       </section>
 

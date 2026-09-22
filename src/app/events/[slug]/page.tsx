@@ -9,6 +9,7 @@ import { serializeJsonLd } from "@/lib/json-ld"
 import { getOpenQuestionSession } from "@/lib/conversations/queries"
 import { linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
 import { findPublicEventResults, hasPublishedRecap } from "@/lib/impact-lab/public-recap-store"
+import { loadEventProjects } from "@/lib/impact-lab/event-projects"
 
 export const revalidate = 1800;
 
@@ -91,12 +92,15 @@ export default async function EventDetailPage({
   // cheap count rather than fetching the whole recap just to throw it away.
   // The winners section reads the published snapshot itself, in the same
   // await, so a published cohort costs the page no extra sequential trip.
-  const [recapPublished, results] = linkedCohort
+  // The Projects tab shares the same "published results" gate, so it rides
+  // along in the same `Promise.all` rather than a second sequential trip.
+  const [recapPublished, results, projects] = linkedCohort
     ? await Promise.all([
         hasPublishedRecap(linkedCohort).catch(() => false),
         findPublicEventResults(linkedCohort).catch(() => null),
+        loadEventProjects(linkedCohort).catch(() => null),
       ])
-    : [false, null];
+    : [false, null, null];
   const recapHref = recapPublished ? `/impact-lab/${linkedCohort}` : null;
 
   const relatedEvents = allEvents
@@ -186,6 +190,7 @@ export default async function EventDetailPage({
         judgesCohort={linkedCohort}
         recapHref={recapHref}
         results={results}
+        projects={projects}
       />
     </>
   );

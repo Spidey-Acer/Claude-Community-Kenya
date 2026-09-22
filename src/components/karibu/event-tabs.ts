@@ -8,9 +8,11 @@
 /**
  * Maps `location.hash` to one of `ids`, falling back to `defaultId` when the
  * hash is empty, unrecognized, or names a tab this event doesn't have (e.g.
- * `#judges` on an event with no judges panel). `#results` and `#winners`
- * both mean the winners tab — `KaribuWinnersSection` renders `id="results"`,
- * but "winners" is the tab id.
+ * `#judges` on an event with no judges panel, or `#projects` before any
+ * project has been published). `#results` and `#winners` both mean the
+ * winners tab — `KaribuWinnersSection` renders `id="results"`, but "winners"
+ * is the tab id. Every other tab id (`about`, `projects`, `judges`) maps to
+ * itself — no further remapping needed.
  */
 export function tabIdFromHash(hash: string, ids: string[], defaultId: string): string {
   const clean = hash.replace(/^#/, "").toLowerCase();
