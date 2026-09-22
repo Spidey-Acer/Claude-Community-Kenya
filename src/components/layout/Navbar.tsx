@@ -158,7 +158,7 @@ export function Navbar() {
 
             {/* Search trigger */}
             <button
-              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
+              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }))}
               className="ml-2 flex items-center gap-1.5 px-2 py-1.5 font-mono text-xs text-text-dim transition-colors hover:text-text-secondary"
               aria-label="Open command palette"
             >
