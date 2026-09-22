@@ -8,7 +8,7 @@ import { nextIndex, tabIdFromHash } from "../event-tabs";
 // instead of rendering the component.
 
 describe("tabIdFromHash", () => {
-  const ids = ["about", "winners", "judges"];
+  const ids = ["about", "winners", "projects", "judges"];
 
   it("selects the winners tab for #results", () => {
     expect(tabIdFromHash("#results", ids, "about")).toBe("winners");
@@ -20,6 +20,15 @@ describe("tabIdFromHash", () => {
 
   it("selects judges for #judges", () => {
     expect(tabIdFromHash("#judges", ids, "about")).toBe("judges");
+  });
+
+  it("selects projects for #projects", () => {
+    expect(tabIdFromHash("#projects", ids, "about")).toBe("projects");
+  });
+
+  it("falls back to the default when #projects isn't in ids", () => {
+    // e.g. #projects on an event whose cohort has no published projects.
+    expect(tabIdFromHash("#projects", ["about", "winners"], "winners")).toBe("winners");
   });
 
   it("selects about for #about", () => {
