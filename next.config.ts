@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
     "/impact-lab/results/[slug]/card/portrait": CARD_ASSETS,
     "/impact-lab/results/[slug]/card/story": CARD_ASSETS,
     "/api/admin/impact-lab/results/card": CARD_ASSETS,
+    // The migrations route reads `prisma/migrations/*/migration.sql` with a
+    // runtime readdir, which tracing cannot follow.
+    "/api/admin/db/migrations": ["./prisma/migrations/**"],
   },
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],

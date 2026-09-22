@@ -6,6 +6,7 @@ import { SiteStatsEditor } from "@/components/admin/SiteStatsEditor"
 import { SocialLinksEditor } from "@/components/admin/SocialLinksEditor"
 import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm"
 import { AdminUserManager } from "@/components/admin/AdminUserManager"
+import { MigrationsPanel } from "@/components/admin/MigrationsPanel"
 import { SOCIAL_PLATFORM_DB_FIELD, SOCIAL_PLATFORM_KEYS, type SocialPlatformKey } from "@/lib/social-links-schema"
 import { Settings, ShieldAlert } from "lucide-react"
 
@@ -94,6 +95,9 @@ export default async function SettingsPage() {
           }))}
           currentUserId={(session?.user as { id?: string })?.id ?? ""}
         />
+
+        {/* Database migrations: status and one-click apply of shipped files */}
+        <MigrationsPanel />
 
         {/* Security Info */}
         <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-lg p-5">
