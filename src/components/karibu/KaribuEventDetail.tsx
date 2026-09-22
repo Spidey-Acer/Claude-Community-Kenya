@@ -23,9 +23,8 @@ import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
-import { KaribuJudgesSection } from "@/components/karibu/KaribuJudgesSection";
 import { KaribuWinnersSection } from "@/components/karibu/KaribuWinnersSection";
-import { EventTabs, type EventTab } from "@/components/karibu/EventTabs";
+import { EventBodyTabs } from "@/components/karibu/EventBodyTabs";
 import type { EventResults } from "@/lib/impact-lab/event-results";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
 
@@ -242,28 +241,12 @@ export function KaribuEventDetail({
     </>
   );
 
-  const bodyTabs: EventTab[] = [
-    { id: "about", label: "About", children: aboutPanel },
-    ...(results
-      ? [
-          {
-            id: "winners",
-            label: "Winners",
-            // The winners, straight under the description once published.
-            children: (
-              <div className="mb-9">
-                <KaribuWinnersSection results={results} />
-              </div>
-            ),
-          },
-        ]
-      : []),
-    // Meet the judges — hackathons linked to an Impact Lab cohort.
-    ...(judgesCohort
-      ? [{ id: "judges", label: "Judges", children: <KaribuJudgesSection cohort={judgesCohort} /> }]
-      : []),
-  ];
-  const defaultTabId = results ? "winners" : "about";
+  // The winners, straight under the description once published.
+  const winnersPanel = results ? (
+    <div className="mb-9">
+      <KaribuWinnersSection results={results} />
+    </div>
+  ) : undefined;
 
   return (
     <>
@@ -280,7 +263,11 @@ export function KaribuEventDetail({
           it doesn't force the header row tall — see the comment above the
           rail below. */}
       <section
-        className={`${WRAP} grid grid-cols-1 items-start gap-10 pb-12 pt-5 lg:grid-cols-[1fr_400px]`}
+        // Rows are `auto 1fr` on purpose: the rail spans both rows, and a grid
+        // shares a spanning item's height across auto rows, which pushed the
+        // body down whenever the rail was taller than header plus body (a short
+        // tab, say). With row two flexible, the slack lands there instead.
+        className={`${WRAP} grid grid-cols-1 items-start gap-10 pb-12 pt-5 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]`}
         aria-label="Event"
       >
         {/* Header text — badges, title, lead description */}
@@ -399,15 +386,11 @@ export function KaribuEventDetail({
 
         {/* Body: About onward, continuing straight below the header text.
             Once winners and judges are published this column runs long, so
-            it splits into tabs (About / Winners / Judges) — see EventTabs.
-            An ordinary event with neither has only the About tab, and gets
-            no tab bar: `bodyTabs.length > 1` below is the switch. */}
+            it splits into tabs (About / Winners / Judges) — see EventBodyTabs.
+            The judges tab appears only once its panel has loaded with someone
+            in it; an ordinary event with neither gets no tab bar. */}
         <Reveal className="min-w-0 lg:col-start-1 lg:row-start-2">
-          {bodyTabs.length > 1 ? (
-            <EventTabs tabs={bodyTabs} defaultId={defaultTabId} />
-          ) : (
-            aboutPanel
-          )}
+          <EventBodyTabs about={aboutPanel} winners={winnersPanel} judgesCohort={judgesCohort} />
         </Reveal>
       </section>
 
