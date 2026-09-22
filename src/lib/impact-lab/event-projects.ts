@@ -29,7 +29,7 @@ import { validCohort } from "./event-lifecycle"
 import { getEventByCohort } from "./event-store"
 import { extractFrozenTeams } from "./member"
 import { resolveTeamTrack, trackLabelIndex, type TrackedTeam } from "./judging"
-import { cleanProse, formatDisplayName, markdownToPlainText } from "./export-data"
+import { cleanProse, markdownToPlainText } from "./export-data"
 import { isChampion, cardHonours, placementTitle, shortName, type CardCopyInput } from "./result-card"
 import { isResultsSnapshot, placementFor, type ResultsSnapshot } from "./results"
 import { publishableReview, REVIEW_SIGNATURE, type ReviewGateInput } from "./reviews"
@@ -172,7 +172,14 @@ export function buildEventProjects(source: EventProjectsSource): EventProject[] 
 
     const team = teamById.get(teamId)
     const track = trackById.get(teamId) ?? "Unassigned"
-    const name = formatDisplayName(submission.projectName.trim() || team?.name || teamId)
+    // Printed exactly as the team wrote it — the same fallback
+    // `export-data.ts`'s `projectDisplayName` uses, but no casing fix:
+    // `formatDisplayName` exists to fix a person's typed-lowercase name
+    // ("simon" -> "Simon"), and applying it here would silently rewrite a
+    // team's own project name (e.g. "kada ya moko") into something they
+    // never wrote, on the one surface that is supposed to be their own
+    // words verbatim — the cards, emails and winners section never do this.
+    const name = submission.projectName.trim() || team?.name || teamId
 
     const members = (team?.memberIds ?? [])
       .map((id) => participantById.get(id))

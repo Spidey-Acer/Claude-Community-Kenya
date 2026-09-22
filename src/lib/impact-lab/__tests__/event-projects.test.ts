@@ -127,10 +127,10 @@ describe("buildEventProjects — ordering", () => {
     expect(projects.map((p) => p.teamId)).toEqual([
       "team-1", // champion / podium
       "team-4", // remaining track winner (Elimu)
-      "team-6", // "Acorn" — everyone else, alphabetical
+      "team-6", // "acorn" — everyone else, alphabetical
       "team-2", // "Beta"
       "team-3", // "Gamma"
-      "team-5", // "Zeta"
+      "team-5", // "zeta"
     ])
   })
 
@@ -243,10 +243,20 @@ describe("buildEventProjects — description", () => {
     expect(team1?.descriptionParagraphs).toEqual(["Para one.", "Para two.", "Para three.", "Para four."])
   })
 
-  it("title-cases an all-lowercase project name without touching a deliberately cased one", () => {
+  it("prints a project name exactly as the team wrote it, no casing fix", () => {
     const projects = buildEventProjects(source())
-    expect(projects.find((p) => p.teamId === "team-1")?.name).toBe("Alpha")
+    // team-1 submitted "alpha" all lowercase — the cards, emails and winners
+    // section all print it verbatim, and this tab must not diverge from them.
+    expect(projects.find((p) => p.teamId === "team-1")?.name).toBe("alpha")
     expect(projects.find((p) => p.teamId === "team-3")?.name).toBe("Gamma")
+  })
+
+  it("falls back to the team name when the submission left the project name blank", () => {
+    const src = source()
+    const team1 = src.submissions.find((s) => s.teamId === "team-1")
+    if (team1) team1.projectName = "  "
+    const projects = buildEventProjects(src)
+    expect(projects.find((p) => p.teamId === "team-1")?.name).toBe("Table 1")
   })
 })
 
