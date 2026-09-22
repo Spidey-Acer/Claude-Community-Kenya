@@ -62,6 +62,10 @@ export function EventTabs({ tabs, defaultId }: { tabs: EventTab[]; defaultId: st
         tablistRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
       }
     }
+    // The set of tabs can grow after mount (the judges tab appears once its
+    // panel has loaded), so a hash that named a tab not yet offered is
+    // re-read here, without the scroll.
+    if (hasMounted.current) setActiveId(tabIdFromHash(window.location.hash, ids, defaultId));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps

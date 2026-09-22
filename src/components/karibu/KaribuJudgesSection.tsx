@@ -22,25 +22,42 @@ interface JudgesResponse {
   judges?: Judge[];
 }
 
-export function KaribuJudgesSection({ cohort }: { cohort: string }) {
-  const [judges, setJudges] = useState<Judge[]>([]);
+/**
+ * The published panel for a cohort, fetched once on mount. `null` until the
+ * request settles, then the list (possibly empty), so a caller can tell
+ * "still loading" from "no judges".
+ */
+export function useJudges(cohort: string): Judge[] | null {
+  const [judges, setJudges] = useState<Judge[] | null>(null);
 
   useEffect(() => {
     let active = true;
     fetch(`/api/impact-lab/judges?cohort=${encodeURIComponent(cohort)}`)
       .then((res) => (res.ok ? (res.json() as Promise<JudgesResponse>) : null))
       .then((json) => {
-        if (active && json?.success && Array.isArray(json.judges)) setJudges(json.judges);
+        if (active) setJudges(json?.success && Array.isArray(json.judges) ? json.judges : []);
       })
       // A panel that fails to load leaves the section absent. This is one
       // optional block on a page whose main job is the event itself, and an
       // error box in its place would be worse than nothing.
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setJudges([]);
+      });
     return () => {
       active = false;
     };
   }, [cohort]);
 
+  return judges;
+}
+
+export function KaribuJudgesSection({ cohort }: { cohort: string }) {
+  const judges = useJudges(cohort) ?? [];
+  return <JudgesPanel judges={judges} />;
+}
+
+/** The panel itself, given its judges. Renders nothing for an empty list. */
+export function JudgesPanel({ judges }: { judges: Judge[] }) {
   if (judges.length === 0) return null;
 
   return (
