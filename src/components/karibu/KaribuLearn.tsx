@@ -1,11 +1,16 @@
 "use client";
 
 /**
- * KaribuLearn — warm-light "Learn" hub for the Karibu identity.
+ * KaribuLearnGrid — the "Start here" section of the Karibu Learn hub: the
+ * resource-card grid, the suggested-path panel, the FAQ teaser and the join
+ * CTA. Ports learn.dc.html but preserves ALL of the resource hub's cards (the
+ * mockup showed 4; the real hub has 7). Redesign, don't remove.
  *
- * Ports learn.dc.html but preserves ALL of the resource hub's cards (the mockup
- * showed 4; the real hub has 7), plus the suggested-path card. Redesign, don't
- * remove.
+ * Deliberately does NOT render PageBanner — the /resources page now composes
+ * its own banner (different title/subtitle) above a "Guides and notes"
+ * section, with this grid last under "Start here". Split out 2026-09-22 so
+ * the banner and the grid can vary independently; this was the page's only
+ * consumer, so nothing else needed updating.
  */
 
 import { useEffect, useRef } from "react";
@@ -22,7 +27,6 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { register, unregister } from "@/components/karibu/motion/observer";
-import { PageBanner } from "@/components/karibu/PageBanner";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import { faqs } from "@/data/faq";
@@ -75,17 +79,9 @@ function ProgressLine() {
   );
 }
 
-export function KaribuLearn({ cards }: { cards: readonly LearnCard[] }) {
+export function KaribuLearnGrid({ cards }: { cards: readonly LearnCard[] }) {
   return (
     <>
-      <PageBanner
-        image="/images/community/laptops.webp"
-        imageAlt="Members building on their laptops at a CCK meetup"
-        crumbs={["Home", "Resources"]}
-        title="Start where you are. Build from there."
-        subtitle="Community-curated guides, prompts and courses for every level — from your very first prompt to production-ready Claude Code."
-      />
-
       {/* Resource cards */}
       <section className={`${WRAP} py-10`} aria-label="Resources">
         <Reveal className="grid gap-4 sm:grid-cols-2">

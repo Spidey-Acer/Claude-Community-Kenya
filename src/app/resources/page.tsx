@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { PageBanner } from "@/components/karibu/PageBanner";
+import { GuideCard } from "@/components/karibu/GuideCard";
+import { KaribuLearnGrid, type LearnCard } from "@/components/karibu/KaribuLearn";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { KaribuLearn, type LearnCard } from "@/components/karibu/KaribuLearn";
+import { getPublishedGuides } from "@/lib/data";
+
+export const revalidate = 600;
+
+const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -71,11 +78,50 @@ const resourceCards: readonly LearnCard[] = [
   },
 ];
 
-export default function ResourcesPage() {
+export default async function ResourcesPage() {
+  // DB is unreachable at build time in some environments (see sitemap.ts and
+  // blog/[slug]/page.tsx for the same guard) — an empty guides list degrades
+  // to the section's empty state rather than failing the build.
+  const guides = await getPublishedGuides().catch(() => []);
+
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Resources" }]} />
-      <KaribuLearn cards={resourceCards} />
+
+      <PageBanner
+        image="/images/community/laptops.webp"
+        imageAlt="Members building on their laptops at a CCK meetup"
+        crumbs={["Home", "Resources"]}
+        title="Learn Claude, from your first prompt to production."
+        subtitle="Notes, guides and courses from the community, free to download and share."
+      />
+
+      <section className={`${WRAP} py-14`} aria-label="Guides and notes">
+        <div className="mb-8 max-w-[640px]">
+          <h2 className="mb-2 font-newsreader text-[28px] font-normal leading-[1.1] tracking-[-0.01em] text-ink">
+            Guides and notes
+          </h2>
+          <p className="font-inter text-[15px] leading-[1.55] text-ink-soft">
+            Written up by the community, from a first afternoon with Claude to running it in production.
+          </p>
+        </div>
+
+        {guides.length === 0 ? (
+          <p className="font-inter text-[14.5px] text-ink-muted">
+            Guides land here as we publish them.
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {guides.map((guide) => (
+              <GuideCard key={guide.slug} guide={guide} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-label="Start here">
+        <KaribuLearnGrid cards={resourceCards} />
+      </section>
     </>
   );
 }

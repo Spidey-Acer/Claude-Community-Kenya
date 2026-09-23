@@ -12,6 +12,7 @@ import type { Event } from "@/lib/types"
 import type {
   Event as PrismaEvent,
   BlogPost as PrismaBlogPost,
+  Guide as PrismaGuide,
   Project as PrismaProject,
   TeamMember as PrismaTeamMember,
   DemoRequest as PrismaDemoRequest,
@@ -299,6 +300,62 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | nu
   // Increment view count (non-blocking)
   prisma.blogPost.update({ where: { slug }, data: { views: { increment: 1 } } }).catch(() => {})
   return mapPrismaBlog(row)
+}
+
+// ─── Guide Types ────────────────────────────────────────────────────────────
+
+export interface GuideView {
+  slug: string
+  title: string
+  summary: string
+  audience: string
+  fileUrl: string
+  fileSize: number
+  pageCount: number | null
+  coverUrl: string | null
+  eventSlug: string | null
+  publishedAt: string
+}
+
+function mapPrismaGuide(g: PrismaGuide): GuideView {
+  return {
+    slug: g.slug,
+    title: decodeHtmlEntities(g.title),
+    summary: decodeHtmlEntities(g.summary),
+    audience: g.audience,
+    fileUrl: g.fileUrl,
+    fileSize: g.fileSize,
+    pageCount: g.pageCount,
+    coverUrl: g.coverUrl,
+    eventSlug: g.eventSlug,
+    // Read path guarantees non-null: both queries below filter on
+    // `publishedAt: { not: null }`.
+    publishedAt: g.publishedAt!.toISOString(),
+  }
+}
+
+/** Published guides for the /resources hub, ordered for display. */
+export async function getPublishedGuides(): Promise<GuideView[]> {
+  const rows = await prisma.guide.findMany({
+    where: { publishedAt: { not: null } },
+    orderBy: [{ sortOrder: "asc" }, { publishedAt: "desc" }],
+  })
+  return rows.map(mapPrismaGuide)
+}
+
+export async function getGuideBySlug(slug: string): Promise<GuideView | null> {
+  // Public surface: an unpublished guide must 404, not render. Admin reads go
+  // through the admin API routes, never this helper.
+  const row = await prisma.guide.findFirst({ where: { slug, publishedAt: { not: null } } })
+  return row ? mapPrismaGuide(row) : null
+}
+
+export async function getPublishedGuideSlugs(): Promise<string[]> {
+  const rows = await prisma.guide.findMany({
+    where: { publishedAt: { not: null } },
+    select: { slug: true },
+  })
+  return rows.map((r) => r.slug)
 }
 
 export async function getProjects(): Promise<ProjectView[]> {
