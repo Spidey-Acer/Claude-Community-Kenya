@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues, getTeamMemberSlugs } from "@/lib/data";
+import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
 import { getShowcasePosts } from "@/lib/showcase/queries";
 
 const BASE_URL = "https://www.claudekenya.org";
@@ -8,7 +8,7 @@ const BASE_URL = "https://www.claudekenya.org";
 const SITEMAP_MAX_ITEMS = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs, showcaseData] = await Promise.all([
+  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs, showcaseData, guides] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     // Same trap as the showcase line below: the query defaults to one feed
@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Explicit limit: the default page size is 20, which would silently cap
     // the sitemap at the first 20 posts however many exist.
     getShowcasePosts({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [], total: 0 })),
+    getPublishedGuides().catch(() => []),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -100,5 +101,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...newsletterRoutes, ...teamRoutes];
+  const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
+    url: `${BASE_URL}/resources/guides/${guide.slug}`,
+    lastModified: guide.publishedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...newsletterRoutes, ...teamRoutes, ...guideRoutes];
 }

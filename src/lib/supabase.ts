@@ -38,6 +38,25 @@ export async function uploadImage(
 }
 
 /**
+ * Turn a stored Supabase public URL into one that forces a browser download
+ * (`Content-Disposition: attachment`) instead of opening inline.
+ *
+ * The HTML `download` attribute only works for same-origin links, and a
+ * Supabase Storage URL is a different origin — so a guide's "Download" button
+ * pointed at the plain public URL would just open the PDF in a new tab.
+ * Supabase's `?download` query param is what actually triggers a save.
+ */
+export function withDownload(publicUrl: string, filename?: string): string {
+  try {
+    const url = new URL(publicUrl);
+    url.searchParams.set("download", filename ?? "");
+    return url.toString();
+  } catch {
+    return publicUrl;
+  }
+}
+
+/**
  * Delete a file from Supabase Storage by its public URL.
  */
 export async function deleteImage(publicUrl: string): Promise<void> {
