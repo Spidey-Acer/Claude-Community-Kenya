@@ -6,7 +6,7 @@
 
 import { z } from "zod"
 import { toSlug } from "@/lib/utils"
-import { zodSanitizeString, zodSanitizeMultilineText, zodSanitizeUrl } from "@/lib/input-sanitization"
+import { zodSanitizeString, zodSanitizeMultilineText } from "@/lib/input-sanitization"
 import { SITE_CONFIG } from "@/lib/constants"
 
 // ─── Audience ────────────────────────────────────────────────────────────────
@@ -27,18 +27,49 @@ export const GUIDE_AUDIENCE_LABELS: Record<GuideAudience, string> = {
 
 // Matches MAX_PDF_BYTES in upload-validation.ts — kept as a separate constant
 // because that file is about what the upload route accepts, this one is about
-// what a Guide record may claim as its own fileSize.
-const MAX_GUIDE_FILE_BYTES = 25 * 1024 * 1024
+// what a Guide record may claim as its own fileSize. See upload-validation.ts
+// for why this is 4MB, not the 25MB originally specified.
+const MAX_GUIDE_FILE_BYTES = 4 * 1024 * 1024
 
-// Empty-string-from-a-form -> undefined, otherwise sanitize. Kept as a factory
-// rather than one shared instance so each field transform is independently
-// typed by zod's inference.
-const optionalSanitizedUrl = () =>
-  z
+/**
+ * Host allowlist for fileUrl/coverUrl: only an https URL on a *.supabase.co
+ * host is accepted. These values reach an <a href>, an <iframe src>, and
+ * next/image — a `javascript:` or `data:` URL there is stored XSS, and any
+ * other https host is still an open redirect / SSRF-flavoured hole plus a
+ * next/image 500 for an unconfigured remote host. Reject, don't sanitize:
+ * there is no legitimate reason a guide's file lives anywhere but the
+ * bucket our own upload route writes to.
+ */
+export function isSupabaseHttpsUrl(value: string): boolean {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return false
+  }
+  return url.protocol === "https:" && url.hostname.endsWith(".supabase.co")
+}
+
+function supabaseUrlSchema(fieldName: string) {
+  return z
+    .string()
+    .max(500)
+    .refine(isSupabaseHttpsUrl, { message: `${fieldName} must be an https Supabase Storage URL` })
+}
+
+// Empty-string-from-a-form -> undefined, otherwise validated against the
+// Supabase host allowlist above. A factory (not one shared instance) so
+// each field's error message names the right field.
+function optionalSupabaseUrl(fieldName: string) {
+  return z
     .string()
     .max(500)
     .optional()
-    .transform((v) => (v ? zodSanitizeUrl(v) || undefined : undefined))
+    .transform((v) => (v && v.trim() ? v.trim() : undefined))
+    .refine((v) => v === undefined || isSupabaseHttpsUrl(v), {
+      message: `${fieldName} must be an https Supabase Storage URL`,
+    })
+}
 
 const optionalSanitizedSlug = () =>
   z
@@ -51,10 +82,10 @@ export const createGuideSchema = z.object({
   title: z.string().min(3).max(200).transform(zodSanitizeString),
   summary: z.string().min(10).max(1000).transform(zodSanitizeMultilineText()),
   audience: guideAudienceSchema,
-  fileUrl: z.string().url(),
+  fileUrl: supabaseUrlSchema("fileUrl"),
   fileSize: z.number().int().min(1).max(MAX_GUIDE_FILE_BYTES),
   pageCount: z.number().int().min(1).optional(),
-  coverUrl: optionalSanitizedUrl(),
+  coverUrl: optionalSupabaseUrl("coverUrl"),
   eventSlug: optionalSanitizedSlug(),
   sortOrder: z.number().int().optional().default(0),
   published: z.boolean().optional().default(false),

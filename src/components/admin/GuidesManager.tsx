@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { csrfHeaders, csrfToken } from "@/lib/csrf-client"
 import { GUIDE_AUDIENCES, GUIDE_AUDIENCE_LABELS, formatFileSize, type GuideAudience } from "@/lib/guides"
+import { MAX_PDF_BYTES } from "@/lib/upload-validation"
 
 interface AdminGuide {
   id: string
@@ -94,7 +95,10 @@ async function uploadToGuides(file: File, folder: "guides" = "guides"): Promise<
   formData.append("file", file)
   formData.append("folder", folder)
 
-  const res = await fetch("/api/admin/upload", {
+  // Folder goes in the query string AND the form field — the route checks
+  // permission from the query string before it parses the body, and then
+  // requires the form field to agree (see src/app/api/admin/upload/route.ts).
+  const res = await fetch(`/api/admin/upload?folder=${folder}`, {
     method: "POST",
     headers: { "x-csrf-token": token },
     body: formData,
@@ -132,6 +136,15 @@ export function GuidesManager({ initialGuides }: { initialGuides: AdminGuide[] }
     target: "add" | "edit",
     kind: "file" | "cover"
   ) {
+    // Refuse an oversized PDF before spending a round trip on it — the
+    // server enforces the same cap (see MAX_PDF_BYTES in upload-validation.ts,
+    // 4MB because Vercel's serverless body limit is 4.5MB), this just gives
+    // a faster, clearer error than a network round trip would.
+    if (kind === "file" && file.size > MAX_PDF_BYTES) {
+      showFeedback("error", `PDF must be under ${Math.round(MAX_PDF_BYTES / (1024 * 1024))}MB`)
+      return
+    }
+
     const setUploading = target === "add" ? setAddUploading : setEditUploading
     const setForm = target === "add" ? setAddForm : setEditForm
     setUploading(kind)
@@ -490,7 +503,9 @@ function GuideForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="block text-[10px] font-mono text-[#555] mb-1">PDF file</label>
+          <label className="block text-[10px] font-mono text-[#555] mb-1">
+            PDF file (up to {Math.round(MAX_PDF_BYTES / (1024 * 1024))}MB)
+          </label>
           <input
             ref={fileInputRef}
             type="file"
@@ -553,6 +568,9 @@ function GuideForm({
         />
         Published — visible on /resources
       </label>
+      <p className="text-[10px] font-mono text-[#555]">
+        Unpublishing hides the page. Delete the guide to remove the file.
+      </p>
 
       <div className="flex items-center gap-2">
         <button

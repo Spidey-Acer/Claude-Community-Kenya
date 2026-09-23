@@ -80,7 +80,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
       />
 
       <div className={WRAP}>
-        <nav aria-label="Breadcrumb" className="mb-6 font-inter text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+        <nav aria-label="Breadcrumb" className="mb-6 font-inter text-xs font-semibold tracking-[0.18em] text-ink-muted">
           <Link href="/" className="hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50 rounded">
             Home
           </Link>
@@ -116,7 +116,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         <div className="overflow-hidden rounded-2xl border border-sand">
           <iframe
             src={guide.fileUrl}
-            title={`${guide.title} — PDF reader`}
+            title={`${guide.title}: PDF reader`}
             className="h-[80vh] w-full"
           />
         </div>

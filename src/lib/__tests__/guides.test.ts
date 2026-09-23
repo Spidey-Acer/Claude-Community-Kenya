@@ -6,6 +6,7 @@ import {
   buildGuideJsonLd,
   formatFileSize,
   guideMetaLine,
+  isSupabaseHttpsUrl,
 } from "@/lib/guides"
 
 describe("uniqueGuideSlug", () => {
@@ -59,9 +60,14 @@ describe("createGuideSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejects a fileSize over the 25MB cap", () => {
-    const result = createGuideSchema.safeParse({ ...base, fileSize: 26 * 1024 * 1024 })
+  it("rejects a fileSize over the 4MB cap", () => {
+    const result = createGuideSchema.safeParse({ ...base, fileSize: 5 * 1024 * 1024 })
     expect(result.success).toBe(false)
+  })
+
+  it("accepts a fileSize at exactly the 4MB cap", () => {
+    const result = createGuideSchema.safeParse({ ...base, fileSize: 4 * 1024 * 1024 })
+    expect(result.success).toBe(true)
   })
 
   it("rejects a zero or negative fileSize", () => {
@@ -78,10 +84,85 @@ describe("createGuideSchema", () => {
     expect(result.coverUrl).toBeUndefined()
   })
 
+  it("rejects a javascript: fileUrl", () => {
+    const result = createGuideSchema.safeParse({ ...base, fileUrl: "javascript:alert(1)" })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects an http: (non-https) fileUrl", () => {
+    const result = createGuideSchema.safeParse({
+      ...base,
+      fileUrl: "http://example.supabase.co/storage/v1/object/public/cck-bucket/guides/notes.pdf",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects a fileUrl on an arbitrary https host", () => {
+    const result = createGuideSchema.safeParse({ ...base, fileUrl: "https://evil.example.com/notes.pdf" })
+    expect(result.success).toBe(false)
+  })
+
+  it("accepts a valid Supabase https fileUrl", () => {
+    const result = createGuideSchema.safeParse(base)
+    expect(result.success).toBe(true)
+  })
+
+  it("rejects a javascript: coverUrl", () => {
+    const result = createGuideSchema.safeParse({ ...base, coverUrl: "javascript:alert(1)" })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects an http: coverUrl", () => {
+    const result = createGuideSchema.safeParse({
+      ...base,
+      coverUrl: "http://example.supabase.co/storage/v1/object/public/cck-bucket/guides/cover.png",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects a coverUrl on an arbitrary https host", () => {
+    const result = createGuideSchema.safeParse({ ...base, coverUrl: "https://evil.example.com/cover.png" })
+    expect(result.success).toBe(false)
+  })
+
+  it("accepts a valid Supabase https coverUrl", () => {
+    const result = createGuideSchema.safeParse({
+      ...base,
+      coverUrl: "https://example.supabase.co/storage/v1/object/public/cck-bucket/guides/cover.png",
+    })
+    expect(result.success).toBe(true)
+  })
+
   it("defaults published to false and sortOrder to 0", () => {
     const result = createGuideSchema.parse(base)
     expect(result.published).toBe(false)
     expect(result.sortOrder).toBe(0)
+  })
+})
+
+describe("isSupabaseHttpsUrl", () => {
+  it("accepts an https URL on a *.supabase.co host", () => {
+    expect(isSupabaseHttpsUrl("https://example.supabase.co/storage/v1/object/public/x/y.pdf")).toBe(true)
+  })
+
+  it("rejects javascript:", () => {
+    expect(isSupabaseHttpsUrl("javascript:alert(1)")).toBe(false)
+  })
+
+  it("rejects data:", () => {
+    expect(isSupabaseHttpsUrl("data:text/html,<script>alert(1)</script>")).toBe(false)
+  })
+
+  it("rejects http: even on a supabase host", () => {
+    expect(isSupabaseHttpsUrl("http://example.supabase.co/x.pdf")).toBe(false)
+  })
+
+  it("rejects an arbitrary https host", () => {
+    expect(isSupabaseHttpsUrl("https://evil.example.com/x.pdf")).toBe(false)
+  })
+
+  it("rejects an unparseable string", () => {
+    expect(isSupabaseHttpsUrl("not a url")).toBe(false)
   })
 })
 
