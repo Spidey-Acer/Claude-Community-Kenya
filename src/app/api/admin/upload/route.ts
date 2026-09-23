@@ -2,22 +2,23 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { uploadImage } from "@/lib/supabase"
 import { withCsrfProtection } from "@/lib/csrf"
+import { validateUpload } from "@/lib/upload-validation"
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-const ALLOWED_FOLDERS = new Set(["events", "blog", "team", "community"])
+const ALLOWED_FOLDERS = new Set(["events", "blog", "team", "community", "guides"])
 
 export async function POST(request: NextRequest) {
   const csrfError = withCsrfProtection(request)
   if (csrfError) return csrfError
 
-  const check = await checkApiPermission("events", "create")
-  if (!check.authorized) return check.response
-
   const formData = await request.formData()
   const file = formData.get("file") as File | null
   const rawFolder = formData.get("folder") as string | null
   const folder = rawFolder && ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "events"
+
+  // Guides uploads (the PDF itself, or its cover image) are gated on the
+  // "guides" resource; every other folder keeps the original "events" gate.
+  const check = await checkApiPermission(folder === "guides" ? "guides" : "events", "create")
+  if (!check.authorized) return check.response
 
   if (!file) {
     return NextResponse.json(
@@ -26,16 +27,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  const validation = validateUpload({ folder, contentType: file.type, size: file.size })
+  if (!validation.ok) {
     return NextResponse.json(
-      { success: false, error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" },
-      { status: 400 }
-    )
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json(
-      { success: false, error: "File too large. Maximum size: 5MB" },
+      { success: false, error: validation.error },
       { status: 400 }
     )
   }
@@ -49,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const publicUrl = await uploadImage(buffer, safeName, file.type, folder)
 
-    return NextResponse.json({ success: true, url: publicUrl })
+    return NextResponse.json({ success: true, url: publicUrl, size: file.size })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed"
     return NextResponse.json(

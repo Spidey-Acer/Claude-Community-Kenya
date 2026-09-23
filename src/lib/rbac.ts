@@ -14,6 +14,7 @@ export type AdminResource =
   | "contact"
   | "events"
   | "blog"
+  | "guides"
   | "projects"
   | "users"
   | "settings"
@@ -40,6 +41,7 @@ const rolePermissions: Record<
     contact: ["view", "edit", "delete"],
     events: ["view", "create", "edit", "delete"],
     blog: ["view", "create", "edit", "delete"],
+    guides: ["view", "create", "edit", "delete"],
     projects: ["view", "create", "edit", "delete"],
     users: ["view", "create", "edit", "delete"],
     settings: ["view", "edit"],
@@ -60,6 +62,7 @@ const rolePermissions: Record<
     contact: ["view", "edit"],
     events: ["view", "create", "edit", "delete"],
     blog: ["view", "create", "edit", "delete"],
+    guides: ["view", "create", "edit", "delete"],
     projects: ["view", "create", "edit"],
     users: ["view"],
     settings: [],
@@ -88,6 +91,7 @@ const rolePermissions: Record<
     contact: ["view"],
     events: ["view"],
     blog: ["view"],
+    guides: ["view"],
     projects: ["view"],
     users: [],
     settings: [],
@@ -113,6 +117,7 @@ const rolePermissions: Record<
     contact: [],
     events: ["view"],
     blog: ["view"],
+    guides: ["view"],
     projects: ["view"],
     users: [],
     settings: [],

@@ -461,6 +461,36 @@ model BlogPost {
   @@map("blog_posts")
 }
 
+// ─── Guides ──────────────────────────────────────────────────────────────────
+
+// A downloadable document on the /resources hub — a PDF the admin uploads once,
+// published with no code deploy per document. `audience` is a plain String
+// (not a Prisma enum) validated by a zod enum in code (see src/lib/guides.ts),
+// matching how ImpactLabRubric.scoring keeps its union in TypeScript only.
+// `eventSlug` is an optional soft link to the Event it came from — a string,
+// not a relation, the same join-by-slug idiom the Impact Lab tables use for
+// `cohort` rather than adding an FK for a rarely-queried, non-critical link.
+model Guide {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  summary     String    @db.Text
+  audience    String
+  fileUrl     String
+  fileSize    Int
+  pageCount   Int?
+  coverUrl    String?
+  eventSlug   String?
+  sortOrder   Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+  @@index([sortOrder])
+  @@map("guides")
+}
+
 // ─── Projects ────────────────────────────────────────────────────────────────
 
 // TODO: admin UI for setting POTW
