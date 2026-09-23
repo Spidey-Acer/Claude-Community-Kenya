@@ -29,6 +29,16 @@ import { REVIEW_SIGNATURE, type TeamJudgeNote } from "./reviews"
 /** How a team's placing was arrived at. */
 export type ResultBasis = "announced" | "demo" | "submission"
 
+/**
+ * Who granted a team's showcase consent, and when — the current shape of a
+ * `ResultsSnapshot.showcase` entry. See that field's own doc comment for
+ * what the consent gates and who may grant or withdraw it.
+ */
+export interface ShowcaseEntry {
+  by: "team" | "organiser"
+  at: string
+}
+
 export interface RankedTeam {
   rank: number
   teamId: string
@@ -134,6 +144,24 @@ export interface ResultsSnapshot {
    * only carries it through to the exports once one exists.
    */
   commendations?: Record<string, string>
+  /**
+   * Consent to show a team's full submission publicly: teamId to either a
+   * `ShowcaseEntry` (who granted it — the team itself, or an organiser after
+   * some other "feature me" reply — and when) or the legacy `true`, written
+   * before that attribution existed. Either the team or an organiser may
+   * grant or withdraw it at any time, including long after the event closed
+   * (see `POST /api/impact-lab/showcase`) — this is a publication
+   * preference, not part of the frozen record of what happened.
+   *
+   * Every reader must test presence via `isShowcased`, never read the value
+   * directly — `buildEventProjects` (event-projects.ts) and the admin Cards
+   * tab both do, and both then need to keep working once some entries are
+   * `true` and others are `ShowcaseEntry` objects. Optional for the same
+   * reason `commendations` is: every snapshot published before this field
+   * existed does not carry it, and a reader must treat a missing map exactly
+   * like an empty one, never as a reason to reject the snapshot.
+   */
+  showcase?: Record<string, true | ShowcaseEntry>
 }
 
 export interface ResultsInput {
@@ -507,6 +535,14 @@ export interface MemberResultsPayload {
     review?: TeamReviewPayload
     /** The team's own public cards, one per honour. Attached by the route for a ranked team with a card URL. */
     cards?: YourTeamCards
+    /**
+     * The team's own showcase consent for the public Projects tab — always
+     * present whenever `yourTeam` is, ranked or not, so the dashboard toggle
+     * always has a definite state to render rather than an absent field it
+     * would have to default itself. `by` is `null` when not showcased, or
+     * when showcased under the legacy `true` shape with no attribution.
+     */
+    showcase: { on: boolean; by: "team" | "organiser" | null }
   }
 }
 
@@ -576,12 +612,14 @@ export function buildMemberPayload(
       teamId: viewerTeamId,
       projectName: rankingRow.projectName,
       card,
+      showcase: { on: isShowcased(snapshot, viewerTeamId), by: showcaseGrantedBy(snapshot, viewerTeamId) },
     }
   } else if (viewerTeamId && unrankedRow) {
     payload.yourTeam = {
       teamId: viewerTeamId,
       projectName: unrankedRow.projectName,
       unranked: true,
+      showcase: { on: isShowcased(snapshot, viewerTeamId), by: showcaseGrantedBy(snapshot, viewerTeamId) },
     }
   }
 
@@ -654,6 +692,88 @@ export function mergeCommendations(
   return { ok: true, commendations: next }
 }
 
+/** `true` for either shape a present `showcase` entry can hold — legacy `true`, or a `ShowcaseEntry`. */
+function hasShowcaseConsent(value: true | ShowcaseEntry | undefined): value is true | ShowcaseEntry {
+  return value === true || (typeof value === "object" && value !== null)
+}
+
+/**
+ * Whether a team is showcased — the one test every reader of
+ * `ResultsSnapshot.showcase` must use, rather than comparing the stored
+ * value directly: it reads correctly whether the entry is the legacy `true`
+ * or a `ShowcaseEntry`. `buildEventProjects` (event-projects.ts) and the
+ * admin Cards tab both call this.
+ */
+export function isShowcased(snapshot: Pick<ResultsSnapshot, "showcase">, teamId: string): boolean {
+  return hasShowcaseConsent(snapshot.showcase?.[teamId])
+}
+
+/**
+ * Who granted a team's showcase consent — `null` when the team is not
+ * showcased, or was showcased under the legacy `true` shape, which carries
+ * no attribution. Lets the admin Cards tab and the member results payload
+ * both label a row "team" or "organiser" without reaching into the raw
+ * `showcase` map themselves.
+ */
+export function showcaseGrantedBy(snapshot: Pick<ResultsSnapshot, "showcase">, teamId: string): "team" | "organiser" | null {
+  const entry = snapshot.showcase?.[teamId]
+  return entry && typeof entry === "object" ? entry.by : null
+}
+
+/**
+ * Every teamId this run's public artefacts may name — every ranked team plus
+ * every unranked participant. Showcase consent is not a claim about how a
+ * team placed, so it is offered to both: a team that submitted but was never
+ * scored still gets a row on the public Projects tab (`buildEventProjects`
+ * includes every submission, ranked or not), and must be able to opt in or
+ * out of it exactly like a ranked team can. This is deliberately WIDER than
+ * `mergeCommendations`'s own known-team check, which stays ranking-only — a
+ * commendation is a judgement about scored performance, and an unscored team
+ * has none to receive.
+ */
+function knownShowcaseTeamIds(snapshot: Pick<ResultsSnapshot, "ranking" | "unranked">): Set<string> {
+  return new Set([
+    ...snapshot.ranking.map((r) => r.teamId),
+    ...(snapshot.unranked ?? []).map((u) => u.teamId),
+  ])
+}
+
+/**
+ * The showcase consent after an edit: `patch` maps a teamId to whether its
+ * full submission — description, community review, links — should appear on
+ * the public Projects tab (see `buildEventProjects` in event-projects.ts,
+ * the only reader of the gate itself). Every patched teamId must be a team
+ * this run actually names (`knownShowcaseTeamIds`), or the whole patch is
+ * refused and nothing changes — same all-or-nothing refusal
+ * `mergeCommendations` gives for an unknown teamId. `by` records who is
+ * granting it: `"team"` from the member route, `"organiser"` from the admin
+ * Cards tab — stamped once per patch call, not per team, so a batch write
+ * carries one consistent timestamp. `false` removes that team's entry
+ * rather than storing a falsy value. Pure: the route validates the request
+ * shape, this decides the outcome.
+ */
+export function applyShowcasePatch(
+  snapshot: Pick<ResultsSnapshot, "ranking" | "unranked" | "showcase">,
+  patch: Record<string, boolean>,
+  by: "team" | "organiser"
+): { ok: true; showcase: Record<string, true | ShowcaseEntry> } | { ok: false; error: string } {
+  const known = knownShowcaseTeamIds(snapshot)
+  const unknown = Object.keys(patch).filter((teamId) => !known.has(teamId))
+  if (unknown.length > 0) {
+    return { ok: false, error: `Not in this run's results: ${unknown.join(", ")}` }
+  }
+  const next: Record<string, true | ShowcaseEntry> = { ...(snapshot.showcase ?? {}) }
+  const at = new Date().toISOString()
+  for (const [teamId, value] of Object.entries(patch)) {
+    if (value) {
+      next[teamId] = { by, at }
+    } else {
+      delete next[teamId]
+    }
+  }
+  return { ok: true, showcase: next }
+}
+
 /**
  * A rebuilt snapshot with the previous one's commendations carried over:
  * `buildSnapshot` knows nothing about them, so a correction that rebuilt
@@ -669,6 +789,25 @@ export function carryCommendations(previous: Pick<ResultsSnapshot, "commendation
   )
   if (Object.keys(kept).length === 0) return next
   return { ...next, commendations: kept }
+}
+
+/**
+ * A rebuilt snapshot with the previous one's showcase consent carried over:
+ * `buildSnapshot` knows nothing about it, so a correction that rebuilt the
+ * placings would otherwise silently un-showcase every team that opted in.
+ * Only teams `knownShowcaseTeamIds` still names in the new snapshot (ranked
+ * OR unranked — see that function's own comment) keep theirs. The key is
+ * omitted, not set to `{}`, when there is nothing to carry, so a snapshot
+ * that never had one stays byte-for-byte as `buildSnapshot` made it — same
+ * convention as `carryCommendations`.
+ */
+export function carryShowcase(previous: Pick<ResultsSnapshot, "showcase"> | null, next: ResultsSnapshot): ResultsSnapshot {
+  const known = knownShowcaseTeamIds(next)
+  const kept = Object.fromEntries(
+    Object.entries(previous?.showcase ?? {}).filter(([teamId, value]) => known.has(teamId) && hasShowcaseConsent(value))
+  ) as Record<string, true | ShowcaseEntry>
+  if (Object.keys(kept).length === 0) return next
+  return { ...next, showcase: kept }
 }
 
 export function buildSnapshot(input: ResultsInput): ResultsSnapshot {
