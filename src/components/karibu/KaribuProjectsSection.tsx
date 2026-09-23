@@ -23,7 +23,7 @@ export function KaribuProjectsSection({ projects }: { projects: EventProject[] }
         What was built
       </h2>
       <p className="mb-6 font-inter text-[14.5px] leading-[1.6] text-ink-soft">
-        Every project submitted before the lock, in the teams&apos; own words.
+        Every project submitted before the lock. Teams that opted in share their full write-up and code.
       </p>
       <ul className="space-y-4">
         {projects.map((project) => (

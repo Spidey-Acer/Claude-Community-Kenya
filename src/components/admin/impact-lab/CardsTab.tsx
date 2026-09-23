@@ -1,20 +1,31 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ExternalLink, Loader2, Mail } from "lucide-react"
-import { apiGet } from "./api"
+import { ExternalLink, Eye, EyeOff, Loader2, Mail } from "lucide-react"
+import { apiGet, apiSend } from "./api"
+import { isShowcased, showcaseGrantedBy, type ShowcaseEntry } from "@/lib/impact-lab/results"
 
 /**
  * Cards tab: every team's share card for the cohort's final run, grouped by
  * placing, so an organiser sees each card before publish and before any
  * email goes out.
  *
- * Read-only. The PNGs come from `results/card` and the list from
- * `results/cards`, both of which render the same `renderCard` the public
- * routes serve — what is on this screen is what a team will download. Before
- * publish the placings follow score order: the winners are chosen on the
- * Results tab and frozen at publish, and this tab does not carry a second
- * copy of that selection.
+ * The card grid itself is read-only: the PNGs come from `results/card` and
+ * the list from `results/cards`, both of which render the same `renderCard`
+ * the public routes serve — what is on this screen is what a team will
+ * download. Before publish the placings follow score order: the winners are
+ * chosen on the Results tab and frozen at publish, and this tab does not
+ * carry a second copy of that selection.
+ *
+ * The one write this tab performs is showcase consent: a per-team toggle
+ * (plus "Showcase all" / "Clear all") that writes
+ * `ResultsSnapshot.showcase` via `PATCH /api/admin/impact-lab/runs/[id]` —
+ * see `handleSetShowcase` in that route. That flag, not anything on this
+ * tab's own card data, is what `buildEventProjects` (event-projects.ts)
+ * reads to decide whether a team's write-up, review and links appear on the
+ * public Projects tab. It only applies once results are published (the
+ * snapshot it writes onto does not exist before then), same gate
+ * commendations already has.
  */
 
 type CardGroup = "champion" | "winner" | "runner-up" | "third" | "built"
@@ -67,6 +78,25 @@ interface PreviewEmailData {
   html: string
 }
 
+/** The slice of `/api/admin/impact-lab/judging` this tab reads. */
+interface JudgingFinalRun {
+  finalRunId: string | null
+}
+
+/** The slice of a run's payload that carries showcase consent. */
+interface RunShowcaseData {
+  resultsSnapshot?: { showcase?: Record<string, true | ShowcaseEntry> } | null
+}
+
+/**
+ * What `handleSetShowcase` (`runs/[id]/route.ts`) hands back: the run
+ * payload plus the merged showcase map, same shape `handleSetCommendations`
+ * already returns for `commendations`.
+ */
+interface ShowcasePatchResponse {
+  showcase: Record<string, true | ShowcaseEntry>
+}
+
 /** HTML for an attribute value: the four characters that could end it or its element. */
 function escapeAttribute(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -76,26 +106,54 @@ function cardUrl(cohort: string, teamId: string, size: "square" | "portrait" | "
   return `/api/admin/impact-lab/results/card?cohort=${encodeURIComponent(cohort)}&teamId=${encodeURIComponent(teamId)}&size=${size}&honour=${honour}`
 }
 
+/** `Object.keys(patch).length` may not exceed this in one PATCH — `showcaseSchema`'s own cap. */
+const SHOWCASE_PATCH_MAX = 50
+
+/** `patch` split into `SHOWCASE_PATCH_MAX`-sized pieces, in stable key order. */
+function chunkPatch(patch: Record<string, boolean>): Record<string, boolean>[] {
+  const entries = Object.entries(patch)
+  const chunks: Record<string, boolean>[] = []
+  for (let i = 0; i < entries.length; i += SHOWCASE_PATCH_MAX) {
+    chunks.push(Object.fromEntries(entries.slice(i, i + SHOWCASE_PATCH_MAX)))
+  }
+  return chunks
+}
+
 export function CardsTab({ cohort }: { cohort: string }) {
   const [data, setData] = useState<CardsData | null>(null)
   const [status, setStatus] = useState<PublishStatus | null>(null)
   const [counts, setCounts] = useState<NotifyCounts | null>(null)
+  const [runId, setRunId] = useState<string | null>(null)
+  const [showcase, setShowcase] = useState<Record<string, true | ShowcaseEntry>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [showcaseError, setShowcaseError] = useState<string | null>(null)
+  const [showcaseBusy, setShowcaseBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     const q = `?cohort=${encodeURIComponent(cohort)}`
     try {
-      const [cards, publish, notify] = await Promise.all([
+      const [cards, publish, notify, judging] = await Promise.all([
         apiGet<CardsData>(`/api/admin/impact-lab/results/cards${q}`),
         apiGet<PublishStatus>(`/api/admin/impact-lab/results/publish${q}`),
         apiGet<NotifyCounts>(`/api/admin/impact-lab/results/notify${q}`),
+        apiGet<JudgingFinalRun>(`/api/admin/impact-lab/judging${q}`),
       ])
       setData(cards)
       setStatus(publish)
       setCounts(notify)
+      setRunId(judging.finalRunId)
+      // The showcase map lives on the run's resultsSnapshot, not on `cards`
+      // — a second round trip, the same pattern `CheckedInField` uses for
+      // `checkedInRecorded` on this same route.
+      if (judging.finalRunId) {
+        const run = await apiGet<RunShowcaseData>(`/api/admin/impact-lab/runs/${judging.finalRunId}`)
+        setShowcase(run.resultsSnapshot?.showcase ?? {})
+      } else {
+        setShowcase({})
+      }
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load cards.")
@@ -107,6 +165,32 @@ export function CardsTab({ cohort }: { cohort: string }) {
   useEffect(() => {
     void load()
   }, [load])
+
+  /**
+   * Write one or more teams' showcase consent. Chunked to respect
+   * `showcaseSchema`'s 50-team cap; each chunk's response carries the full
+   * merged map, so the last one applied is the new source of truth — no
+   * extra round trip to re-read it.
+   */
+  async function patchShowcase(patch: Record<string, boolean>) {
+    if (!runId) return
+    setShowcaseBusy(true)
+    setShowcaseError(null)
+    try {
+      let next: Record<string, true | ShowcaseEntry> = showcase
+      for (const chunk of chunkPatch(patch)) {
+        const result = await apiSend<ShowcasePatchResponse>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+          showcase: chunk,
+        })
+        next = result.showcase
+      }
+      setShowcase(next)
+    } catch (e) {
+      setShowcaseError(e instanceof Error ? e.message : "Could not save showcase consent.")
+    } finally {
+      setShowcaseBusy(false)
+    }
+  }
 
   /**
    * Opens the team's rendered email in a new tab. The tab is opened
@@ -160,7 +244,136 @@ export function CardsTab({ cohort }: { cohort: string }) {
       counts={counts}
       previewError={previewError}
       onPreviewEmail={(teamId) => void previewEmail(teamId)}
+      showcase={showcase}
+      showcaseBusy={showcaseBusy}
+      showcaseError={showcaseError}
+      onShowcaseChange={(patch) => void patchShowcase(patch)}
     />
+  )
+}
+
+/**
+ * One team's showcase toggle. `checked` reflects the last value the server
+ * confirmed — no optimistic flip — so a failed write never leaves the
+ * switch showing a state the snapshot does not actually hold. `by` labels
+ * who set it — the team itself, from their own dashboard toggle
+ * (`POST /api/impact-lab/showcase`), or an organiser here — so the desk can
+ * tell "we turned this on for them" apart from "they opted in themselves"
+ * at a glance. Absent (not showcased, or showcased under the legacy `true`
+ * shape) prints nothing.
+ */
+function ShowcaseSwitch({
+  checked,
+  by,
+  busy,
+  onChange,
+}: {
+  checked: boolean
+  by: "team" | "organiser" | null
+  busy: boolean
+  onChange: (next: boolean) => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={busy}
+        onClick={() => onChange(!checked)}
+        title="Showcase on event page"
+        className={
+          checked
+            ? "inline-flex items-center gap-1 rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-2 py-1 text-[11px] font-mono text-[#00ff41] hover:bg-[#00ff41]/20 disabled:opacity-40"
+            : "inline-flex items-center gap-1 rounded border border-[#1e1e1e] bg-[#1a1a1a] px-2 py-1 text-[11px] font-mono text-[#888] hover:bg-[#222] disabled:opacity-40"
+        }
+      >
+        {checked ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+        Showcase on event page
+      </button>
+      {checked && by && (
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#555]">
+          &middot; {by}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/**
+ * "Showcased: N of M", plus "Showcase all" / "Clear all" — each armed by one
+ * click and applied by a second, inline, rather than a browser `confirm()`
+ * dialog (which a popup blocker or an automated test can silently swallow).
+ * Clicking the OTHER bulk action, or navigating away from the confirm state
+ * via any other control, simply leaves it armed until clicked again or the
+ * component unmounts — there is nothing destructive about a stray click on
+ * an already-armed button, since it takes the same action either way.
+ */
+function ShowcaseHeader({
+  showcasedCount,
+  total,
+  busy,
+  error,
+  onShowcaseAll,
+  onClearAll,
+}: {
+  showcasedCount: number
+  total: number
+  busy: boolean
+  error: string | null
+  onShowcaseAll: () => void
+  onClearAll: () => void
+}) {
+  const [armed, setArmed] = useState<"all" | "clear" | null>(null)
+
+  function run(action: "all" | "clear") {
+    if (armed !== action) {
+      setArmed(action)
+      return
+    }
+    setArmed(null)
+    if (action === "all") onShowcaseAll()
+    else onClearAll()
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#1e1e1e] bg-[#0d0d0d] p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[11px] font-mono text-[#e0e0e0]">
+          Showcased: <span className="text-[#00ff41]">{showcasedCount}</span> of {total}
+        </span>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run("all")}
+          className={
+            armed === "all"
+              ? "rounded border border-[#00ff41]/60 bg-[#00ff41]/20 px-2 py-1 text-[11px] font-mono text-[#00ff41] disabled:opacity-40"
+              : "rounded border border-[#1e1e1e] bg-[#1a1a1a] px-2 py-1 text-[11px] font-mono text-[#888] hover:bg-[#222] disabled:opacity-40"
+          }
+        >
+          {armed === "all" ? "Click again to showcase all" : "Showcase all"}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run("clear")}
+          className={
+            armed === "clear"
+              ? "rounded border border-[#ff3333]/60 bg-[#ff3333]/20 px-2 py-1 text-[11px] font-mono text-[#ff3333] disabled:opacity-40"
+              : "rounded border border-[#1e1e1e] bg-[#1a1a1a] px-2 py-1 text-[11px] font-mono text-[#888] hover:bg-[#222] disabled:opacity-40"
+          }
+        >
+          {armed === "clear" ? "Click again to clear all" : "Clear all"}
+        </button>
+        {busy && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#333]" />}
+      </div>
+      {error && (
+        <p role="alert" className="text-[11px] font-mono text-[#ff3333]">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -176,6 +389,10 @@ export function CardsView({
   counts,
   previewError,
   onPreviewEmail,
+  showcase,
+  showcaseBusy,
+  showcaseError,
+  onShowcaseChange,
   cardSrc = cardUrl,
 }: {
   cohort: string
@@ -184,11 +401,18 @@ export function CardsView({
   counts: NotifyCounts
   previewError: string | null
   onPreviewEmail: (teamId: string) => void
+  /** teamId to its consent entry for every team showcased — team-granted, organiser-granted, or legacy `true`. */
+  showcase: Record<string, true | ShowcaseEntry>
+  showcaseBusy: boolean
+  showcaseError: string | null
+  /** teamId to next value, one or many at once (bulk actions patch every team in one call). */
+  onShowcaseChange: (patch: Record<string, boolean>) => void
   cardSrc?: typeof cardUrl
 }) {
   const publishedOn = status.publishedAt
     ? new Date(status.publishedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })
     : null
+  const showcasedCount = data.teams.filter((t) => isShowcased({ showcase }, t.teamId)).length
 
   return (
     <div className="space-y-6">
@@ -218,6 +442,21 @@ export function CardsView({
         >
           {previewError}
         </div>
+      )}
+
+      {status.published && data.teams.length > 0 && (
+        <ShowcaseHeader
+          showcasedCount={showcasedCount}
+          total={data.teams.length}
+          busy={showcaseBusy}
+          error={showcaseError}
+          onShowcaseAll={() =>
+            onShowcaseChange(Object.fromEntries(data.teams.map((t) => [t.teamId, true])))
+          }
+          onClearAll={() =>
+            onShowcaseChange(Object.fromEntries(data.teams.map((t) => [t.teamId, false])))
+          }
+        />
       )}
 
       {data.teams.length === 0 && (
@@ -296,6 +535,14 @@ export function CardsView({
                     >
                       <Mail className="h-3 w-3" /> Preview email
                     </button>
+                    {status.published && (
+                      <ShowcaseSwitch
+                        checked={isShowcased({ showcase }, team.teamId)}
+                        by={showcaseGrantedBy({ showcase }, team.teamId)}
+                        busy={showcaseBusy}
+                        onChange={(next) => onShowcaseChange({ [team.teamId]: next })}
+                      />
+                    )}
                   </div>
                 </article>
               ))}

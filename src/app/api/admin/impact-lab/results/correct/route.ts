@@ -10,6 +10,7 @@ import { buildResultsInputFromRun, looksLikePerTrackWinners } from "@/lib/impact
 import {
   buildSnapshot,
   carryCommendations,
+  carryShowcase,
   isResultsSnapshot,
   type AnnouncedWinner,
   type ResultsInput,
@@ -408,11 +409,12 @@ export async function POST(request: NextRequest) {
       announcedTrackWinnerIds: parsed.data.announcedTrackWinnerIds,
       unrankedTeamIds,
     }
-    // The judges' commendations live on the snapshot and are written after
-    // publish (runs/[id] PATCH); a rebuild must carry them over or a
-    // correction to the placings would silently erase them.
+    // The judges' commendations and the organiser's showcase consent both
+    // live on the snapshot and are written after publish (runs/[id] PATCH);
+    // a rebuild must carry both over or a correction to the placings would
+    // silently erase them — un-showcasing a team that had opted in included.
     const previous = isResultsSnapshot(run.resultsSnapshot) ? run.resultsSnapshot : null
-    const snapshot = carryCommendations(previous, buildSnapshot(input))
+    const snapshot = carryShowcase(previous, carryCommendations(previous, buildSnapshot(input)))
 
     // Rewrites the frozen record in place. `resultsPublishedAt`,
     // `submissionsCloseAt` and `judgingClosedAt` are deliberately absent from

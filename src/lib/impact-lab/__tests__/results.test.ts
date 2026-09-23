@@ -14,13 +14,17 @@
 
 import { describe, expect, it } from "vitest"
 import {
+  applyShowcasePatch,
   buildMemberPayload,
   buildRanking,
   buildSnapshot,
   carryCommendations,
+  carryShowcase,
   COMMENDATION_MAX,
   isResultsSnapshot,
+  isShowcased,
   mergeCommendations,
+  showcaseGrantedBy,
   type ResultsInput,
   type ResultsSnapshot,
   type TeamCard,
@@ -231,6 +235,104 @@ describe("judges' commendations", () => {
     const snapshot = { ...published(), commendations: { "team-kazi": "Defended the build." } }
     expect(buildMemberPayload(snapshot, null).results?.commendations).toEqual({ "team-kazi": "Defended the build." })
     expect("commendations" in (buildMemberPayload(published(), null).results ?? {})).toBe(false)
+  })
+})
+
+describe("showcase consent", () => {
+  const published = () =>
+    buildSnapshot(baseInput({ announcementMode: "podium", announcedTeamIds: ["team-fourth", "team-elimu", "team-kilimo"] }))
+
+  it("applies a patch onto the snapshot: false removes, unknown teams refused, `by` stamped on every new entry", () => {
+    const first = applyShowcasePatch(published(), { "team-kazi": true }, "organiser")
+    expect(first.ok).toBe(true)
+    if (!first.ok) throw new Error("unreachable")
+    expect(first.showcase["team-kazi"]).toMatchObject({ by: "organiser" })
+    expect(typeof (first.showcase["team-kazi"] as { at: string }).at).toBe("string")
+
+    const withTwo = applyShowcasePatch({ ...published(), showcase: first.showcase }, { "team-elimu": true }, "team")
+    expect(withTwo.ok).toBe(true)
+    if (!withTwo.ok) throw new Error("unreachable")
+    expect(withTwo.showcase["team-kazi"]).toMatchObject({ by: "organiser" })
+    expect(withTwo.showcase["team-elimu"]).toMatchObject({ by: "team" })
+
+    const cleared = applyShowcasePatch({ ...published(), showcase: first.showcase }, { "team-kazi": false }, "organiser")
+    expect(cleared).toEqual({ ok: true, showcase: {} })
+
+    expect(applyShowcasePatch(published(), { "team-nope": true }, "organiser")).toEqual({
+      ok: false,
+      error: "Not in this run's results: team-nope",
+    })
+  })
+
+  it("accepts an unranked (unscored) team — showcase consent is not a claim about placing", () => {
+    const withUnranked = buildSnapshot(
+      baseInput({
+        announcementMode: "podium",
+        announcedTeamIds: ["team-fourth", "team-elimu", "team-kilimo"],
+        unrankedTeamIds: ["team-kazi"],
+        standings: [standing("team-elimu", 76.9), standing("team-kilimo", 74.0), standing("team-fourth", 79.0)],
+      })
+    )
+    expect(withUnranked.unranked?.map((u) => u.teamId)).toContain("team-kazi")
+    const result = applyShowcasePatch(withUnranked, { "team-kazi": true }, "team")
+    expect(result.ok).toBe(true)
+    expect(result.ok && result.showcase["team-kazi"]).toMatchObject({ by: "team" })
+  })
+
+  it("legacy `true` entries keep reading and merging correctly alongside new ShowcaseEntry ones", () => {
+    const legacy = { ...published(), showcase: { "team-kazi": true as const } }
+    const patched = applyShowcasePatch(legacy, { "team-elimu": true }, "organiser")
+    expect(patched.ok).toBe(true)
+    expect(patched.ok && patched.showcase).toEqual({
+      "team-kazi": true,
+      "team-elimu": expect.objectContaining({ by: "organiser" }),
+    })
+  })
+
+  it("survives a correction: the rebuilt snapshot carries the previous showcase consent for teams still named", () => {
+    const previous = {
+      ...published(),
+      showcase: { "team-kazi": { by: "team" as const, at: "2026-09-01T00:00:00.000Z" }, "team-gone": true as const },
+    }
+    const corrected = carryShowcase(
+      previous,
+      buildSnapshot(baseInput({ announcementMode: "tracks", announcedTeamIds: ["team-elimu", "team-kilimo", "team-kazi"] }))
+    )
+    expect(corrected.showcase).toEqual({ "team-kazi": { by: "team", at: "2026-09-01T00:00:00.000Z" } })
+    // Nothing to carry: the key is absent, not an empty map.
+    expect("showcase" in carryShowcase(null, published())).toBe(false)
+    expect("showcase" in carryShowcase({ showcase: {} }, published())).toBe(false)
+  })
+
+  describe("isShowcased / showcaseGrantedBy", () => {
+    it("reads presence for both the legacy `true` shape and a ShowcaseEntry", () => {
+      const snapshot = {
+        ...published(),
+        showcase: { "team-kazi": true as const, "team-elimu": { by: "organiser" as const, at: "2026-09-01T00:00:00.000Z" } },
+      }
+      expect(isShowcased(snapshot, "team-kazi")).toBe(true)
+      expect(isShowcased(snapshot, "team-elimu")).toBe(true)
+      expect(isShowcased(snapshot, "team-kilimo")).toBe(false)
+      expect(isShowcased({ showcase: undefined }, "team-kazi")).toBe(false)
+    })
+
+    it("names who granted consent only for a ShowcaseEntry, never for the legacy `true` shape", () => {
+      const snapshot = {
+        ...published(),
+        showcase: { "team-kazi": true as const, "team-elimu": { by: "team" as const, at: "2026-09-01T00:00:00.000Z" } },
+      }
+      expect(showcaseGrantedBy(snapshot, "team-kazi")).toBeNull()
+      expect(showcaseGrantedBy(snapshot, "team-elimu")).toBe("team")
+      expect(showcaseGrantedBy(snapshot, "team-kilimo")).toBeNull()
+    })
+  })
+
+  it("reaches the member payload as a definite on/by state whenever yourTeam is attached", () => {
+    const snapshot = { ...published(), showcase: { "team-kazi": { by: "team" as const, at: "2026-09-01T00:00:00.000Z" } } }
+    const payload = buildMemberPayload(snapshot, "team-kazi")
+    expect(payload.yourTeam?.showcase).toEqual({ on: true, by: "team" })
+    const notShowcased = buildMemberPayload(snapshot, "team-fourth")
+    expect(notShowcased.yourTeam?.showcase).toEqual({ on: false, by: null })
   })
 })
 

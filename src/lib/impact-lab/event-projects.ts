@@ -11,13 +11,21 @@
  * submission or a participant row, so a field added to either later cannot
  * leak here by default. It carries: the project's display name, its track,
  * an honour label when the team earned one (via `cardHonours`, the same
- * source the winner cards use), members as short names, the team's own
- * pitch and description (prose-cleaned), the approved community review
- * only (`publishableReview` gates it — an unapproved draft never reaches
- * this module's output), and the team's own submitted links, each checked
- * to actually be an `http(s)` URL before it is shown. It never carries an
+ * source the winner cards use), members as short names, and the team's own
+ * pitch, shown for every team regardless of consent. It never carries an
  * email, an institution, a score, a judge's name or note, a table number,
  * an attendance count, `worksVsMocked`, `claudeUsage`, or `problemTackled`.
+ *
+ * The rest of a team's submission — its description (prose-cleaned), the
+ * approved community review (`publishableReview` gates it — an unapproved
+ * draft never reaches this module's output either way), and its own
+ * submitted links (each checked to actually be an `http(s)` URL) — is
+ * consent-gated: it shows only for a team the organiser has marked
+ * `showcase` on the published snapshot (`ResultsSnapshot.showcase`, set from
+ * the admin Cards tab after the team replies "feature me"). A team that has
+ * not opted in still appears, with its name, track, honour, members and
+ * pitch — just not its write-up, review or links. `EventProject.showcased`
+ * carries the flag through so the renderer can tell the two cases apart.
  *
  * `buildEventProjects` is pure (no Prisma, no Next) so the allowlist and the
  * ordering can be asserted by fixtures; `loadEventProjects` is the thin
@@ -31,7 +39,7 @@ import { extractFrozenTeams } from "./member"
 import { resolveTeamTrack, trackLabelIndex, type TrackedTeam } from "./judging"
 import { cleanProse, markdownToPlainText } from "./export-data"
 import { isChampion, cardHonours, placementTitle, shortName, type CardCopyInput, type Honour } from "./result-card"
-import { isResultsSnapshot, placementFor, type ResultsSnapshot } from "./results"
+import { isResultsSnapshot, isShowcased, placementFor, type ResultsSnapshot } from "./results"
 import { publishableReview, REVIEW_SIGNATURE, type ReviewGateInput } from "./reviews"
 
 // ─── Public shape ────────────────────────────────────────────────────────────
@@ -58,11 +66,25 @@ export interface EventProject {
   members: string
   /** `null` when the team left the field blank. */
   pitch: string | null
-  /** Cleaned, markdown-stripped paragraphs — the renderer caps how many it shows up front. */
+  /**
+   * Cleaned, markdown-stripped paragraphs — the renderer caps how many it
+   * shows up front. Always `[]` for a team not marked `showcased` — see the
+   * module doc comment.
+   */
   descriptionParagraphs: string[]
-  /** The approved community review, or `null` when none is approved yet. */
+  /**
+   * The approved community review, or `null` when none is approved yet, or
+   * when the team is not marked `showcased` — see the module doc comment.
+   */
   review: EventProjectReview | null
+  /** Always `[]` for a team not marked `showcased` — see the module doc comment. */
   links: EventProjectLink[]
+  /**
+   * True when the organiser has recorded this team's consent to show its
+   * full submission publicly. Gates `descriptionParagraphs`, `review` and
+   * `links` above — see the module doc comment.
+   */
+  showcased: boolean
 }
 
 // ─── Source rows (what the loader hands in) ──────────────────────────────────
@@ -215,6 +237,10 @@ export function buildEventProjects(source: EventProjectsSource): EventProject[] 
       .filter((p) => p !== "")
 
     const reviewText = reviewByTeam.get(teamId)
+    // Consent, not a placing: whether THIS team agreed to show its own
+    // write-up, review and links — see the module doc comment. `isShowcased`
+    // reads either the current `ShowcaseEntry` shape or the legacy `true`.
+    const showcased = isShowcased(source.snapshot, teamId)
 
     return {
       teamId,
@@ -223,9 +249,10 @@ export function buildEventProjects(source: EventProjectsSource): EventProject[] 
       honour: primaryHonourLabel(source.snapshot, teamId, track, source.eventName),
       members,
       pitch: pitch === "" ? null : pitch,
-      descriptionParagraphs,
-      review: reviewText !== undefined ? { text: reviewText, signedBy: REVIEW_SIGNATURE } : null,
-      links: buildLinks(submission),
+      descriptionParagraphs: showcased ? descriptionParagraphs : [],
+      review: showcased && reviewText !== undefined ? { text: reviewText, signedBy: REVIEW_SIGNATURE } : null,
+      links: showcased ? buildLinks(submission) : [],
+      showcased,
     }
   }
 

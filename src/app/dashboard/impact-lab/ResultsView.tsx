@@ -14,6 +14,7 @@ import type { WinnerCardCell, WinnerCards, YourTeamCards } from "@/lib/impact-la
 import { REVIEW_PROVENANCE } from "@/lib/impact-lab/reviews";
 import type { TeamJudgeNote } from "@/lib/impact-lab/reviews";
 import { CopyLinkButton } from "@/app/impact-lab/results/[slug]/CopyLinkButton";
+import { ShowcaseToggle } from "./ShowcaseToggle";
 import { decidedByNote, didNotSubmitLine, yourTeamOverallLabel, yourTeamTrackLabel } from "./resultsViewCopy";
 
 export interface ResultsViewProps {
@@ -46,6 +47,15 @@ export interface ResultsViewProps {
   };
   /** True when the viewer was on a team in the run, ranked or not. */
   viewerHadTeam?: boolean;
+  /**
+   * The cohort slug, so the showcase toggle's own write
+   * (`POST /api/impact-lab/showcase`) targets the same event this page is
+   * showing rather than whichever cohort the member happens to be
+   * registered in by default. Absent only for a caller with no resolvable
+   * event at all, which also means no `yourTeam` — the toggle never renders
+   * in that case anyway.
+   */
+  cohort?: string;
   yourTeam?: {
     teamId: string;
     projectName: string;
@@ -62,6 +72,13 @@ export interface ResultsViewProps {
     review?: TeamReviewPayload;
     /** The team's own public cards, one per honour — see `buildYourTeamCards`. */
     cards?: YourTeamCards;
+    /**
+     * The team's own consent to show its full write-up on the public
+     * Projects tab — see `ShowcaseToggle`. Absent only on a stale response
+     * shape (a client bundle ahead of its API), in which case the toggle
+     * simply does not render rather than guessing a state.
+     */
+    showcase?: { on: boolean; by: "team" | "organiser" | null };
   };
   /**
    * This event's own rubric — criteria, scales, and the denominator to quote
@@ -205,7 +222,7 @@ function WinnerRow({ label, cells }: { label: string; cells: WinnerCardCell[] })
  * from the ranking before this component ever sees it (see the route's own
  * doc comment) — nothing here re-derives or re-fetches a score.
  */
-export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }: ResultsViewProps) {
+export function ResultsView({ results, viewerHadTeam = false, cohort, yourTeam, rubric }: ResultsViewProps) {
   const prefersReducedMotion = useReducedMotion();
 
   const container = {
@@ -332,6 +349,10 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
           )}
 
           <Feedback judgeNotes={ranked.judgeNotes} review={ranked.review} />
+
+          {ranked.showcase && (
+            <ShowcaseToggle cohort={cohort} initialOn={ranked.showcase.on} initialBy={ranked.showcase.by} />
+          )}
         </motion.section>
       )}
 
@@ -344,6 +365,11 @@ export function ResultsView({ results, viewerHadTeam = false, yourTeam, rubric }
               have left a note without completing a sheet, and the review is
               written after publish. Those words are not withheld. */}
           {yourTeam && <div className="mt-6"><Feedback judgeNotes={yourTeam.judgeNotes} review={yourTeam.review} /></div>}
+          {yourTeam?.showcase && (
+            <div className="mt-6">
+              <ShowcaseToggle cohort={cohort} initialOn={yourTeam.showcase.on} initialBy={yourTeam.showcase.by} />
+            </div>
+          )}
         </motion.section>
       )}
 

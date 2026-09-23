@@ -19,7 +19,12 @@ import {
   type OnStage,
 } from "@/lib/impact-lab/roster"
 import { readLockedRun, withRunLock, writeRunResult } from "@/lib/impact-lab/run-lock"
-import { COMMENDATION_MAX, isResultsSnapshot, mergeCommendations } from "@/lib/impact-lab/results"
+import {
+  applyShowcasePatch,
+  COMMENDATION_MAX,
+  isResultsSnapshot,
+  mergeCommendations,
+} from "@/lib/impact-lab/results"
 import { getEventByCohort } from "@/lib/impact-lab/event-store"
 
 const moveSchema = z.object({
@@ -68,6 +73,13 @@ const RUN_SELECT = {
   // So the export panel can render the organiser's own door count without a
   // second round trip — see `handleSetCheckedIn`.
   checkedInRecorded: true,
+  // So the Cards tab can read (and the door-count field's own pattern shows
+  // it may) the organiser's showcase consent without a second round trip —
+  // see `handleSetShowcase`. Safe to include here, unlike
+  // `participantsSnapshot` above: this route is already gated on the `edit`
+  // permission, and `resultsSnapshot` carries no participant email or
+  // blockedTeammates data.
+  resultsSnapshot: true,
 } as const
 
 export async function GET(
@@ -776,6 +788,94 @@ async function handleSetCommendations(
   return NextResponse.json({ success: true, data: { ...updated, commendations: outcome.commendations } })
 }
 
+/**
+ * teamId to whether that team's full submission — description, community
+ * review, links — should appear on the public Projects tab. Capped at 50
+ * teams per request, same as `commendationsSchema`.
+ */
+const showcaseSchema = z.record(z.string().min(1).max(40), z.boolean()).refine(
+  (map) => Object.keys(map).length > 0 && Object.keys(map).length <= 50,
+  { message: "Send between 1 and 50 teams." }
+)
+
+/**
+ * Write the organiser's record of showcase consent onto the published
+ * results snapshot — the map `ResultsSnapshot.showcase` that
+ * `buildEventProjects` (event-projects.ts) reads to decide whether a team's
+ * description, community review and links appear on the public Projects
+ * tab. A team's pitch, name, track, honour and members show either way —
+ * this only gates the rest, and only after the team has actually said
+ * "feature me" some other way (the desk is recording that consent here, not
+ * granting a new one). Every entry this route writes carries `by:
+ * "organiser"` (`applyShowcasePatch`'s third argument) — the team's own
+ * `POST /api/impact-lab/showcase` is the only door that writes `by: "team"`,
+ * and either side may always flip what the other set.
+ *
+ * Mostly mirrors `handleSetCommendations`: allowed after publish only (a
+ * showcase flag has nowhere to live before then, hence the same 409), and
+ * the write happens under the run lock so it cannot interleave with a
+ * correction's snapshot rewrite (which carries the flags over — see
+ * `carryShowcase`) or with the team's own write to the same map. It diverges
+ * on one point: `applyShowcasePatch` accepts any teamId this run names,
+ * ranked or unranked (`commendationsSchema`'s `mergeCommendations` stays
+ * ranking-only) — see that function's own comment for why.
+ */
+async function handleSetShowcase(
+  request: NextRequest,
+  runId: string,
+  patchMap: Record<string, boolean>,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await tx.impactLabMatchRun.findUnique({
+      where: { id: runId },
+      select: { resultsPublishedAt: true, resultsSnapshot: true },
+    })
+    const current: unknown = fresh?.resultsSnapshot
+    if (!fresh?.resultsPublishedAt || !isResultsSnapshot(current)) {
+      return { status: "not_published" as const }
+    }
+    const merged = applyShowcasePatch(current, patchMap, "organiser")
+    if (!merged.ok) return { status: "invalid" as const, error: merged.error }
+    // Omit the key entirely when nothing is left, so an emptied snapshot
+    // matches one that never had a showcased team.
+    const nextSnapshot: Record<string, unknown> = { ...current, showcase: merged.showcase }
+    if (Object.keys(merged.showcase).length === 0) delete nextSnapshot.showcase
+    await tx.impactLabMatchRun.update({
+      where: { id: runId },
+      data: { resultsSnapshot: JSON.parse(JSON.stringify(nextSnapshot)) },
+    })
+    return { status: "ok" as const, showcase: merged.showcase }
+  })
+
+  if (outcome.status === "not_published") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Results are not published yet; showcase consent is written onto the published results.",
+      },
+      { status: 409 }
+    )
+  }
+  if (outcome.status === "invalid") {
+    return NextResponse.json({ success: false, error: outcome.error }, { status: 400 })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { showcase: patchMap },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: { ...updated, showcase: outcome.showcase } })
+}
+
 const explanationSchema = z.object({
   teamId: z.string().max(40),
   summary: z.string().max(4000),
@@ -853,6 +953,10 @@ const updateSchema = z.object({
   // The judges' commendations, teamId to text, merged onto the published
   // snapshot — see `handleSetCommendations`. Its own branch like `judges`.
   commendations: commendationsSchema.optional(),
+  // The organiser's showcase consent, teamId to boolean, merged onto the
+  // published snapshot — see `handleSetShowcase`. Its own branch like
+  // `commendations`.
+  showcase: showcaseSchema.optional(),
 })
 
 /**
@@ -934,6 +1038,9 @@ export async function PATCH(
   }
   if (validation.data.commendations !== undefined) {
     return handleSetCommendations(request, id, validation.data.commendations, check.user)
+  }
+  if (validation.data.showcase !== undefined) {
+    return handleSetShowcase(request, id, validation.data.showcase, check.user)
   }
   if (validation.data.checkedInRecorded !== undefined) {
     return handleSetCheckedIn(

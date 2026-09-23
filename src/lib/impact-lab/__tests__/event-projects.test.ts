@@ -16,9 +16,15 @@ const TRACKS = [
 
 // Champion mode so the fixture exercises the "Champion" honour label
 // alongside a plain track winner ("Elimu winner"), second and third overall.
+// team-1, team-2 and team-3 are marked showcased so the existing
+// review/description/links coverage below (all written against those three)
+// keeps testing what it always tested; team-4 stays un-showcased on purpose
+// — see the "consent gate" describe block, which uses it to prove a team
+// that never opted in shows the minimal set even though it won its track.
 const SNAPSHOT: ResultsSnapshot = {
   publishedAt: "2026-09-20T21:00:00.000Z",
   announcementMode: "champion",
+  showcase: { "team-1": true, "team-2": true, "team-3": true },
   overall: [{ rank: 1, teamId: "team-1", projectName: "Alpha" }],
   trackWinners: [
     { track: "Kazi", teamId: "team-1", projectName: "Alpha", basis: "announced" },
@@ -182,7 +188,18 @@ describe("buildEventProjects — allowlist", () => {
     expect(projects.length).toBeGreaterThan(0)
     for (const project of projects) {
       expect(Object.keys(project).sort()).toEqual(
-        ["descriptionParagraphs", "honour", "links", "members", "name", "pitch", "review", "teamId", "track"].sort()
+        [
+          "descriptionParagraphs",
+          "honour",
+          "links",
+          "members",
+          "name",
+          "pitch",
+          "review",
+          "showcased",
+          "teamId",
+          "track",
+        ].sort()
       )
       assertNoForbiddenKeys(project)
     }
@@ -285,6 +302,43 @@ describe("buildEventProjects — description", () => {
     expect(name).toBe("Untitled project")
     expect(name).not.toBe("Table 1")
     expect(name).not.toBe("team-1")
+  })
+})
+
+describe("buildEventProjects — consent gate", () => {
+  it("gives a showcased team its full write-up: description, review and links", () => {
+    const projects = buildEventProjects(source())
+    const team1 = projects.find((p) => p.teamId === "team-1")
+    expect(team1?.showcased).toBe(true)
+    expect(team1?.descriptionParagraphs).toEqual(["Para one.", "Para two.", "Para three.", "Para four."])
+    expect(team1?.review).toEqual({ text: "Great work, team one.", signedBy: REVIEW_SIGNATURE })
+    expect(team1?.links).toEqual([{ label: "Code", url: "https://github.com/team1/alpha" }])
+  })
+
+  it("gives a non-showcased team only the minimal set, even though it won its track", () => {
+    // team-4 submitted a repo link and a description, and is announced as
+    // the Elimu track winner — none of that is consent to publish its
+    // write-up, and `showcase` never names it.
+    const projects = buildEventProjects(source())
+    const team4 = projects.find((p) => p.teamId === "team-4")
+    expect(team4?.showcased).toBe(false)
+    expect(team4?.descriptionParagraphs).toEqual([])
+    expect(team4?.review).toBeNull()
+    expect(team4?.links).toEqual([])
+    // The minimal set still shows — consent gates the write-up only.
+    expect(team4?.name).toBe("Delta")
+    expect(team4?.track).toBe("Elimu")
+    expect(team4?.honour).toBe("Elimu winner")
+    expect(team4?.members).toBe("Grace N.")
+    expect(team4?.pitch).toBe("Delta pitch.")
+  })
+
+  it("treats a missing showcase map the same as an empty one — nobody showcased", () => {
+    const src = source()
+    src.snapshot = { ...src.snapshot, showcase: undefined }
+    const projects = buildEventProjects(src)
+    expect(projects.every((p) => p.showcased === false)).toBe(true)
+    expect(projects.every((p) => p.links.length === 0)).toBe(true)
   })
 })
 

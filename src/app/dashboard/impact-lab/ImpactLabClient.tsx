@@ -314,6 +314,7 @@ export function ImpactLabClient({
         <ResultsView
           results={results.results}
           viewerHadTeam={results.viewerHadTeam}
+          cohort={cohort}
           yourTeam={results.yourTeam}
           rubric={results.rubric}
         />
