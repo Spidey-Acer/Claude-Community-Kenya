@@ -30,6 +30,36 @@ describe("submissionRequirementsForCohort", () => {
     const req = submissionRequirementsForCohort("some-other-cohort")
     expect([...req.required]).toEqual(["slidesUrl"])
     expect(req.trackSelect).toBe(false)
+    expect(req.labels).toEqual({})
+    expect(req.hints).toEqual({})
+  })
+
+  it("leaves hints empty on the other named cohorts", () => {
+    expect(submissionRequirementsForCohort("impact-lab-2026-09").hints).toEqual({})
+    expect(submissionRequirementsForCohort("build-day-2026-09").hints).toEqual({})
+  })
+
+  it("returns the Payaza profile: required set, labels, hints, track select", () => {
+    const req = submissionRequirementsForCohort("payaza-hackhouse-2026")
+    expect([...req.required].sort()).toEqual(
+      ["projectName", "pitch", "track", "problemTackled", "claudeUsage", "slidesUrl"].sort()
+    )
+    expect(req.trackSelect).toBe(true)
+    expect(req.labels.track).toBe("Problem area")
+    expect(req.labels.slidesUrl).toMatch(/Pitch deck link/)
+    expect(req.labels.claudeUsage).toMatch(/uses Payaza/)
+    expect(Object.keys(req.hints).sort()).toEqual(
+      ["claudeUsage", "problemTackled", "worksVsMocked"].sort()
+    )
+    expect(req.hints.claudeUsage).toMatch(/Payaza products/)
+  })
+
+  it("Payaza requires a deck but not a repo or worksVsMocked", () => {
+    const schema = buildSubmissionSchema(submissionRequirementsForCohort("payaza-hackhouse-2026"))
+    const ok = schema.safeParse({ ...FULL_02_SUBMISSION, repoUrl: "", worksVsMocked: "", slidesUrl: "gamma.app/deck" })
+    expect(ok.success).toBe(true)
+    const noDeck = schema.safeParse({ ...FULL_02_SUBMISSION, slidesUrl: "" })
+    expect(noDeck.success).toBe(false)
   })
 
   it("returns the 2026-09 profile's required fields and track select", () => {
@@ -62,6 +92,7 @@ describe("submissionRequirementsForCohort", () => {
     const view = toRequirementsView(submissionRequirementsForCohort("impact-lab-2026-09"))
     expect(Array.isArray(view.required)).toBe(true)
     expect(view.required).toContain("repoUrl")
+    expect(view.hints).toEqual({})
   })
 })
 

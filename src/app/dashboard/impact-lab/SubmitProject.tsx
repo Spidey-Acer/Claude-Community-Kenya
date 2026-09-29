@@ -252,6 +252,11 @@ export function SubmitProject({
   const labelFor = (key: keyof FormState, fallback: string) =>
     requirements?.labels[key as keyof SubmissionInput] ?? fallback;
 
+  // Cohort hint overrides the form's built-in helper text; absent keeps it.
+  // `hints` may be missing on a response from an older server build.
+  const hintFor = (key: keyof FormState, fallback: string) =>
+    requirements?.hints?.[key as keyof SubmissionInput] ?? fallback;
+
   const field = (
     key: keyof FormState,
     defaultLabel: string,
@@ -287,7 +292,7 @@ export function SubmitProject({
             className={inputClass}
           />
         )}
-        <p className="mt-1 font-mono text-[11px] text-text-dim">{helper}</p>
+        <p className="mt-1 font-mono text-[11px] text-text-dim">{hintFor(key, helper)}</p>
       </div>
     );
   };

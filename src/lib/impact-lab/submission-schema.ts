@@ -177,6 +177,7 @@ export function buildSubmissionSchema(requirements: SubmissionRequirements) {
 export const submissionInputSchema = buildSubmissionSchema({
   required: new Set(["slidesUrl"]),
   labels: {},
+  hints: {},
   trackSelect: false,
 })
 
