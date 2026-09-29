@@ -65,6 +65,10 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   const [confirmingRenameTableOnly, setConfirmingRenameTableOnly] = useState(false)
   const [lockBusy, setLockBusy] = useState(false)
   const [confirmingLock, setConfirmingLock] = useState(false)
+  const [newTeamName, setNewTeamName] = useState("")
+  const [newTeamMembers, setNewTeamMembers] = useState<string[]>([])
+  const [newTeamTrack, setNewTeamTrack] = useState("")
+  const [addingTeam, setAddingTeam] = useState(false)
   // null until the organiser toggles it explicitly — until then, the panel's
   // open state follows the lock (open once locked, closed otherwise).
   const [finalListOpen, setFinalListOpen] = useState<boolean | null>(null)
@@ -96,6 +100,29 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
       setError(e instanceof Error ? e.message : "Failed to move participant")
     } finally {
       setMovingId(null)
+    }
+  }
+
+  /** Add a new team from people who are on no team yet. Nobody is moved. */
+  async function addNewTeam() {
+    setAddingTeam(true)
+    setError(null)
+    try {
+      const response = await apiSend<RunDetailData>(`/api/admin/impact-lab/runs/${runId}`, "PATCH", {
+        addTeam: {
+          name: newTeamName.trim(),
+          memberIds: newTeamMembers,
+          ...(newTeamTrack ? { trackKey: newTeamTrack } : {}),
+        },
+      })
+      setDetail(response)
+      setNewTeamName("")
+      setNewTeamMembers([])
+      onChanged?.()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add team")
+    } finally {
+      setAddingTeam(false)
     }
   }
 
@@ -244,6 +271,13 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
   // Same story as the join requests: stored on the result JSON, read tolerantly,
   // never typed onto MatchResult. A run with no panel yet simply shows none.
   const judges = extractJudges(result)
+  // Anyone in the cohort on no team — late registrations included, since the
+  // directory is the live participant list, not the run's snapshot.
+  const onATeam = new Set(result.teams.flatMap((t) => t.memberIds))
+  const teamless = Array.from(directory.entries()).filter(([id]) => !onATeam.has(id))
+  const tracks = result.settingsUsed?.tracks ?? []
+  const canAddTeam =
+    newTeamName.trim() !== "" && newTeamMembers.length > 0 && (tracks.length === 0 || newTeamTrack !== "")
 
   return (
     <div className="p-4 space-y-3 bg-[#0a0a0a] border-t border-[#1e1e1e]">
@@ -490,6 +524,58 @@ export function RunDetail({ runId, directory, onChanged }: RunDetailProps) {
               </select>
             </div>
           ))}
+        </div>
+      )}
+
+      {teamless.length > 0 && (
+        <div className="p-2 bg-[#0d0d0d] border border-[#1e1e1e] rounded text-[11px] font-mono text-[#888] space-y-2">
+          <span className="text-[#555]">Add a new team (people on no team — nobody is moved):</span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {teamless.map(([id, entry]) => (
+              <label key={id} className="flex items-center gap-1 text-[#ccc]">
+                <input
+                  type="checkbox"
+                  checked={newTeamMembers.includes(id)}
+                  onChange={(e) =>
+                    setNewTeamMembers((ids) => (e.target.checked ? [...ids, id] : ids.filter((x) => x !== id)))
+                  }
+                />
+                {entry.fullName}
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              aria-label="New team name"
+              placeholder="Team name"
+              value={newTeamName}
+              maxLength={120}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              className="bg-[#111] border border-[#1e1e1e] rounded px-1.5 py-0.5 text-[10px] text-[#ccc]"
+            />
+            {tracks.length > 0 && (
+              <select
+                aria-label="New team track"
+                value={newTeamTrack}
+                onChange={(e) => setNewTeamTrack(e.target.value)}
+                className="bg-[#111] border border-[#1e1e1e] rounded px-1 py-0.5 text-[10px] text-[#ccc]"
+              >
+                <option value="" disabled>Track…</option>
+                {tracks.map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={addNewTeam}
+              disabled={!canAddTeam || addingTeam}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/30 rounded text-[10px] font-mono text-[#00ff41] disabled:opacity-40"
+            >
+              {addingTeam ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Add team
+            </button>
+          </div>
         </div>
       )}
 

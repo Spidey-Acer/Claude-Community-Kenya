@@ -803,3 +803,94 @@ describe("PATCH /api/admin/impact-lab/runs/[id] — onStage", () => {
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
   })
 })
+
+describe("PATCH /api/admin/impact-lab/runs/[id] — addTeam", () => {
+  const TRACKS = [{ key: "health", label: "Health" }]
+
+  // Refusal paths never consume every queued Once value; reset so none leak.
+  beforeEach(() => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockReset()
+    vi.mocked(prisma.impactLabParticipant.count).mockReset()
+    mockTx.impactLabMatchRun.findUnique.mockReset()
+  })
+
+  function setup(result: unknown, settings: unknown = { tracks: TRACKS }) {
+    vi.mocked(prisma.impactLabMatchRun.findUnique)
+      .mockResolvedValueOnce({ id: "run-1", cohort: "test-cohort", isFinal: true, resultsPublishedAt: null } as never)
+      .mockResolvedValueOnce({ id: "run-1", result: {} } as never) // final re-fetch
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValueOnce({ result, settings })
+  }
+
+  it("appends a new team, leaves existing teams untouched and audits it", async () => {
+    const existing = [team("team-1", ["p1"], { table: 1, trackKey: "health" })]
+    setup({ teams: existing, unassignedIds: ["p3"] })
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(2 as never)
+
+    const res = await PATCH(
+      patchRequest({ addTeam: { name: "Late Owls", memberIds: ["p3", "p4"], trackKey: "health" } }),
+      { params }
+    )
+
+    expect(res.status).toBe(200)
+    const written = mockTx.impactLabMatchRun.update.mock.calls[0][0].data.result
+    expect(written.teams[0]).toEqual(existing[0])
+    expect(written.teams[1]).toMatchObject({ name: "Late Owls", memberIds: ["p3", "p4"], trackKey: "health" })
+    expect(written.teams[1].id).toMatch(/^added-/)
+    expect(written.unassignedIds).toEqual([])
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { addTeam: expect.objectContaining({ name: "Late Owls" }) } })
+    )
+  })
+
+  it("refuses when a picked person is already on a team — nobody is moved", async () => {
+    setup({ teams: [team("team-1", ["p1"])], unassignedIds: [] })
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(2 as never)
+
+    const res = await PATCH(
+      patchRequest({ addTeam: { name: "X", memberIds: ["p1", "p4"], trackKey: "health" } }),
+      { params }
+    )
+
+    expect(res.status).toBe(409)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("requires a valid track on a tracked run", async () => {
+    setup({ teams: [], unassignedIds: [] })
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(1 as never)
+
+    const res = await PATCH(patchRequest({ addTeam: { name: "X", memberIds: ["p4"] } }), { params })
+
+    expect(res.status).toBe(400)
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("404s a participant outside the cohort", async () => {
+    setup({ teams: [], unassignedIds: [] })
+    vi.mocked(prisma.impactLabParticipant.count).mockResolvedValueOnce(0 as never)
+
+    const res = await PATCH(
+      patchRequest({ addTeam: { name: "X", memberIds: ["ghost"], trackKey: "health" } }),
+      { params }
+    )
+
+    expect(res.status).toBe(404)
+  })
+
+  it("refuses once results are published", async () => {
+    vi.mocked(prisma.impactLabMatchRun.findUnique).mockResolvedValueOnce({
+      id: "run-1",
+      cohort: "test-cohort",
+      isFinal: true,
+      resultsPublishedAt: new Date(),
+    } as never)
+
+    const res = await PATCH(
+      patchRequest({ addTeam: { name: "X", memberIds: ["p4"], trackKey: "health" } }),
+      { params }
+    )
+
+    expect(res.status).toBe(409)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+})
