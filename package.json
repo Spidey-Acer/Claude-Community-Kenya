@@ -24,6 +24,7 @@
     "verify:showcase": "tsx scripts/verify-showcase.ts",
     "import:manual-teams": "tsx scripts/import-manual-teams.ts",
     "seed:hackathon": "tsx scripts/seed-hackathon-cohort.ts",
+    "seed:teams": "tsx scripts/seed-preformed-teams.ts",
     "seed:events": "tsx scripts/seed-events.ts",
     "seed:conversations": "tsx scripts/seed-conversations-29aug.ts",
     "backfill:gallery": "tsx scripts/backfill-gallery-r2.ts",
