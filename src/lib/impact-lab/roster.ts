@@ -193,6 +193,53 @@ export function placeParticipant(
   }
 }
 
+export type AddTeamStatus = "ok" | "already_on_team" | "too_large"
+
+/**
+ * Append a brand-new team to a published run — for people who registered or
+ * arrived after "Finalize teams" and need a team of their own, not a seat on
+ * somebody else's.
+ *
+ * Never moves anyone: if any requested member is already on a team the whole
+ * add is refused, so the desk cannot silently pull someone off the team they
+ * are building with. The caller supplies a fresh id that can never equal a
+ * retired rematch id, so no submission or score already keyed on
+ * (runId, teamId) can attach itself to the new team. The team takes the next
+ * table number after the highest one in use.
+ */
+export function addTeam(
+  current: RosterState,
+  input: { id: string; name: string; memberIds: string[]; trackKey?: string }
+): { status: AddTeamStatus; state: RosterState } {
+  const memberIds = [...new Set(input.memberIds)]
+  if (memberIds.length > HARD_TEAM_SIZE_CAP) return { status: "too_large", state: current }
+  if (current.teams.some((t) => t.memberIds.some((id) => memberIds.includes(id)))) {
+    return { status: "already_on_team", state: current }
+  }
+
+  const tables = current.teams
+    .map((t) => t.table)
+    .filter((n): n is number => typeof n === "number")
+  const team: Team = {
+    id: input.id,
+    name: input.name,
+    memberIds,
+    locked: false,
+    // Hand-built, not matched — there is no matching score to report.
+    score: { total: 0, dimensions: [], penalties: [], penaltyTotal: 0 },
+    ...(input.trackKey ? { trackKey: input.trackKey } : {}),
+    ...(tables.length > 0 ? { table: Math.max(...tables) + 1 } : {}),
+  }
+
+  return {
+    status: "ok",
+    state: {
+      teams: [...current.teams, team],
+      unassignedIds: current.unassignedIds.filter((id) => !memberIds.includes(id)),
+    },
+  }
+}
+
 /**
  * Fill in `table` for teams that don't have one, leaving already-numbered
  * teams untouched. Used by the admin "Number tables 1..N" action to backfill
