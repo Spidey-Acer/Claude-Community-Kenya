@@ -1,0 +1,26 @@
+{
+  "name": "cck-admin-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for administering claudekenya.org (events, blog, media, gallery) with a service token",
+  "type": "module",
+  "main": "build/index.js",
+  "bin": {
+    "cck-admin-mcp": "build/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

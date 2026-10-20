@@ -5,6 +5,7 @@ import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { withCsrfProtection } from "@/lib/csrf"
+import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { buildStorageKey, r2Bucket, r2Client, variantKey } from "@/lib/gallery/r2"
 import { extensionOf } from "@/lib/gallery/derivatives"
 
@@ -121,6 +122,16 @@ export async function POST(request: NextRequest) {
       }
     }),
   )
+
+  await logAudit({
+    userId: check.user.id,
+    userName: check.user.name,
+    userEmail: check.user.email,
+    action: "CREATE",
+    entity: "Photo",
+    changes: { eventId, count: uploads.length },
+    ...getRequestMetadata(request),
+  })
 
   return NextResponse.json({ success: true, data: { uploads } }, { status: 201 })
 }
