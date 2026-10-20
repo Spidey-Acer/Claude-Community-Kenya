@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Separate project — not part of CCK website
     "ack-kitale-diocese-system/**",
+    // Separate package with its own toolchain (mcp/package.json)
+    "mcp/**",
   ]),
 ]);
 
