@@ -29,6 +29,10 @@ export interface SubmissionRequirements {
   /** When true, the form renders `track` as a select over the event's tracks
    *  instead of free text. */
   trackSelect: boolean
+  /** Opt-in, per cohort: a registered participant on no team is placed in a
+   *  team of one in the final run the first time they open the submission
+   *  surface (see `solo-team.ts`). Absent or false everywhere else. */
+  soloPlacement?: boolean
 }
 
 const IMPACT_LAB_2026_09_REQUIRED: ReadonlySet<keyof SubmissionInput> = new Set([
@@ -118,6 +122,30 @@ const PAYAZA_HACKHOUSE_2026_HINTS: Partial<Record<keyof SubmissionInput, string>
   worksVsMocked: "A thin real slice on the sandbox beats a wide fake one.",
 }
 
+/**
+ * Build Day Mombasa (31 Oct 2026): a one-evening build with no organiser
+ * matching step. Anyone registered can submit alone (`soloPlacement`), and a
+ * team of 2-4 submits once, naming teammates in the description. Only the
+ * three fields needed to identify and judge an entry are required; everything
+ * else is a link or a note people add if they have it.
+ */
+const BUILD_DAY_MOMBASA_2026_10_REQUIRED: ReadonlySet<keyof SubmissionInput> = new Set([
+  "projectName",
+  "track",
+  "pitch",
+])
+
+const BUILD_DAY_MOMBASA_2026_10_LABELS: Partial<Record<keyof SubmissionInput, string>> = {
+  pitch: "One sentence: what it does and who it is for",
+  description: "What it does. Built as a team? Name your teammates here.",
+  claudeUsage: "Which Claude model you used and what it does in the build",
+  repoUrl: "Repo link, if you have one",
+  demoUrl: "Live link, if it is deployed",
+  videoUrl: "Demo video, if you recorded one",
+  slidesUrl: "Slides, if you made any",
+  worksVsMocked: "What works today, and what is still mocked",
+}
+
 /** Default profile: today's behaviour, unchanged for every other cohort. */
 const DEFAULT_REQUIREMENTS: SubmissionRequirements = {
   required: new Set(["slidesUrl"]),
@@ -144,6 +172,13 @@ const REQUIREMENTS_BY_COHORT: Readonly<Record<string, SubmissionRequirements>> =
     labels: PAYAZA_HACKHOUSE_2026_LABELS,
     hints: PAYAZA_HACKHOUSE_2026_HINTS,
     trackSelect: true,
+  },
+  "build-day-mombasa-2026-10": {
+    required: BUILD_DAY_MOMBASA_2026_10_REQUIRED as Set<keyof SubmissionInput>,
+    labels: BUILD_DAY_MOMBASA_2026_10_LABELS,
+    hints: {},
+    trackSelect: true,
+    soloPlacement: true,
   },
 }
 

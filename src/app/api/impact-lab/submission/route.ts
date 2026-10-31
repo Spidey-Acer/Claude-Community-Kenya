@@ -5,6 +5,7 @@ import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { guardClosedCohort } from "@/lib/impact-lab/cohort-guard"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent, type MemberEvent } from "@/lib/impact-lab/event-store"
+import { ensureSoloTeam } from "@/lib/impact-lab/solo-team"
 import { checkMemberAccess, extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
   buildSubmissionSchema,
@@ -55,8 +56,8 @@ const SUBMISSION_FIELD_LABELS: Readonly<Record<string, string>> = {
   screenshotUrl: "Screenshot link",
 }
 
-/** Resolve the caller's team in their event's final run, or null. */
-async function resolveContext(memberEvent: MemberEvent): Promise<ResolvedContext | null> {
+/** Look up the caller's team in their event's final run, or null. */
+async function findContext(memberEvent: MemberEvent): Promise<ResolvedContext | null> {
   const run = await prisma.impactLabMatchRun.findFirst({
     where: { cohort: memberEvent.cohort, isFinal: true },
     orderBy: { createdAt: "desc" },
@@ -77,6 +78,23 @@ async function resolveContext(memberEvent: MemberEvent): Promise<ResolvedContext
     teamName: teamRef.teamName,
     closeAt: run.submissionsCloseAt,
   }
+}
+
+/**
+ * Resolve the caller's team in their event's final run, or null. For a cohort
+ * that opted into solo placement, a registered caller with no team is placed
+ * in a team of one first (no-op for every other cohort).
+ */
+async function resolveContext(memberEvent: MemberEvent): Promise<ResolvedContext | null> {
+  const found = await findContext(memberEvent)
+  if (found) return found
+
+  const outcome = await ensureSoloTeam({
+    cohort: memberEvent.cohort,
+    participantId: memberEvent.participantId,
+    tracks: memberEvent.tracks,
+  })
+  return outcome === "placed" || outcome === "already_placed" ? findContext(memberEvent) : null
 }
 
 /** Display name for whoever last edited, falling back to the email's local part. */

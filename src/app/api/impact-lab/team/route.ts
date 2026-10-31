@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validCohort } from "@/lib/impact-lab/event-lifecycle"
 import { resolveMemberEvent } from "@/lib/impact-lab/event-store"
+import { ensureSoloTeam } from "@/lib/impact-lab/solo-team"
 import {
   checkMemberAccess,
   extractFrozenTeams,
@@ -62,6 +63,19 @@ export async function GET(request: NextRequest) {
   )
   if (!memberEvent) {
     return NextResponse.json({ success: true, status: "not_registered" })
+  }
+
+  // Opted-in cohorts only (no-op otherwise): a registered caller with no team
+  // is placed in a team of one so the dashboard shows the submission form
+  // instead of pending/unassigned. A failure degrades to the old behaviour.
+  try {
+    await ensureSoloTeam({
+      cohort: memberEvent.cohort,
+      participantId: memberEvent.participantId,
+      tracks: memberEvent.tracks,
+    })
+  } catch (error) {
+    console.error("[impact-lab/team] solo placement failed", error)
   }
 
   const run = await prisma.impactLabMatchRun.findFirst({
