@@ -74,7 +74,7 @@ function FaqRow({
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${item.id}`}
         id={`faq-question-${item.id}`}
-        className={`flex w-full items-center justify-between gap-4 text-left transition-colors ${buttonPad} ${
+        className={`flex w-full items-center justify-between gap-4 text-left transition-colors focus-visible:outline-offset-[-2px] ${buttonPad} ${
           variant === "card" ? "hover:bg-paper-alt/40" : ""
         }`}
       >

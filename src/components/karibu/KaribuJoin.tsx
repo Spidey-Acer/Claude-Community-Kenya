@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import Image from "next/image";
-import { BTN_OUTLINE, BTN_PRIMARY, CARD, Masthead, Section, WRAP } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, CARD, LINK, Masthead, NewTabNote, Section, WRAP } from "@/components/karibu/kit";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
@@ -31,9 +31,9 @@ export function KaribuJoin() {
   // Only cities whose link actually resolved (DB or constant fallback) show
   // a card — a city with neither is omitted rather than a dead link.
   const cities = [
-    { name: "Nairobi", note: "Meetups & hackathons", href: lumaNairobi, cta: "Luma →" },
-    { name: "Mombasa", note: "Coast chapter", href: lumaMombasa, cta: "Luma →" },
-    { name: "Kisumu", note: "Growing — say hi", href: whatsapp, cta: "WhatsApp →" },
+    { name: "Nairobi", note: "Meetups & hackathons", href: lumaNairobi, cta: "Luma" },
+    { name: "Mombasa", note: "Coast chapter", href: lumaMombasa, cta: "Luma" },
+    { name: "Kisumu", note: "Growing — say hi", href: whatsapp, cta: "WhatsApp" },
   ].filter((c): c is { name: string; note: string; href: string; cta: string } => Boolean(c.href));
 
   return (
@@ -57,11 +57,13 @@ export function KaribuJoin() {
           {whatsapp && (
             <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
               Join on WhatsApp
+              <NewTabNote />
             </a>
           )}
           {discord && (
             <a href={discord} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
               Join Discord
+              <NewTabNote />
             </a>
           )}
         </div>
@@ -89,14 +91,15 @@ export function KaribuJoin() {
                   <div className="font-inter text-[13px] text-ink-muted">{c.note}</div>
                 </div>
                 <span className="font-inter text-sm font-semibold text-clay">{c.cta}</span>
+              <NewTabNote />
               </div>
             </a>
           ))}
         </div>
         <p className="mt-4 font-inter text-[13.5px] text-ink-muted">
           Not in these cities?{" "}
-          <Link href="/get-involved?role=volunteer" className="font-semibold text-clay hover:underline">
-            Request a chapter →
+          <Link href="/get-involved?role=volunteer" className="font-semibold text-clay hover:text-clay-dark">
+            Request a chapter
           </Link>
         </p>
       </Section>
@@ -105,11 +108,9 @@ export function KaribuJoin() {
         <div className="max-w-3xl">
           <FaqAccordion items={JOIN_FAQS} variant="card" />
         </div>
-        <p className="mt-4 font-inter text-[13.5px] text-ink-muted">
-          <Link href="/faq" className="font-semibold text-clay hover:underline">
-            All questions →
-          </Link>
-        </p>
+        <Link href="/faq" className={`${LINK} mt-2`}>
+          All questions
+        </Link>
       </Section>
 
       <section className={`${WRAP} pb-16`} aria-label="Join CTA">

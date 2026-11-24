@@ -4,19 +4,19 @@
  * KaribuFaq: the FAQ page on the page kit.
  *
  * Preserves every question/answer from src/data/faq.ts, grouped by category,
- * plus a search box, a floating "Ask on Discord" CTA, and a closing
+ * plus a search box and a closing
  * still-have-questions panel with Discord + email contact options. Renders
  * each group through the shared FaqAccordion rather than a second inline
  * accordion implementation.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import Image from "next/image";
-import { BTN_PRIMARY, Masthead, WRAP } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, EmptyState, Masthead, NewTabNote, WRAP } from "@/components/karibu/kit";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import type { FAQ } from "@/data/faq";
@@ -25,43 +25,6 @@ export interface FaqCategory {
   key: string;
   label: string;
   command: string;
-}
-
-function FloatingDiscordCta({ discordUrl }: { discordUrl: string | null }) {
-  const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    function handleScroll() {
-      setVisible(window.scrollY > 400);
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  if (dismissed || !visible || !discordUrl) return null;
-
-  return (
-    <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2">
-      <a
-        href={discordUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 rounded-full border border-sand-2 bg-paper-card px-4 py-2.5 font-inter text-xs font-semibold text-clay shadow-lg shadow-black/5 backdrop-blur-sm transition-colors hover:border-clay"
-      >
-        <MessageSquare className="h-4 w-4" aria-hidden="true" />
-        Ask on Discord
-      </a>
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
-        className="rounded-full border border-sand-2 bg-paper-card p-1.5 text-ink-muted transition-colors hover:text-ink"
-      >
-        <X className="h-3 w-3" aria-hidden="true" />
-      </button>
-    </div>
-  );
 }
 
 export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCategory[] }) {
@@ -118,14 +81,14 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-muted transition-colors hover:text-ink"
+                className="absolute right-1 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center text-ink-muted transition-colors hover:text-ink"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </div>
           {filtered !== null && (
-            <p className="mt-3 text-center font-inter text-sm text-ink-muted">
+            <p role="status" className="mt-3 text-center font-inter text-sm text-ink-muted">
               {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
             </p>
           )}
@@ -137,12 +100,15 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
         {filtered !== null ? (
           <Reveal className="mx-auto max-w-3xl">
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-sand bg-paper-card px-6 py-12 text-center">
-                <p className="font-inter text-[15px] text-ink-soft">No matching questions found.</p>
-                <p className="mt-1 font-inter text-sm text-ink-muted">
-                  Try a different search term or browse the categories below.
-                </p>
-              </div>
+              <EmptyState
+                title="No matching questions found."
+                body="Try a different search term or browse the categories."
+                action={
+                  <button type="button" onClick={() => setQuery("")} className={BTN_OUTLINE}>
+                    Clear search
+                  </button>
+                }
+              />
             ) : (
               <FaqAccordion items={filtered} variant="card" />
             )}
@@ -170,8 +136,6 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
         )}
       </section>
 
-      <FloatingDiscordCta discordUrl={discord} />
-
       {/* Still have questions? */}
       <section className={`${WRAP} py-14`} aria-label="Still have questions">
         <Reveal>
@@ -188,14 +152,12 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
                   rel="noopener noreferrer"
                   className={BTN_PRIMARY}
                 >
-                  Ask on Discord <span aria-hidden="true">→</span>
+                  Ask on Discord
+                  <NewTabNote />
                 </a>
               )}
-              <a
-                href={`mailto:${CONTACT.email}`}
-                className="inline-flex items-center gap-2 rounded-full border border-on-panel-dark-muted/40 px-6 py-3.5 font-inter text-[15px] font-semibold text-on-panel-dark transition-colors hover:border-clay-light hover:text-clay-light"
-              >
-                Email us <span aria-hidden="true">→</span>
+              <a href={`mailto:${CONTACT.email}`} className={BTN_PRIMARY}>
+                Email us
               </a>
             </div>
           </div>
