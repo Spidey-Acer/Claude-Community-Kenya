@@ -52,12 +52,10 @@ export function ConditionalLayout({
   // paths (404s) fall through to Karibu so dead links stay on-brand.
   const legacyPrefixes = [
     "/account",
-    "/code-of-conduct",
     "/forgot-password",
     "/reset-password",
     "/verify-email",
     "/dashboard",
-    "/blog/",
   ];
   const isKaribu = !legacyPrefixes.some((p) => pathname.startsWith(p));
 
