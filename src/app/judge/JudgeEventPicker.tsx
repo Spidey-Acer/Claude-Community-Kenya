@@ -146,6 +146,7 @@ export function JudgeEventPicker({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load on mount
     void load();
   }, [load]);
 

@@ -62,7 +62,7 @@ export default async function CommunityDetailPage({
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
-          { name: "Tools & Prompts", url: "/community" },
+          { name: "Showcase", url: "/showcase" },
           { name: submission.title },
         ]}
       />

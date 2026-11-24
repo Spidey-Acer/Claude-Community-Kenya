@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getCommunitySubmissions, getGalleryPhotos, getNewsletterIssues, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
+import { getEvents, getBlogPosts, getCommunitySubmissions, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
 import { getShowcasePosts } from "@/lib/showcase/queries";
 
 const BASE_URL = "https://www.claudekenya.org";
@@ -8,14 +8,12 @@ const BASE_URL = "https://www.claudekenya.org";
 const SITEMAP_MAX_ITEMS = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData, galleryPhotos, newsletterIssues, teamSlugs, showcaseData, guides] = await Promise.all([
+  const [events, blogPosts, communityData, teamSlugs, showcaseData, guides] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
     // Same trap as the showcase line below: the query defaults to one feed
     // page (FEED_PAGE_SIZE), which would silently cap the sitemap at 20.
     getCommunitySubmissions({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [] })),
-    getGalleryPhotos({ limit: 1 }).catch(() => [] as { id: string }[]),
-    getNewsletterIssues().catch(() => []),
     getTeamMemberSlugs().catch(() => [] as string[]),
     // Explicit limit: the default page size is 20, which would silently cap
     // the sitemap at the first 20 posts however many exist.
@@ -29,11 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/events`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/projects`, changeFrequency: "weekly", priority: 0.8 },
-    // Only list /gallery if there are photos — otherwise it's a thin page.
-    ...(galleryPhotos.length > 0
-      ? [{ url: `${BASE_URL}/gallery`, changeFrequency: "weekly" as const, priority: 0.7 }]
-      : []),
-    { url: `${BASE_URL}/community`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/reports`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/showcase`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/join`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/resources`, changeFrequency: "monthly", priority: 0.8 },
@@ -49,11 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/volunteer`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/submit-idea`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/submit-project`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/community/submit`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/showcase/submit`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/chat`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE_URL}/merch`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/newsletter`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/team`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
     // NOTE: /login, /forgot-password, /reset-password, /verify-email,
@@ -88,13 +78,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const newsletterRoutes: MetadataRoute.Sitemap = newsletterIssues.map((issue) => ({
-    url: `${BASE_URL}/newsletter/${issue.slug}`,
-    lastModified: issue.publishedAt,
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
-
   const teamRoutes: MetadataRoute.Sitemap = teamSlugs.map((slug) => ({
     url: `${BASE_URL}/team/${slug}`,
     changeFrequency: "monthly" as const,
@@ -108,5 +91,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...newsletterRoutes, ...teamRoutes, ...guideRoutes];
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...teamRoutes, ...guideRoutes];
 }

@@ -82,6 +82,7 @@ export function AdminSidebar() {
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
     setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "1")
     setHydrated(true)
   }, [])

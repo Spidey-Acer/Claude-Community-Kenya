@@ -32,8 +32,8 @@ export function KaribuThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- theme is only knowable in the browser
     setTheme(getEffectiveTheme());
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

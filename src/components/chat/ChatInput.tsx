@@ -82,7 +82,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
         )}
       >
         {isDev ? (
-          <>// powered by <span className="text-green-primary/80">claude haiku 4.5</span></>
+          <>{"// powered by "}<span className="text-green-primary/80">claude haiku 4.5</span></>
         ) : (
           <>Powered by <span className="text-[#d97757]">Claude Haiku 4.5</span></>
         )}

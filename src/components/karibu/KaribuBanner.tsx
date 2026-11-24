@@ -27,6 +27,7 @@ export function KaribuBanner() {
   useEffect(() => {
     if (!audience) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser storage after mount
     setVisible(true);
     sessionStorage.setItem(SESSION_KEY, "1");
   }, [audience]);

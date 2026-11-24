@@ -119,7 +119,7 @@ export default async function TeamMemberPage({ params }: PageProps) {
                   fontStyle: "italic",
                 }}
               >
-                "{member.tagline}"
+                &ldquo;{member.tagline}&rdquo;
               </p>
             )}
 
