@@ -207,6 +207,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
   const [csrfToken, setCsrfToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Set once a non-SHOWCASE post is accepted: it is PENDING, so its page would 404.
+  const [awaitingReview, setAwaitingReview] = useState(false)
 
   const [type, setType] = useState<SubmissionType>("SHOWCASE")
   const [builder, setBuilder] = useState("")
@@ -322,11 +324,31 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
           setError(json.error || "Could not publish. Please try again.")
           return
         }
+        if (type !== "SHOWCASE") {
+          setAwaitingReview(true)
+          return
+        }
         router.push(`/showcase/${json.data.slug}`)
       } catch {
         setError("Network error. Please check your connection and try again.")
       }
     })
+  }
+
+  if (awaitingReview) {
+    return (
+      <section className={`${WRAP} pb-16 pt-16`} aria-label="Submission received">
+        <h1 className="mb-4 max-w-[720px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink">
+          Thanks, it is in.
+        </h1>
+        <p role="status" className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
+          Your submission will appear on the showcase once a moderator has reviewed it.
+        </p>
+        <Link href="/showcase" className="mt-6 inline-block font-inter text-sm text-clay underline">
+          Back to the showcase
+        </Link>
+      </section>
+    )
   }
 
   return (

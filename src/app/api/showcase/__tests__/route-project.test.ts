@@ -101,3 +101,34 @@ describe("POST /api/showcase, PROJECT type", () => {
     expect(create).not.toHaveBeenCalled()
   })
 })
+
+describe("POST /api/showcase, moderation status by type", () => {
+  it.each(["TOOL", "PROMPT", "WORKFLOW", "MCP", "PROJECT"])("creates %s as PENDING", async (type) => {
+    const res = await POST(request({ ...PROJECT_BODY, type }))
+    expect(res.status).toBe(201)
+    expect(create.mock.calls[0][0].data.status).toBe("PENDING")
+  })
+
+  it("creates SHOWCASE as APPROVED", async () => {
+    await POST(request({ ...PROJECT_BODY, type: "SHOWCASE" }))
+    expect(create.mock.calls[0][0].data.status).toBe("APPROVED")
+  })
+
+  it("ignores status, featured, slug and userId supplied in the body", async () => {
+    await POST(
+      request({
+        ...PROJECT_BODY,
+        type: "TOOL",
+        status: "APPROVED",
+        featured: true,
+        slug: "attacker-slug",
+        userId: "someone-else",
+      }),
+    )
+    const data = create.mock.calls[0][0].data
+    expect(data.status).toBe("PENDING")
+    expect(data.featured).toBeUndefined()
+    expect(data.slug).not.toBe("attacker-slug")
+    expect(data.userId).toBe("user-1")
+  })
+})

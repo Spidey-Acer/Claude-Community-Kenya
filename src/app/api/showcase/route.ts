@@ -23,13 +23,12 @@ import { publicUrl } from "@/lib/gallery/r2"
 /**
  * POST /api/showcase — publish a showcase post.
  *
- * Verified members publish straight to APPROVED, matching the comment rule:
- * an email round-trip is the bar, and a queue nobody drains is the same as no
- * showcase at all. Reports are the backstop, not pre-moderation.
- *
- * One exception: a PROJECT lands PENDING. Projects were moderated before the
- * showcase absorbed them (the public list showed only featured rows), so a
- * new one waits for review rather than skipping the gate it used to face.
+ * Only a SHOWCASE (the old "demo") from a verified member publishes straight
+ * to APPROVED: an email round-trip is the bar, and reports are the backstop.
+ * Every other type (PROJECT, TOOL, PROMPT, WORKFLOW, MCP) lands PENDING, as it
+ * did on main through the community submit route, so a moderator reviews it
+ * before it is public. Status, slug, userId and featured are never read from
+ * the body; the schema strips unknown keys.
  */
 
 const mediaSchema = z.object({
@@ -220,7 +219,7 @@ export async function POST(request: NextRequest) {
         submitterName: isProject && data.builder
           ? data.builder
           : `${user.firstName} ${user.lastName}`.trim(),
-        status: isProject ? "PENDING" : "APPROVED",
+        status: data.type === "SHOWCASE" ? "APPROVED" : "PENDING",
         lastActivityAt: new Date(),
       },
     })
