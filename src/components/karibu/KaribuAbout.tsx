@@ -26,9 +26,6 @@ interface TimelineEntry {
   hash: string;
 }
 
-/** Supporter roster minus Anthropic: About makes no Anthropic-backing claim. */
-const VENUE_PARTNERS = SUPPORTERS.filter((supporter) => supporter.name !== "Anthropic");
-
 const VALUES = [
   { title: "Free, always", body: "No fees, no gatekeeping. The community stays open to everyone." },
   { title: "Hands-on", body: "We learn by building real things together, not by lecturing." },
@@ -100,25 +97,19 @@ export function KaribuAbout({
         </div>
       </Section>
 
-      <section className={`${WRAP} py-8`} aria-label="Who runs CCK">
-        <Reveal>
-          <div className={`grid items-center gap-6 p-8 sm:grid-cols-[90px_1fr] sm:p-10 ${PANEL_DARK}`}>
-            <div className="flex h-[90px] w-[90px] items-center justify-center rounded-[14px] bg-paper-alt">
-              <Image src="/images/cck-logo.webp" alt="CCK" width={70} height={70} className="h-[70px] w-[70px] rounded-full" />
-            </div>
-            <div>
-              <div className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[0.18em] text-clay-light">
-                Who runs CCK
-              </div>
-              <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-on-panel-dark sm:text-[23px]">
-                CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
-                <span className="italic text-clay-light">Claude Community Ambassador</span>,
-                kept firmly in service of the community, never a sales channel.
-              </p>
-            </div>
+      <Section eyebrow="The Anthropic connection" title="Independent, and in service of the community">
+        <div className={`grid items-center gap-6 p-8 sm:grid-cols-[90px_1fr] sm:p-10 ${PANEL_DARK}`}>
+          <div className="flex h-[90px] w-[90px] items-center justify-center rounded-[14px] bg-paper-alt">
+            <Image src="/images/cck-logo.webp" alt="CCK" width={70} height={70} className="h-[70px] w-[70px] rounded-full" />
           </div>
-        </Reveal>
-      </section>
+          <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-on-panel-dark sm:text-[23px]">
+            CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
+            <span className="italic text-clay-light">Claude Community Ambassador</span> and
+            supported through Anthropic&apos;s Claude Community Ambassadors program —
+            kept firmly in service of the community, never a sales channel.
+          </p>
+        </div>
+      </Section>
 
       {activeTeam.length > 0 && (
         <Section id="team" eyebrow="The people" title="Who you will meet">
@@ -161,11 +152,11 @@ export function KaribuAbout({
         </Section>
       )}
 
-      <section className={`${WRAP} py-10`} aria-label="Venue partners">
+      <section className={`${WRAP} py-10`} aria-label="Supported by">
         <Reveal>
           <SupporterWall
-            supporters={VENUE_PARTNERS}
-            caption="The venues and partners that open their doors to us"
+            supporters={SUPPORTERS}
+            caption="Anthropic, via the Claude Community Ambassadors program · and the venues that open their doors to us"
           />
         </Reveal>
       </section>
