@@ -384,8 +384,32 @@ model Event {
   impactLabEvents      ImpactLabEvent[] @relation("ImpactLabConversationsEvent")
   /// Impact Lab cohorts that ran at this event (see ImpactLabEvent.publicEventId).
   impactLabCohorts     ImpactLabEvent[] @relation("ImpactLabPublicEvent")
+  /// Luma guest list behind the "I'm attending" card (hashed emails only).
+  guests               EventGuest[]
 
   @@map("events")
+}
+
+// ─── Event guests (attending card) ───────────────────────────────────────────
+
+/// One Luma guest for one event, kept only so the "I'm attending" card page can
+/// answer "is this email on the list". Holds an HMAC of the email, never the
+/// email, name, phone or answers. Deleted 2 days after Event.date by
+/// /api/cron/purge-event-guests, or at once by the admin wipe.
+model EventGuest {
+  id             String   @id @default(cuid())
+  eventId        String
+  /// HMAC-SHA-256 (hex) of the trimmed, lowercased email, keyed by ATTENDING_HMAC_KEY.
+  emailHmac      String
+  /// "approved", or the other status text from the Luma export.
+  approvalStatus String
+  /// Time of the latest import that touched this row.
+  importedAt     DateTime @default(now())
+
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, emailHmac])
+  @@map("event_guests")
 }
 
 // ─── Meetup Photos ───────────────────────────────────────────────────────────
