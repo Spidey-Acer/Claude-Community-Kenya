@@ -1,30 +1,23 @@
 "use client";
 
 /**
- * KaribuAbout — warm-light About page for the Karibu identity.
- *
- * Ports about.dc.html AND preserves every section the Terminal Noir About had
- * (stats strip, origin story, values, real team grid, past-events timeline) —
- * redesigned, not removed. All content is DB-backed (team + past events + stats).
+ * KaribuAbout: the About page on the page kit. Origin story, values, who runs
+ * the community, the real team, community photos and the past-events timeline.
+ * The site shows no member, attendee or city counts, so none appear here.
  */
 
 import { useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
-import type { CommunityStats } from "@/components/sections/community-stats.types";
 import type { PhotoView, TeamMemberView } from "@/lib/data";
 import { communityLifePhotos } from "@/components/karibu/photos";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { PageBanner } from "@/components/karibu/PageBanner";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FramedPhoto } from "@/components/karibu/FramedPhoto";
-import { StatsCard } from "@/components/karibu/StatsCard";
 import { SupporterWall } from "@/components/karibu/SupporterWall";
 import { SUPPORTERS } from "@/components/karibu/supporters";
-
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
+import { Masthead, PANEL_DARK, Section, WRAP } from "@/components/karibu/kit";
 
 interface TimelineEntry {
   date: string;
@@ -33,6 +26,9 @@ interface TimelineEntry {
   hash: string;
 }
 
+/** Supporter roster minus Anthropic: About makes no Anthropic-backing claim. */
+const VENUE_PARTNERS = SUPPORTERS.filter((supporter) => supporter.name !== "Anthropic");
+
 const VALUES = [
   { title: "Free, always", body: "No fees, no gatekeeping. The community stays open to everyone." },
   { title: "Hands-on", body: "We learn by building real things together, not by lecturing." },
@@ -40,12 +36,10 @@ const VALUES = [
 ];
 
 export function KaribuAbout({
-  stats,
   team,
   timelineEntries,
   photos,
 }: {
-  stats: CommunityStats;
   team: TeamMemberView[];
   timelineEntries: TimelineEntry[];
   photos: PhotoView[];
@@ -55,42 +49,35 @@ export function KaribuAbout({
 
   return (
     <>
-      <PageBanner
-        image="/images/community/founder-talk.webp"
-        imageAlt="Peter Kibet speaking at a CCK event"
-        crumbs={["Home", "About"]}
+      <Masthead
+        eyebrow="About"
         title="We're a free, founder-led community."
-        subtitle="Anyone in Kenya learning and building with Claude — and we mean anyone."
+        lead="Anyone in Kenya learning and building with Claude, and we mean anyone."
+        media={
+          <Image
+            src="/images/community/founder-talk.webp"
+            alt="Peter Kibet speaking at a CCK event"
+            fill
+            priority
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="object-cover"
+          />
+        }
       />
 
-      {/* Stats (overlaps the banner's bottom edge, matching the home hero) */}
-      <div className={`${WRAP} relative z-[2] -mt-6 sm:-mt-12`}>
-        <StatsCard
-          eventsHosted={stats.eventsHeld}
-          buildersReached={stats.totalMembers}
-          cities={stats.citiesActive.length ? stats.citiesActive : ["Nairobi", "Mombasa", "Kisumu"]}
-          sinceLabel="Jan '26"
-          sinceDetail="first meetup, Westlands"
-        />
-      </div>
-
-      {/* How CCK started + photo */}
-      <section className={`${WRAP} py-10 pt-14 sm:pt-16`} aria-label="Our story">
-        <Reveal className="grid gap-12 md:grid-cols-2">
+      <Section eyebrow="Our story" title="How CCK started">
+        <div className="grid gap-12 md:grid-cols-2">
           <div>
-            <h2 className="mb-3.5 font-newsreader text-[26px] font-medium text-ink">
-              How CCK started
-            </h2>
             <p className="mb-4 font-inter text-[15.5px] leading-[1.7] text-ink-soft">
               It began with a handful of people in Nairobi swapping notes on what
               they were building with Claude. Word spread, the group filled up,
-              and meetups followed in Mombasa and beyond. Today CCK has reached{" "}
-              {stats.totalMembers}+ builders across WhatsApp, Discord and socials —
-              students, founders, marketers and engineers at every level.
+              and meetups followed in Mombasa and beyond. Today CCK brings together
+              builders across WhatsApp, Discord and socials: students, founders,
+              marketers and engineers at every level.
             </p>
             <p className="font-inter text-[15.5px] leading-[1.7] text-ink-soft">
               We stayed free and volunteer-run on purpose. The point isn&apos;t to
-              sell anything — it&apos;s to make sure that if you&apos;re in Kenya and
+              sell anything. It&apos;s to make sure that if you&apos;re in Kenya and
               curious about AI, there&apos;s a warm, capable room waiting for you.
             </p>
           </div>
@@ -98,38 +85,34 @@ export function KaribuAbout({
             src="/images/community/first-meetup.webp"
             alt="A Claude Community Kenya founding meetup"
             caption="First meetup · Jan 2026"
-            priority
           />
-        </Reveal>
-      </section>
+        </div>
+      </Section>
 
-      {/* Values */}
-      <section className={`${WRAP} py-8`} aria-label="Our values">
-        <Reveal className="grid gap-4 sm:grid-cols-3">
+      <Section eyebrow="Our values" title="What we stand for">
+        <div className="grid gap-4 sm:grid-cols-3">
           {VALUES.map((v) => (
             <div key={v.title} className="rounded-2xl border border-sand bg-paper-card p-7">
               <h3 className="mb-2 font-newsreader text-[22px] text-ink">{v.title}</h3>
               <p className="font-inter text-sm leading-[1.55] text-ink-soft">{v.body}</p>
             </div>
           ))}
-        </Reveal>
-      </section>
+        </div>
+      </Section>
 
-      {/* Anthropic tie */}
-      <section className={`${WRAP} py-8`} aria-label="Anthropic tie">
+      <section className={`${WRAP} py-8`} aria-label="Who runs CCK">
         <Reveal>
-          <div className="grid items-center gap-6 rounded-2xl bg-panel-dark p-8 text-on-panel-dark sm:grid-cols-[90px_1fr] sm:p-10">
+          <div className={`grid items-center gap-6 p-8 sm:grid-cols-[90px_1fr] sm:p-10 ${PANEL_DARK}`}>
             <div className="flex h-[90px] w-[90px] items-center justify-center rounded-[14px] bg-paper-alt">
               <Image src="/images/cck-logo.webp" alt="CCK" width={70} height={70} className="h-[70px] w-[70px] rounded-full" />
             </div>
             <div>
               <div className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[0.18em] text-clay-light">
-                The Anthropic connection
+                Who runs CCK
               </div>
               <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-on-panel-dark sm:text-[23px]">
                 CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
-                <span className="italic text-clay-light">Claude Community Ambassador</span> and
-                supported through Anthropic&apos;s Claude Community Ambassadors program —
+                <span className="italic text-clay-light">Claude Community Ambassador</span>,
                 kept firmly in service of the community, never a sales channel.
               </p>
             </div>
@@ -137,36 +120,24 @@ export function KaribuAbout({
         </Reveal>
       </section>
 
-      {/* The people (real team) — staggered grid, per-person social row */}
       {activeTeam.length > 0 && (
-        <section id="team" className={`${WRAP} scroll-mt-24 py-10`} aria-label="Our team">
-          <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              The people
-            </div>
-          </Reveal>
-          <Reveal className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <Section id="team" eyebrow="The people" title="Who you will meet">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {activeTeam.map((m, i) => (
               <div key={m.slug ?? `${m.name}-${i}`} className={i % 2 === 1 ? "lg:translate-y-8" : ""}>
                 <TeamCard member={m} />
               </div>
             ))}
-          </Reveal>
+          </div>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">
-            + dozens of volunteers who set up chairs, answer questions, and keep
+            Plus the volunteers who set up chairs, answer questions, and keep
             the rooms warm.
           </p>
-        </section>
+        </Section>
       )}
 
-      {/* Community life: event-less photos, featured first */}
       {lifePhotos.length > 0 && (
-        <section className={`${WRAP} py-10`} aria-label="Community life">
-          <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              Community life
-            </div>
-          </Reveal>
+        <Section eyebrow="Community life" title="In the room">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {lifePhotos.map((photo) => (
               <div key={photo.id} className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-paper-alt">
@@ -181,32 +152,24 @@ export function KaribuAbout({
               </div>
             ))}
           </div>
-        </section>
+        </Section>
       )}
 
-      {/* Timeline (preserved, redesigned) */}
       {timelineEntries.length > 0 && (
-        <section className={`${WRAP} py-10`} aria-label="Community timeline">
-          <Reveal>
-            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              How we got here
-            </div>
-          </Reveal>
+        <Section eyebrow="Timeline" title="How we got here">
           <Timeline entries={timelineEntries} />
-        </section>
+        </Section>
       )}
 
-      {/* Supported by */}
-      <section className={`${WRAP} py-10`} aria-label="Supported by">
+      <section className={`${WRAP} py-10`} aria-label="Venue partners">
         <Reveal>
           <SupporterWall
-            supporters={SUPPORTERS}
-            caption="Anthropic, via the Claude Community Ambassadors program · and the venues that open their doors to us"
+            supporters={VENUE_PARTNERS}
+            caption="The venues and partners that open their doors to us"
           />
         </Reveal>
       </section>
 
-      {/* CTA */}
       <section className={`${WRAP} pb-16 pt-6`} aria-label="Join CTA">
         <Reveal>
           <CtaBand />
