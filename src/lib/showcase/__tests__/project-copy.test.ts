@@ -48,6 +48,13 @@ describe("projectToSubmission", () => {
   })
 })
 
+describe("empty slug", () => {
+  it.each(["", "!!!", "  ---  "])("skips name %j with reason empty-slug", (name) => {
+    const r = projectToSubmission({ ...project, name } as never, new Set())
+    expect(r).toEqual({ skipped: true, reason: "empty-slug" })
+  })
+})
+
 describe("copy idempotence", () => {
   it("a second pass over the same projects copies nothing", () => {
     const first = projectToSubmission(project as never, new Set())

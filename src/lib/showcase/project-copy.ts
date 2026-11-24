@@ -13,7 +13,7 @@ const MAX_SHORT_DESCRIPTION_LENGTH = 300
 
 export type ProjectCopyResult =
   | { skipped: false; data: Prisma.CommunitySubmissionCreateInput }
-  | { skipped: true; reason: "slug-exists" }
+  | { skipped: true; reason: "slug-exists" | "empty-slug" }
 
 /** Kebab-case of the project name, at most 60 chars, no leading or trailing dash. */
 export function projectSlug(name: string): string {
@@ -34,7 +34,8 @@ function cutAtWord(text: string, max: number): string {
 }
 
 /**
- * Maps a Project to a PROJECT submission, or reports a slug collision.
+ * Maps a Project to a PROJECT submission, or reports why it was skipped
+ * (slug collision, or a name that yields an empty slug).
  *
  * `featured` was the legacy moderation gate (the public list shows only
  * featured projects), so only a featured project, or one that ran as Project
@@ -46,6 +47,9 @@ export function projectToSubmission(
   existingSlugs: Set<string>,
 ): ProjectCopyResult {
   const slug = projectSlug(project.name)
+  // A name with no letters or digits slugs to "", which would collide with
+  // every other such project and produce an unroutable page.
+  if (slug === "") return { skipped: true, reason: "empty-slug" }
   if (existingSlugs.has(slug)) return { skipped: true, reason: "slug-exists" }
 
   const isPublished = project.featured === true || project.potwAt !== null

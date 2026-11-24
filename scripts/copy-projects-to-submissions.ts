@@ -15,6 +15,7 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { projectToSubmission } from "../src/lib/showcase/project-copy"
+import { preflightProblems } from "../src/lib/showcase/copy-preflight"
 
 const dryRun = process.argv.includes("--dry-run")
 
@@ -28,6 +29,20 @@ async function main() {
 
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString, max: 5 }) })
   try {
+    // Read-only schema check, in dry-run and real mode alike, before any work.
+    const projectEnumRows = await prisma.$queryRaw<unknown[]>`
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'CommunityResourceType' AND e.enumlabel = 'PROJECT'`
+    const featuredColumnRows = await prisma.$queryRaw<unknown[]>`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'community_submissions' AND column_name = 'featured'`
+    const problems = preflightProblems({ projectEnumRows, featuredColumnRows })
+    if (problems.length > 0) {
+      console.error(`Schema check failed, nothing was copied:\n- ${problems.join("\n- ")}`)
+      process.exitCode = 1
+      return
+    }
+
     const projects = await prisma.project.findMany({ orderBy: { createdAt: "asc" } })
     const rows = await prisma.communitySubmission.findMany({ select: { slug: true } })
     const existingSlugs = new Set(rows.map((row) => row.slug))
@@ -35,10 +50,12 @@ async function main() {
     let approved = 0
     let pending = 0
     const skippedSlugs: string[] = []
+    const emptySlugNames: string[] = []
     for (const project of projects) {
       const result = projectToSubmission(project, existingSlugs)
       if (result.skipped) {
-        skippedSlugs.push(project.name)
+        if (result.reason === "empty-slug") emptySlugNames.push(project.name)
+        else skippedSlugs.push(project.name)
         continue
       }
       if (!dryRun) {
@@ -51,6 +68,9 @@ async function main() {
 
     const label = dryRun ? "copy" : "copied"
     console.log(`${label} ${approved + pending} (approved ${approved}, pending ${pending}), ${dryRun ? "skip" : "skipped"} ${skippedSlugs.length} (projects: ${skippedSlugs.join(", ")})`)
+    if (emptySlugNames.length > 0) {
+      console.log(`skipped ${emptySlugNames.length} with an empty slug (rename and rerun): ${emptySlugNames.map((name) => JSON.stringify(name)).join(", ")}`)
+    }
   } finally {
     await prisma.$disconnect()
   }
