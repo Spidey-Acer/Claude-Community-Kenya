@@ -63,3 +63,7 @@ next-env.d.ts
 
 # Script output — contains participant names/ids; never commit (public repo)
 scripts/output/
+
+# cck-admin-mcp package
+/mcp/node_modules
+/mcp/build

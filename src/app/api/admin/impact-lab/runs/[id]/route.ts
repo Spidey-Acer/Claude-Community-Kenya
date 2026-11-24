@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import { checkApiPermission } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
@@ -6,6 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
 import {
+  addTeam,
   extractUnassignedIds,
   judgeSchema,
   JUDGE_LIST_MAX,
@@ -35,6 +37,13 @@ const moveSchema = z.object({
 const tableSchema = z.object({
   teamId: z.string().min(1).max(40),
   table: z.number().int().min(1).max(200).nullable(),
+})
+
+/** A new team built by hand at the admin desk — see `handleAddTeam`. */
+const addTeamSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  memberIds: z.array(z.string().min(1).max(64)).min(1).max(20),
+  trackKey: z.string().min(1).max(40).optional(),
 })
 
 /** One team's corrected track, as the admin desk sends it. */
@@ -172,6 +181,86 @@ async function handleMove(
 
   const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
   return NextResponse.json({ success: true, data: { ...updated, warning: outcome.warning } })
+}
+
+/**
+ * Add a new team to a run for people who have no team yet — typically late
+ * registrations after "Finalize teams". Judging, the judge roster and the
+ * member dashboard all read teams from this run's `result`, so the team is
+ * judgeable the moment it is written. Refuses anyone already on a team (see
+ * `addTeam`) and, once results are published, refuses outright: the published
+ * snapshot is immutable and a team added after it could never appear in it.
+ */
+async function handleAddTeam(
+  request: NextRequest,
+  runId: string,
+  cohort: string,
+  add: z.infer<typeof addTeamSchema>,
+  resultsPublished: boolean,
+  user: { id: string; name: string; email: string }
+): Promise<NextResponse> {
+  if (resultsPublished) {
+    return NextResponse.json(
+      { success: false, error: "Results are published — teams can no longer be added." },
+      { status: 409 }
+    )
+  }
+
+  const memberIds = [...new Set(add.memberIds)]
+  const found = await prisma.impactLabParticipant.count({ where: { id: { in: memberIds }, cohort } })
+  if (found !== memberIds.length) {
+    return NextResponse.json({ success: false, error: "Participant not found" }, { status: 404 })
+  }
+
+  // Never "team-N": rematch retires those ids for good, and reusing one would
+  // reattach a stale submission or score to this team.
+  const teamId = `added-${randomUUID().slice(0, 8)}`
+
+  const outcome = await withRunLock(runId, async (tx) => {
+    const fresh = await readLockedRun(tx, runId)
+    const teams = extractFrozenTeams(fresh?.result)
+    if (!teams) return { status: "no_teams" as const }
+
+    // A tracked run judges and announces per track, so a new team must name one.
+    const tracks = readSettingsTracks(fresh?.settings)
+    if (tracks.length > 0 && !tracks.some((t) => t.key === add.trackKey)) {
+      return { status: "unknown_track" as const }
+    }
+
+    const added = addTeam(
+      { teams, unassignedIds: extractUnassignedIds(fresh?.result) },
+      { id: teamId, name: add.name, memberIds, trackKey: tracks.length > 0 ? add.trackKey : undefined }
+    )
+    if (added.status !== "ok") return { status: added.status }
+
+    await writeRunResult(tx, runId, { ...(fresh?.result as object), ...added.state })
+    return { status: "ok" as const }
+  })
+
+  const refusals: Record<string, [string, number]> = {
+    no_teams: ["This run has no frozen teams to edit", 400],
+    unknown_track: ["Pick one of this run's tracks for the new team", 400],
+    already_on_team: ["Someone you picked is already on a team — nobody is moved by adding a team", 409],
+    too_large: ["That team is over the size cap", 400],
+  }
+  if (outcome.status !== "ok") {
+    const [error, status] = refusals[outcome.status]
+    return NextResponse.json({ success: false, error }, { status })
+  }
+
+  await logAudit({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: runId,
+    changes: { addTeam: { teamId, name: add.name, memberIds, trackKey: add.trackKey ?? null } },
+    ...getRequestMetadata(request),
+  })
+
+  const updated = await prisma.impactLabMatchRun.findUnique({ where: { id: runId }, select: RUN_SELECT })
+  return NextResponse.json({ success: true, data: updated })
 }
 
 /**
@@ -909,6 +998,9 @@ const updateSchema = z.object({
   // move with a rename would otherwise leave one half silently unapplied if
   // the other failed partway, and the two are never edited together in the UI.
   move: moveSchema.optional(),
+  // Append a brand-new team to this run — see `handleAddTeam`. Its own branch
+  // for the same reason `move` is.
+  addTeam: addTeamSchema.optional(),
   // Set (or clear) one team's table number. Same "own branch" reasoning as
   // `move` — never combined with rename/finalize in the UI.
   table: tableSchema.optional(),
@@ -996,6 +1088,16 @@ export async function PATCH(
 
   if (validation.data.move) {
     return handleMove(request, id, existing.cohort, validation.data.move, check.user)
+  }
+  if (validation.data.addTeam) {
+    return handleAddTeam(
+      request,
+      id,
+      existing.cohort,
+      validation.data.addTeam,
+      existing.resultsPublishedAt !== null,
+      check.user
+    )
   }
   if (validation.data.table) {
     return handleSetTable(request, id, validation.data.table, check.user)

@@ -41,5 +41,8 @@
       "Bash(npm run db:push)",
       "Bash(npm run purge:closed-cohorts)"
     ]
+  },
+  "enabledPlugins": {
+    "impeccable@impeccable": true
   }
 }

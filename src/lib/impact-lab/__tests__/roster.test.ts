@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from "vitest"
 import {
+  addTeam,
   extractJudgeSignIn,
   extractOnStage,
   extractJudges,
@@ -457,5 +458,45 @@ describe("extractOnStage", () => {
     expect(extractOnStage({ onStage: { since } })).toBeNull()
     expect(extractOnStage({ onStage: { teamId: "", since } })).toBeNull()
     expect(extractOnStage({ onStage: { teamId: "team-3", since: 0 } })).toBeNull()
+  })
+})
+
+describe("addTeam", () => {
+  const state: RosterState = {
+    teams: [team("team-1", ["a"], { table: 1 }), team("team-2", ["b"], { table: 4 })],
+    unassignedIds: ["c"],
+  }
+
+  it("appends a new team without touching existing teams", () => {
+    const outcome = addTeam(state, { id: "added-1", name: "Late Owls", memberIds: ["c", "d"], trackKey: "health" })
+    expect(outcome.status).toBe("ok")
+    expect(outcome.state.teams.slice(0, 2)).toEqual(state.teams)
+    expect(outcome.state.teams[2]).toMatchObject({
+      id: "added-1",
+      name: "Late Owls",
+      memberIds: ["c", "d"],
+      trackKey: "health",
+      table: 5,
+      locked: false,
+    })
+    expect(outcome.state.unassignedIds).toEqual([])
+  })
+
+  it("refuses to take anyone who is already on a team", () => {
+    const outcome = addTeam(state, { id: "added-1", name: "X", memberIds: ["d", "b"] })
+    expect(outcome.status).toBe("already_on_team")
+    expect(outcome.state).toBe(state)
+  })
+
+  it("refuses a team past the hard size cap", () => {
+    const ids = Array.from({ length: HARD_TEAM_SIZE_CAP + 1 }, (_, i) => `p${i}`)
+    expect(addTeam(state, { id: "added-1", name: "X", memberIds: ids }).status).toBe("too_large")
+  })
+
+  it("omits trackKey and table when there is nothing to set them from", () => {
+    const outcome = addTeam({ teams: [], unassignedIds: [] }, { id: "added-1", name: "X", memberIds: ["a", "a"] })
+    expect(outcome.state.teams[0].memberIds).toEqual(["a"])
+    expect(outcome.state.teams[0]).not.toHaveProperty("trackKey")
+    expect(outcome.state.teams[0]).not.toHaveProperty("table")
   })
 })
