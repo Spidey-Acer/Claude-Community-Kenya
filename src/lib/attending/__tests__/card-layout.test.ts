@@ -105,3 +105,11 @@ describe("buildCaption", () => {
     expect(caption.toLowerCase()).not.toMatch(/verified|official/)
   })
 })
+
+describe("info line", () => {
+  it("formats the day without shifting it and joins date, city and venue", async () => {
+    const { formatCardDate, buildInfoLine } = await import("../card-layout")
+    expect(formatCardDate("2026-12-05")).toBe("5 December 2026")
+    expect(buildInfoLine("5 December 2026", "Nairobi", "iHiT")).toBe("5 December 2026 · Nairobi, iHiT")
+  })
+})

@@ -1,10 +1,16 @@
 "use client";
 
 import Script from "next/script";
+import { usePathname } from "next/navigation";
+import { isAttendingPath } from "@/lib/attending/attending-path";
 
 const GA_MEASUREMENT_ID = "G-R9WFNC5WQS";
 
 export function GoogleAnalytics() {
+  // The attending-card page promises the photo and email go nowhere: no analytics there.
+  const pathname = usePathname();
+  if (isAttendingPath(pathname)) return null;
+
   return (
     <>
       <Script

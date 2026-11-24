@@ -99,6 +99,8 @@ export function KaribuEventDetail({
   const soldOut = event.status === "sold-out";
   // Status alone is not enough — it is set by hand in admin. See lib/event-dates.
   const isPast = event.status === "completed" || isEventPast(event.date);
+  const canMakeAttendingCard =
+    !isPast && (event.status === "upcoming" || event.status === "registration-open");
   const cover = eventCover(event.posterUrl);
 
   // The About tab: everything in the body except the winners and judges
@@ -226,6 +228,26 @@ export function KaribuEventDetail({
       {/* Q&A — only when this event has an open EventQuestionSession */}
       {openQuestionSession && (
         <EventQaBlock eventSlug={event.slug} session={openQuestionSession} />
+      )}
+
+      {/* "I'm attending" card — upcoming events only. A plain anchor, not next/link:
+          the page needs a full document load so the analytics script, which the
+          root layout mounts once per document, never starts on that route. */}
+      {canMakeAttendingCard && (
+        <div className="mt-9 rounded-xl border border-sand bg-paper-card p-5">
+          <p className="font-newsreader text-[18px] font-medium text-ink">
+            Registered for this event?
+          </p>
+          <p className="mt-1 font-inter text-[14px] text-ink-soft">
+            Make an &ldquo;I&rsquo;m attending&rdquo; card from your photo to share.
+          </p>
+          <a
+            href={`/events/${event.slug}/attending`}
+            className="mt-3 inline-flex items-center rounded-full bg-clay px-5 py-2.5 font-inter text-[13.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+          >
+            Make my card
+          </a>
+        </div>
       )}
 
       {/* Share */}

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { ATTENDING_HEADER_SOURCE, buildAttendingCsp } from "./src/lib/attending/attending-path"
 
 const CARD_ASSETS = ["./public/fonts/**", "./public/images/buildday/**"]
 
@@ -71,6 +72,16 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+        ],
+      },
+      {
+        // The "I'm attending" card page: photo and email never leave the site.
+        source: ATTENDING_HEADER_SOURCE,
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: buildAttendingCsp(process.env.NODE_ENV === "development"),
+          },
         ],
       },
       {

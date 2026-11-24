@@ -228,3 +228,15 @@ export interface CardContent {
 export function buildCaption(eventTitle: string, city: string, dateLabel: string, eventUrl: string): string {
   return `I'm attending ${eventTitle} in ${city} on ${dateLabel}, with Claude Community Kenya. ${eventUrl}`
 }
+
+/** "5 December 2026" from a stored "YYYY-MM-DD" day, in UTC so the day never shifts. */
+export function formatCardDate(isoDay: string): string {
+  const day = new Date(`${isoDay}T00:00:00Z`)
+  if (Number.isNaN(day.getTime())) return isoDay
+  return day.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+}
+
+/** The one info line under the name: date, then city and venue. */
+export function buildInfoLine(dateLabel: string, city: string, venue: string): string {
+  return `${dateLabel} · ${city}, ${venue}`
+}
