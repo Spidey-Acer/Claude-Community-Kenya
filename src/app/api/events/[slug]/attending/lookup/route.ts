@@ -24,6 +24,7 @@ import { prisma } from "@/lib/prisma"
 import { getRedisClient, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
 import { hmacEmail, MAX_EMAIL_LENGTH, MissingHmacKeyError } from "@/lib/attending/hmac-email"
+import { warnBudgetExhaustedOnce } from "@/lib/attending/warn-once"
 import { ipBucketKey } from "@/lib/attending/ip-bucket"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
 
@@ -114,8 +115,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { slug } = await params
   if (!(await consume(request, IP_LIMIT, `attending:${ipBucketKey(clientIp(request))}`))) return limitSpentResponse()
   if (!(await consume(request, EVENT_LIMIT, `attending:event:${slug.slice(0, 100)}`))) {
-    // Slug only: never the email, its hash or the IP.
-    console.warn(JSON.stringify({ event: "attending-budget-exhausted", slug: slug.slice(0, 100) }))
+    // Slug only, once per event per hour: never the email, its hash or the IP.
+    await warnBudgetExhaustedOnce(slug.slice(0, 100))
     return limitSpentResponse()
   }
 

@@ -233,6 +233,18 @@ describe("lookup limits and fail-closed rules", () => {
     expect(line).not.toContain(ip)
   })
 
+  it("two refused requests in one window log one warning, with the slug and no email", async () => {
+    const warn = vi.mocked(console.warn)
+    await exhaustEventLimit("w1")
+    warn.mockClear()
+    await lookup("w1", { email: "Secret.Person@example.com" })
+    await lookup("w1", { email: "Secret.Person@example.com" })
+    expect(warn).toHaveBeenCalledTimes(1)
+    const line = String(warn.mock.calls[0][0])
+    expect(line).toContain("w1")
+    expect(line.toLowerCase()).not.toContain("secret.person")
+  })
+
   it("returns 503 in production when the shared Redis store is absent", async () => {
     vi.stubEnv("NODE_ENV", "production")
     redisState.present = false
