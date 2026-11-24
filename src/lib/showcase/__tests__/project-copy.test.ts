@@ -34,3 +34,11 @@ describe("projectToSubmission", () => {
     expect(r).toEqual({ skipped: true, reason: "slug-exists" })
   })
 })
+
+describe("copy idempotence", () => {
+  it("a second pass over the same projects copies nothing", () => {
+    const first = projectToSubmission(project as never, new Set())
+    const slugs = new Set(first.skipped ? [] : [first.data.slug as string])
+    expect(projectToSubmission(project as never, slugs).skipped).toBe(true)
+  })
+})
