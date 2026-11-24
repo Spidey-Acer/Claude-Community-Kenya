@@ -32,7 +32,8 @@ async function main() {
     const rows = await prisma.communitySubmission.findMany({ select: { slug: true } })
     const existingSlugs = new Set(rows.map((row) => row.slug))
 
-    let copied = 0
+    let approved = 0
+    let pending = 0
     const skippedSlugs: string[] = []
     for (const project of projects) {
       const result = projectToSubmission(project, existingSlugs)
@@ -44,11 +45,12 @@ async function main() {
         await prisma.$transaction([prisma.communitySubmission.create({ data: result.data })])
       }
       existingSlugs.add(result.data.slug)
-      copied += 1
+      if (result.data.status === "APPROVED") approved += 1
+      else pending += 1
     }
 
     const label = dryRun ? "copy" : "copied"
-    console.log(`${label} ${copied}, ${dryRun ? "skip" : "skipped"} ${skippedSlugs.length} (projects: ${skippedSlugs.join(", ")})`)
+    console.log(`${label} ${approved + pending} (approved ${approved}, pending ${pending}), ${dryRun ? "skip" : "skipped"} ${skippedSlugs.length} (projects: ${skippedSlugs.join(", ")})`)
   } finally {
     await prisma.$disconnect()
   }

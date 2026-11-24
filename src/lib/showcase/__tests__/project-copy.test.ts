@@ -29,6 +29,19 @@ describe("projectToSubmission", () => {
       slug: "verifyafya-check-a-practitioner",
     })
   })
+  it("featured true maps to APPROVED", () => {
+    const r = projectToSubmission({ ...project, featured: true, potwAt: null } as never, new Set())
+    expect(r.skipped ? null : r.data.status).toBe("APPROVED")
+  })
+  it("featured false and no potwAt maps to PENDING", () => {
+    const r = projectToSubmission({ ...project, featured: false, potwAt: null } as never, new Set())
+    expect(r.skipped ? null : r.data.status).toBe("PENDING")
+    expect(r.skipped ? null : r.data.featured).toBe(false)
+  })
+  it("featured false with potwAt set maps to APPROVED", () => {
+    const r = projectToSubmission({ ...project, featured: false, potwAt: new Date("2026-06-01") } as never, new Set())
+    expect(r.skipped ? null : r.data.status).toBe("APPROVED")
+  })
   it("skips a slug that already exists", () => {
     const r = projectToSubmission(project as never, new Set(["verifyafya-check-a-practitioner"]))
     expect(r).toEqual({ skipped: true, reason: "slug-exists" })

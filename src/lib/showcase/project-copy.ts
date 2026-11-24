@@ -33,7 +33,14 @@ function cutAtWord(text: string, max: number): string {
   return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()
 }
 
-/** Maps a Project to an APPROVED PROJECT submission, or reports a slug collision. */
+/**
+ * Maps a Project to a PROJECT submission, or reports a slug collision.
+ *
+ * `featured` was the legacy moderation gate (the public list shows only
+ * featured projects), so only a featured project, or one that ran as Project
+ * of the Week (`potwAt`), is APPROVED. Everything else becomes PENDING and
+ * lands in the moderation queue rather than going live unreviewed.
+ */
 export function projectToSubmission(
   project: Project,
   existingSlugs: Set<string>,
@@ -41,12 +48,13 @@ export function projectToSubmission(
   const slug = projectSlug(project.name)
   if (existingSlugs.has(slug)) return { skipped: true, reason: "slug-exists" }
 
+  const isPublished = project.featured === true || project.potwAt !== null
   const stack = Array.isArray(project.stack) ? (project.stack as string[]) : []
   return {
     skipped: false,
     data: {
       type: "PROJECT",
-      status: "APPROVED",
+      status: isPublished ? "APPROVED" : "PENDING",
       featured: project.featured,
       slug,
       title: project.name,
