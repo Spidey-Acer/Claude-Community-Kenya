@@ -9,14 +9,17 @@
  * route logs nothing about it.
  *
  * Abuse limits: 30 lookups per 15 minutes per IP, and a not-found budget of
- * 300 per hour per event that only misses spend. In production the shared
+ * 300 per hour per event that only misses spend. The budget is READ before the
+ * guest lookup: once spent, every request for that event (hit or miss) gets the
+ * same 429, so an exhausted budget can never become a membership oracle.
+ * Unknown and non-upcoming events spend from a budget keyed by slug. In production the shared
  * Redis store is required: without it the route answers 503 rather than fall
  * back to a per-instance counter an attacker could sidestep.
  */
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { getRedisClient, rateLimit } from "@/lib/rate-limit"
+import { getRedisClient, isRateLimitExhausted, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
 import { hmacEmail, MAX_EMAIL_LENGTH, MissingHmacKeyError } from "@/lib/attending/hmac-email"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
@@ -61,13 +64,14 @@ async function isApprovedGuest(eventId: string, emailHmac: string): Promise<bool
   return guest?.approvalStatus === APPROVED_STATUS
 }
 
-/** Spends one unit of the event's not-found budget. False means the budget is gone. */
-async function spendMissBudget(request: NextRequest, eventId: string): Promise<boolean> {
-  const result = await rateLimit(request, {
-    ...EVENT_MISS_BUDGET,
-    identifier: () => `attending-miss:${eventId}`,
-  })
-  return result.success
+/** Budget key: the event id when open for the card, otherwise the (capped) slug. */
+function budgetIdentifier(eventId: string | null, slug: string): string {
+  return `attending-miss:${eventId ?? `slug:${slug.slice(0, 100)}`}`
+}
+
+/** The one 429 the exhausted budget answers with, identical for hits and misses. */
+function budgetSpentResponse() {
+  return respond({ error: "Too many requests" }, 429, { "Retry-After": "3600" })
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -96,10 +100,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { slug } = await params
   const eventId = await findUpcomingEventId(slug)
+  const budgetKey = budgetIdentifier(eventId, slug)
+
+  if (await isRateLimitExhausted(budgetKey, EVENT_MISS_BUDGET)) return budgetSpentResponse()
   if (eventId && (await isApprovedGuest(eventId, emailHmac))) return respond({ found: true })
 
-  if (eventId && !(await spendMissBudget(request, eventId))) {
-    return respond({ error: "Too many requests" }, 429, { "Retry-After": "3600" })
-  }
+  const spent = await rateLimit(request, { ...EVENT_MISS_BUDGET, identifier: () => budgetKey })
+  if (!spent.success) return budgetSpentResponse()
   return respond(NOT_FOUND_BODY)
 }

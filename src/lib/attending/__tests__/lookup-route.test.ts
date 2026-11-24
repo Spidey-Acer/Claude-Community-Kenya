@@ -27,6 +27,9 @@ const events: Record<string, { id: string; status: string; date: Date }> = {
   done: { id: "e-done", status: "COMPLETED", date: FUTURE },
   stale: { id: "e-stale", status: "UPCOMING", date: PAST },
   empty: { id: "e-empty", status: "UPCOMING", date: FUTURE },
+  b1: { id: "e-b1", status: "UPCOMING", date: FUTURE },
+  b2: { id: "e-b2", status: "UPCOMING", date: FUTURE },
+  b3: { id: "e-b3", status: "UPCOMING", date: FUTURE },
 }
 let guests: Map<string, string>
 let ipCounter = 0
@@ -53,6 +56,7 @@ beforeEach(() => {
   add("e-reg", "ada@example.com", "approved")
   add("e-done", "ada@example.com", "approved")
   add("e-stale", "ada@example.com", "approved")
+  for (const id of ["e-b1", "e-b2", "e-b3"]) add(id, "ada@example.com", "approved")
   vi.mocked(prisma.event.findUnique).mockImplementation((async ({ where }: { where: { slug: string } }) =>
     events[where.slug] ?? null) as never)
   vi.mocked(prisma.eventGuest.findUnique).mockImplementation((async ({
@@ -127,7 +131,37 @@ describe("lookup limits and fail-closed rules", () => {
     for (let i = 0; i < 300; i++) lastStatus = (await lookup("reg", { email: "nobody@example.com" })).status
     expect(lastStatus).toBe(200)
     expect((await lookup("reg", { email: "nobody@example.com" })).status).toBe(429)
-    expect((await lookup("reg", { email: "ada@example.com" })).status).toBe(200)
+  })
+
+  it("a miss spends exactly one unit: a hit still works after 299 misses, not after 300", async () => {
+    for (let i = 0; i < 299; i++) await lookup("b1", { email: "nobody@example.com" })
+    expect(await (await lookup("b1", { email: "ada@example.com" })).json()).toEqual({ found: true })
+    expect((await lookup("b1", { email: "nobody@example.com" })).status).toBe(200)
+    expect((await lookup("b1", { email: "ada@example.com" })).status).toBe(429)
+  })
+
+  it("with the budget spent, a registered email gets 429, never found:true", async () => {
+    for (let i = 0; i < 300; i++) await lookup("b2", { email: "nobody@example.com" })
+    const response = await lookup("b2", { email: "ada@example.com" })
+    expect(response.status).toBe(429)
+    expect(await response.text()).not.toContain("found")
+  })
+
+  it("with the budget spent, registered and unregistered emails get identical 429 bytes and headers", async () => {
+    for (let i = 0; i < 300; i++) await lookup("b3", { email: "nobody@example.com" })
+    const hit = await lookup("b3", { email: "ada@example.com" })
+    const miss = await lookup("b3", { email: "stranger@example.com" })
+    expect(hit.status).toBe(429)
+    expect(miss.status).toBe(429)
+    expect(await hit.text()).toBe(await miss.text())
+    expect(Object.fromEntries(hit.headers)).toEqual(Object.fromEntries(miss.headers))
+  })
+
+  it("unknown and non-upcoming events spend a budget keyed by slug, so they cannot be probed for free", async () => {
+    for (let i = 0; i < 300; i++) await lookup("ghost", { email: "x@example.com" })
+    expect((await lookup("ghost", { email: "x@example.com" })).status).toBe(429)
+    for (let i = 0; i < 300; i++) await lookup("done", { email: "x@example.com" })
+    expect((await lookup("done", { email: "x@example.com" })).status).toBe(429)
   })
 
   it("returns 503 in production when the shared Redis store is absent", async () => {
