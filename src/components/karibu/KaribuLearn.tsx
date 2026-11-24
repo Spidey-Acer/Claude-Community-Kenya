@@ -13,6 +13,7 @@
  * consumer, so nothing else needed updating.
  */
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   Rocket,
@@ -21,12 +22,11 @@ import {
   GraduationCap,
   Code,
   Zap,
-  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { ProgressLine } from "@/components/karibu/ProgressLine";
-import { BTN_PRIMARY, EYEBROW, H2, LEAD, WRAP } from "@/components/karibu/kit";
+import { BTN_PRIMARY, EYEBROW, H2, LEAD, LINK, Section, WRAP } from "@/components/karibu/kit";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import { faqs } from "@/data/faq";
@@ -48,7 +48,6 @@ const ICONS: Record<string, LucideIcon> = {
   graduation: GraduationCap,
   code: Code,
   zap: Zap,
-  link: Link2,
 };
 
 const PATH = [
@@ -57,12 +56,18 @@ const PATH = [
   { n: "3", title: "Come to a workshop", body: "Go further with people who'll help in person." },
 ];
 
-export function KaribuLearnGrid({ cards }: { cards: readonly LearnCard[] }) {
+interface KaribuLearnGridProps {
+  cards: readonly LearnCard[];
+  /** Rendered between the cards and the suggested path (the curated links). */
+  afterCards?: ReactNode;
+}
+
+export function KaribuLearnGrid({ cards, afterCards }: KaribuLearnGridProps) {
   return (
     <>
       {/* Resource cards */}
-      <section className={`${WRAP} py-10`} aria-label="Resources">
-        <Reveal className="grid gap-4 sm:grid-cols-2">
+      <Section id="start-here" eyebrow="Start here" title="Pick where to begin">
+        <div className="grid gap-4 sm:grid-cols-2">
           {cards.map((card, i) => {
             const Icon = ICONS[card.icon] ?? Rocket;
             return (
@@ -79,21 +84,18 @@ export function KaribuLearnGrid({ cards }: { cards: readonly LearnCard[] }) {
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
                 </div>
-                <h2 className="mb-2 font-newsreader text-[24px] text-ink">{card.title}</h2>
+                <h3 className="mb-2 font-newsreader text-[24px] text-ink">{card.title}</h3>
                 <p className="mb-4 flex-1 font-inter text-[14.5px] leading-[1.55] text-ink-soft">
                   {card.description}
                 </p>
-                <span className="font-inter text-sm font-semibold text-clay group-hover:underline">
-                  Open{" "}
-                  <span className="inline-block transition-transform duration-150 ease-[var(--ease-reversible)] group-hover:translate-x-1 motion-reduce:transform-none">
-                    →
-                  </span>
-                </span>
+                <span className={LINK}>Open</span>
               </Link>
             );
           })}
-        </Reveal>
-      </section>
+        </div>
+      </Section>
+
+      {afterCards}
 
       {/* Suggested path */}
       <section className={`${WRAP} py-10`} aria-label="A suggested path">
@@ -117,7 +119,7 @@ export function KaribuLearnGrid({ cards }: { cards: readonly LearnCard[] }) {
                 href="/events"
                 className={BTN_PRIMARY}
               >
-                See upcoming workshops →
+                See upcoming workshops
               </Link>
             </div>
           </div>
@@ -134,8 +136,8 @@ export function KaribuLearnGrid({ cards }: { cards: readonly LearnCard[] }) {
           <p className={`mb-5 ${LEAD}`}>
             Common questions from people picking up Claude for the first time.
           </p>
-          <Link href="/faq" className="font-inter text-[15px] font-semibold text-clay hover:underline">
-            All questions →
+          <Link href="/faq" className={LINK}>
+            All questions
           </Link>
         </Reveal>
         <Reveal>

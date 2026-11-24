@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { EmptyState, Masthead, Section } from "@/components/karibu/kit";
+import { Masthead, Section } from "@/components/karibu/kit";
 import { GuideCard } from "@/components/karibu/GuideCard";
 import { KaribuLearnGrid, type LearnCard } from "@/components/karibu/KaribuLearn";
 import { ResourceLinks } from "@/components/karibu/ResourceLinks";
@@ -69,13 +69,6 @@ const resourceCards: readonly LearnCard[] = [
     description:
       "Deploy Claude to production — error handling, rate limits, cost optimization, and security.",
   },
-  {
-    title: "Curated Links",
-    href: "/resources#links",
-    icon: "link",
-    description:
-      "A comprehensive directory of resources, tools, and communities.",
-  },
 ];
 
 export default async function ResourcesPage() {
@@ -89,7 +82,7 @@ export default async function ResourcesPage() {
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Resources" }]} />
 
       <Masthead
-        eyebrow="Resources"
+        eyebrow="Learn"
         title="Learn Claude, from your first prompt to production."
         lead="Notes, guides and courses from the community, free to download and share."
         media={
@@ -104,28 +97,22 @@ export default async function ResourcesPage() {
         }
       />
 
-      <Section
-        id="guides"
-        eyebrow="Guides"
-        title="Guides and notes"
-        lead="Written up by the community, from a first afternoon with Claude to running it in production."
-      >
-        {guides.length === 0 ? (
-          <EmptyState title="Nothing here yet." body="Guides land here as we publish them." />
-        ) : (
+      {guides.length > 0 && (
+        <Section
+          id="guides"
+          eyebrow="Guides"
+          title="Guides and notes"
+          lead="Written up by the community, from a first afternoon with Claude to running it in production."
+        >
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {guides.map((guide) => (
               <GuideCard key={guide.slug} guide={guide} />
             ))}
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
 
-      <section aria-label="Start here">
-        <KaribuLearnGrid cards={resourceCards} />
-      </section>
-
-      <ResourceLinks />
+      <KaribuLearnGrid cards={resourceCards} afterCards={<ResourceLinks />} />
     </>
   );
 }
