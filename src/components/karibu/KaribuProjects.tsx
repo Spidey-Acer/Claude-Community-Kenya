@@ -97,7 +97,7 @@ function InviteCard({ emptyState, className }: { emptyState: boolean; className?
           ? "Be the first to add yours — side project, client work, a bot for your chama. Doesn't have to be finished."
           : "Side project, client work, a bot for your chama. Doesn't have to be finished. This shelf is for your work, not ours."}
       </p>
-      <Link href="/submit-project" className="font-inter text-[15px] font-semibold text-clay hover:underline">
+      <Link href="/showcase/submit" className="font-inter text-[15px] font-semibold text-clay hover:underline">
         Share yours →
       </Link>
     </div>

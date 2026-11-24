@@ -42,7 +42,7 @@ export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
               <p className="font-inter text-[14.5px] text-ink-soft">Add it to the showcase — we love seeing what you build.</p>
             </div>
             <Link
-              href="/submit-project"
+              href="/showcase/submit"
               className="inline-flex shrink-0 items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
             >
               <Plus className="h-4 w-4" /> Submit a project
@@ -95,7 +95,7 @@ export function KaribuProjectsPage({ projects }: { projects: ProjectView[] }) {
         ) : (
           <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
             <p className="mb-4 font-newsreader text-[24px] text-ink">No projects yet.</p>
-            <Link href="/submit-project" className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark">
+            <Link href="/showcase/submit" className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark">
               Submit the first one
             </Link>
           </div>

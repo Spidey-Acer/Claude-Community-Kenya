@@ -101,7 +101,7 @@ const contributeCards = [
     title: "Submit a project",
     description:
       "Built something with Claude? Get it featured on our projects page and inspire other developers.",
-    href: "/submit-project",
+    href: "/showcase/submit",
   },
   {
     icon: Mail,

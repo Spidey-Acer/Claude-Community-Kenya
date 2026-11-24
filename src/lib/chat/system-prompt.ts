@@ -29,7 +29,7 @@ Available action types and their real URLs:
 - speak → /speak
 - volunteer → /volunteer
 - submit-idea → /submit-idea
-- submit-project → /submit-project
+- submit-project → /showcase/submit
 - events → /events
 - resources → /resources
 - faq → /faq${socialLinks.discord ? `\n- discord → ${socialLinks.discord}` : ""}${socialLinks.whatsapp ? `\n- whatsapp → ${socialLinks.whatsapp}` : ""}${socialLinks.lumaNairobi ? `\n- nairobi-events → ${socialLinks.lumaNairobi}` : ""}${socialLinks.lumaMombasa ? `\n- mombasa-events → ${socialLinks.lumaMombasa}` : ""}

@@ -14,6 +14,7 @@ import { toSlug } from "@/lib/utils"
 import {
   isNeedKey,
   isGiphyUrl,
+  SUBMISSION_TYPES,
   MAX_MEDIA_PER_POST,
   GIPHY_KEY_PREFIX,
 } from "@/lib/showcase/constants"
@@ -25,6 +26,10 @@ import { publicUrl } from "@/lib/gallery/r2"
  * Verified members publish straight to APPROVED, matching the comment rule:
  * an email round-trip is the bar, and a queue nobody drains is the same as no
  * showcase at all. Reports are the backstop, not pre-moderation.
+ *
+ * One exception: a PROJECT lands PENDING. Projects were moderated before the
+ * showcase absorbed them (the public list showed only featured rows), so a
+ * new one waits for review rather than skipping the gate it used to face.
  */
 
 const mediaSchema = z.object({
@@ -38,6 +43,9 @@ const mediaSchema = z.object({
 })
 
 const bodySchema = z.object({
+  type: z.enum(SUBMISSION_TYPES).default("SHOWCASE"),
+  builder: z.string().max(80).optional().transform(v => (v ? zodSanitizeString(v) : undefined)),
+  stack: z.array(z.string().max(40).transform(zodSanitizeString)).max(12).default([]),
   title: z.string().min(5).max(150).transform(zodSanitizeString),
   shortDescription: z.string().min(20).max(300).transform(zodSanitizeString),
   fullDescription: z.string().min(50).max(5000).transform(zodSanitizeMultilineText(5000)),
@@ -59,6 +67,16 @@ const bodySchema = z.object({
       tokensPerRun: z.number().int().positive().max(100_000_000).optional(),
     })
     .optional(),
+}).superRefine((value, context) => {
+  // A PROJECT is a write-up with links and needs no showcase media. Every
+  // other type is a media post and must carry at least one item.
+  if (value.type !== "PROJECT" && value.media.length === 0) {
+    context.addIssue({
+      code: "custom",
+      path: ["media"],
+      message: "Add at least one image, GIF or demo clip",
+    })
+  }
 })
 
 export async function POST(request: NextRequest) {
@@ -188,11 +206,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const isProject = data.type === "PROJECT"
+
   try {
     await prisma.communitySubmission.create({
       data: {
         userId,
-        type: "SHOWCASE",
+        type: data.type,
         title: data.title,
         slug,
         shortDescription: data.shortDescription,
@@ -204,9 +224,13 @@ export async function POST(request: NextRequest) {
         media,
         eventId: data.eventId,
         needs: data.needs,
-        builtWith: data.builtWith ?? undefined,
-        submitterName: `${user.firstName} ${user.lastName}`.trim(),
-        status: "APPROVED",
+        builtWith: isProject
+          ? { models: [], skills: data.stack, mcps: [] }
+          : (data.builtWith ?? undefined),
+        submitterName: isProject && data.builder
+          ? data.builder
+          : `${user.firstName} ${user.lastName}`.trim(),
+        status: isProject ? "PENDING" : "APPROVED",
         lastActivityAt: new Date(),
       },
     })

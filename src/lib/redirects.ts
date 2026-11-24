@@ -20,6 +20,7 @@ export const PUBLIC_REDIRECTS: ReadonlyArray<PublicRedirect> = [
   { source: "/community", destination: "/showcase", permanent: true },
   { source: "/community/submit", destination: "/showcase/submit", permanent: true },
   { source: "/community/:slug", destination: "/showcase/:slug", permanent: true },
+  { source: "/submit-project", destination: "/showcase/submit", permanent: true },
   { source: "/gallery", destination: "/events", permanent: true },
   { source: "/gallery/:slug", destination: "/events/:slug", permanent: true },
   { source: "/newsletter", destination: "/blog", permanent: true },

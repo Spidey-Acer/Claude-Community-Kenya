@@ -3,9 +3,13 @@
 /**
  * ShowcaseComposer — the /showcase/submit form.
  *
+ * A type select at the top switches the form: a PROJECT is a write-up with a
+ * builder, a stack and links (no media; it waits in the moderation queue),
+ * while every other type is a media post. Needs chips are for demos only.
+ *
  * Same submission contract as the rest of the site's Karibu forms (CSRF
  * token fetched on mount, field-level errors read from the API's `details`
- * object — see KaribuSubmitProject) plus the showcase-specific pieces: a
+ * object) plus the showcase-specific pieces: a
  * media uploader, an emoji picker and a GIF picker on the full description,
  * a cover-image pick from the uploaded media, event linking, and the
  * needs/builtWith chips.
@@ -36,7 +40,7 @@ import { KaribuSelect } from "@/components/karibu/KaribuSelect"
 import { MediaUploader } from "@/components/karibu/showcase/MediaUploader"
 import { EmojiPicker } from "@/components/karibu/showcase/EmojiPicker"
 import { GifPicker } from "@/components/karibu/showcase/GifPicker"
-import { NEEDS_OPTIONS, NEED_LABELS, type NeedKey } from "@/lib/showcase/constants"
+import { NEEDS_OPTIONS, NEED_LABELS, SUBMISSION_TYPES, TYPE_LABELS, type NeedKey, type SubmissionType } from "@/lib/showcase/constants"
 import type { MediaDescriptor } from "@/lib/showcase/media"
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10"
@@ -204,6 +208,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
+  const [type, setType] = useState<SubmissionType>("SHOWCASE")
+  const [builder, setBuilder] = useState("")
   const [title, setTitle] = useState("")
   const [shortDescription, setShortDescription] = useState("")
   const [fullDescription, setFullDescription] = useState("")
@@ -215,6 +221,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(undefined)
   const [tokensPerRun, setTokensPerRun] = useState("")
 
+  const stack = useTagList(12)
   const tags = useTagList(10)
   const models = useTagList(10)
   const skills = useTagList(20)
@@ -265,6 +272,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
     setNeeds((prev) => (prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key]))
   }
 
+  const isProject = type === "PROJECT"
+  const typeOptions = SUBMISSION_TYPES.map((value) => ({ value, label: TYPE_LABELS[value] }))
   const imageMedia = media.filter((m) => m.kind === "image")
   const eventOptions = [
     { value: "", label: "No linked event" },
@@ -284,17 +293,19 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
           body: JSON.stringify({
+            type,
+            ...(isProject ? { builder: builder.trim() || undefined, stack: stack.items } : {}),
             title: title.trim(),
             shortDescription: shortDescription.trim(),
             fullDescription: fullDescription.trim(),
             url: projectUrl.trim() || undefined,
             repoUrl: repoUrl.trim() || undefined,
             tags: tags.items,
-            coverImageUrl: effectiveCoverImageUrl,
-            media,
-            eventId: eventId || undefined,
-            needs,
-            builtWith: hasBuiltWith
+            coverImageUrl: isProject ? undefined : effectiveCoverImageUrl,
+            media: isProject ? [] : media,
+            eventId: isProject ? undefined : eventId || undefined,
+            needs: type === "SHOWCASE" ? needs : [],
+            builtWith: hasBuiltWith && !isProject
               ? {
                   models: models.items,
                   skills: skills.items,
@@ -337,6 +348,26 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-5 font-newsreader text-[22px] text-ink">The basics</h2>
               <div className="space-y-4">
+                <KaribuSelect
+                  id="showcase-type"
+                  label="What are you sharing?"
+                  value={type}
+                  onChange={(value) => setType(value as SubmissionType)}
+                  options={typeOptions}
+                  error={fieldErrors.type}
+                />
+                {isProject && (
+                  <Field label="Builder" error={fieldErrors.builder}>
+                    <input
+                      type="text"
+                      value={builder}
+                      onChange={(e) => setBuilder(e.target.value)}
+                      maxLength={80}
+                      placeholder="Who built it? Defaults to your name"
+                      className={inputCls(fieldErrors.builder)}
+                    />
+                  </Field>
+                )}
                 <Field label="Title *" error={fieldErrors.title}>
                   <input
                     type="text"
@@ -387,58 +418,62 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     className={`${inputCls(fieldErrors.fullDescription)} resize-none`}
                   />
                   {fieldErrors.fullDescription && <FieldError msg={fieldErrors.fullDescription} />}
-                  <div className="mt-2">
-                    <p className="mb-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Add a GIF
-                    </p>
-                    <GifPicker
-                      onSelect={(descriptor) => {
-                        setMedia((prev) => (prev.length >= 5 ? prev : [...prev, descriptor]))
-                      }}
-                    />
-                  </div>
+                  {!isProject && (
+                    <div className="mt-2">
+                      <p className="mb-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Add a GIF
+                      </p>
+                      <GifPicker
+                        onSelect={(descriptor) => {
+                          setMedia((prev) => (prev.length >= 5 ? prev : [...prev, descriptor]))
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-sand bg-paper-card p-6">
-              <h2 className="mb-4 font-newsreader text-[22px] text-ink">Media</h2>
-              <MediaUploader value={media} onChange={setMedia} csrfToken={csrfToken} disabled={isPending} />
-              {fieldErrors.media && <FieldError msg={fieldErrors.media} />}
+            {!isProject && (
+              <div className="rounded-2xl border border-sand bg-paper-card p-6">
+                <h2 className="mb-4 font-newsreader text-[22px] text-ink">Media</h2>
+                <MediaUploader value={media} onChange={setMedia} csrfToken={csrfToken} disabled={isPending} />
+                {fieldErrors.media && <FieldError msg={fieldErrors.media} />}
 
-              {imageMedia.length > 0 && (
-                <div className="mt-4">
-                  <p className="mb-2 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                    Cover image
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {imageMedia.map((m) => (
-                      <button
-                        key={m.key}
-                        type="button"
-                        onClick={() => setCoverImageUrl(m.url)}
-                        aria-pressed={effectiveCoverImageUrl === m.url}
-                        aria-label={`Use as cover image${m.alt ? `: ${m.alt}` : ""}${
-                          effectiveCoverImageUrl === m.url ? " (selected)" : ""
-                        }`}
-                        className={`overflow-hidden rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
-                          effectiveCoverImageUrl === m.url ? "border-clay" : "border-transparent"
-                        }`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- R2-hosted upload thumbnail, not a Next-optimizable local asset */}
-                        <img src={m.url} alt={m.alt || ""} className="h-16 w-16 object-cover" />
-                      </button>
-                    ))}
+                {imageMedia.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                      Cover image
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {imageMedia.map((m) => (
+                        <button
+                          key={m.key}
+                          type="button"
+                          onClick={() => setCoverImageUrl(m.url)}
+                          aria-pressed={effectiveCoverImageUrl === m.url}
+                          aria-label={`Use as cover image${m.alt ? `: ${m.alt}` : ""}${
+                            effectiveCoverImageUrl === m.url ? " (selected)" : ""
+                          }`}
+                          className={`overflow-hidden rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+                            effectiveCoverImageUrl === m.url ? "border-clay" : "border-transparent"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- R2-hosted upload thumbnail, not a Next-optimizable local asset */}
+                          <img src={m.url} alt={m.alt || ""} className="h-16 w-16 object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                    {fieldErrors.coverImageUrl && <FieldError msg={fieldErrors.coverImageUrl} />}
                   </div>
-                  {fieldErrors.coverImageUrl && <FieldError msg={fieldErrors.coverImageUrl} />}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-4 font-newsreader text-[22px] text-ink">Links &amp; event</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Project URL" error={fieldErrors.url}>
+                <Field label={isProject ? "Demo URL" : "Project URL"} error={fieldErrors.url}>
                   <input
                     type="url"
                     value={projectUrl}
@@ -457,7 +492,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                   />
                 </Field>
               </div>
-              {events.length > 0 && (
+              {events.length > 0 && !isProject && (
                 <div className="mt-4">
                   <KaribuSelect
                     id="showcase-event"
@@ -477,52 +512,63 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
               <TagInputField list={tags} placeholder="e.g. nextjs, mcp, agriculture" maxLength={30} error={fieldErrors.tags} />
             </div>
 
-            <div className="rounded-2xl border border-sand bg-paper-card p-6">
-              <h2 className="mb-1 font-newsreader text-[22px] text-ink">What do you need?</h2>
-              <p className="mb-4 font-inter text-xs text-ink-muted">Optional — pick what would help you move this forward.</p>
-              <div className="flex flex-wrap gap-2">
-                {NEEDS_OPTIONS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleNeed(key)}
-                    className={`rounded-full border px-3 py-1.5 font-inter text-xs transition-colors ${
-                      needs.includes(key)
-                        ? "border-clay bg-clay/10 text-clay"
-                        : "border-sand-2 text-ink-soft hover:border-clay/50"
-                    }`}
-                  >
-                    {NEED_LABELS[key]}
-                  </button>
-                ))}
+            {isProject && (
+              <div className="rounded-2xl border border-sand bg-paper-card p-6">
+                <h2 className="mb-4 font-newsreader text-[22px] text-ink">Stack</h2>
+                <TagInputField list={stack} placeholder="e.g. Next.js, Claude, Postgres" maxLength={40} error={fieldErrors.stack} />
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl border border-sand bg-paper-card p-6">
-              <h2 className="mb-1 font-newsreader text-[22px] text-ink">Built with</h2>
-              <p className="mb-4 font-inter text-xs text-ink-muted">Optional — the models, skills and MCPs behind it.</p>
-              <div className="space-y-4">
-                <Field label="Models">
-                  <TagInputField list={models} placeholder="e.g. Opus 5, Sonnet 5" maxLength={60} />
-                </Field>
-                <Field label="Skills">
-                  <TagInputField list={skills} placeholder="e.g. message-drafter" maxLength={60} />
-                </Field>
-                <Field label="MCPs">
-                  <TagInputField list={mcps} placeholder="e.g. Notion, Gmail" maxLength={60} />
-                </Field>
-                <Field label="Tokens per run (optional)">
-                  <input
-                    type="number"
-                    min={1}
-                    value={tokensPerRun}
-                    onChange={(e) => setTokensPerRun(e.target.value)}
-                    placeholder="e.g. 250000"
-                    className={inputCls()}
-                  />
-                </Field>
+            {type === "SHOWCASE" && (
+              <div className="rounded-2xl border border-sand bg-paper-card p-6">
+                <h2 className="mb-1 font-newsreader text-[22px] text-ink">What do you need?</h2>
+                <p className="mb-4 font-inter text-xs text-ink-muted">Optional — pick what would help you move this forward.</p>
+                <div className="flex flex-wrap gap-2">
+                  {NEEDS_OPTIONS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleNeed(key)}
+                      className={`rounded-full border px-3 py-1.5 font-inter text-xs transition-colors ${
+                        needs.includes(key)
+                          ? "border-clay bg-clay/10 text-clay"
+                          : "border-sand-2 text-ink-soft hover:border-clay/50"
+                      }`}
+                    >
+                      {NEED_LABELS[key]}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {!isProject && (
+              <div className="rounded-2xl border border-sand bg-paper-card p-6">
+                <h2 className="mb-1 font-newsreader text-[22px] text-ink">Built with</h2>
+                <p className="mb-4 font-inter text-xs text-ink-muted">Optional — the models, skills and MCPs behind it.</p>
+                <div className="space-y-4">
+                  <Field label="Models">
+                    <TagInputField list={models} placeholder="e.g. Opus 5, Sonnet 5" maxLength={60} />
+                  </Field>
+                  <Field label="Skills">
+                    <TagInputField list={skills} placeholder="e.g. message-drafter" maxLength={60} />
+                  </Field>
+                  <Field label="MCPs">
+                    <TagInputField list={mcps} placeholder="e.g. Notion, Gmail" maxLength={60} />
+                  </Field>
+                  <Field label="Tokens per run (optional)">
+                    <input
+                      type="number"
+                      min={1}
+                      value={tokensPerRun}
+                      onChange={(e) => setTokensPerRun(e.target.value)}
+                      placeholder="e.g. 250000"
+                      className={inputCls()}
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div
@@ -545,7 +591,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4" /> Publish to the showcase
+                  <Send className="h-4 w-4" /> {isProject ? "Submit for review" : "Publish to the showcase"}
                 </>
               )}
             </button>

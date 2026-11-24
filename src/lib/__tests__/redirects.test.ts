@@ -8,6 +8,8 @@ describe("public redirects", () => {
     ["/community/submit", "/showcase/submit"],
     ["/community/gstack-garry-tans-open-source-claude-code-workflow-system-mn58gtcg", "/showcase/gstack-garry-tans-open-source-claude-code-workflow-system-mn58gtcg"],
     ["/community/some-tool/", "/showcase/some-tool"],
+    ["/submit-project", "/showcase/submit"],
+    ["/submit-project/", "/showcase/submit"],
     ["/gallery", "/events"],
     ["/gallery/kenyas-first-claude-code-meetup", "/events/kenyas-first-claude-code-meetup"],
     ["/newsletter", "/blog"],
@@ -24,9 +26,14 @@ describe("public redirects", () => {
     expect(resolveRedirect(pathname)).toBe("/showcase/some-tool")
   })
 
+  it("a query string does not stop /submit-project redirecting", () => {
+    const { pathname } = new URL("/submit-project/?ref=nav", "https://example.test")
+    expect(resolveRedirect(pathname)).toBe("/showcase/submit")
+  })
+
   it("leaves kept routes alone", () => {
     for (const p of ["/events/x", "/blog/y", "/showcase/z", "/conversations/abc", "/impact-lab/cohort-1", "/resources/claude-code",
-      "/projects", "/submit-project", "/speak", "/volunteer", "/submit-idea", "/team", "/resources/links"]) {
+      "/projects", "/speak", "/volunteer", "/submit-idea", "/team", "/resources/links"]) {
       expect(resolveRedirect(p)).toBeNull()
     }
   })

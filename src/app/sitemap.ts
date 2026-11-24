@@ -39,7 +39,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/speak`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/volunteer`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/submit-idea`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/submit-project`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/showcase/submit`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/team`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
