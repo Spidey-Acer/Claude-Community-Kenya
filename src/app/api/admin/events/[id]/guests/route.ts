@@ -4,7 +4,7 @@
  * POST   merge or replace the event's Luma guest list (permission events:edit)
  * DELETE wipe every guest row for the event          (permission events:delete)
  *
- * Emails are hashed here and the raw value is discarded in the same request:
+ * Status is normalised to approved or other. Emails are hashed here and the raw value is discarded in the same request:
  * only the HMAC is written, and neither the audit entry nor any response
  * carries a row, only counts. A missing ATTENDING_HMAC_KEY fails closed
  * before anything is stored.
@@ -16,8 +16,7 @@ import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit } from "@/lib/rate-limit"
 import { hmacEmail, MissingHmacKeyError } from "@/lib/attending/hmac-email"
-import { guestUploadSchema } from "@/lib/attending/guest-upload-schema"
-import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
+import { guestUploadSchema, normalizeApprovalStatus } from "@/lib/attending/guest-upload-schema"
 
 /** Starting value from the spec; Peter set no number. Per user, per route. */
 const ADMIN_LIMIT = { maxRequests: 10, windowInSeconds: 3600 } as const
@@ -39,8 +38,7 @@ function hashGuests(rows: { email: string; status: string }[]): HashedGuest[] {
   const byHmac = new Map<string, HashedGuest>()
   for (const row of rows) {
     const emailHmac = hmacEmail(row.email)
-    const status = row.status.toLowerCase() === APPROVED_STATUS ? APPROVED_STATUS : row.status
-    byHmac.set(emailHmac, { emailHmac, approvalStatus: status })
+    byHmac.set(emailHmac, { emailHmac, approvalStatus: normalizeApprovalStatus(row.status) })
   }
   return [...byHmac.values()]
 }

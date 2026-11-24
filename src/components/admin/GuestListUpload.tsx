@@ -4,7 +4,8 @@
  * Admin panel for an event's Luma guest list (the "I'm attending" card).
  *
  * The browser reads the CSV, keeps only email and approval status, and shows a
- * confirm step (event title, row count, the value counted as approved). Nothing
+ * confirm step (event title, row count, the value counted as approved, and the
+ * distinct status values found so a wrong column is obvious). Nothing
  * is sent until the organiser confirms. Merge adds and updates; "Replace list"
  * deletes the event's rows first. "Delete guest list now" wipes at once.
  */
@@ -17,7 +18,9 @@ import {
   detectColumns,
   extractGuests,
   parseCsv,
+  summariseStatuses,
   type GuestRow,
+  type StatusSummary,
 } from "@/lib/attending/parse-guest-csv"
 
 interface GuestListUploadProps {
@@ -57,7 +60,10 @@ export function GuestListUpload({ eventId, eventTitle }: GuestListUploadProps) {
     file && columnsChosen
       ? extractGuests(file.dataRows, emailIndex, statusIndex, approvedValue)
       : null
-  const approvedCount = extracted?.guests.filter((guest) => guest.status === "approved").length ?? 0
+  const summary =
+    file && columnsChosen
+      ? summariseStatuses(file.dataRows, emailIndex, statusIndex, approvedValue)
+      : null
 
   async function handleFile(selected: File | undefined) {
     setMessage(null)
@@ -153,8 +159,9 @@ export function GuestListUpload({ eventId, eventTitle }: GuestListUploadProps) {
             <div className="space-y-2">
               <p>
                 Event: {eventTitle}. Rows with an email: {extracted.guests.length} (
-                {extracted.skippedNoEmail} skipped, no email). Counted as approved: {approvedCount}.
+                {extracted.skippedNoEmail} skipped, no email). Counted as approved: {summary?.approvedCount ?? 0}.
               </p>
+              {summary && <StatusSummaryList summary={summary} />}
               <div className="flex gap-2">
                 <button className={BUTTON} disabled={busy} onClick={() => upload("merge")}>
                   {busy && <Loader2 className="w-3 h-3 animate-spin" />}Confirm merge
@@ -178,6 +185,23 @@ export function GuestListUpload({ eventId, eventTitle }: GuestListUploadProps) {
         <Trash2 className="w-3 h-3" />
         Delete guest list now
       </button>
+    </div>
+  )
+}
+
+/** Distinct status values found, so a wrong column (names, phones) is obvious before sending. */
+function StatusSummaryList({ summary }: { summary: StatusSummary }) {
+  return (
+    <div>
+      <p>Status values found (anything not counted as approved is stored as other):</p>
+      <ul className="list-disc pl-5">
+        {summary.values.map((entry, index) => (
+          <li key={index}>
+            {entry.value === "" ? "(empty)" : entry.value}: {entry.count}
+          </li>
+        ))}
+        {summary.hiddenValues > 0 && <li>and {summary.hiddenValues} more values</li>}
+      </ul>
     </div>
   )
 }

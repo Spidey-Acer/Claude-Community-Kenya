@@ -162,7 +162,7 @@ describe("guest upload writes", () => {
     const payload = await (await POST(request("POST", body), context)).json()
     expect(prisma.eventGuest.updateMany).toHaveBeenCalledTimes(1)
     expect(vi.mocked(prisma.eventGuest.updateMany).mock.calls[0][0]!.data).toMatchObject({
-      approvalStatus: "declined",
+      approvalStatus: "other",
     })
     expect(payload).toMatchObject({ created: 0, updated: 1 })
   })
@@ -171,6 +171,33 @@ describe("guest upload writes", () => {
     await POST(request("POST", validBody), context)
     const entry = vi.mocked(logAudit).mock.calls[0][0]
     expect(entry.changes).toEqual({ mode: "merge", received: 1, deleted: 0, created: 1, updated: 0 })
+  })
+})
+
+describe("approval status normalisation", () => {
+  async function storedStatuses(statuses: string[]): Promise<string[]> {
+    const guests = statuses.map((status, i) => ({ email: `g${i}@x.com`, status }))
+    const response = await POST(request("POST", { mode: "merge", guests }), context)
+    expect(response.status).toBe(200)
+    const data = vi.mocked(prisma.eventGuest.createMany).mock.calls[0][0]!.data as { approvalStatus: string }[]
+    return data.map((row) => row.approvalStatus)
+  }
+
+  it("stores a status cell holding a phone number as other", async () => {
+    expect(await storedStatuses(["+254700000001"])).toEqual(["other"])
+    const everything = JSON.stringify(vi.mocked(prisma.eventGuest.updateMany).mock.calls)
+    expect(everything).not.toContain("254700000001")
+  })
+
+  it("stores mixed-case padded Approved as approved", async () => {
+    expect(await storedStatuses([" Approved ", "APPROVED"])).toEqual(["approved", "approved"])
+  })
+
+  it("never stores anything but approved or other", async () => {
+    const stored = await storedStatuses(["declined", "Jane Doe", "approved", "waitlist", "approved1"])
+    expect(stored).toEqual(["other", "other", "approved", "other", "other"])
+    const updates = vi.mocked(prisma.eventGuest.updateMany).mock.calls.map((call) => call[0]!.data.approvalStatus)
+    expect(updates.every((status) => status === "approved" || status === "other")).toBe(true)
   })
 })
 

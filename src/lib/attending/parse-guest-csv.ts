@@ -7,11 +7,13 @@
  * Pure and dependency-free so it is unit-testable and has no network access.
  */
 
-/** Status text sent for rows whose status equals the organiser's approved value. */
+/** Status stored and sent for rows whose status equals the organiser's approved value. */
 export const APPROVED_STATUS = "approved"
+/** Status stored and sent for every other row; the original text is never kept. */
+export const OTHER_STATUS = "other"
 /** Default value counted as approved, shown in the confirm step. */
 export const DEFAULT_APPROVED_VALUE = "approved"
-/** Longest status text kept; anything longer is truncated. */
+/** Longest status text the server accepts before it normalises it. */
 export const MAX_STATUS_LENGTH = 40
 
 const EMAIL_HEADERS = ["email"]
@@ -94,7 +96,8 @@ export function detectColumns(headers: string[]): ColumnDetection {
 
 /**
  * Keeps only email and status. A status equal (case-insensitive, trimmed) to
- * `approvedValue` is sent as "approved"; any other status keeps its own text.
+ * `approvedValue` is sent as "approved"; every other status is sent as "other"
+ * and its text goes no further than this function.
  * `dataRows` excludes the header row.
  */
 export function extractGuests(
@@ -113,9 +116,48 @@ export function extractGuests(
       continue
     }
     const rawStatus = (row[statusIndex] ?? "").trim()
-    const status =
-      rawStatus.toLowerCase() === wanted ? APPROVED_STATUS : rawStatus.slice(0, MAX_STATUS_LENGTH)
-    guests.push({ email, status })
+    guests.push({ email, status: rawStatus.toLowerCase() === wanted ? APPROVED_STATUS : OTHER_STATUS })
   }
   return { guests, skippedNoEmail }
+}
+
+/** Most distinct status values listed in the confirm step. */
+export const MAX_SUMMARY_VALUES = 8
+/** Longest status text shown in the confirm step. */
+export const MAX_SUMMARY_VALUE_LENGTH = 20
+
+export interface StatusSummary {
+  /** Most common distinct values (at most MAX_SUMMARY_VALUES), each truncated for display. */
+  values: { value: string; count: number }[]
+  /** Distinct values beyond the ones listed. */
+  hiddenValues: number
+  /** Rows with an email whose status will be stored as approved. */
+  approvedCount: number
+}
+
+/**
+ * Counts the distinct status cells among rows that have an email, so a wrong
+ * status column (names, phone numbers) is visible before anything is sent.
+ * Display only; nothing here leaves the browser.
+ */
+export function summariseStatuses(
+  dataRows: string[][],
+  emailIndex: number,
+  statusIndex: number,
+  approvedValue: string = DEFAULT_APPROVED_VALUE,
+): StatusSummary {
+  const wanted = approvedValue.trim().toLowerCase()
+  const counts = new Map<string, number>()
+  let approvedCount = 0
+  for (const row of dataRows) {
+    if ((row[emailIndex] ?? "").trim() === "") continue
+    const value = (row[statusIndex] ?? "").trim()
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+    if (value.toLowerCase() === wanted) approvedCount++
+  }
+  const sorted = [...counts].sort((a, b) => b[1] - a[1])
+  const values = sorted
+    .slice(0, MAX_SUMMARY_VALUES)
+    .map(([value, count]) => ({ value: value.slice(0, MAX_SUMMARY_VALUE_LENGTH), count }))
+  return { values, hiddenValues: Math.max(0, sorted.length - MAX_SUMMARY_VALUES), approvedCount }
 }

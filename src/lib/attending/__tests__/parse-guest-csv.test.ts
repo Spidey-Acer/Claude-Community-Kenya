@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { detectColumns, extractGuests, parseCsv } from "../parse-guest-csv"
+import { detectColumns, extractGuests, parseCsv, summariseStatuses } from "../parse-guest-csv"
 
 const LUMA_CSV = [
   'api_id,name,email,phone_number,approval_status,"What do you build?"',
@@ -50,7 +50,7 @@ describe("extractGuests", () => {
     const { guests, skippedNoEmail } = extractGuests(data, detected.emailIndex, detected.statusIndex)
     expect(guests).toEqual([
       { email: "Jane@Example.com", status: "approved" },
-      { email: "sam@example.com", status: "declined" },
+      { email: "sam@example.com", status: "other" },
     ])
     expect(skippedNoEmail).toBe(1)
     const serialised = JSON.stringify(guests)
@@ -64,7 +64,31 @@ describe("extractGuests", () => {
     const { guests } = extractGuests(rows.slice(1), 0, 1, "going")
     expect(guests).toEqual([
       { email: "A@x.com", status: "approved" },
-      { email: "B@x.com", status: "Waitlist" },
+      { email: "B@x.com", status: "other" },
     ])
+  })
+})
+
+const NL = "\n"
+
+describe("summariseStatuses", () => {
+  it("counts distinct values among rows with an email and the approved total", () => {
+    const rows = parseCsv(["email,s", "a@x.com,Approved", "b@x.com,approved", "c@x.com,declined", ",approved"].join(NL))
+    const summary = summariseStatuses(rows.slice(1), 0, 1)
+    expect(summary.approvedCount).toBe(2)
+    expect(summary.values).toEqual([
+      { value: "Approved", count: 1 },
+      { value: "approved", count: 1 },
+      { value: "declined", count: 1 },
+    ])
+  })
+
+  it("lists at most 8 values, truncates each to 20 characters, and reports the rest", () => {
+    const lines = Array.from({ length: 10 }, (_, i) => `a${i}@x.com,+2547000000000000000${i}`)
+    const summary = summariseStatuses(parseCsv(["email,s", ...lines].join(NL)).slice(1), 0, 1)
+    expect(summary.values).toHaveLength(8)
+    expect(summary.values[0].value).toHaveLength(20)
+    expect(summary.hiddenValues).toBe(2)
+    expect(summary.approvedCount).toBe(0)
   })
 })
