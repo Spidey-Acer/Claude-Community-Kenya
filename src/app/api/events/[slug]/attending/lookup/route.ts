@@ -8,24 +8,25 @@
  * approved) returns the same bytes. The email is hashed and discarded; the
  * route logs nothing about it.
  *
- * Abuse limits: 30 lookups per 15 minutes per IP, and a not-found budget of
- * 300 per hour per event that only misses spend. The budget is READ before the
- * guest lookup: once spent, every request for that event (hit or miss) gets the
- * same 429, so an exhausted budget can never become a membership oracle.
- * Unknown and non-upcoming events spend from a budget keyed by slug. In production the shared
- * Redis store is required: without it the route answers 503 rather than fall
- * back to a per-instance counter an attacker could sidestep.
+ * Abuse limits, each spent atomically by ONE consume call before any guest
+ * lookup, on every request hit or miss: 20 per hour per IP and 600 per hour per
+ * event slug (so unknown and non-upcoming events are charged too). If either is
+ * spent the answer is the same 429 whatever the email is, and no lookup runs.
+ * Nothing reads a counter and acts on it later. In production the shared Redis
+ * store is required: without it the route answers 503 rather than fall back to
+ * a per-instance counter an attacker could sidestep.
  */
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { getRedisClient, isRateLimitExhausted, rateLimit } from "@/lib/rate-limit"
+import { getRedisClient, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
 import { hmacEmail, MAX_EMAIL_LENGTH, MissingHmacKeyError } from "@/lib/attending/hmac-email"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
 
-const IP_LIMIT = { maxRequests: 30, windowInSeconds: 900 } as const
-const EVENT_MISS_BUDGET = { maxRequests: 300, windowInSeconds: 3600 } as const
+const IP_LIMIT = { maxRequests: 20, windowInSeconds: 3600 } as const
+const EVENT_LIMIT = { maxRequests: 600, windowInSeconds: 3600 } as const
+const RETRY_AFTER_SECONDS = "3600"
 const UPCOMING_STATUSES = ["UPCOMING", "REGISTRATION_OPEN"]
 
 const lookupSchema = z.object({ email: z.string().trim().min(3).max(MAX_EMAIL_LENGTH) }).strict()
@@ -64,14 +65,19 @@ async function isApprovedGuest(eventId: string, emailHmac: string): Promise<bool
   return guest?.approvalStatus === APPROVED_STATUS
 }
 
-/** Budget key: the event id when open for the card, otherwise the (capped) slug. */
-function budgetIdentifier(eventId: string | null, slug: string): string {
-  return `attending-miss:${eventId ?? `slug:${slug.slice(0, 100)}`}`
+/** The one 429 every spent limit answers with, identical whatever the email is. */
+function limitSpentResponse() {
+  return respond({ error: "Too many requests" }, 429, { "Retry-After": RETRY_AFTER_SECONDS })
 }
 
-/** The one 429 the exhausted budget answers with, identical for hits and misses. */
-function budgetSpentResponse() {
-  return respond({ error: "Too many requests" }, 429, { "Retry-After": "3600" })
+/** One atomic consume. True when the unit was granted. */
+async function consume(
+  request: NextRequest,
+  limit: { maxRequests: number; windowInSeconds: number },
+  identifier: string,
+): Promise<boolean> {
+  const result = await rateLimit(request, { ...limit, identifier: () => identifier })
+  return result.success
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -79,12 +85,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return respond({ error: "Unavailable" }, 503)
   }
 
-  const ipLimit = await rateLimit(request, {
-    ...IP_LIMIT,
-    identifier: () => `attending:${clientIp(request)}`,
-  })
-  if (!ipLimit.success) {
-    return respond({ error: "Too many requests" }, 429, { "Retry-After": ipLimit.headers["Retry-After"] ?? "900" })
+  const { slug } = await params
+  if (!(await consume(request, IP_LIMIT, `attending:${clientIp(request)}`))) return limitSpentResponse()
+  if (!(await consume(request, EVENT_LIMIT, `attending:event:${slug.slice(0, 100)}`))) {
+    // Slug only: never the email, its hash or the IP.
+    console.warn(JSON.stringify({ event: "attending-budget-exhausted", slug: slug.slice(0, 100) }))
+    return limitSpentResponse()
   }
 
   const parsed = lookupSchema.safeParse(await request.json().catch(() => null))
@@ -98,14 +104,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     throw error
   }
 
-  const { slug } = await params
   const eventId = await findUpcomingEventId(slug)
-  const budgetKey = budgetIdentifier(eventId, slug)
-
-  if (await isRateLimitExhausted(budgetKey, EVENT_MISS_BUDGET)) return budgetSpentResponse()
   if (eventId && (await isApprovedGuest(eventId, emailHmac))) return respond({ found: true })
-
-  const spent = await rateLimit(request, { ...EVENT_MISS_BUDGET, identifier: () => budgetKey })
-  if (!spent.success) return budgetSpentResponse()
   return respond(NOT_FOUND_BODY)
 }

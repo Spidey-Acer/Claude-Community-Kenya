@@ -10,12 +10,19 @@ vi.mock("@/lib/prisma", () => ({
 }))
 
 const redisState = vi.hoisted(() => ({ present: true }))
-vi.mock("@/lib/rate-limit", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
-  getRedisClient: () => (redisState.present ? ({} as never) : null),
-}))
+// rateLimit passes through to the real in-memory limiter but is a spy, so tests
+// can see exactly which counters each request spent.
+vi.mock("@/lib/rate-limit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/rate-limit")>()
+  return {
+    ...actual,
+    rateLimit: vi.fn(actual.rateLimit),
+    getRedisClient: () => (redisState.present ? ({} as never) : null),
+  }
+})
 
 import { prisma } from "@/lib/prisma"
+import { rateLimit } from "@/lib/rate-limit"
 import { hmacEmail } from "@/lib/attending/hmac-email"
 import { POST } from "@/app/api/events/[slug]/attending/lookup/route"
 
@@ -30,6 +37,11 @@ const events: Record<string, { id: string; status: string; date: Date }> = {
   b1: { id: "e-b1", status: "UPCOMING", date: FUTURE },
   b2: { id: "e-b2", status: "UPCOMING", date: FUTURE },
   b3: { id: "e-b3", status: "UPCOMING", date: FUTURE },
+  b4: { id: "e-b4", status: "UPCOMING", date: FUTURE },
+  b5: { id: "e-b5", status: "UPCOMING", date: FUTURE },
+  b6: { id: "e-b6", status: "UPCOMING", date: FUTURE },
+  b7: { id: "e-b7", status: "UPCOMING", date: FUTURE },
+  b8: { id: "e-b8", status: "UPCOMING", date: FUTURE },
 }
 let guests: Map<string, string>
 let ipCounter = 0
@@ -46,6 +58,7 @@ function lookup(slug: string, body: unknown, ip = nextIp()) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(console, "warn").mockImplementation(() => undefined)
   vi.stubEnv("ATTENDING_HMAC_KEY", "test-key")
   redisState.present = true
   guests = new Map()
@@ -56,7 +69,7 @@ beforeEach(() => {
   add("e-reg", "ada@example.com", "approved")
   add("e-done", "ada@example.com", "approved")
   add("e-stale", "ada@example.com", "approved")
-  for (const id of ["e-b1", "e-b2", "e-b3"]) add(id, "ada@example.com", "approved")
+  for (const id of ["e-b1", "e-b2", "e-b3", "e-b4", "e-b5", "e-b6", "e-b7", "e-b8"]) add(id, "ada@example.com", "approved")
   vi.mocked(prisma.event.findUnique).mockImplementation((async ({ where }: { where: { slug: string } }) =>
     events[where.slug] ?? null) as never)
   vi.mocked(prisma.eventGuest.findUnique).mockImplementation((async ({
@@ -70,7 +83,10 @@ beforeEach(() => {
   }) as never)
 })
 
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.restoreAllMocks()
+})
 
 describe("lookup matching", () => {
   it("matches the same email in other case or with spaces, for both upcoming statuses", async () => {
@@ -117,51 +133,104 @@ describe("lookup matching", () => {
   })
 })
 
+/** Identifiers of every counter spent since the last clear, as the route named them. */
+function spentIdentifiers(request: NextRequest): string[] {
+  return vi.mocked(rateLimit).mock.calls.map(([, config]) => config.identifier!(request))
+}
+const anyRequest = new NextRequest("http://localhost/x", { method: "POST" })
+
+/** Spends a slug's whole event limit (600) from distinct IPs, hits and misses mixed. */
+async function exhaustEventLimit(slug: string) {
+  for (let i = 0; i < 600; i++) await lookup(slug, { email: "nobody@example.com" })
+  vi.mocked(rateLimit).mockClear()
+  vi.mocked(prisma.event.findUnique).mockClear()
+  vi.mocked(prisma.eventGuest.findUnique).mockClear()
+}
+
 describe("lookup limits and fail-closed rules", () => {
-  it("per IP: 429 after 30 in 15 minutes, a different IP is unaffected", async () => {
-    const ip = "203.0.113.7"
-    for (let i = 0; i < 30; i++) expect((await lookup("open", { email: "ada@example.com" }, ip)).status).toBe(200)
-    expect((await lookup("open", { email: "ada@example.com" }, ip)).status).toBe(429)
-    expect((await lookup("open", { email: "ada@example.com" }, "203.0.113.8")).status).toBe(200)
+  it("a hit spends one unit of the IP limit and one of the event limit", async () => {
+    await lookup("b1", { email: "ada@example.com" }, "198.51.100.1")
+    expect(spentIdentifiers(anyRequest)).toEqual(["attending:198.51.100.1", "attending:event:b1"])
   })
 
-  it("event budget: 429 after 300 misses in an hour; hits do not spend it", async () => {
-    for (let i = 0; i < 20; i++) await lookup("reg", { email: "ada@example.com" })
-    let lastStatus = 0
-    for (let i = 0; i < 300; i++) lastStatus = (await lookup("reg", { email: "nobody@example.com" })).status
-    expect(lastStatus).toBe(200)
-    expect((await lookup("reg", { email: "nobody@example.com" })).status).toBe(429)
+  it("a miss spends one unit of the IP limit and one of the event limit", async () => {
+    await lookup("b1", { email: "nobody@example.com" }, "198.51.100.2")
+    expect(spentIdentifiers(anyRequest)).toEqual(["attending:198.51.100.2", "attending:event:b1"])
   })
 
-  it("a miss spends exactly one unit: a hit still works after 299 misses, not after 300", async () => {
-    for (let i = 0; i < 299; i++) await lookup("b1", { email: "nobody@example.com" })
-    expect(await (await lookup("b1", { email: "ada@example.com" })).json()).toEqual({ found: true })
-    expect((await lookup("b1", { email: "nobody@example.com" })).status).toBe(200)
-    expect((await lookup("b1", { email: "ada@example.com" })).status).toBe(429)
+  it("unknown and non-upcoming events are charged to a slug budget too", async () => {
+    await lookup("ghost", { email: "x@example.com" }, "198.51.100.3")
+    await lookup("done", { email: "x@example.com" }, "198.51.100.3")
+    expect(spentIdentifiers(anyRequest)).toEqual([
+      "attending:198.51.100.3", "attending:event:ghost",
+      "attending:198.51.100.3", "attending:event:done",
+    ])
   })
 
-  it("with the budget spent, a registered email gets 429, never found:true", async () => {
-    for (let i = 0; i < 300; i++) await lookup("b2", { email: "nobody@example.com" })
+  it("event limit spent: a registered email gets 429, never found:true", async () => {
+    await exhaustEventLimit("b2")
     const response = await lookup("b2", { email: "ada@example.com" })
     expect(response.status).toBe(429)
     expect(await response.text()).not.toContain("found")
   })
 
-  it("with the budget spent, registered and unregistered emails get identical 429 bytes and headers", async () => {
-    for (let i = 0; i < 300; i++) await lookup("b3", { email: "nobody@example.com" })
+  it("event limit spent: registered and unregistered emails get byte-identical 429s and headers", async () => {
+    await exhaustEventLimit("b3")
     const hit = await lookup("b3", { email: "ada@example.com" })
     const miss = await lookup("b3", { email: "stranger@example.com" })
-    expect(hit.status).toBe(429)
-    expect(miss.status).toBe(429)
+    expect([hit.status, miss.status]).toEqual([429, 429])
     expect(await hit.text()).toBe(await miss.text())
     expect(Object.fromEntries(hit.headers)).toEqual(Object.fromEntries(miss.headers))
+    expect(hit.headers.get("retry-after")).toBe("3600")
   })
 
-  it("unknown and non-upcoming events spend a budget keyed by slug, so they cannot be probed for free", async () => {
-    for (let i = 0; i < 300; i++) await lookup("ghost", { email: "x@example.com" })
-    expect((await lookup("ghost", { email: "x@example.com" })).status).toBe(429)
-    for (let i = 0; i < 300; i++) await lookup("done", { email: "x@example.com" })
-    expect((await lookup("done", { email: "x@example.com" })).status).toBe(429)
+  it("IP limit spent (20 per hour): registered and unregistered emails get the identical 429", async () => {
+    const ip = "203.0.113.7"
+    for (let i = 0; i < 20; i++) expect((await lookup("b4", { email: "nobody@example.com" }, ip)).status).toBe(200)
+    const hit = await lookup("b4", { email: "ada@example.com" }, ip)
+    const miss = await lookup("b4", { email: "stranger@example.com" }, ip)
+    expect([hit.status, miss.status]).toEqual([429, 429])
+    expect(await hit.text()).toBe(await miss.text())
+    expect(Object.fromEntries(hit.headers)).toEqual(Object.fromEntries(miss.headers))
+    expect((await lookup("b4", { email: "ada@example.com" }, "203.0.113.8")).status).toBe(200)
+  })
+
+  it("the same 429 comes from either limit", async () => {
+    await exhaustEventLimit("b5")
+    const eventSpent = await lookup("b5", { email: "ada@example.com" })
+    const ip = "203.0.113.9"
+    for (let i = 0; i < 20; i++) await lookup("b6", { email: "nobody@example.com" }, ip)
+    const ipSpent = await lookup("b6", { email: "ada@example.com" }, ip)
+    expect(await eventSpent.text()).toBe(await ipSpent.text())
+    expect(Object.fromEntries(eventSpent.headers)).toEqual(Object.fromEntries(ipSpent.headers))
+  })
+
+  it("no guest lookup runs when either limit fails", async () => {
+    await exhaustEventLimit("b7")
+    await lookup("b7", { email: "ada@example.com" })
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+    const ip = "203.0.113.10"
+    for (let i = 0; i < 20; i++) await lookup("open", { email: "nobody@example.com" }, ip)
+    vi.mocked(prisma.event.findUnique).mockClear()
+    vi.mocked(prisma.eventGuest.findUnique).mockClear()
+    await lookup("open", { email: "ada@example.com" }, ip)
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+    expect(prisma.event.findUnique).not.toHaveBeenCalled()
+  })
+
+  it("logs one warn with the slug when the event limit is spent, and never the email, hash or IP", async () => {
+    const warn = vi.mocked(console.warn)
+    await exhaustEventLimit("b8")
+    warn.mockClear()
+    const ip = "203.0.113.55"
+    await lookup("b8", { email: "Secret.Person@example.com" }, ip)
+    expect(warn).toHaveBeenCalledTimes(1)
+    const line = String(warn.mock.calls[0][0])
+    expect(line).toContain("attending-budget-exhausted")
+    expect(line).toContain("b8")
+    expect(line.toLowerCase()).not.toContain("secret.person")
+    expect(line).not.toContain(hmacEmail("Secret.Person@example.com"))
+    expect(line).not.toContain(ip)
   })
 
   it("returns 503 in production when the shared Redis store is absent", async () => {
@@ -169,6 +238,7 @@ describe("lookup limits and fail-closed rules", () => {
     redisState.present = false
     expect((await lookup("open", { email: "ada@example.com" })).status).toBe(503)
     expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+    expect(rateLimit).not.toHaveBeenCalled()
   })
 
   it("fails closed with 503 when the HMAC key is missing", async () => {

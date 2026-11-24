@@ -101,17 +101,6 @@ function inMemoryRateLimit(
   }
 }
 
-// Per-preset prefix: Upstash keys by prefix + identifier + window, so presets
-// sharing a window length would otherwise share one counter.
-function buildRedisLimiter(client: Redis, config: RateLimitConfig): Ratelimit {
-  return new Ratelimit({
-    redis: client,
-    limiter: Ratelimit.slidingWindow(config.maxRequests, `${config.windowInSeconds}s`),
-    analytics: true,
-    prefix: `cck:rl:${config.maxRequests}-${config.windowInSeconds}`,
-  })
-}
-
 async function redisRateLimit(
   identifier: string,
   config: RateLimitConfig
@@ -119,7 +108,17 @@ async function redisRateLimit(
   if (!redis) throw new Error("Redis not configured")
 
   try {
-    const customRateLimit = buildRedisLimiter(redis, config)
+    const customRateLimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(
+        config.maxRequests,
+        `${config.windowInSeconds}s`
+      ),
+      analytics: true,
+      // Per-preset prefix: Upstash keys by prefix + identifier + window, so
+      // presets sharing a window length would otherwise share one counter.
+      prefix: `cck:rl:${config.maxRequests}-${config.windowInSeconds}`,
+    })
 
     const { success, remaining, limit, reset } =
       await customRateLimit.limit(identifier)
@@ -170,29 +169,6 @@ export async function rateLimit(
   }
 
   return { ...result, headers }
-}
-
-/**
- * Reads a counter without spending from it: true when `identifier` has used up
- * `config` in the current window. Same key and window as `rateLimit` with that
- * identifier, so a read followed by a spend sees one counter. Redis errors in
- * production propagate (fail closed); in development the in-memory counter answers.
- */
-export async function isRateLimitExhausted(
-  identifier: string,
-  config: Pick<RateLimitConfig, "maxRequests" | "windowInSeconds">
-): Promise<boolean> {
-  if (redis) {
-    try {
-      const { remaining } = await buildRedisLimiter(redis, config).getRemaining(identifier)
-      return remaining <= 0
-    } catch (error) {
-      console.error("Redis rate limit read error:", error)
-      if (NODE_ENV === "production") throw new Error("Rate limiting failed — Redis unavailable.")
-    }
-  }
-  const bucket = requestCounts.get(`${identifier}:${config.maxRequests}-${config.windowInSeconds}`)
-  return Boolean(bucket && Date.now() <= bucket.resetTime && bucket.count >= config.maxRequests)
 }
 
 export function withRateLimit(
