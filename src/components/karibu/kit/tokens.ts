@@ -19,6 +19,7 @@ export const H1 =
   "font-newsreader text-[38px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[48px] lg:text-[56px]";
 export const H2 =
   "font-newsreader text-[30px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[38px]";
+export const SUBHEAD = "font-newsreader text-[24px] font-medium text-ink";
 export const LEAD = "font-inter text-[16px] leading-[1.6] text-ink-soft sm:text-[17px]";
 export const META = "font-inter text-[13px] text-ink-muted";
 export const BADGE = "rounded-full px-2.5 py-1 font-inter text-xs font-semibold";

@@ -21,6 +21,19 @@ import { KaribuDemoRequestForm } from "@/components/karibu/KaribuDemoRequestForm
 import { eventCover } from "@/components/karibu/photos";
 import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import {
+  BADGE_CLAY,
+  BADGE_SAND,
+  BTN_PRIMARY,
+  EventCard,
+  H1,
+  LEAD,
+  SUBHEAD,
+  TYPE_LABEL,
+  WRAP,
+  formatDate as fmt,
+  parseEventDate as parseDate,
+} from "@/components/karibu/kit";
 import { isEventPast } from "@/lib/event-dates";
 import { EventQaBlock } from "@/components/karibu/conversations/EventQaBlock";
 import { KaribuWinnersSection } from "@/components/karibu/KaribuWinnersSection";
@@ -29,16 +42,6 @@ import { EventBodyTabs } from "@/components/karibu/EventBodyTabs";
 import type { EventResults } from "@/lib/impact-lab/event-results";
 import type { EventProject } from "@/lib/impact-lab/event-projects";
 import type { OpenQuestionSessionView } from "@/lib/conversations/queries";
-
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
-
-const TYPE_LABEL: Record<Event["type"], string> = {
-  meetup: "Meetup",
-  workshop: "Workshop",
-  "career-talk": "Career talk",
-  hackathon: "Hackathon",
-  conversations: "Conversations",
-};
 
 interface AgendaEntry {
   date: string;
@@ -72,12 +75,6 @@ interface KaribuEventDetailProps {
   projects: EventProject[] | null;
 }
 
-function parseDate(d: string): Date | null {
-  const dt = new Date(`${d}T00:00:00`);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
-const fmt = (dt: Date, opts: Intl.DateTimeFormatOptions) => dt.toLocaleString("en-US", opts);
-
 export function KaribuEventDetail({
   event,
   descriptionParagraphs,
@@ -106,7 +103,7 @@ export function KaribuEventDetail({
   const aboutPanel = (
     <>
       {/* About */}
-      <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
+      <h2 className={`mb-3 ${SUBHEAD}`}>
         About this {TYPE_LABEL[event.type].toLowerCase()}
       </h2>
       <div className="mb-7 space-y-4">
@@ -120,7 +117,7 @@ export function KaribuEventDetail({
       {/* Schedule */}
       {agendaEntries && agendaEntries.length > 0 && (
         <>
-          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">
+          <h2 className={`mb-3 ${SUBHEAD}`}>
             The day, roughly
           </h2>
           <div className="mb-7 flex flex-col gap-2.5">
@@ -137,7 +134,7 @@ export function KaribuEventDetail({
       {/* Highlights / who it's for */}
       {event.highlights && event.highlights.length > 0 ? (
         <>
-          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Highlights</h2>
+          <h2 className={`mb-3 ${SUBHEAD}`}>Highlights</h2>
           <ul className="mb-7 space-y-2">
             {event.highlights.map((h, i) => (
               <li key={i} className="flex gap-2.5 font-inter text-[15.5px] leading-[1.6] text-ink-soft">
@@ -149,7 +146,7 @@ export function KaribuEventDetail({
         </>
       ) : (
         <>
-          <h2 className="mb-3 font-newsreader text-[24px] font-medium text-ink">Who it&apos;s for</h2>
+          <h2 className={`mb-3 ${SUBHEAD}`}>Who it&apos;s for</h2>
           <p className="mb-7 font-inter text-[15.5px] leading-[1.65] text-ink-soft">
             Anyone curious — students, founders, and developers. If you can
             open a laptop, you can take part. Bring a charger.
@@ -163,7 +160,7 @@ export function KaribuEventDetail({
       {/* Scheduled demos */}
       {approvedDemos.length > 0 && (
         <div className="mt-9">
-          <h2 className="mb-4 font-newsreader text-[24px] font-medium text-ink">Scheduled demos</h2>
+          <h2 className={`mb-4 ${SUBHEAD}`}>Scheduled demos</h2>
           <div className="space-y-3">
             {approvedDemos.map((demo) => (
               <div key={demo.id} className="rounded-2xl border border-sand bg-paper-card p-5">
@@ -200,7 +197,7 @@ export function KaribuEventDetail({
           and Conversations events have their own participation forms. */}
       {!isPast && event.type !== "hackathon" && event.type !== "conversations" && (
         <div className="mt-9">
-          <h2 className="mb-2 font-newsreader text-[24px] font-medium text-ink">
+          <h2 className={`mb-2 ${SUBHEAD}`}>
             Request a demo slot
           </h2>
           <p className="mb-5 font-inter text-[15px] leading-[1.6] text-ink-soft">
@@ -216,7 +213,7 @@ export function KaribuEventDetail({
         <div className="mt-9">
           <Link
             href={recapHref}
-            className="inline-flex items-center rounded-full bg-clay px-5 py-2.5 font-inter text-[13.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+            className={BTN_PRIMARY}
           >
             See the results →
           </Link>
@@ -285,14 +282,14 @@ export function KaribuEventDetail({
         {/* Header text — badges, title, lead description */}
         <Reveal className="min-w-0 lg:col-start-1 lg:row-start-1">
           <div className="mb-4 flex flex-wrap gap-2">
-            <Badge tone="clay">{event.city}</Badge>
-            <Badge tone="sand">{TYPE_LABEL[event.type]}</Badge>
-            {event.audiences?.includes("all-levels") && <Badge tone="sand">All levels</Badge>}
+            <span className={BADGE_CLAY}>{event.city}</span>
+            <span className={BADGE_SAND}>{TYPE_LABEL[event.type]}</span>
+            {event.audiences?.includes("all-levels") && <span className={BADGE_SAND}>All levels</span>}
           </div>
-          <h1 className="mb-4 font-newsreader text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[44px] lg:text-[52px]">
+          <h1 className={`mb-4 ${H1}`}>
             {event.title}
           </h1>
-          <p className="font-inter text-[17px] leading-[1.6] text-ink-soft">
+          <p className={LEAD}>
             {event.description}
           </p>
         </Reveal>
@@ -366,7 +363,7 @@ export function KaribuEventDetail({
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mb-2.5 block rounded-full bg-ink px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper transition-colors hover:bg-black"
+                  className="mb-2.5 block rounded-full bg-panel-dark px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-on-panel-dark transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
                 >
                   Sold out — get notified
                 </a>
@@ -377,7 +374,7 @@ export function KaribuEventDetail({
                   href={registerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mb-2.5 block rounded-full bg-clay px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                  className={`mb-2.5 w-full ${BTN_PRIMARY}`}
                 >
                   Register — free
                 </a>
@@ -419,32 +416,10 @@ export function KaribuEventDetail({
             <div className="mb-4 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               More events
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {relatedEvents.map((ev) => {
-                const edt = parseDate(ev.date);
-                return (
-                  <Link
-                    key={ev.slug}
-                    href={`/events/${ev.slug}`}
-                    className="flex items-center gap-[18px] rounded-xl border border-sand bg-paper-card p-[18px] transition-colors hover:border-clay"
-                  >
-                    <div className="border-r border-sand pr-4 text-center">
-                      <div className="font-inter text-[11px] font-semibold uppercase text-clay">
-                        {edt ? fmt(edt, { month: "short" }) : ""}
-                      </div>
-                      <div className="font-newsreader text-[30px] leading-none text-ink">
-                        {edt ? fmt(edt, { day: "2-digit" }) : "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-inter text-xs text-ink-muted">
-                        {ev.city} · {TYPE_LABEL[ev.type]}
-                      </div>
-                      <div className="font-newsreader text-[19px] text-ink">{ev.title}</div>
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedEvents.map((ev) => (
+                <EventCard key={ev.slug} event={ev} variant="tile" />
+              ))}
             </div>
           </Reveal>
         </section>
@@ -463,7 +438,7 @@ function PhotoStrip({ photos }: { photos: PhotoView[] }) {
   return (
     <div className="mt-9">
       <div className="mb-4 flex items-end justify-between gap-4">
-        <h2 className="font-newsreader text-[24px] font-medium text-ink">
+        <h2 className={SUBHEAD}>
           Photos from this event
         </h2>
       </div>
@@ -508,15 +483,6 @@ function PhotoStrip({ photos }: { photos: PhotoView[] }) {
 }
 
 /* ─────────────────────────── bits ─────────────────────────── */
-
-function Badge({ children, tone }: { children: React.ReactNode; tone: "clay" | "sand" }) {
-  const cls = tone === "clay" ? "bg-clay/10 text-clay" : "bg-paper-alt text-ink-muted";
-  return (
-    <span className={`rounded-full px-2.5 py-1 font-inter text-[11.5px] font-semibold ${cls}`}>
-      {children}
-    </span>
-  );
-}
 
 function SidebarRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (

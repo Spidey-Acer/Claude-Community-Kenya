@@ -11,6 +11,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { BTN_PRIMARY, Field } from "@/components/karibu/kit";
 
 const TIME_OPTIONS = [
   { value: "5", label: "5 min — Lightning" },
@@ -100,35 +101,45 @@ export function KaribuDemoRequestForm({ eventSlug }: { eventSlug: string }) {
       <div className="rounded-2xl border border-sand bg-paper-card p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name *" error={fieldErrors.name}>
-            <input name="name" type="text" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+            {(field) => (
+              <input {...field} name="name" type="text" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+            )}
           </Field>
           <Field label="Email *" error={fieldErrors.email}>
-            <input name="email" type="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+            {(field) => (
+              <input {...field} name="email" type="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+            )}
           </Field>
         </div>
 
         <div className="mt-4">
           <Field label="Project / demo title *" error={fieldErrors.projectTitle}>
-            <input name="projectTitle" type="text" required className={inputCls(fieldErrors.projectTitle)} placeholder="e.g. M-Pesa transaction analyzer" />
+            {(field) => (
+              <input {...field} name="projectTitle" type="text" required className={inputCls(fieldErrors.projectTitle)} placeholder="e.g. M-Pesa transaction analyzer" />
+            )}
           </Field>
         </div>
 
         <div className="mt-4">
           <Field label="What will you demo? * (min 20 chars)" error={fieldErrors.description}>
-            <textarea
-              name="description"
-              required
-              rows={3}
-              className={`${inputCls(fieldErrors.description)} resize-none`}
-              placeholder="The problem it solves, what makes it interesting, and what the audience will see..."
-            />
+            {(field) => (
+              <textarea
+                {...field}
+                name="description"
+                required
+                rows={3}
+                className={`${inputCls(fieldErrors.description)} resize-none`}
+                placeholder="The problem it solves, what makes it interesting, and what the audience will see..."
+              />
+            )}
           </Field>
         </div>
 
         <div className="mt-4">
-          <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+          <fieldset aria-describedby={fieldErrors.estimatedTime ? "estimated-time-error" : undefined}>
+          <legend className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
             Estimated time *
-          </label>
+          </legend>
           <div className="grid grid-cols-2 gap-2">
             {TIME_OPTIONS.map(({ value, label }) => (
               <label
@@ -140,22 +151,31 @@ export function KaribuDemoRequestForm({ eventSlug }: { eventSlug: string }) {
               </label>
             ))}
           </div>
-          {fieldErrors.estimatedTime && <FieldError msg={fieldErrors.estimatedTime} />}
+          {fieldErrors.estimatedTime && (
+            <p id="estimated-time-error" className="mt-1 font-inter text-xs text-error">
+              {fieldErrors.estimatedTime}
+            </p>
+          )}
+          </fieldset>
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Live URL (optional)">
-            <input name="demoUrl" type="url" className={inputCls()} placeholder="https://your-demo.vercel.app" />
+            {(field) => (
+              <input {...field} name="demoUrl" type="url" className={inputCls()} placeholder="https://your-demo.vercel.app" />
+            )}
           </Field>
           <Field label="Repository (optional)">
-            <input name="repoUrl" type="url" className={inputCls()} placeholder="https://github.com/..." />
+            {(field) => (
+              <input {...field} name="repoUrl" type="url" className={inputCls()} placeholder="https://github.com/..." />
+            )}
           </Field>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
-          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}
@@ -163,7 +183,7 @@ export function KaribuDemoRequestForm({ eventSlug }: { eventSlug: string }) {
       <button
         type="submit"
         disabled={isPending || !csrfToken}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className={`w-full disabled:cursor-not-allowed disabled:opacity-50 ${BTN_PRIMARY}`}
       >
         {isPending ? (
           <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>
@@ -179,28 +199,4 @@ export function KaribuDemoRequestForm({ eventSlug }: { eventSlug: string }) {
       </p>
     </form>
   );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-        {label}
-      </label>
-      {children}
-      {error && <FieldError msg={error} />}
-    </div>
-  );
-}
-
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }
