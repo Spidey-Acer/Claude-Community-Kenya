@@ -5,12 +5,14 @@ import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { BTN_PRIMARY, Field, INPUT, Masthead, WRAP } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, INPUT, Masthead, WRAP } from "@/components/karibu/kit";
 
 export default function SignupPage() {
   const router = useRouter();
   const { status } = useSession();
   const [csrfToken, setCsrfToken] = useState("");
+  const [csrfFailed, setCsrfFailed] = useState(false);
+  const [csrfAttempt, setCsrfAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -21,9 +23,17 @@ export default function SignupPage() {
   useEffect(() => {
     fetch("/api/csrf-token")
       .then((r) => r.json())
-      .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
-  }, []);
+      .then((d) => {
+        setCsrfToken(d.csrfToken);
+        if (!d.csrfToken) setCsrfFailed(true);
+      })
+      .catch(() => setCsrfFailed(true));
+  }, [csrfAttempt]);
+
+  function retryCsrf() {
+    setCsrfFailed(false);
+    setCsrfAttempt((count) => count + 1);
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -126,7 +136,7 @@ export default function SignupPage() {
               )}
             </Field>
 
-            <Field label="Password">
+            <Field label="Password" hint="At least 8 characters.">
               {(control) => (
                 <input
                   {...control}
@@ -137,14 +147,13 @@ export default function SignupPage() {
                   maxLength={128}
                   autoComplete="new-password"
                   className={INPUT}
-                  placeholder="At least 8 characters"
                 />
               )}
             </Field>
 
             <p className="font-inter text-xs leading-relaxed text-ink-muted">
               By creating an account you agree to the{" "}
-              <Link href="/code-of-conduct" className="text-clay underline underline-offset-2">
+              <Link href="/code-of-conduct" className="font-semibold text-clay hover:text-clay-dark">
                 CCK Code of Conduct
               </Link>
               .
@@ -154,6 +163,15 @@ export default function SignupPage() {
               <p role="alert" className="font-inter text-sm text-error">
                 {error}
               </p>
+            )}
+
+            {csrfFailed && (
+              <div role="alert" className="flex flex-wrap items-center gap-3 font-inter text-sm text-error">
+                <span>We could not get the form ready, so it cannot be sent yet.</span>
+                <button type="button" onClick={retryCsrf} className={`${BTN_OUTLINE} min-h-11 px-4 py-2`}>
+                  Try again
+                </button>
+              </div>
             )}
 
             <button
@@ -175,7 +193,7 @@ export default function SignupPage() {
 
         <p className="mt-5 font-inter text-sm text-ink-soft">
           Already have an account?{" "}
-          <Link href="/login" className="text-clay underline underline-offset-2">
+          <Link href="/login" className="font-semibold text-clay hover:text-clay-dark">
             Sign in
           </Link>
         </p>

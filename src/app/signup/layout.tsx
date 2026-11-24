@@ -16,7 +16,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141413",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4EEE3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1714" },
+  ],
 };
 
 export default function SignupLayout({ children }: { children: React.ReactNode }) {

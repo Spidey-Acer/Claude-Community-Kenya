@@ -5,7 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { BTN_PRIMARY, Field, INPUT, Masthead, WRAP } from "@/components/karibu/kit";
+import { BTN_PRIMARY, Field, INPUT, LINK, Masthead, WRAP } from "@/components/karibu/kit";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
 
@@ -117,10 +117,10 @@ function LoginInner() {
             </button>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1 font-inter text-sm">
-              <Link href="/forgot-password" className="inline-flex min-h-11 items-center text-clay underline underline-offset-2">
+              <Link href="/forgot-password" className={LINK}>
                 Forgot password?
               </Link>
-              <Link href="/signup" className="inline-flex min-h-11 items-center text-clay underline underline-offset-2">
+              <Link href="/signup" className={LINK}>
                 New here? Create account
               </Link>
             </div>
