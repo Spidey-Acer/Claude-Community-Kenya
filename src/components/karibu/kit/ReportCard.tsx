@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { CARD, META } from "./tokens";
+import { NewTabNote } from "./NewTabNote";
 
 interface ReportCardProps {
   kind: "recap" | "conversation";
@@ -39,6 +40,7 @@ export function ReportCard({ kind, href, title, date, summary }: ReportCardProps
   return external ? (
     <a href={href} target="_blank" rel="noopener noreferrer" className={CARD}>
       {body}
+      <NewTabNote />
     </a>
   ) : (
     <Link href={href} className={CARD}>

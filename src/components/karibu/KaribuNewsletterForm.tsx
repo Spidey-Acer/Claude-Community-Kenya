@@ -8,8 +8,12 @@
  */
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { AlertCircle } from "lucide-react";
 
 type Status = "idle" | "success" | "error";
+
+const HINT_ID = "footer-newsletter-hint";
+const ERROR_ID = "footer-newsletter-error";
 
 export function KaribuNewsletterForm() {
   const [email, setEmail] = useState("");
@@ -57,6 +61,9 @@ export function KaribuNewsletterForm() {
       <label htmlFor="footer-newsletter-email" className="mb-2 block font-inter text-[14.5px] text-footer-text-soft">
         Community updates by email
       </label>
+      <p id={HINT_ID} className="mb-2 font-inter text-[13px] text-footer-text-muted">
+        Enter the email address you want updates sent to.
+      </p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           id="footer-newsletter-email"
@@ -64,6 +71,8 @@ export function KaribuNewsletterForm() {
           name="email"
           required
           autoComplete="email"
+          aria-invalid={status === "error"}
+          aria-describedby={status === "error" ? `${HINT_ID} ${ERROR_ID}` : HINT_ID}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
@@ -77,8 +86,16 @@ export function KaribuNewsletterForm() {
           {isPending ? "Subscribing..." : "Subscribe"}
         </button>
       </div>
-      <p role="status" className="mt-2 min-h-5 font-inter text-[13px] text-footer-text-soft">
-        {status === "idle" ? "" : message}
+      <p id={ERROR_ID} role="alert" className="mt-2 flex min-h-5 items-start gap-1.5 font-inter text-[13px] font-semibold text-footer-text">
+        {status === "error" && (
+          <>
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{message} Please try again.</span>
+          </>
+        )}
+      </p>
+      <p role="status" className="font-inter text-[13px] text-footer-text-soft">
+        {status === "success" ? message : ""}
       </p>
     </form>
   );

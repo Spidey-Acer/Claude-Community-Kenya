@@ -22,6 +22,9 @@ export const H2 =
 /** Standalone text link: 44px tall tap target, no underline, colour change on hover. */
 export const LINK =
   "inline-flex min-h-11 items-center font-inter text-[15px] font-semibold text-clay transition-colors hover:text-clay-dark";
+/** Title inside an EmptyState card: sized here so the card adds no override. */
+export const EMPTY_TITLE =
+  "font-newsreader text-[26px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[30px]";
 export const SUBHEAD = "font-newsreader text-[24px] font-medium text-ink";
 export const LEAD = "font-inter text-[16px] leading-[1.6] text-ink-soft sm:text-[17px]";
 export const META = "font-inter text-[13px] text-ink-muted";

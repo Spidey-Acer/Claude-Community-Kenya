@@ -18,7 +18,7 @@ import type { HomeData, LatestReport } from "@/lib/home/home-data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { HeroMedia } from "@/components/karibu/HeroMedia";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
-import { BTN_OUTLINE, BTN_PRIMARY, WorkCard } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, LINK, NewTabNote, WorkCard } from "@/components/karibu/kit";
 import { HERO_PHOTO, HERO_PHOTO_CREDIT } from "@/components/karibu/photos";
 
 const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
@@ -26,9 +26,6 @@ const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] tex
 const H2 = "font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[40px]";
 const LEAD = "font-inter text-[16px] leading-[1.6] text-ink-soft sm:text-[17px]";
 const EMPTY = "font-inter text-[15.5px] leading-[1.6] text-ink-muted";
-/** Standalone text link: 44px tall tap target, no underline, colour change on hover. */
-const LINK =
-  "inline-flex min-h-11 items-center font-inter text-[15px] font-semibold text-clay transition-colors hover:text-clay-dark";
 const BTN_ON_PHOTO =
   "inline-flex items-center justify-center gap-2 rounded-full border border-scrim-text/45 px-6 py-3 font-inter text-[14.5px] font-semibold text-scrim-text transition-colors hover:border-scrim-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrim-text focus-visible:ring-offset-2";
 
@@ -323,7 +320,7 @@ function ReportLink({ report }: { report: LatestReport }) {
     return (
       <a href={report.href} target="_blank" rel="noopener noreferrer" aria-label={label} className={LINK}>
         Read the report
-        <span className="sr-only"> (opens in a new tab)</span>
+        <NewTabNote />
       </a>
     );
   }

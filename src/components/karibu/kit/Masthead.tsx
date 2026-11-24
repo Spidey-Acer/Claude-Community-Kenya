@@ -6,7 +6,6 @@
  */
 
 import type { ReactNode } from "react";
-import { Reveal } from "@/components/karibu/motion/Reveal";
 import { EYEBROW, H1, LEAD, WRAP } from "./tokens";
 
 interface MastheadProps {
@@ -24,7 +23,7 @@ export function Masthead({ eyebrow, title, lead, media, flush = false, children 
   const layout = media ? "grid items-center gap-10 lg:grid-cols-[1fr_440px]" : "";
   return (
     <header className={flush ? "" : `${WRAP} py-12 sm:py-16`}>
-      <Reveal className={layout}>
+      <div data-hero-rise="" className={layout}>
         <div>
           <p className={`${EYEBROW} mb-4`}>{eyebrow}</p>
           <h1 className={`${H1} mb-4 max-w-[820px]`}>{title}</h1>
@@ -34,7 +33,7 @@ export function Masthead({ eyebrow, title, lead, media, flush = false, children 
         {media && (
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-sand">{media}</div>
         )}
-      </Reveal>
+      </div>
     </header>
   );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead, WRAP } from "@/components/karibu/kit";
+import { Masthead, NewTabNote, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -217,9 +217,10 @@ export default function GettingStartedPage() {
             href="https://anthropic.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-ink-soft hover:underline"
+            className="font-semibold text-clay transition-colors hover:text-clay-dark"
           >
             anthropic.com
+            <NewTabNote />
           </a>{" "}
           for latest pricing.
         </p>

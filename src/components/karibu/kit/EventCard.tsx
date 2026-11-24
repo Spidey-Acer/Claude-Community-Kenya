@@ -67,16 +67,13 @@ function FeatureCard({ event }: { event: Event }) {
           </span>
           <Badges event={event} />
         </div>
-        <p className={`${META} mb-2.5 text-[13.5px]`}>{dateLine}</p>
+        <p className={`${META} mb-2.5`}>{dateLine}</p>
         <h2 className="mb-3.5 font-newsreader text-[28px] leading-[1.1] text-ink sm:text-[32px]">{event.title}</h2>
         <p className="mb-5 font-inter text-[15px] leading-[1.55] text-ink-soft">{event.description}</p>
         <div className="flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-band-bg px-6 py-3 font-inter text-[14.5px] font-semibold text-on-band">
             {free ? "Register — free" : "View details"}
           </span>
-          {typeof event.attendeeCount === "number" && (
-            <span className={META}>{event.attendeeCount} registered</span>
-          )}
         </div>
       </div>
     </Link>
@@ -106,10 +103,10 @@ function RowCard({ event }: { event: Event }) {
         <div className="mb-1.5 flex flex-wrap gap-2">
           <Badges event={event} />
         </div>
-        <div className="font-newsreader text-[21px] leading-[1.15] text-ink sm:text-[23px]">{event.title}</div>
+        <h3 className="font-newsreader text-[21px] font-normal leading-[1.15] text-ink sm:text-[23px]">{event.title}</h3>
       </div>
       <span className="col-span-2 mt-1 justify-self-start whitespace-nowrap rounded-full border border-sand-2 px-5 py-2.5 font-inter text-[13.5px] font-semibold text-ink sm:col-span-1 sm:mt-0 sm:justify-self-auto">
-        Details →
+        Details
       </span>
     </Link>
   );
@@ -140,7 +137,7 @@ function TileCard({ event }: { event: Event }) {
       <div className="font-inter text-xs text-ink-muted">
         {[label, event.city, TYPE_LABEL[event.type]].filter(Boolean).join(" · ")}
       </div>
-      <div className="font-newsreader text-[18px] text-ink">{event.title}</div>
+      <h3 className="font-newsreader text-[18px] font-normal text-ink">{event.title}</h3>
     </Link>
   );
 }

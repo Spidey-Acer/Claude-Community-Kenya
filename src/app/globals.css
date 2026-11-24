@@ -844,7 +844,17 @@ body::before {
 .karibu :focus-visible {
   outline: 2px solid var(--clay);
   outline-offset: 3px;
-  border-radius: 2px;
+}
+
+/* Karibu skip link: ink on paper-card with a clay outline, not the Terminal
+ * Noir green. Admin pages keep the base .skip-nav above. */
+.karibu .skip-nav {
+  background: var(--paper-card);
+  color: var(--ink);
+  border: 2px solid var(--clay);
+  border-radius: 0 0 0.5rem 0;
+  font-family: var(--font-inter-stack);
+  font-weight: 600;
 }
 
 @keyframes karibu-spin {

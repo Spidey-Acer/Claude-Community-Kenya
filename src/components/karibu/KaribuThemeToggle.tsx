@@ -54,7 +54,7 @@ export function KaribuThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-clay"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-clay"
     >
       {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
     </button>
