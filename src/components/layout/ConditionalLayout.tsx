@@ -16,7 +16,6 @@ import { AudienceProvider, type AudienceState } from "@/contexts/AudienceContext
 import { SocialLinksProvider } from "@/contexts/SocialLinksContext";
 import type { SocialLinks } from "@/lib/social-links-schema";
 import { KaribuBanner } from "@/components/karibu/KaribuBanner";
-import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 import { StreamingCleanup } from "@/components/layout/StreamingCleanup";
 
 const KaribuModal = dynamic(
@@ -89,7 +88,11 @@ export function ConditionalLayout({
             </div>
             <EasterEggs />
             <KaribuBanner />
-            {!isDashboard && !isKaribu && <StickyMobileCTA />}
+            {/* StickyMobileCTA is parked, not removed: its scroll target
+             * (#hero-email) only renders on Karibu routes, and this slot
+             * only mounted on !isKaribu routes, so its tap always fell
+             * through to scrollTo(top) instead of focusing the capture form.
+             * Delete the component once legacyPrefixes above empties. */}
             {showKaribu && <KaribuModal />}
             <StreamingCleanup />
           </SocialLinksProvider>
