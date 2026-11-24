@@ -182,6 +182,24 @@ export async function getShowcasePosts(opts?: {
 }
 
 /**
+ * Featured work for the Home page: approved rows flagged `featured`, newest
+ * first. No type filter, so a featured prompt or MCP shows as readily as a
+ * project.
+ */
+export async function listFeaturedSubmissions(limit: number): Promise<ShowcasePostView[]> {
+  const rows = await prisma.communitySubmission.findMany({
+    where: { status: "APPROVED", featured: true },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      event: { select: { title: true, slug: true } },
+      _count: { select: { comments: { where: { status: "APPROVED" as const } } } },
+    },
+  })
+  return rows.map(mapRow)
+}
+
+/**
  * The emoji this member has already reacted with on a post.
  *
  * Kept separate from `getShowcasePostBySlug` rather than folded into it: the
