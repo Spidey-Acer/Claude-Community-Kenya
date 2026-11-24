@@ -326,3 +326,55 @@ describe("lookup IP bucketing", () => {
     expect(first).toBe("attending:v6:2001:db8:1:2")
   })
 })
+
+describe("lookup client address trust", () => {
+  function spoofed(forwardedFor: string) {
+    const req = new NextRequest("http://localhost/api/events/b1/attending/lookup", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": forwardedFor },
+      body: JSON.stringify({ email: "x@example.com" }),
+    })
+    return POST(req, { params: Promise.resolve({ slug: "b1" }) })
+  }
+
+  it("in production a request with only a spoofed x-forwarded-for lands in the unknown bucket", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    await spoofed("203.0.113.9")
+    expect(spentIdentifiers(anyRequest)[0]).toBe("attending:unknown")
+  })
+
+  it("in production two spoofed values share one budget", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    await spoofed("203.0.113.10")
+    await spoofed("203.0.113.11")
+    const [first, , second] = spentIdentifiers(anyRequest)
+    expect(first).toBe("attending:unknown")
+    expect(second).toBe(first)
+  })
+
+  it("outside production the x-forwarded-for fallback still works", async () => {
+    await spoofed("203.0.113.12")
+    expect(spentIdentifiers(anyRequest)[0]).toBe("attending:203.0.113.12")
+  })
+})
+
+describe("lookup slug shape and limiter errors", () => {
+  it.each([["a".repeat(300)], ["bad%slug"], ["bad/slug"], ["Upper"], [""]])(
+    "refuses slug %j with 404 before any consume",
+    async (slug) => {
+      const res = await lookup(slug, { email: "ada@example.com" })
+      expect(res.status).toBe(404)
+      expect(await res.json()).toEqual({ found: false })
+      expect(rateLimit).not.toHaveBeenCalled()
+      expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+    },
+  )
+
+  it("a limiter that throws gives 503 and no guest lookup", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    vi.mocked(rateLimit).mockRejectedValueOnce(new Error("redis down"))
+    const res = await lookup("open", { email: "ada@example.com" })
+    expect(res.status).toBe(503)
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+  })
+})

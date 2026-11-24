@@ -25,7 +25,7 @@ import { getRedisClient, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
 import { hmacEmail, MAX_EMAIL_LENGTH, MissingHmacKeyError } from "@/lib/attending/hmac-email"
 import { warnBudgetExhaustedOnce } from "@/lib/attending/warn-once"
-import { ipBucketKey } from "@/lib/attending/ip-bucket"
+import { ipBucketKey, UNKNOWN_BUCKET } from "@/lib/attending/ip-bucket"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
 
 // analytics:false keeps client addresses out of Upstash analytics storage.
@@ -33,6 +33,8 @@ const IP_LIMIT = { maxRequests: 20, windowInSeconds: 3600, analytics: false } as
 const EVENT_LIMIT = { maxRequests: 600, windowInSeconds: 3600, analytics: false } as const
 const RETRY_AFTER_SECONDS = "3600"
 const UPCOMING_STATUSES = ["UPCOMING", "REGISTRATION_OPEN"]
+/** Event slugs are lowercase letters, digits and hyphens, 1 to 120 characters. */
+const SLUG_PATTERN = /^[a-z0-9-]{1,120}$/
 
 const lookupSchema = z.object({ email: z.string().trim().min(3).max(MAX_EMAIL_LENGTH) }).strict()
 
@@ -64,10 +66,17 @@ function rejectBadShape(request: NextRequest): NextResponse | null {
   return null
 }
 
-/** Client IP the way rate-limit.ts reads it: the platform-set header first. */
+/**
+ * Client IP for the abuse limit. Only the platform-set `x-vercel-forwarded-for`
+ * is trusted. In production without it, `x-forwarded-for` is client-controlled
+ * and would let a caller mint a fresh budget per request, so everything shares
+ * the single `unknown` bucket. Outside production the other headers are read so
+ * local runs work.
+ */
 function clientIp(request: NextRequest): string {
   const vercelIp = request.headers.get("x-vercel-forwarded-for")
   if (vercelIp) return vercelIp.split(",")[0].trim()
+  if (process.env.NODE_ENV === "production") return UNKNOWN_BUCKET
   const forwarded = request.headers.get("x-forwarded-for")
   return forwarded?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown"
 }
@@ -114,11 +123,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (badShape) return badShape
 
   const { slug } = await params
-  if (!(await consume(request, IP_LIMIT, `attending:${ipBucketKey(clientIp(request))}`))) return limitSpentResponse()
-  if (!(await consume(request, EVENT_LIMIT, `attending:event:${slug.slice(0, 100)}`))) {
-    // Slug only, once per event per hour: never the email, its hash or the IP.
-    await warnBudgetExhaustedOnce(slug.slice(0, 100))
-    return limitSpentResponse()
+  // The slug is public, so a malformed one reveals nothing; it spends no budget.
+  if (!SLUG_PATTERN.test(slug)) return respond(NOT_FOUND_BODY, 404)
+
+  try {
+    if (!(await consume(request, IP_LIMIT, `attending:${ipBucketKey(clientIp(request))}`))) return limitSpentResponse()
+    if (!(await consume(request, EVENT_LIMIT, `attending:event:${slug.slice(0, 100)}`))) {
+      // Slug only, once per event per hour: never the email, its hash or the IP.
+      await warnBudgetExhaustedOnce(slug.slice(0, 100))
+      return limitSpentResponse()
+    }
+  } catch (error) {
+    // Limiter store failure: refuse in a controlled way, never an unhandled 500.
+    console.error("attending lookup limiter failed:", error instanceof Error ? error.name : "unknown")
+    return respond({ error: "Unavailable" }, 503)
   }
 
   const parsed = lookupSchema.safeParse(await request.json().catch(() => null))
