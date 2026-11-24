@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * KaribuNav — sticky top navigation for the warm-light "Karibu" identity.
+ * KaribuNav: sticky top navigation for the warm-light "Karibu" identity.
  *
- * Mirrors the full information architecture of the Terminal Noir <Navbar />
- * (dropdown menus, Ctrl+K command palette, auth-aware Sign in / Join) but in
- * the warm-light skin. Rendered only on converted routes by ConditionalLayout.
+ * Spec S1: Events, Learn, Showcase, Reports, About plus a Join button on
+ * desktop; the same doors in the mobile sheet; a Home / Events / Learn /
+ * Showcase / Join bottom bar on phones. Links come from `nav-links.ts`.
+ * Link lists are real <ul>/<li>, the active page carries aria-current="page".
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -16,14 +17,14 @@ import { useSession } from "next-auth/react";
 import {
   Menu,
   X,
-  ChevronDown,
   LayoutDashboard,
   Home as HomeIcon,
   CalendarDays,
   BookOpen,
+  Sparkles,
   Plus,
 } from "lucide-react";
-import { NAV_LINKS, type NavLink } from "@/lib/constants";
+import { BOTTOM_BAR_NAV, JOIN_NAV, PRIMARY_NAV, isNavActive, type NavItem } from "@/components/karibu/nav-links";
 import { KaribuThemeToggle } from "@/components/karibu/KaribuThemeToggle";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 
@@ -140,6 +141,7 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
   return (
     <>
       <nav
+        aria-label="Primary"
         className={`sticky top-0 z-50 border-b border-sand backdrop-blur-md transition-[background-color,box-shadow] duration-200 ${
           scrolled
             ? "bg-paper/[0.96] shadow-[0_2px_20px_-10px_rgba(35,32,27,0.35)]"
@@ -176,43 +178,39 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
 
           {/* Desktop nav */}
           <div className="hidden items-center gap-1 lg:flex">
-            {NAV_LINKS.map((link) =>
-              link.children?.length ? (
-                <NavDropdown key={link.label} item={link} pathname={pathname} />
-              ) : (
-                <TopLink key={link.href} href={link.href} active={pathname === link.href}>
-                  {link.label}
-                </TopLink>
-              ),
-            )}
+            <ul className="flex items-center gap-1">
+              {PRIMARY_NAV.map((item) => (
+                <li key={item.href}>
+                  <TopLink item={item} pathname={pathname} />
+                </li>
+              ))}
+            </ul>
 
             <KaribuThemeToggle />
 
-            {/* Auth-aware CTA */}
             {isAuthed ? (
               <Link
                 href="/dashboard"
-                className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-clay px-4 py-2 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-sand-2 px-4 py-2 font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
               >
                 <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
                 Dashboard
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="ml-1 px-3 py-2 font-inter text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="rounded-full bg-clay px-4 py-2 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
-                >
-                  Join
-                </Link>
-              </>
+              <Link
+                href="/login"
+                className="ml-1 px-3 py-2 font-inter text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+              >
+                Sign in
+              </Link>
             )}
+            <Link
+              href={JOIN_NAV.href}
+              aria-current={isNavActive(pathname, JOIN_NAV) ? "page" : undefined}
+              className="rounded-full bg-band-bg px-4 py-2 font-inter text-sm font-semibold text-on-band transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-band-bg-hover"
+            >
+              {JOIN_NAV.label}
+            </Link>
           </div>
 
           {/* Mobile controls */}
@@ -279,41 +277,27 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 pt-1">
-              {NAV_LINKS.map((link) => (
-                <div key={link.label} className="border-b border-sand py-3.5">
-                  <div className="flex items-baseline justify-between">
+              <ul>
+                {[...PRIMARY_NAV, JOIN_NAV].map((item) => (
+                  <li key={item.href} className="flex items-baseline justify-between border-b border-sand">
                     <Link
-                      href={link.href}
+                      href={item.href}
                       onClick={closeMenu}
-                      className={`font-newsreader text-[28px] leading-tight tracking-[-0.015em] ${
-                        pathname === link.href ? "text-clay" : "text-ink"
+                      aria-current={isNavActive(pathname, item) ? "page" : undefined}
+                      className={`flex min-h-11 flex-1 items-center py-3.5 font-newsreader text-[28px] leading-tight tracking-[-0.015em] ${
+                        isNavActive(pathname, item) ? "text-clay" : "text-ink"
                       }`}
                     >
-                      {link.label}
+                      {item.label}
                     </Link>
-                    {link.label === "Events" && typeof eventsHeld === "number" && eventsHeld > 0 && (
+                    {item.href === "/events" && typeof eventsHeld === "number" && eventsHeld > 0 && (
                       <span className="font-inter text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
                         {eventsHeld} so far
                       </span>
                     )}
-                  </div>
-                  {/* Sub-items are visible immediately, no second tap. */}
-                  {link.children?.length ? (
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-                      {link.children.map((c) => (
-                        <Link
-                          key={c.href}
-                          href={c.href}
-                          onClick={closeMenu}
-                          className="inline-flex min-h-7 items-center py-1 font-inter text-[14.5px] font-medium text-ink-soft transition-colors hover:text-clay"
-                        >
-                          {c.label}
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+                  </li>
+                ))}
+              </ul>
 
               <div className="mt-3.5">
                 <div className="mb-2.5 font-inter text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
@@ -377,108 +361,77 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
         </div>
       )}
 
-      {/* Pinned mobile bottom bar — appears once the hero has scrolled out
+      {/* Pinned mobile bottom bar: appears once the hero has scrolled out
        * of view. Hidden on lg+ (desktop nav covers this) and while the sheet
        * is open (it would sit under the backdrop anyway). */}
       {pastHero && !mobileOpen && (
         <nav
           aria-label="Quick navigation"
-          className="fixed inset-x-0 bottom-0 z-40 grid h-16 grid-cols-4 items-center border-t border-sand bg-paper/95 shadow-[0_-8px_24px_-16px_rgba(35,32,27,0.35)] backdrop-blur-md lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-sand bg-paper/95 shadow-[0_-8px_24px_-16px_rgba(35,32,27,0.35)] backdrop-blur-md lg:hidden"
         >
-          <BottomBarLink href="/" icon={HomeIcon} label="Home" active={pathname === "/"} />
-          <BottomBarLink href="/events" icon={CalendarDays} label="Events" active={pathname.startsWith("/events")} />
-          <BottomBarLink href="/resources" icon={BookOpen} label="Learn" active={pathname.startsWith("/resources")} />
-          <Link href="/join" className="flex flex-col items-center gap-1 font-inter text-[10.5px] font-semibold text-clay">
-            <span className="flex h-8 w-[52px] items-center justify-center rounded-full bg-clay text-paper-card">
-              <Plus size={18} aria-hidden="true" />
-            </span>
-            Join
-          </Link>
+          <ul className="grid h-full grid-cols-5 items-center">
+            {BOTTOM_BAR_NAV.map((item) => (
+              <li key={item.href} className="h-full">
+                <BottomBarLink item={item} pathname={pathname} />
+              </li>
+            ))}
+            <li className="h-full">
+              <Link
+                href={JOIN_NAV.href}
+                aria-current={isNavActive(pathname, JOIN_NAV) ? "page" : undefined}
+                className="flex h-full min-h-11 flex-col items-center justify-center gap-1 font-inter text-[10.5px] font-semibold text-clay"
+              >
+                <span className="flex h-8 w-[52px] items-center justify-center rounded-full bg-band-bg text-on-band">
+                  <Plus size={18} aria-hidden="true" />
+                </span>
+                {JOIN_NAV.label}
+              </Link>
+            </li>
+          </ul>
         </nav>
       )}
     </>
   );
 }
 
-function BottomBarLink({
-  href,
-  icon: Icon,
-  label,
-  active,
-}: {
-  href: string;
-  icon: typeof HomeIcon;
-  label: string;
-  active: boolean;
-}) {
+const BOTTOM_BAR_ICONS: Record<string, typeof HomeIcon> = {
+  "/": HomeIcon,
+  "/events": CalendarDays,
+  "/resources": BookOpen,
+  "/showcase": Sparkles,
+};
+
+function BottomBarLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const Icon = BOTTOM_BAR_ICONS[item.href] ?? HomeIcon;
+  const active = isNavActive(pathname, item);
   return (
     <Link
-      href={href}
-      className={`flex flex-col items-center gap-1 font-inter text-[10.5px] font-semibold ${
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={`flex h-full min-h-11 flex-col items-center justify-center gap-1 font-inter text-[10.5px] font-semibold ${
         active ? "text-clay" : "text-ink-muted"
       }`}
     >
       <Icon size={20} aria-hidden="true" />
-      {label}
+      {item.label}
     </Link>
   );
 }
 
 /* ─────────────────────────── bits ─────────────────────────── */
 
-function TopLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
+function TopLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = isNavActive(pathname, item);
   return (
     <Link
-      href={href}
+      href={item.href}
+      aria-current={active ? "page" : undefined}
       className={`relative px-3 py-2 font-inter text-[14.5px] transition-colors ${
         active ? "text-ink" : "text-ink-soft hover:text-clay"
       }`}
     >
-      {children}
+      {item.label}
       {active && <span className="absolute inset-x-3 bottom-1 h-px bg-clay" />}
     </Link>
-  );
-}
-
-function NavDropdown({ item, pathname }: { item: NavLink; pathname: string }) {
-  const active = pathname === item.href || item.children?.some((c) => c.href === pathname);
-  return (
-    <div className="group relative">
-      <Link
-        href={item.href}
-        className={`flex items-center gap-1 px-3 py-2 font-inter text-[14.5px] transition-colors ${
-          active ? "text-ink" : "text-ink-soft group-hover:text-clay"
-        }`}
-      >
-        {item.label}
-        <ChevronDown size={14} className="transition-transform duration-200 group-hover:rotate-180" />
-      </Link>
-      <div className="invisible absolute left-0 top-full z-50 w-72 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-        <div className="overflow-hidden rounded-2xl border border-sand bg-paper-card p-2 shadow-[0_12px_40px_-12px_rgba(35,32,27,0.25)]">
-          {item.children!.map((c) => (
-            <Link
-              key={c.href}
-              href={c.href}
-              className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-paper-alt"
-            >
-              <div className="font-inter text-[14px] font-semibold text-ink">{c.label}</div>
-              {c.description && (
-                <div className="mt-0.5 font-inter text-[12.5px] leading-snug text-ink-muted">
-                  {c.description}
-                </div>
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
