@@ -17,6 +17,7 @@ import { SocialLinksProvider } from "@/contexts/SocialLinksContext";
 import type { SocialLinks } from "@/lib/social-links-schema";
 import { KaribuBanner } from "@/components/karibu/KaribuBanner";
 import { StreamingCleanup } from "@/components/layout/StreamingCleanup";
+import { shouldShowOnboarding } from "@/components/layout/onboarding-paths";
 
 const KaribuModal = dynamic(
   () => import("@/components/karibu/KaribuModal").then((m) => m.KaribuModal),
@@ -29,7 +30,6 @@ export function ConditionalLayout({
   showKaribu,
   socialLinks,
   bandCopy,
-  eventsHeld,
 }: {
   children: React.ReactNode;
   audienceState: AudienceState;
@@ -37,8 +37,6 @@ export function ConditionalLayout({
   socialLinks: SocialLinks;
   /** The one live sentence for the sitewide band, built in the root layout. */
   bandCopy: BandCopy;
-  /** SiteSettings.eventsHeld — also feeds the mobile nav's "N so far" count. */
-  eventsHeld: number;
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
@@ -80,7 +78,7 @@ export function ConditionalLayout({
                * canvas feedback, 2026-09-05); previously home-only and
                * below the nav. */}
               {isKaribu && <Marquee {...bandCopy} />}
-              {isKaribu ? <KaribuNav eventsHeld={eventsHeld} /> : <Navbar />}
+              {isKaribu ? <KaribuNav /> : <Navbar />}
               <main id="main-content">
                 <PageTransition>{children}</PageTransition>
               </main>
@@ -93,7 +91,7 @@ export function ConditionalLayout({
              * only mounted on !isKaribu routes, so its tap always fell
              * through to scrollTo(top) instead of focusing the capture form.
              * Delete the component once legacyPrefixes above empties. */}
-            {showKaribu && <KaribuModal />}
+            {shouldShowOnboarding(pathname, showKaribu) && <KaribuModal />}
             <StreamingCleanup />
           </SocialLinksProvider>
         </AudienceProvider>

@@ -1,7 +1,7 @@
 /**
  * KaribuFooter: dark footer for the warm-light "Karibu" identity.
  *
- * Spec S1: Get involved, FAQ, Code of conduct, Your data, a newsletter
+ * Spec S1: Community, FAQ, Code of conduct, Your data, a newsletter
  * sign-up, socials, and the line "an independent, volunteer-run community".
  * Link targets live in `footer-links.ts`. Social URLs come from
  * `useSocialLinks()` (admin-configured, falling back to constants); a
@@ -17,11 +17,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
+import { NewTabNote } from "@/components/karibu/kit";
 import { KaribuNewsletterForm } from "@/components/karibu/KaribuNewsletterForm";
 import { FOOTER_EXPLORE, FOOTER_GET_INVOLVED } from "@/components/karibu/footer-links";
 
-const LINK_CLASS = "transition-colors hover:text-footer-accent";
-const ITEM_CLASS = "flex min-h-11 items-center";
+const LINK_CLASS = "flex min-h-11 items-center transition-colors hover:text-footer-accent";
 
 export function KaribuFooter() {
   const links = useSocialLinks();
@@ -57,31 +57,34 @@ export function KaribuFooter() {
           </p>
         </div>
 
-        <FooterColumn title="Explore">
-          {FOOTER_EXPLORE.map((link) => (
-            <li key={link.href} className={ITEM_CLASS}>
-              <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
-            </li>
-          ))}
-        </FooterColumn>
+        <nav aria-label="Footer" className="col-span-2 grid grid-cols-2 gap-8 lg:col-span-3 lg:grid-cols-3">
+          <FooterColumn title="Explore">
+            {FOOTER_EXPLORE.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
+              </li>
+            ))}
+          </FooterColumn>
 
-        <FooterColumn title="Get involved">
-          {FOOTER_GET_INVOLVED.map((link) => (
-            <li key={link.href} className={ITEM_CLASS}>
-              <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
-            </li>
-          ))}
-        </FooterColumn>
+          <FooterColumn title="Community">
+            {FOOTER_GET_INVOLVED.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
+              </li>
+            ))}
+          </FooterColumn>
 
-        <FooterColumn title="Follow">
-          {socials.map((social) => (
-            <li key={social.label} className={ITEM_CLASS}>
-              <a href={social.href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
-                {social.label}
-              </a>
-            </li>
-          ))}
-        </FooterColumn>
+          <FooterColumn title="Follow">
+            {socials.map((social) => (
+              <li key={social.label}>
+                <a href={social.href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+                  {social.label}
+                  <NewTabNote />
+                </a>
+              </li>
+            ))}
+          </FooterColumn>
+        </nav>
       </div>
 
       <div className="mx-auto max-w-[1180px] px-6 pt-10 md:px-10">

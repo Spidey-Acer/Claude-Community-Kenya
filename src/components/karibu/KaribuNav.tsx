@@ -25,24 +25,20 @@ import {
   Plus,
 } from "lucide-react";
 import { BOTTOM_BAR_NAV, JOIN_NAV, PRIMARY_NAV, isNavActive, type NavItem } from "@/components/karibu/nav-links";
+import { BTN_OUTLINE, BTN_PRIMARY, NewTabNote } from "@/components/karibu/kit";
 import { KaribuThemeToggle } from "@/components/karibu/KaribuThemeToggle";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
-
-/** Cities offered in the mobile sheet's "Your city" chips. Same three the
- * footer and stats card already treat as the real, hosted-at-least-once set. */
-const CITIES = ["Nairobi", "Mombasa", "Kisumu"] as const;
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
+export function KaribuNav() {
   const pathname = usePathname();
   const { status } = useSession();
   const { whatsapp, discord } = useSocialLinks();
   const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [city, setCity] = useState<string | null>(null);
   const [pastHero, setPastHero] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -209,7 +205,7 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
               aria-current={isNavActive(pathname, JOIN_NAV) ? "page" : undefined}
               className="rounded-full bg-band-bg px-4 py-2 font-inter text-sm font-semibold text-on-band transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-band-bg-hover"
             >
-              {JOIN_NAV.label}
+              Join on WhatsApp
             </Link>
           </div>
 
@@ -290,38 +286,9 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
                     >
                       {item.label}
                     </Link>
-                    {item.href === "/events" && typeof eventsHeld === "number" && eventsHeld > 0 && (
-                      <span className="font-inter text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                        {eventsHeld} so far
-                      </span>
-                    )}
                   </li>
                 ))}
               </ul>
-
-              <div className="mt-3.5">
-                <div className="mb-2.5 font-inter text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                  Your city
-                </div>
-                <div className="flex gap-2">
-                  {CITIES.map((c) => {
-                    const on = city === c;
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setCity(on ? null : c)}
-                        aria-pressed={on}
-                        className={`inline-flex h-10 items-center rounded-full border px-3.5 font-inter text-[13.5px] font-semibold transition-colors ${
-                          on ? "border-ink bg-ink text-paper" : "border-sand-2 bg-paper-card text-ink"
-                        }`}
-                      >
-                        {c}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
 
             <div className="flex flex-shrink-0 flex-col gap-2.5 border-t border-sand bg-paper-card/95 px-5 py-3.5">
@@ -331,9 +298,10 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={closeMenu}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-clay px-6 py-[15px] font-inter text-[15px] font-semibold text-paper-card"
+                  className={`${BTN_PRIMARY} min-h-12`}
                 >
                   Join on WhatsApp
+                  <NewTabNote />
                 </a>
               )}
               {discord && (
@@ -342,16 +310,26 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={closeMenu}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-sand-2 px-6 py-[15px] font-inter text-[15px] font-semibold text-ink"
+                  className={`${BTN_OUTLINE} min-h-12`}
                 >
                   Join Discord
+                  <NewTabNote />
                 </a>
               )}
-              {!isAuthed && (
+              {isAuthed ? (
+                <Link
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className="inline-flex min-h-11 items-center gap-1.5 self-center px-3 py-2 font-inter text-sm font-semibold text-ink-soft"
+                >
+                  <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+                  Dashboard
+                </Link>
+              ) : (
                 <Link
                   href="/login"
                   onClick={closeMenu}
-                  className="min-h-10 self-center px-3 py-2 font-inter text-sm font-semibold text-ink-soft"
+                  className="inline-flex min-h-11 items-center self-center px-3 py-2 font-inter text-sm font-semibold text-ink-soft"
                 >
                   Sign in
                 </Link>
