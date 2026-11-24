@@ -247,3 +247,13 @@ describe("lookup limits and fail-closed rules", () => {
     expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
   })
 })
+
+describe("lookup IP bucketing", () => {
+  it("keys IPv6 clients by /64 so one prefix shares one budget", async () => {
+    await lookup("b1", { email: "x@example.com" }, "2001:db8:1:2::1")
+    await lookup("b1", { email: "x@example.com" }, "2001:db8:1:2:aaaa:bbbb:cccc:dddd")
+    const [first, , second] = spentIdentifiers(anyRequest)
+    expect(first).toBe(second)
+    expect(first).toBe("attending:v6:2001:db8:1:2")
+  })
+})

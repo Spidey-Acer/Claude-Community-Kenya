@@ -9,7 +9,7 @@
  * route logs nothing about it.
  *
  * Abuse limits, each spent atomically by ONE consume call before any guest
- * lookup, on every request hit or miss: 20 per hour per IP and 600 per hour per
+ * lookup, on every request hit or miss: 20 per hour per client (IPv4 address or IPv6 /64) and 600 per hour per
  * event slug (so unknown and non-upcoming events are charged too). If either is
  * spent the answer is the same 429 whatever the email is, and no lookup runs.
  * Nothing reads a counter and acts on it later. In production the shared Redis
@@ -22,6 +22,7 @@ import { prisma } from "@/lib/prisma"
 import { getRedisClient, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
 import { hmacEmail, MAX_EMAIL_LENGTH, MissingHmacKeyError } from "@/lib/attending/hmac-email"
+import { ipBucketKey } from "@/lib/attending/ip-bucket"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
 
 const IP_LIMIT = { maxRequests: 20, windowInSeconds: 3600 } as const
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { slug } = await params
-  if (!(await consume(request, IP_LIMIT, `attending:${clientIp(request)}`))) return limitSpentResponse()
+  if (!(await consume(request, IP_LIMIT, `attending:${ipBucketKey(clientIp(request))}`))) return limitSpentResponse()
   if (!(await consume(request, EVENT_LIMIT, `attending:event:${slug.slice(0, 100)}`))) {
     // Slug only: never the email, its hash or the IP.
     console.warn(JSON.stringify({ event: "attending-budget-exhausted", slug: slug.slice(0, 100) }))
