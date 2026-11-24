@@ -38,3 +38,8 @@ export function buildAttendingCsp(isDevelopment: boolean): string {
     "frame-ancestors 'self'",
   ].join("; ")
 }
+
+/** True when analytics must be off for this path (the attending page promises no tracking). */
+export function isAnalyticsDisabled(pathname: string | null): boolean {
+  return isAttendingPath(pathname)
+}

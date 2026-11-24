@@ -53,8 +53,8 @@ describe("attending route headers", () => {
 
   it("GoogleAnalytics renders nothing on that route", () => {
     const source = read("src/components/GoogleAnalytics.tsx")
-    expect(source).toContain("isAttendingPath(pathname)")
-    expect(source.indexOf("isAttendingPath(pathname)")).toBeLessThan(source.indexOf("<Script"))
+    expect(source).toContain("isAnalyticsDisabled(pathname)")
+    expect(source.indexOf("isAnalyticsDisabled(pathname)")).toBeLessThan(source.indexOf("<Script"))
   })
 })
 
