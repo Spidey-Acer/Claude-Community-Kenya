@@ -1,19 +1,15 @@
 /**
- * KaribuFooter — dark footer for the warm-light "Karibu" identity.
+ * KaribuFooter: dark footer for the warm-light "Karibu" identity.
  *
- * Rendered on converted routes only. Links resolve to real app routes and
- * social URLs from `useSocialLinks()` (admin-configured, falling back to
- * the constants in constants.ts). A platform with no configured or
- * fallback URL is omitted entirely — never a dead link. Cities list matches
- * places with at least one hosted event (Nairobi, Mombasa, Kisumu) — no
- * inflated claims.
+ * Spec S1: Get involved, FAQ, Code of conduct, Your data, a newsletter
+ * sign-up, socials, and the line "an independent, volunteer-run community".
+ * Link targets live in `footer-links.ts`. Social URLs come from
+ * `useSocialLinks()` (admin-configured, falling back to constants); a
+ * platform with no URL is omitted entirely, never a dead link.
  *
- * Always dark, in every theme and persona. This uses the fixed `--footer-*`
- * tokens from globals.css, not `--ink`/`--paper`/`--clay` — those flip in
- * dark mode (by design, for page content) and previously made this footer
- * flip too: `bg-ink` looked right in light mode but turned into a near-white
- * background in dark mode. The footer is brand chrome, not page content, so
- * its palette is pinned regardless of theme.
+ * Always dark, in every theme and persona. It uses the fixed `--footer-*`
+ * tokens from globals.css, not `--ink`/`--paper`/`--clay`, which flip in dark
+ * mode. The footer is brand chrome, not page content, so its palette is pinned.
  */
 
 "use client";
@@ -21,21 +17,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
+import { KaribuNewsletterForm } from "@/components/karibu/KaribuNewsletterForm";
+import { FOOTER_EXPLORE, FOOTER_GET_INVOLVED } from "@/components/karibu/footer-links";
 
-const EXPLORE = [
-  { label: "Home", href: "/" },
-  { label: "Events", href: "/events" },
-  { label: "Learn", href: "/resources" },
-  { label: "Showcase", href: "/showcase" },
-  { label: "About", href: "/about" },
-];
+const LINK_CLASS = "transition-colors hover:text-footer-accent";
+const ITEM_CLASS = "flex min-h-11 items-center";
 
 export function KaribuFooter() {
   const links = useSocialLinks();
-  // Only platforms with a resolved URL (DB or constant fallback) render —
-  // an unconfigured platform (e.g. YouTube, GitHub, until set in admin)
-  // is absent from the list entirely, never a dead link.
-  const community = [
+  const socials = [
     { label: "WhatsApp", href: links.whatsapp },
     { label: "Discord", href: links.discord },
     { label: "Twitter / X", href: links.twitter },
@@ -43,12 +33,11 @@ export function KaribuFooter() {
     { label: "Instagram", href: links.instagram },
     { label: "YouTube", href: links.youtube },
     { label: "GitHub", href: links.github },
-  ].filter((l): l is { label: string; href: string } => Boolean(l.href));
+  ].filter((social): social is { label: string; href: string } => Boolean(social.href));
 
   return (
     <footer className="bg-footer-bg text-footer-text">
       <div className="mx-auto grid max-w-[1180px] grid-cols-2 gap-8 px-6 pt-14 md:px-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
-        {/* Brand */}
         <div className="col-span-2 lg:col-span-1">
           <div className="mb-4 flex items-center gap-3">
             <Image
@@ -62,56 +51,48 @@ export function KaribuFooter() {
               Claude Community Kenya
             </span>
           </div>
-          <p className="mb-5 max-w-[320px] font-inter text-[14.5px] leading-relaxed text-footer-text-muted">
-            The free, founder-led community for people in Kenya learning and
-            building with Claude. Karibu.
+          <p className="max-w-[320px] font-inter text-[14.5px] leading-relaxed text-footer-text-muted">
+            An independent, volunteer-run community for people in Kenya learning
+            and building with Claude. Karibu.
           </p>
-          {links.whatsapp && (
-            <a
-              href={links.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-footer-accent-bg px-[22px] py-3 font-inter text-sm font-semibold text-footer-cta-text transition-colors hover:bg-footer-accent-bg-hover"
-            >
-              Join the community
-            </a>
-          )}
         </div>
 
         <FooterColumn title="Explore">
-          {EXPLORE.map((l) => (
-            <Link key={l.href} href={l.href} className="transition-colors hover:text-footer-accent">
-              {l.label}
-            </Link>
+          {FOOTER_EXPLORE.map((link) => (
+            <li key={link.href} className={ITEM_CLASS}>
+              <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
+            </li>
           ))}
         </FooterColumn>
 
-        <FooterColumn title="Community">
-          {community.map((l) => (
-            <a
-              key={l.label}
-              href={l.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-footer-accent"
-            >
-              {l.label}
-            </a>
+        <FooterColumn title="Get involved">
+          {FOOTER_GET_INVOLVED.map((link) => (
+            <li key={link.href} className={ITEM_CLASS}>
+              <Link href={link.href} className={LINK_CLASS}>{link.label}</Link>
+            </li>
           ))}
         </FooterColumn>
 
-        <FooterColumn title="Cities">
-          <span>Nairobi</span>
-          <span>Mombasa</span>
-          <span>Kisumu</span>
+        <FooterColumn title="Follow">
+          {socials.map((social) => (
+            <li key={social.label} className={ITEM_CLASS}>
+              <a href={social.href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+                {social.label}
+              </a>
+            </li>
+          ))}
         </FooterColumn>
+      </div>
+
+      <div className="mx-auto max-w-[1180px] px-6 pt-10 md:px-10">
+        <KaribuNewsletterForm />
       </div>
 
       <div className="mx-auto max-w-[1180px] px-6 pb-9 pt-10 md:px-10">
         <p className="mb-5 max-w-[780px] font-inter text-[12.5px] leading-relaxed text-footer-text-faint">
           Independently operated. Anthropic-supported via the Claude Community
           Ambassadors program (event funding + API credits). Views expressed
-          here are community-held, not official Anthropic positions. &ldquo;Claude&rdquo;
+          here are community-held, not Anthropic&apos;s positions. &ldquo;Claude&rdquo;
           is a trademark of Anthropic PBC.
         </p>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-footer-border pt-6">
@@ -127,21 +108,14 @@ export function KaribuFooter() {
   );
 }
 
-function FooterColumn({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+/** One footer column: a heading over a real list; children are <li> items. */
+function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="mb-3.5 font-inter text-xs font-bold uppercase tracking-[0.14em] text-footer-text-faint">
         {title}
       </div>
-      <div className="flex flex-col gap-2 font-inter text-[14.5px] leading-[2.1] text-footer-text-soft">
-        {children}
-      </div>
+      <ul className="flex flex-col font-inter text-[14.5px] text-footer-text-soft">{children}</ul>
     </div>
   );
 }

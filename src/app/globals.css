@@ -91,7 +91,8 @@
   --footer-text: #E9E0D2;
   --footer-text-soft: #C7BEB0;
   --footer-text-muted: #A79E90;
-  --footer-text-faint: #8A7F6E;
+  /* #8A7F6E measured 4.13:1 on --footer-bg; lightened to 4.84:1, still below --footer-text-muted. */
+  --footer-text-faint: #958B7C;
   --footer-border: #3B352D;
   --footer-accent: #E6906F;
   --footer-accent-bg: #A84E2D;

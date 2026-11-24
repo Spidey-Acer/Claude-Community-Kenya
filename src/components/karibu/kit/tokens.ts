@@ -58,6 +58,7 @@ export const PAIRINGS: Array<[fg: string, bg: string]> = [
   ["#E9E0D2", "#23201B"], // on-panel-dark on panel-dark
   ["#B4A997", "#23201B"], // on-panel-dark-muted on panel-dark
   ["#E6906F", "#23201B"], // clay-light on panel-dark
+  ["#958B7C", "#23201B"], // footer-text-faint on footer-bg (fixed, both themes)
   // Dark theme
   ["#F4EEE3", "#1a1714"], // ink on paper
   ["#F4EEE3", "#221d17"], // ink on paper-card
