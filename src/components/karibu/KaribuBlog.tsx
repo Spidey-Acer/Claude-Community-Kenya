@@ -28,7 +28,7 @@ function FeaturedCard({ post }: { post: BlogPostView }) {
       <p className="mb-5 font-inter text-[13px] text-ink-muted">
         {post.author} · {formatDate(post.date)} · {post.readingTime} min read
       </p>
-      <span className="font-inter text-sm font-semibold text-clay group-hover:underline">Read the post →</span>
+      <span className="font-inter text-sm font-semibold text-clay transition-colors group-hover:text-clay-dark">Read the post</span>
     </Link>
   );
 }
