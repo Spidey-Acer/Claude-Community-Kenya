@@ -150,6 +150,10 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
   if ("response" in guarded) return guarded.response
 
   const { id } = await params
+  // An unknown event id is a 404 with no audit entry, not a "deleted 0" success.
+  const event = await prisma.event.findUnique({ where: { id }, select: { id: true } })
+  if (!event) return fail("Not found", 404)
+
   const { count } = await prisma.eventGuest.deleteMany({ where: { eventId: id } })
   await logAudit({
     userId: guarded.admin.id,

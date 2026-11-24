@@ -44,6 +44,11 @@ describe("purge cron secret", () => {
     expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
   })
 
+  it("returns 401 for a wrong secret of the same length", async () => {
+    expect((await cron("Bearer s3creX")).status).toBe(401)
+    expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
+  })
+
   it("with the right secret deletes and reports a count only", async () => {
     const response = await cron("Bearer s3cret")
     expect(await response.json()).toEqual({ success: true, deleted: 4 })

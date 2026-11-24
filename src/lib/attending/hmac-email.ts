@@ -32,7 +32,7 @@ export function normalizeEmail(email: string): string {
 
 /** Hex HMAC-SHA-256 of the normalised email. Throws MissingHmacKeyError with a missing, blank or short key. */
 export function hmacEmail(email: string): string {
-  const key = process.env.ATTENDING_HMAC_KEY
-  if (!key || key.trim().length < MIN_HMAC_KEY_LENGTH) throw new MissingHmacKeyError()
+  const key = process.env.ATTENDING_HMAC_KEY?.trim()
+  if (!key || key.length < MIN_HMAC_KEY_LENGTH) throw new MissingHmacKeyError()
   return createHmac("sha256", key).update(normalizeEmail(email)).digest("hex")
 }

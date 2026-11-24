@@ -43,6 +43,15 @@ describe("hmacEmail", () => {
     expect(() => hmacEmail("ada@example.com")).toThrow(MissingHmacKeyError)
   })
 
+  it("a key with a trailing newline hashes the same as the trimmed key", () => {
+    const key = "test-key-0123456789-0123456789-abcd"
+    process.env.ATTENDING_HMAC_KEY = key
+    const clean = hmacEmail("ada@example.com")
+    process.env.ATTENDING_HMAC_KEY = `${key}
+`
+    expect(hmacEmail("ada@example.com")).toBe(clean)
+  })
+
   it("fails closed when the key is missing or blank", () => {
     delete process.env.ATTENDING_HMAC_KEY
     expect(() => hmacEmail("ada@example.com")).toThrow(MissingHmacKeyError)

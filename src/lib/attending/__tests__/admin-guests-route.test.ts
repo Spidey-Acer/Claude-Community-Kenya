@@ -239,4 +239,12 @@ describe("guest wipe", () => {
     expect(prisma.eventGuest.deleteMany).toHaveBeenCalledWith({ where: { eventId: EVENT_ID } })
     expect(vi.mocked(logAudit).mock.calls[0][0].changes).toEqual({ deleted: 3 })
   })
+
+  it("an unknown event id gives 404, deletes nothing and writes no audit entry", async () => {
+    vi.mocked(prisma.event.findUnique).mockResolvedValue(null as never)
+    const response = await DELETE(request("DELETE"), context)
+    expect(response.status).toBe(404)
+    expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
+    expect(logAudit).not.toHaveBeenCalled()
+  })
 })
