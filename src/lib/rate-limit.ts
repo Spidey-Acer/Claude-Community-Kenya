@@ -37,6 +37,8 @@ export interface RateLimitConfig {
   maxRequests: number
   windowInSeconds: number
   identifier?: (request: NextRequest) => string
+  /** Upstash analytics (keeps identifiers, e.g. IPs). Defaults to true; set false for privacy-sensitive limits. */
+  analytics?: boolean
 }
 
 export interface RateLimitResult {
@@ -114,7 +116,7 @@ async function redisRateLimit(
         config.maxRequests,
         `${config.windowInSeconds}s`
       ),
-      analytics: true,
+      analytics: config.analytics ?? true,
       // Per-preset prefix: Upstash keys by prefix + identifier + window, so
       // presets sharing a window length would otherwise share one counter.
       prefix: `cck:rl:${config.maxRequests}-${config.windowInSeconds}`,

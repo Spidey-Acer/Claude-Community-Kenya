@@ -266,6 +266,15 @@ describe("lookup limits and fail-closed rules", () => {
   })
 })
 
+describe("lookup limiter analytics", () => {
+  it("both attending limits are spent with analytics off", async () => {
+    await lookup("b1", { email: "x@example.com" }, "198.51.100.77")
+    const configs = vi.mocked(rateLimit).mock.calls.map(([, config]) => config)
+    expect(configs).toHaveLength(2)
+    expect(configs.map((config) => config.analytics)).toEqual([false, false])
+  })
+})
+
 describe("lookup request shape", () => {
   function shaped(headers: Record<string, string>, body = JSON.stringify({ email: "ada@example.com" })) {
     const req = new NextRequest("http://localhost/api/events/open/attending/lookup", {

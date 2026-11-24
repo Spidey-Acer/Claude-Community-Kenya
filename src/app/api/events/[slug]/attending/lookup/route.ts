@@ -28,8 +28,9 @@ import { warnBudgetExhaustedOnce } from "@/lib/attending/warn-once"
 import { ipBucketKey } from "@/lib/attending/ip-bucket"
 import { APPROVED_STATUS } from "@/lib/attending/parse-guest-csv"
 
-const IP_LIMIT = { maxRequests: 20, windowInSeconds: 3600 } as const
-const EVENT_LIMIT = { maxRequests: 600, windowInSeconds: 3600 } as const
+// analytics:false keeps client addresses out of Upstash analytics storage.
+const IP_LIMIT = { maxRequests: 20, windowInSeconds: 3600, analytics: false } as const
+const EVENT_LIMIT = { maxRequests: 600, windowInSeconds: 3600, analytics: false } as const
 const RETRY_AFTER_SECONDS = "3600"
 const UPCOMING_STATUSES = ["UPCOMING", "REGISTRATION_OPEN"]
 
