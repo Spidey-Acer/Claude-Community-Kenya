@@ -12,5 +12,6 @@ export { PostCard } from "./PostCard";
 export { ReportCard } from "./ReportCard";
 export { Field, type FieldControlProps } from "./Field";
 export { EmptyState } from "./EmptyState";
+export { NewTabNote } from "./NewTabNote";
 export * from "./tokens";
 export * from "./event-format";
