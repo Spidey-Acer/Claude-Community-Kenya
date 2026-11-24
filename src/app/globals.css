@@ -400,6 +400,18 @@ body {
   overflow-x: hidden;
 }
 
+/* ─── iOS zoom-on-focus fix ───────────────────────────────────────────────
+ * Safari on iOS zooms the viewport when a focused form control computes to
+ * under 16px. On small screens every input, select and textarea is 16px, so
+ * no form on the site triggers it. Desktop sizes are unchanged. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* ─── Typography ───
  *
  * Terminal Noir's heading defaults. These are unlayered, so they beat the
