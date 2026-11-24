@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { SITE_CONFIG } from "@/lib/constants"
 import { listPublishedConversationsReports } from "@/lib/conversations/queries"
 import { listPublishedRecapCohorts } from "@/lib/impact-lab/public-recap-store"
+import { EmptyState, Masthead, ReportCard, Section } from "@/components/karibu/kit"
 
 /**
  * The index `/reports` was 404ing behind — every published Conversations
@@ -12,8 +12,6 @@ import { listPublishedRecapCohorts } from "@/lib/impact-lab/public-recap-store"
  * published later shows up here without a code change.
  */
 export const dynamic = "force-dynamic"
-
-const WRAP = "mx-auto max-w-[860px] px-6 md:px-10"
 
 /**
  * The one Conversations PDF known to exist in `public/reports/` at the time
@@ -30,23 +28,28 @@ const KNOWN_PDF_FALLBACK = {
 const CONVERSATIONS_INTRO =
   "Claude Conversations is where Kenyans decide what the community builds next: a room, a question, and a result we publish."
 
+const GRID = "grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+
 export const metadata: Metadata = {
   title: "Reports | Claude Community Kenya",
   description: "Published write-ups and results from Claude Community Kenya events.",
   alternates: { canonical: `${SITE_CONFIG.url}/reports` },
 }
 
-function formatDate(iso: string): string {
-  const dt = new Date(iso)
-  return Number.isNaN(dt.getTime())
-    ? iso
-    : dt.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })
+/** Runs a read that may fail (database down); logs and falls back so the page still renders. */
+async function readOrEmpty<T>(label: string, read: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await read()
+  } catch (error) {
+    console.error(`[reports] could not load ${label}`, error)
+    return []
+  }
 }
 
 export default async function ReportsIndexPage() {
   const [conversationsReports, recapCohorts] = await Promise.all([
-    listPublishedConversationsReports(),
-    listPublishedRecapCohorts(),
+    readOrEmpty("conversations reports", listPublishedConversationsReports),
+    readOrEmpty("impact lab recaps", listPublishedRecapCohorts),
   ])
 
   const hasKnownPdf = conversationsReports.some((r) => r.reportUrl === KNOWN_PDF_FALLBACK.reportUrl)
@@ -55,64 +58,51 @@ export default async function ReportsIndexPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Reports" }]} />
+      <Masthead
+        eyebrow="Reports"
+        title="What we published"
+        lead="Write-ups and results from Impact Labs and Claude Conversations, published after each event."
+      />
 
-      <section className={`${WRAP} pb-8 pt-16`}>
-        <div className="mb-3 font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay">
-          Reports
-        </div>
-        <h1 className="font-newsreader text-[32px] font-normal leading-[1.1] tracking-[-0.02em] text-ink sm:text-[42px]">
-          What we published
-        </h1>
-      </section>
-
-      <section className={`${WRAP} pb-14`}>
-        <div id="impact-labs" className="mb-10 scroll-mt-24">
-          <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-            Impact Lab
-          </h2>
+      <div id="impact-labs" className="scroll-mt-24">
+        <Section eyebrow="Impact Lab" title="Impact Lab recaps">
           {recapCohorts.length > 0 ? (
-            <ul className="flex flex-col gap-3">
+            <ul className={GRID}>
               {recapCohorts.map((r) => (
-                <li key={r.cohort} className="rounded-xl border border-sand bg-paper-card p-5">
-                  <Link
+                <li key={r.cohort}>
+                  <ReportCard
+                    kind="recap"
                     href={`/impact-lab/${r.cohort}`}
-                    className="font-newsreader text-[18px] text-ink hover:text-clay"
-                  >
-                    {r.eventName}
-                  </Link>
-                  <p className="mt-1 font-inter text-[12.5px] text-ink-muted">
-                    Published {formatDate(r.publishedAt)}
-                  </p>
+                    title={r.eventName}
+                    date={r.publishedAt}
+                    summary="Results and highlights from this Impact Lab cohort."
+                  />
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="font-inter text-[15px] text-ink-soft">Nothing published yet.</p>
+            <EmptyState title="Nothing published yet." body="Recaps appear here once an Impact Lab cohort publishes its results." />
           )}
-        </div>
+        </Section>
+      </div>
 
-        <div id="conversations" className="scroll-mt-24">
-          <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-            Claude Conversations
-          </h2>
-          <p className="mb-4 font-inter text-[15px] leading-[1.6] text-ink-soft">{CONVERSATIONS_INTRO}</p>
-          <ul className="flex flex-col gap-3">
+      <div id="conversations" className="scroll-mt-24">
+        <Section eyebrow="Claude Conversations" title="Conversations reports" lead={CONVERSATIONS_INTRO}>
+          <ul className={GRID}>
             {conversations.map((r) => (
-              <li key={r.reportUrl} className="rounded-xl border border-sand bg-paper-card p-5">
-                <a
+              <li key={r.reportUrl}>
+                <ReportCard
+                  kind="conversation"
                   href={r.reportUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-newsreader text-[18px] text-ink hover:text-clay"
-                >
-                  {r.eventTitle} →
-                </a>
-                <p className="mt-1 font-inter text-[12.5px] text-ink-muted">{formatDate(r.eventDate)}</p>
+                  title={r.eventTitle}
+                  date={r.eventDate}
+                  summary="The published write-up from this Claude Conversations event (PDF)."
+                />
               </li>
             ))}
           </ul>
-        </div>
-      </section>
+        </Section>
+      </div>
     </>
   )
 }
