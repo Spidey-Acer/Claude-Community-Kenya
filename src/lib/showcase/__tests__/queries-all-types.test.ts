@@ -82,3 +82,12 @@ describe("showcase queries across every type", () => {
     for (const type of SUBMISSION_TYPES) expect(TYPE_LABELS[type]).toBeTruthy()
   })
 })
+
+describe("hot sort raw SQL", () => {
+  it("keeps the approved status filter in the raw query", async () => {
+    queryRaw.mockResolvedValue([])
+    await getShowcasePosts({ sort: "hot" })
+    const sqlObject = queryRaw.mock.calls[0][0] as { sql: string }
+    expect(sqlObject.sql).toContain("status = 'APPROVED'")
+  })
+})
