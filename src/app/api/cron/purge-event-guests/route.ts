@@ -1,0 +1,31 @@
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { guestRetentionCutoff } from "@/lib/attending/retention"
+
+/**
+ * Daily purge of the attending-card guest list: deletes every guest row whose
+ * event was dated more than 2 days ago. The retention clock follows
+ * Event.date, so an edited date moves the deadline with it.
+ *
+ * Fails closed like the other crons: no CRON_SECRET configured means 500, a
+ * missing or wrong Authorization header means 401, and nothing is deleted in
+ * either case. Logs a count only.
+ */
+export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    return NextResponse.json(
+      { success: false, error: "CRON_SECRET is not configured" },
+      { status: 500 },
+    )
+  }
+  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+  }
+
+  const cutoff = guestRetentionCutoff(new Date())
+  const { count } = await prisma.eventGuest.deleteMany({
+    where: { event: { date: { lt: cutoff } } },
+  })
+  return NextResponse.json({ success: true, deleted: count })
+}
