@@ -115,7 +115,7 @@ export function KaribuJoin() {
         </Reveal>
         <p className="mt-4 font-inter text-[13.5px] text-ink-muted">
           Not in these cities?{" "}
-          <Link href="/volunteer" className="font-semibold text-clay hover:underline">
+          <Link href="/get-involved?role=volunteer" className="font-semibold text-clay hover:underline">
             Request a chapter →
           </Link>
         </p>

@@ -16,6 +16,12 @@ describe("public redirects", () => {
     ["/newsletter/issue-1", "/blog"],
     ["/impact-lab", "/reports"],
     ["/conversations", "/reports"],
+    ["/speak", "/get-involved?role=speak"],
+    ["/speak/", "/get-involved?role=speak"],
+    ["/volunteer", "/get-involved?role=volunteer"],
+    ["/volunteer/", "/get-involved?role=volunteer"],
+    ["/submit-idea", "/get-involved?role=idea"],
+    ["/submit-idea/", "/get-involved?role=idea"],
     ["/chat", "/"],
     ["/merch", "/"],
     ["/community/", "/showcase"],
@@ -31,9 +37,14 @@ describe("public redirects", () => {
     expect(resolveRedirect(pathname)).toBe("/showcase/submit")
   })
 
+  it("a query string does not stop /speak redirecting", () => {
+    const { pathname } = new URL("/speak/?utm=x", "https://example.test")
+    expect(resolveRedirect(pathname)).toBe("/get-involved?role=speak")
+  })
+
   it("leaves kept routes alone", () => {
     for (const p of ["/events/x", "/blog/y", "/showcase/z", "/conversations/abc", "/impact-lab/cohort-1", "/resources/claude-code",
-      "/projects", "/speak", "/volunteer", "/submit-idea", "/team", "/resources/links"]) {
+      "/projects", "/team", "/resources/links"]) {
       expect(resolveRedirect(p)).toBeNull()
     }
   })

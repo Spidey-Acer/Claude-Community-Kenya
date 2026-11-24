@@ -87,7 +87,7 @@ const contributeCards = [
     title: "Speak at a meetup",
     description:
       "Have a Claude project to share? Give a lightning talk or full presentation at one of our events.",
-    href: "/speak",
+    href: "/get-involved?role=speak",
   },
   {
     icon: Handshake,

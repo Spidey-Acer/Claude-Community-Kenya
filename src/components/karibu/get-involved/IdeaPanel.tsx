@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KaribuSubmitIdea — warm-light "Submit an idea" page.
+ * IdeaPanel — "Submit an idea" panel on /get-involved.
  *
  * Same submission contract as the Terminal Noir SubmitIdeaPage (CSRF token,
  * POST /api/ideas/submit, field-level errors, all fields preserved) — only
@@ -35,7 +35,7 @@ const inputCls = (hasError?: string) =>
     hasError ? "border-error/60" : "border-sand-2"
   } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
 
-export function KaribuSubmitIdea() {
+export function IdeaPanel() {
   const [isPending, startTransition] = useTransition();
   const [csrfToken, setCsrfToken] = useState("");
   const [submitted, setSubmitted] = useState(false);

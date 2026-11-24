@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KaribuVolunteer — warm-light volunteer application page.
+ * VolunteerPanel — volunteer application panel on /get-involved.
  *
  * Same submission contract as the Terminal Noir VolunteerPage (CSRF token via
  * /api/csrf-token, POST /api/volunteer/apply, field-level errors, success
@@ -77,7 +77,7 @@ function CharCount({ value, max }: { value: string; max: number }) {
   );
 }
 
-export function KaribuVolunteer() {
+export function VolunteerPanel() {
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
