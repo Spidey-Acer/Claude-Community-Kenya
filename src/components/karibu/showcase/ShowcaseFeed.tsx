@@ -89,7 +89,7 @@ export function ShowcaseFeed({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <p className="font-inter text-[14px] text-ink-muted">
               Sharing an MCP, prompt or workflow?{" "}
-              <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
+              <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
                 That lives in Tools &amp; Prompts
               </Link>
             </p>

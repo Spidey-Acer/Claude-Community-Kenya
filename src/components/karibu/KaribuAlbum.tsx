@@ -54,7 +54,7 @@ export function KaribuAlbum({
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Album header">
         <Reveal>
           <Link
-            href="/gallery"
+            href="/events"
             className="mb-5 inline-flex items-center gap-1.5 font-inter text-[13px] font-medium text-ink-muted transition-colors hover:text-clay"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />

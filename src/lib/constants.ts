@@ -26,7 +26,6 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     href: "/events",
     children: [
       { label: "All Events", href: "/events", description: "Upcoming meetups, workshops, and past recaps." },
-      { label: "Gallery", href: "/gallery", description: "Photos from every meetup we've hosted." },
     ],
   },
   {
@@ -35,7 +34,6 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     children: [
       { label: "Resources", href: "/resources", description: "Guides for Claude Code, the API, and production." },
       { label: "Blog", href: "/blog", description: "Posts from the community and organizers." },
-      { label: "Newsletter", href: "/newsletter", description: "Past digests + subscribe." },
       { label: "FAQ", href: "/faq", description: "Common questions about CCK." },
     ],
   },
@@ -47,7 +45,7 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     // renaming this one, since /join if that were the copy already exists on
     // its own href for the join flow.
     label: "Tools & Prompts",
-    href: "/community",
+    href: "/showcase",
     children: [
       { label: "Showcase", href: "/showcase", description: "What members are building right now — share yours." },
       { label: "Projects", href: "/projects", description: "Selected work from across the community." },
@@ -78,13 +76,10 @@ export const FOOTER_SECTIONS = [
     links: [
       { label: "Home", href: "/" },
       { label: "Events", href: "/events" },
-      { label: "Gallery", href: "/gallery" },
       { label: "Projects", href: "/projects" },
       { label: "Showcase", href: "/showcase" },
       { label: "Blog", href: "/blog" },
-      { label: "Newsletter", href: "/newsletter" },
       { label: "FAQ", href: "/faq" },
-      { label: "Merch", href: "/merch" },
     ],
   },
   {

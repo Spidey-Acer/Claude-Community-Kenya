@@ -509,8 +509,8 @@ function FacesOfTheCommunity() {
               The rooms we&apos;ve <span className="italic text-clay">filled.</span>
             </h2>
           </div>
-          <Link href="/gallery" className="font-inter text-[14.5px] font-semibold text-clay hover:underline">
-            See all photos →
+          <Link href="/events" className="font-inter text-[14.5px] font-semibold text-clay hover:underline">
+            See all events →
           </Link>
         </div>
         <PhotoGrid photos={FACES_PHOTOS} columns={4} />

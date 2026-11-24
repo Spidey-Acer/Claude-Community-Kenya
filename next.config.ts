@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { PUBLIC_REDIRECTS } from "./src/lib/redirects"
 
 const CARD_ASSETS = ["./public/fonts/**", "./public/images/buildday/**"]
 
@@ -59,6 +60,9 @@ const nextConfig: NextConfig = {
       },
     ],
     formats: ["image/avif", "image/webp"],
+  },
+  async redirects() {
+    return [...PUBLIC_REDIRECTS]
   },
   async headers() {
     return [

@@ -158,7 +158,7 @@ export function KaribuEventDetail({
       )}
 
       {/* Photos */}
-      {photos.length > 0 && <PhotoStrip photos={photos} eventSlug={event.slug} />}
+      {photos.length > 0 && <PhotoStrip photos={photos} />}
 
       {/* Scheduled demos */}
       {approvedDemos.length > 0 && (
@@ -455,7 +455,7 @@ export function KaribuEventDetail({
 
 /* ─────────────────────────── Photo strip ─────────────────────────── */
 
-function PhotoStrip({ photos, eventSlug }: { photos: PhotoView[]; eventSlug: string }) {
+function PhotoStrip({ photos }: { photos: PhotoView[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const preview = photos.slice(0, 9);
   const hasMore = photos.length > preview.length;
@@ -466,12 +466,6 @@ function PhotoStrip({ photos, eventSlug }: { photos: PhotoView[]; eventSlug: str
         <h2 className="font-newsreader text-[24px] font-medium text-ink">
           Photos from this event
         </h2>
-        <Link
-          href={`/gallery?event=${encodeURIComponent(eventSlug)}`}
-          className="shrink-0 font-inter text-[13px] font-semibold text-clay hover:underline"
-        >
-          See all →
-        </Link>
       </div>
       <ul className="grid grid-cols-3 gap-2 md:gap-3" role="list">
         {preview.map((photo, i) => {
