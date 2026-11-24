@@ -9,7 +9,9 @@
 import React from "react";
 import Link from "next/link";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { BTN_OUTLINE, EYEBROW, Masthead, PostCard, WRAP } from "@/components/karibu/kit";
+import { ArrowLeft } from "lucide-react";
+import { BTN_OUTLINE, EYEBROW, Masthead, NewTabNote, PostCard, WRAP } from "@/components/karibu/kit";
+import { isBlockquote, parseImageBlock, stripBlockquote, tokenizeInline, type InlineToken } from "@/lib/blog-markdown";
 import { CopyLinkButton } from "./CopyLinkButton";
 import { formatDate } from "@/lib/utils";
 import type { BlogPostView } from "@/lib/data";
@@ -18,61 +20,59 @@ const BODY = "text-ink-soft";
 
 // ─── Inline markdown renderer ────────────────────────────────────────────────
 
-function renderInlineMarkdown(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  let remaining = text;
-  let keyIndex = 0;
+const INLINE_LINK = "font-semibold text-clay hover:text-clay-dark";
 
-  while (remaining.length > 0) {
-    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-    const codeMatch = remaining.match(/`([^`]+)`/);
-    const linkMatch = remaining.match(/\[([^\]]+)\]\(([^)]+)\)/);
-
-    const matches = [
-      boldMatch ? { type: "bold" as const, index: boldMatch.index!, match: boldMatch } : null,
-      codeMatch ? { type: "code" as const, index: codeMatch.index!, match: codeMatch } : null,
-      linkMatch ? { type: "link" as const, index: linkMatch.index!, match: linkMatch } : null,
-    ]
-      .filter(Boolean)
-      .sort((a, b) => a!.index - b!.index);
-
-    if (matches.length === 0) {
-      parts.push(remaining);
-      break;
-    }
-
-    const first = matches[0]!;
-    if (first.index > 0) parts.push(remaining.slice(0, first.index));
-
-    if (first.type === "bold") {
-      parts.push(
-        <strong key={keyIndex++} className="font-semibold text-ink">
-          {first.match[1]}
+/** Renders one inline token; targets were already vetted by `tokenizeInline`. */
+function renderInlineToken(token: InlineToken, key: number): React.ReactNode {
+  switch (token.type) {
+    case "bold":
+      return (
+        <strong key={key} className="font-semibold text-ink">
+          {token.text}
         </strong>
       );
-    } else if (first.type === "code") {
-      parts.push(
-        <code key={keyIndex++} className="rounded border border-sand bg-paper-alt px-1.5 py-0.5 font-mono text-[13px] text-ink">
-          {first.match[1]}
+    case "code":
+      return (
+        <code key={key} className="rounded border border-sand bg-paper-alt px-1.5 py-0.5 font-mono text-[13px] text-ink">
+          {token.text}
         </code>
       );
-    } else {
-      parts.push(
+    case "link": {
+      const external = /^https?:/i.test(token.href);
+      return (
         <a
-          key={keyIndex++}
-          href={first.match[2]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-clay underline underline-offset-4 transition-colors hover:text-ink"
+          key={key}
+          href={token.href}
+          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          className={INLINE_LINK}
         >
-          {first.match[1]}
+          {token.text}
+          {external && <NewTabNote />}
         </a>
       );
     }
-    remaining = remaining.slice(first.index + first.match[0].length);
+    case "image":
+      return <ImageBlock key={key} alt={token.alt} src={token.src} />;
+    default:
+      return token.text;
   }
+}
 
-  return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
+/** A post image with its alt text shown as a caption. */
+function ImageBlock({ alt, src }: { alt: string; src: string }) {
+  return (
+    <span className="my-6 block">
+      {/* eslint-disable-next-line @next/next/no-img-element -- author-supplied remote or relative source */}
+      <img src={src} alt={alt} loading="lazy" className="w-full rounded-xl border border-sand" />
+      {alt && <span className="mt-2 block font-inter text-[13px] text-ink-muted">{alt}</span>}
+    </span>
+  );
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode {
+  const tokens = tokenizeInline(text);
+  if (tokens.length === 1 && tokens[0].type === "text") return tokens[0].text;
+  return tokens.map(renderInlineToken);
 }
 
 // ─── Block renderer ──────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function renderListBlock(lines: string[], ordered: boolean, index: number): Reac
   return (
     <List key={index} className={`my-4 space-y-2 pl-5 ${ordered ? "list-decimal" : "list-disc"} marker:text-clay`}>
       {items.map((line, i) => (
-        <li key={i} className={BODY}>
+        <li key={i} className={`font-inter text-[16px] leading-[1.7] ${BODY}`}>
           {renderInlineMarkdown(line.trim().replace(strip, ""))}
         </li>
       ))}
@@ -112,6 +112,23 @@ function renderContent(content: string): React.ReactNode[] {
         <h3 key={index} className="mb-3 mt-6 font-inter text-[20px] font-semibold text-ink">
           {trimmed.slice(4)}
         </h3>
+      );
+    }
+
+    const imageBlock = parseImageBlock(trimmed);
+    if (imageBlock) {
+      return (
+        <figure key={index}>
+          <ImageBlock alt={imageBlock.alt} src={imageBlock.src} />
+        </figure>
+      );
+    }
+
+    if (isBlockquote(trimmed)) {
+      return (
+        <blockquote key={index} className="my-6 border-l-2 border-clay pl-5 font-inter text-[16px] italic leading-[1.7] text-ink-soft">
+          {renderInlineMarkdown(stripBlockquote(trimmed))}
+        </blockquote>
       );
     }
 
@@ -162,8 +179,12 @@ export function BlogPostContent({ post, relatedPosts, twitterShareUrl, linkedinS
   return (
     <>
       <div className={`${WRAP} pt-10`}>
-        <Link href="/blog" className="font-inter text-[13px] text-ink-muted hover:text-clay">
-          ← Back to Blog
+        <Link
+          href="/blog"
+          className="inline-flex min-h-11 items-center gap-2 font-inter text-[13px] text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          Back to Blog
         </Link>
       </div>
 
@@ -179,8 +200,8 @@ export function BlogPostContent({ post, relatedPosts, twitterShareUrl, linkedinS
 
       <div className={`${WRAP} pb-12`}>
         <Reveal>
-          <article className="mx-auto max-w-3xl rounded-2xl border border-sand bg-paper-card px-8 py-10 md:px-12">
-            <div>{renderContent(post.content)}</div>
+          <article className="rounded-2xl border border-sand bg-paper-card px-8 py-10 md:px-12">
+            <div className="max-w-[68ch]">{renderContent(post.content)}</div>
 
             {post.tags.length > 0 && (
               <ul className="mt-8 flex flex-wrap gap-2 border-t border-sand pt-6" aria-label="Tags">
@@ -197,9 +218,11 @@ export function BlogPostContent({ post, relatedPosts, twitterShareUrl, linkedinS
               <div className="flex flex-wrap gap-3">
                 <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
                   Twitter / X
+                  <NewTabNote />
                 </a>
                 <a href={linkedinShareUrl} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
                   LinkedIn
+                  <NewTabNote />
                 </a>
                 <CopyLinkButton url={postUrl} />
               </div>

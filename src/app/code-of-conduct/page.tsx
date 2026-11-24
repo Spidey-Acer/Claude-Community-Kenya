@@ -19,9 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function CodeOfConductPage() {
-  return (
-    <main className="min-h-screen bg-bg-primary">
-      <CodeOfConductContent />
-    </main>
-  );
+  return <CodeOfConductContent />;
 }

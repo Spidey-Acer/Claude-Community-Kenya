@@ -4,7 +4,7 @@
  */
 
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead, WRAP } from "@/components/karibu/kit";
+import { Masthead, NewTabNote, WRAP } from "@/components/karibu/kit";
 import { CONTACT } from "@/lib/constants";
 
 const expectedBehaviors = [
@@ -34,7 +34,7 @@ const enforcementSteps = [
 const H2_CLASS = "mb-3 mt-8 font-newsreader text-[24px] font-medium text-ink";
 const BODY_CLASS = "font-inter text-[15.5px] leading-[1.7] text-ink-soft";
 const LIST_CLASS = `list-inside list-disc space-y-2 marker:text-clay ${BODY_CLASS}`;
-const LINK_CLASS = "text-clay underline underline-offset-2 hover:text-ink";
+const LINK_CLASS = "font-semibold text-clay hover:text-clay-dark";
 
 export function CodeOfConductContent() {
   return (
@@ -43,7 +43,8 @@ export function CodeOfConductContent() {
 
       <section className={`${WRAP} pb-20`}>
         <Reveal>
-          <article className="mx-auto max-w-3xl rounded-2xl border border-sand bg-paper-card p-8 md:p-12">
+          <article className="rounded-2xl border border-sand bg-paper-card p-8 md:p-12">
+            <div className="max-w-[68ch]">
             <div className="mb-8">
               <h2 className={`${H2_CLASS} mt-0`}>Our Pledge</h2>
               <p className={BODY_CLASS}>
@@ -131,9 +132,11 @@ export function CodeOfConductContent() {
                   className={LINK_CLASS}
                 >
                   Contributor Covenant
+                  <NewTabNote />
                 </a>
                 , version 2.1
               </p>
+            </div>
             </div>
           </article>
         </Reveal>
