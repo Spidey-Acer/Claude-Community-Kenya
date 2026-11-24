@@ -1,11 +1,16 @@
 // Tests for the admin guest-list routes (POST merge/replace, DELETE wipe).
 // Real rbac, CSRF and rate-limit run; only the session, database and audit
 // writer are mocked, so a guard that stopped guarding would fail a test here.
+// next/headers is mocked to hand rbac the request's own headers, because
+// checkApiPermission reads the Authorization header (service-token path).
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { NextRequest } from "next/server"
 
+const headersMock = vi.hoisted(() => vi.fn())
+
 vi.mock("@/auth", () => ({ auth: vi.fn() }))
+vi.mock("next/headers", () => ({ headers: headersMock }))
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -38,9 +43,19 @@ function signIn(role: string) {
   } as never)
 }
 
-function request(method: "POST" | "DELETE", body?: unknown, csrf = true): NextRequest {
+const SERVICE_TOKEN = "a".repeat(64)
+
+function request(
+  method: "POST" | "DELETE",
+  body?: unknown,
+  csrf = true,
+  authorization?: string,
+): NextRequest {
   const headers: Record<string, string> = { "content-type": "application/json" }
   if (csrf) headers["x-csrf-token"] = generateCsrfToken()
+  if (authorization) headers.authorization = authorization
+  // rbac calls headers() from next/headers; give it this request's headers.
+  headersMock.mockResolvedValue(new Headers(headers))
   return new NextRequest(`http://localhost/api/admin/events/${EVENT_ID}/guests`, {
     method,
     headers,
@@ -64,6 +79,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.ATTENDING_HMAC_KEY
+  delete process.env.CCK_SERVICE_TOKEN
 })
 
 describe("guest upload guards", () => {
@@ -246,5 +262,71 @@ describe("guest wipe", () => {
     expect(response.status).toBe(404)
     expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
     expect(logAudit).not.toHaveBeenCalled()
+  })
+})
+
+describe("service token against the guest routes (real rbac and csrf)", () => {
+  const bearer = `Bearer ${SERVICE_TOKEN}`
+
+  beforeEach(() => {
+    process.env.CCK_SERVICE_TOKEN = SERVICE_TOKEN
+  })
+
+  it("a valid bearer passes without a CSRF token and without a session (events:edit is allowed)", async () => {
+    vi.mocked(auth).mockResolvedValue(null as never)
+    const response = await POST(request("POST", validBody, false, bearer), context)
+    expect(response.status).toBe(200)
+    expect(auth).not.toHaveBeenCalled()
+    expect(vi.mocked(logAudit).mock.calls[0][0].userId).toBe("mcp-service")
+  })
+
+  it("a valid bearer may replace and wipe (events:edit and events:delete are allowed)", async () => {
+    const replace = await POST(request("POST", { ...validBody, mode: "replace" }, false, bearer), context)
+    expect(replace.status).toBe(200)
+    expect(prisma.eventGuest.deleteMany).toHaveBeenCalledWith({ where: { eventId: EVENT_ID } })
+    const wipe = await DELETE(request("DELETE", undefined, false, bearer), context)
+    expect(wipe.status).toBe(200)
+    expect(await wipe.json()).toEqual({ success: true, deleted: 3 })
+  })
+
+  it("the per-user rate limit still applies, keyed on the fixed id mcp-service", async () => {
+    const statuses: number[] = []
+    for (let i = 0; i < 11; i++) {
+      statuses.push((await POST(request("POST", validBody, false, bearer), context)).status)
+    }
+    expect(statuses.filter((status) => status === 200).length).toBeLessThanOrEqual(10)
+    expect(statuses[statuses.length - 1]).toBe(429)
+  })
+
+  it("a wrong bearer is a 401 and never falls back to a valid admin cookie session", async () => {
+    signIn("SUPER_ADMIN")
+    const wrong = `Bearer ${"b".repeat(64)}`
+    expect((await POST(request("POST", validBody, true, wrong), context)).status).toBe(401)
+    expect((await DELETE(request("DELETE", undefined, true, wrong), context)).status).toBe(401)
+    expect(auth).not.toHaveBeenCalled()
+    expect(prisma.eventGuest.createMany).not.toHaveBeenCalled()
+    expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("a wrong bearer without a CSRF token is refused at the CSRF gate (403)", async () => {
+    const wrong = `Bearer ${"b".repeat(64)}`
+    expect((await POST(request("POST", validBody, false, wrong), context)).status).toBe(403)
+  })
+
+  it("a malformed bearer is a 401 even with a valid session", async () => {
+    expect((await POST(request("POST", validBody, true, "Bearer "), context)).status).toBe(401)
+    expect(auth).not.toHaveBeenCalled()
+  })
+
+  it("an admin session with a CSRF token still works", async () => {
+    const response = await POST(request("POST", validBody), context)
+    expect(response.status).toBe(200)
+    expect(auth).toHaveBeenCalledTimes(1)
+  })
+
+  it("an admin session without a CSRF token is still refused", async () => {
+    expect((await POST(request("POST", validBody, false), context)).status).toBe(403)
+    expect((await DELETE(request("DELETE", undefined, false), context)).status).toBe(403)
+    expect(prisma.eventGuest.createMany).not.toHaveBeenCalled()
   })
 })
