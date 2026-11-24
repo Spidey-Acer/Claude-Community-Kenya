@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KaribuFaq — warm-light FAQ page for the Karibu identity.
+ * KaribuFaq: the FAQ page on the page kit.
  *
  * Preserves every question/answer from src/data/faq.ts, grouped by category,
  * plus a search box, a floating "Ask on Discord" CTA, and a closing
@@ -15,12 +15,11 @@ import { MessageSquare, Search, X } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { PageBanner } from "@/components/karibu/PageBanner";
+import Image from "next/image";
+import { BTN_PRIMARY, Masthead, WRAP } from "@/components/karibu/kit";
 import { CtaBand } from "@/components/karibu/CtaBand";
 import { FaqAccordion } from "@/components/karibu/FaqAccordion";
 import type { FAQ } from "@/data/faq";
-
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
 export interface FaqCategory {
   key: string;
@@ -79,12 +78,20 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
 
   return (
     <>
-      <PageBanner
-        image="/images/community/mic-question.webp"
-        imageAlt="A member asking a question at a CCK event"
-        crumbs={["Home", "FAQ"]}
+      <Masthead
+        eyebrow="FAQ"
         title="Questions, answered."
-        subtitle="Everything you need to know about Claude Community Kenya — who we are, how our events work, and getting started with Claude."
+        lead="Everything you need to know about Claude Community Kenya: who we are, how our events work, and getting started with Claude."
+        media={
+          <Image
+            src="/images/community/mic-question.webp"
+            alt="A member asking a question at a CCK event"
+            fill
+            priority
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="object-cover"
+          />
+        }
       />
 
       {/* Search */}
@@ -95,12 +102,15 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
               className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
               aria-hidden="true"
             />
+            <label htmlFor="faq-search" className="sr-only">
+              Search FAQ
+            </label>
             <input
+              id="faq-search"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search questions..."
-              aria-label="Search FAQ"
               className="w-full rounded-full border border-sand bg-paper-card px-11 py-3.5 font-inter text-[15px] text-ink placeholder:text-ink-muted focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay/30"
             />
             {query && (
@@ -167,7 +177,7 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
         <Reveal>
           <div className="rounded-[18px] bg-panel-dark p-8 text-center text-on-panel-dark sm:p-12">
             <h2 className="mb-3 font-newsreader text-[30px] text-on-panel-dark">Still have questions?</h2>
-            <p className="mx-auto mb-8 max-w-lg font-inter text-[15px] leading-[1.6] text-[#A79E90]">
+            <p className="mx-auto mb-8 max-w-lg font-inter text-[15px] leading-[1.6] text-on-panel-dark-muted">
               Can&apos;t find what you&apos;re looking for? Reach out to us directly.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
@@ -176,14 +186,14 @@ export function KaribuFaq({ faqs, categories }: { faqs: FAQ[]; categories: FaqCa
                   href={discord}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3.5 font-inter text-[15px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+                  className={BTN_PRIMARY}
                 >
                   Ask on Discord <span aria-hidden="true">→</span>
                 </a>
               )}
               <a
                 href={`mailto:${CONTACT.email}`}
-                className="inline-flex items-center gap-2 rounded-full border border-[#3B352D] px-6 py-3.5 font-inter text-[15px] font-semibold text-on-panel-dark transition-colors hover:border-clay-light hover:text-clay-light"
+                className="inline-flex items-center gap-2 rounded-full border border-on-panel-dark-muted/40 px-6 py-3.5 font-inter text-[15px] font-semibold text-on-panel-dark transition-colors hover:border-clay-light hover:text-clay-light"
               >
                 Email us <span aria-hidden="true">→</span>
               </a>
