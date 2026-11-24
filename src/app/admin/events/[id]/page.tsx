@@ -6,6 +6,7 @@ import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { ArrowLeft, Edit, ExternalLink, Calendar, MapPin, Clock, Users } from "lucide-react"
 import { DeleteEventButton } from "@/components/admin/DeleteEventButton"
+import { GuestListUpload } from "@/components/admin/GuestListUpload"
 
 export const dynamic = "force-dynamic"
 
@@ -141,6 +142,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                 </ol>
               </div>
             )}
+
+            {/* Attending card guest list (hashed emails, expires 2 days after the event) */}
+            <GuestListUpload eventId={event.id} eventTitle={event.title} />
           </div>
 
           {/* Sidebar */}
