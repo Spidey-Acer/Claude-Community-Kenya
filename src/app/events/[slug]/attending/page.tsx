@@ -12,6 +12,7 @@ import { getEventBySlug } from "@/lib/data"
 import { isEventPast } from "@/lib/event-dates"
 import { SITE_CONFIG } from "@/lib/constants"
 import { buildInfoLine, formatCardDate } from "@/lib/attending/card-layout"
+import { DISPLAY_FONT_CLASS } from "@/lib/attending/display-font"
 import { AttendingFlow } from "@/components/karibu/attending/AttendingFlow"
 
 // Upcoming status is checked per request, never from a cached render.
@@ -36,7 +37,7 @@ export default async function AttendingPage({ params }: { params: Promise<{ slug
     <div className="px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-2">
-          <h1 className="font-newsreader text-[32px] text-ink">I&rsquo;m attending {event.title}</h1>
+          <h1 className={`${DISPLAY_FONT_CLASS} text-[32px] text-ink`}>I&rsquo;m attending {event.title}</h1>
           <p className="font-inter text-[15px] leading-[1.6] text-ink-soft">{NOTICE}</p>
         </header>
         <AttendingFlow

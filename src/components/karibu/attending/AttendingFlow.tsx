@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { CARD_SIZES, MAX_NAME_LENGTH, buildCaption, type CardContent, type CardSize, type PhotoTransform } from "@/lib/attending/card-layout"
 import { decodePhoto, drawCard, loadCardFonts, renderCardBlob, type CardFonts } from "@/lib/attending/compose-card"
+import { DISPLAY_FONT_CLASS } from "@/lib/attending/display-font"
 import { LookupForm } from "./LookupForm"
 import { ShareButtons } from "./ShareButtons"
 
@@ -48,8 +49,14 @@ export function AttendingFlow(props: AttendingFlowProps) {
       display: getComputedStyle(displayProbe.current!).fontFamily || "serif",
       body: getComputedStyle(bodyProbe.current!).fontFamily || "sans-serif",
     }
-    loadCardFonts(resolved).then(() => setFonts(resolved))
+    // A failed font load still lets the card draw, with the fallback faces.
+    loadCardFonts(resolved)
+      .catch(() => undefined)
+      .then(() => setFonts(resolved))
   }, [found])
+
+  // Free the decoded bitmap when it is replaced and when the component unmounts.
+  useEffect(() => () => photo?.close(), [photo])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -72,7 +79,10 @@ export function AttendingFlow(props: AttendingFlowProps) {
   }
 
   const getCardBlob = useCallback(
-    () => renderCardBlob(size, content, fonts!, photo, transform),
+    () => {
+      if (!fonts) return Promise.reject(new Error("Card fonts are not ready"))
+      return renderCardBlob(size, content, fonts, photo, transform)
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `content` is rebuilt from the listed fields every render
     [size, eventTitle, name, infoLine, eventUrl, fonts, photo, transform],
   )
@@ -81,7 +91,7 @@ export function AttendingFlow(props: AttendingFlowProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-      <span ref={displayProbe} className="sr-only font-serif" aria-hidden>.</span>
+      <span ref={displayProbe} className={`sr-only ${DISPLAY_FONT_CLASS}`} aria-hidden>.</span>
       <span ref={bodyProbe} className="sr-only font-inter" aria-hidden>.</span>
       <div className="space-y-5">
         <p className="font-inter text-[15px] text-ink">Found you. Make your card.</p>

@@ -10,6 +10,7 @@
 
 import { useState, useSyncExternalStore } from "react"
 import { Download, Linkedin, Copy, Share2 } from "lucide-react"
+import { isShareCancelled } from "@/lib/attending/share-outcome"
 
 interface ShareButtonsProps {
   /** Renders the card at the chosen size and returns the PNG. */
@@ -19,6 +20,8 @@ interface ShareButtonsProps {
 }
 
 const FILE_NAME = "claude-community-attending.png"
+const IMAGE_ERROR = "We could not make the image. Try another photo."
+const REVOKE_DELAY_MS = 1000
 const BUTTON =
   "inline-flex items-center gap-2 rounded-full border border-sand-2 bg-paper-card px-5 py-2.5 font-inter text-[13.5px] font-semibold text-ink transition-colors hover:border-ink"
 
@@ -38,21 +41,33 @@ export function ShareButtons({ getCardBlob, caption, eventUrl }: ShareButtonsPro
   const [status, setStatus] = useState<string | null>(null)
 
   async function download() {
-    const url = URL.createObjectURL(await getCardBlob())
-    const link = document.createElement("a")
-    link.href = url
-    link.download = FILE_NAME
-    link.click()
-    URL.revokeObjectURL(url)
+    try {
+      const url = URL.createObjectURL(await getCardBlob())
+      const link = document.createElement("a")
+      link.href = url
+      link.download = FILE_NAME
+      link.click()
+      // Some browsers start the save after click() returns; revoke late.
+      setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS)
+    } catch {
+      setStatus(IMAGE_ERROR)
+      return
+    }
     setStatus("Card downloaded. Attach it to your LinkedIn post.")
   }
 
   async function shareSheet() {
-    const file = new File([await getCardBlob()], FILE_NAME, { type: "image/png" })
+    let file: File
+    try {
+      file = new File([await getCardBlob()], FILE_NAME, { type: "image/png" })
+    } catch {
+      setStatus(IMAGE_ERROR)
+      return
+    }
     try {
       await navigator.share({ files: [file], text: caption })
-    } catch {
-      setStatus("Sharing was cancelled.")
+    } catch (error) {
+      setStatus(isShareCancelled(error) ? "Sharing was cancelled." : IMAGE_ERROR)
     }
   }
 
