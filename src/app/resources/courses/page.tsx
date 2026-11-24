@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { TerminalWindow, ScrollReveal } from "@/components/terminal";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
+import { Reveal } from "@/components/karibu/motion/Reveal";
+import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
   title: "Courses & Learning Paths | Claude Community Kenya",
@@ -118,7 +117,7 @@ export default function CoursesPage() {
       {/* Back link */}
       <Link
         href="/resources"
-        className="inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
+        className="inline-flex items-center gap-2 font-mono text-sm text-ink-muted transition-colors hover:text-clay"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Resources
@@ -126,40 +125,30 @@ export default function CoursesPage() {
 
       {/* Header */}
       <section className="py-16">
-        <PersonaHeading
-          page="courses"
-          section="hero"
-          as="h1"
-          className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-        />
-        <PersonaText
-          page="courses"
-          section="hero"
-          field="subtitle"
-          className="mt-4 max-w-2xl text-lg text-text-secondary"
-        />
-        <div className="mt-6 border border-border-default bg-bg-card p-4">
-          <p className="font-mono text-sm text-amber">REQUIREMENTS:</p>
-          <ul className="mt-2 space-y-1 text-sm text-text-secondary">
+        <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">Learning Paths</h1>
+        <p className="mt-4 max-w-2xl text-lg text-ink-soft">Free structured courses from Anthropic. Complete them in order for the best learning experience — or jump to the topic you need.</p>
+        <div className="mt-6 border border-sand bg-paper-card p-4">
+          <p className="font-mono text-sm text-clay-dark">REQUIREMENTS:</p>
+          <ul className="mt-2 space-y-1 text-sm text-ink-soft">
             <li>
-              <span className="font-mono text-green-primary">PYTHON</span> —
+              <span className="font-mono text-clay">PYTHON</span> —
               Basic Python knowledge
             </li>
             <li>
-              <span className="font-mono text-green-primary">API_KEY</span> —
+              <span className="font-mono text-clay">API_KEY</span> —
               An Anthropic API key (
               <a
                 href="https://console.anthropic.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-cyan hover:underline"
+                className="text-ink-soft hover:underline"
               >
                 get one here
               </a>
               )
             </li>
             <li>
-              <span className="font-mono text-green-primary">JUPYTER</span> —
+              <span className="font-mono text-clay">JUPYTER</span> —
               Jupyter Notebook or Google Colab
             </li>
           </ul>
@@ -169,8 +158,8 @@ export default function CoursesPage() {
       {/* Course List */}
       <section className="space-y-8">
         {courses.map((course) => (
-          <ScrollReveal key={course.number}>
-            <TerminalWindow
+          <Reveal key={course.number}>
+            <GuideBlock
               title={`course-${course.number}.md`}
               variant="default"
             >
@@ -178,10 +167,10 @@ export default function CoursesPage() {
                 {/* Course header */}
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <span className="font-mono text-xs text-text-dim">
+                    <span className="font-mono text-xs text-ink-muted">
                       COURSE {course.number} OF 5
                     </span>
-                    <h2 className="mt-1 font-mono text-lg font-bold text-amber">
+                    <h2 className="mt-1 font-mono text-lg font-bold text-clay-dark">
                       {course.title}
                     </h2>
                   </div>
@@ -189,7 +178,7 @@ export default function CoursesPage() {
                     href={course.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex shrink-0 items-center gap-1.5 border border-green-primary px-3 py-1.5 font-mono text-xs text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
+                    className="flex shrink-0 items-center gap-1.5 border border-clay px-3 py-1.5 font-mono text-xs text-clay transition-all duration-200 hover:bg-clay hover:text-paper-card"
                   >
                     START
                     <ExternalLink className="h-3 w-3" />
@@ -197,18 +186,18 @@ export default function CoursesPage() {
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-text-secondary leading-relaxed">
+                <p className="text-sm text-ink-soft leading-relaxed">
                   {course.description}
                 </p>
 
                 {/* Meta */}
-                <div className="flex flex-wrap gap-4 text-xs text-text-dim">
+                <div className="flex flex-wrap gap-4 text-xs text-ink-muted">
                   <span>
-                    <span className="font-mono text-green-primary">FORMAT</span>{" "}
+                    <span className="font-mono text-clay">FORMAT</span>{" "}
                     {course.format}
                   </span>
                   <span>
-                    <span className="font-mono text-green-primary">
+                    <span className="font-mono text-clay">
                       PREREQS
                     </span>{" "}
                     {course.prereqs}
@@ -216,14 +205,14 @@ export default function CoursesPage() {
                 </div>
 
                 {/* Topics */}
-                <div className="border-t border-border-default pt-3">
-                  <p className="mb-2 font-mono text-xs text-cyan">
+                <div className="border-t border-sand pt-3">
+                  <p className="mb-2 font-mono text-xs text-ink-soft">
                     TOPICS COVERED:
                   </p>
-                  <ul className="grid grid-cols-1 gap-1 text-sm text-text-secondary sm:grid-cols-2">
+                  <ul className="grid grid-cols-1 gap-1 text-sm text-ink-soft sm:grid-cols-2">
                     {course.topics.map((topic) => (
                       <li key={topic} className="flex items-start gap-2">
-                        <span className="mt-0.5 text-green-primary">
+                        <span className="mt-0.5 text-clay">
                           &gt;
                         </span>
                         {topic}
@@ -232,16 +221,16 @@ export default function CoursesPage() {
                   </ul>
                 </div>
               </div>
-            </TerminalWindow>
-          </ScrollReveal>
+            </GuideBlock>
+          </Reveal>
         ))}
       </section>
 
       {/* Bottom CTA */}
-      <ScrollReveal delay={200}>
-        <section className="mt-16 border border-border-default bg-bg-card p-8 text-center">
-          <p className="font-mono text-sm text-amber">ALL COURSES ARE FREE</p>
-          <p className="mx-auto mt-3 max-w-lg text-sm text-text-secondary">
+      <Reveal index={1}>
+        <section className="mt-16 border border-sand bg-paper-card p-8 text-center">
+          <p className="font-mono text-sm text-clay-dark">ALL COURSES ARE FREE</p>
+          <p className="mx-auto mt-3 max-w-lg text-sm text-ink-soft">
             These courses are maintained by Anthropic and hosted on GitHub. They
             use Claude 3 Haiku by default to keep API costs low, but you can use
             any Claude model. Run the notebooks locally or on Google Colab.
@@ -250,14 +239,14 @@ export default function CoursesPage() {
             href="https://github.com/anthropics/courses"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-6 inline-flex items-center gap-2 border border-green-primary px-5 py-2.5 font-mono text-sm font-medium text-green-primary transition-all duration-200 hover:bg-green-primary hover:text-bg-primary"
+            className="mt-6 inline-flex items-center gap-2 border border-clay px-5 py-2.5 font-mono text-sm font-medium text-clay transition-all duration-200 hover:bg-clay hover:text-paper-card"
           >
             <span aria-hidden="true">&gt;</span>
             VIEW_ALL_ON_GITHUB
             <ExternalLink className="h-4 w-4" />
           </a>
         </section>
-      </ScrollReveal>
+      </Reveal>
     </main>
   );
 }

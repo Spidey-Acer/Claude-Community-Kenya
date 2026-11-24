@@ -19,7 +19,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Event } from "@/lib/types";
-import type { CommunityStats } from "@/components/sections/HeroTerminal";
+import type { CommunityStats } from "@/components/sections/community-stats.types";
 import type { ProjectView } from "@/lib/data";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { Reveal } from "@/components/karibu/motion/Reveal";

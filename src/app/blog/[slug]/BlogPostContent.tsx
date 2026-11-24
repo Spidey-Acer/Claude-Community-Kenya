@@ -2,13 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/Badge";
 import { BlogPostCard } from "@/components/sections/BlogPostCard";
-import { TerminalWindow, ScrollReveal, CommandPrefix } from "@/components/terminal";
+import { Reveal } from "@/components/karibu/motion/Reveal";
 import { CopyLinkButton } from "./CopyLinkButton";
-import { useSkin } from "@/contexts/SkinContext";
 import { formatDate } from "@/lib/utils";
-import { SITE_CONFIG } from "@/lib/constants";
 import type { BlogPostView } from "@/lib/data";
 
 /** Fraunces display-serif style for Pro headings. */
@@ -279,181 +276,100 @@ export function BlogPostContent({
   linkedinShareUrl,
   postUrl,
 }: BlogPostContentProps) {
-  const { skin } = useSkin();
-  const isPro = skin === "pro";
-
   return (
     <div className="mx-auto max-w-3xl">
       {/* Back link */}
-      <ScrollReveal>
-        {isPro ? (
-          <Link
-            href="/blog"
-            className="link-refined mb-8 inline-flex items-center gap-1.5 text-[13px] text-[#9a9890] hover:text-[#e8e6dc]"
-          >
-            ← Back to Blog
-          </Link>
-        ) : (
-          <Link
-            href="/blog"
-            className="mb-8 inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
-          >
-            <span aria-hidden="true">&larr;</span>
-            Back to Blog
-          </Link>
-        )}
-      </ScrollReveal>
+      <Reveal>
+        <Link
+          href="/blog"
+          className="link-refined mb-8 inline-flex items-center gap-1.5 text-[13px] text-[#9a9890] hover:text-[#e8e6dc]"
+        >
+          ← Back to Blog
+        </Link>
+      </Reveal>
 
       {/* Article */}
-      <ScrollReveal delay={100}>
-        {isPro ? (
-          <article className="card-elevated rounded-2xl px-8 py-10 md:px-12 md:py-12 max-w-3xl mx-auto">
-            {/* Hero / meta */}
-            <header className="mb-8">
-              <h1
-                className="mb-4 text-2xl font-bold leading-tight text-[#faf9f5] sm:text-3xl"
-                style={FRAUNCES}
+      <Reveal index={0}>
+        <article className="card-elevated rounded-2xl px-8 py-10 md:px-12 md:py-12 max-w-3xl mx-auto">
+          {/* Hero / meta */}
+          <header className="mb-8">
+            <h1
+              className="mb-4 text-2xl font-bold leading-tight text-[#faf9f5] sm:text-3xl"
+              style={FRAUNCES}
+            >
+              {post.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#9a9890]">
+              <time dateTime={post.date}>{formatDate(post.date)}</time>
+              <span aria-hidden="true">·</span>
+              <span>{post.author}</span>
+              <span aria-hidden="true">·</span>
+              <span>{post.readingTime} min read</span>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="border-t border-[#2a2a28] pt-6">
+            {renderContent(post.content, true)}
+          </div>
+
+          {/* Tags */}
+          <div className="mt-8 flex flex-wrap gap-2 border-t border-[#2a2a28] pt-6">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-[#3a3a37] bg-[#252524] px-2.5 py-0.5 text-[12px] text-[#b0aea5]"
               >
-                {post.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#9a9890]">
-                <time dateTime={post.date}>{formatDate(post.date)}</time>
-                <span aria-hidden="true">·</span>
-                <span>{post.author}</span>
-                <span aria-hidden="true">·</span>
-                <span>{post.readingTime} min read</span>
-              </div>
-            </header>
+                {tag}
+              </span>
+            ))}
+          </div>
 
-            {/* Content */}
-            <div className="border-t border-[#2a2a28] pt-6">
-              {renderContent(post.content, true)}
+          {/* Share */}
+          <div className="mt-8 border-t border-[#2a2a28] pt-6">
+            <p className="mb-3 text-xs uppercase tracking-widest text-[#9a9890]">
+              Share this post
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={twitterShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-[#2a2a28] px-4 py-2 text-sm text-[#b0aea5] transition-colors hover:border-[#3a3a37] hover:text-[#faf9f5]"
+              >
+                Twitter / X
+              </a>
+              <a
+                href={linkedinShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-[#2a2a28] px-4 py-2 text-sm text-[#b0aea5] transition-colors hover:border-[#3a3a37] hover:text-[#faf9f5]"
+              >
+                LinkedIn
+              </a>
+              <CopyLinkButton url={postUrl} />
             </div>
-
-            {/* Tags */}
-            <div className="mt-8 flex flex-wrap gap-2 border-t border-[#2a2a28] pt-6">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-[#3a3a37] bg-[#252524] px-2.5 py-0.5 text-[12px] text-[#b0aea5]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {/* Share */}
-            <div className="mt-8 border-t border-[#2a2a28] pt-6">
-              <p className="mb-3 text-xs uppercase tracking-widest text-[#9a9890]">
-                Share this post
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={twitterShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-[#2a2a28] px-4 py-2 text-sm text-[#b0aea5] transition-colors hover:border-[#3a3a37] hover:text-[#faf9f5]"
-                >
-                  Twitter / X
-                </a>
-                <a
-                  href={linkedinShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-[#2a2a28] px-4 py-2 text-sm text-[#b0aea5] transition-colors hover:border-[#3a3a37] hover:text-[#faf9f5]"
-                >
-                  LinkedIn
-                </a>
-                <CopyLinkButton url={postUrl} />
-              </div>
-            </div>
-          </article>
-        ) : (
-          <TerminalWindow title={`blog/${post.slug}`} variant="default">
-            <article>
-              {/* Meta */}
-              <header className="mb-8">
-                <h1 className="mb-4 font-mono text-2xl font-bold leading-tight text-green-primary sm:text-3xl">
-                  {post.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-sm text-text-dim">
-                  <time dateTime={post.date}>{formatDate(post.date)}</time>
-                  <span aria-hidden="true">|</span>
-                  <span>{post.author}</span>
-                  <span aria-hidden="true">|</span>
-                  <span>{post.readingTime} min read</span>
-                </div>
-              </header>
-
-              {/* Content */}
-              <div className="border-t border-border-default pt-6">
-                {renderContent(post.content, false)}
-              </div>
-
-              {/* Tags */}
-              <div className="mt-8 flex flex-wrap gap-2 border-t border-border-default pt-6">
-                {post.tags.map((tag) => (
-                  <Badge key={tag} variant="default">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Share */}
-              <div className="mt-8 border-t border-border-default pt-6">
-                <p className="mb-3 font-mono text-xs uppercase tracking-widest text-text-dim">
-                  <CommandPrefix symbol=">" />
-                  Share this post
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href={twitterShareUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="border border-border-default px-4 py-2 font-mono text-xs text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
-                  >
-                    Twitter / X
-                  </a>
-                  <a
-                    href={linkedinShareUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="border border-border-default px-4 py-2 font-mono text-xs text-text-secondary transition-all duration-200 hover:border-border-hover hover:text-text-primary"
-                  >
-                    LinkedIn
-                  </a>
-                  <CopyLinkButton url={postUrl} />
-                </div>
-              </div>
-            </article>
-          </TerminalWindow>
-        )}
-      </ScrollReveal>
+          </div>
+        </article>
+      </Reveal>
 
       {/* Related Posts */}
       {relatedPosts.length > 0 && (
-        <ScrollReveal delay={200}>
+        <Reveal index={1}>
           <section className="mt-20">
-            {isPro ? (
-              <h2
-                className="mb-8 text-xl font-medium text-[#faf9f5]"
-                style={FRAUNCES}
-              >
-                Related Posts
-              </h2>
-            ) : (
-              <h2 className="mb-8 font-mono text-xl font-bold text-text-primary">
-                <CommandPrefix />
-                Related Posts
-              </h2>
-            )}
+            <h2
+              className="mb-8 text-xl font-medium text-[#faf9f5]"
+              style={FRAUNCES}
+            >
+              Related Posts
+            </h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {relatedPosts.map((relatedPost) => (
                 <BlogPostCard key={relatedPost.slug} post={relatedPost} />
               ))}
             </div>
           </section>
-        </ScrollReveal>
+        </Reveal>
       )}
     </div>
   );

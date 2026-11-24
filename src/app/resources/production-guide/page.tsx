@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { TerminalWindow, ScrollReveal } from "@/components/terminal";
+import { Reveal } from "@/components/karibu/motion/Reveal";
+import { GuideBlock } from "@/components/karibu/GuideBlock";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
 
 export const metadata: Metadata = {
   title: "Building Production AI Apps with Claude | Claude Community Kenya",
@@ -50,27 +49,17 @@ export default function ProductionGuidePage() {
       {/* Back link */}
       <Link
         href="/resources"
-        className="inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
+        className="inline-flex items-center gap-2 font-mono text-sm text-ink-muted transition-colors hover:text-clay"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Resources
       </Link>
 
       {/* Header */}
-      <ScrollReveal>
+      <Reveal>
         <section className="py-16">
-          <PersonaHeading
-            page="productionGuide"
-            section="hero"
-            as="h1"
-            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-          />
-          <PersonaText
-            page="productionGuide"
-            section="hero"
-            field="subtitle"
-            className="mt-4 max-w-2xl text-lg text-text-secondary"
-          />
+          <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">Production Guide</h1>
+          <p className="mt-4 max-w-2xl text-lg text-ink-soft">Everything you need to run Claude-powered applications that are reliable, cost-efficient, and ready for real users.</p>
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
             {[
               "Architecture",
@@ -85,29 +74,24 @@ export default function ProductionGuidePage() {
               <a
                 key={s}
                 href={`#${s.toLowerCase().replace(" ", "-")}`}
-                className="border border-border-default px-3 py-1 text-text-dim transition-colors hover:border-green-primary/50 hover:text-green-primary"
+                className="border border-sand px-3 py-1 text-ink-muted transition-colors hover:border-clay hover:text-clay"
               >
                 {s}
               </a>
             ))}
           </nav>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Architecture */}
-      <ScrollReveal delay={100}>
+      <Reveal index={0}>
         <section id="architecture" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="architecture"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="architecture.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Architecture</h2>
+          <GuideBlock title="architecture.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 The most robust pattern for production Claude apps is a{" "}
-                <span className="text-green-primary">server-side proxy</span>: your frontend
+                <span className="text-clay">server-side proxy</span>: your frontend
                 calls your own backend, which calls the Anthropic API. This keeps your API key
                 safe, lets you add auth, rate limiting, logging, and caching at the edge.
               </p>
@@ -117,175 +101,160 @@ export default function ProductionGuidePage() {
                 all LLM calls with its own queue and retry logic.
               </p>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
 
           <div className="mt-4">
-            <TerminalWindow title="architecture-diagram" variant="code">
-              <div className="space-y-1 font-mono text-xs text-text-secondary">
-                <p className="text-text-dim">{"# Request flow"}</p>
-                <p className="text-green-primary">{"User Browser"}</p>
-                <p className="ml-4 text-text-dim">{"↓  POST /api/chat"}</p>
-                <p className="text-amber">{"Your Server (Next.js API Route)"}</p>
-                <p className="ml-4 text-text-dim">{"↓  Validates request, checks auth"}</p>
-                <p className="ml-4 text-text-dim">{"↓  Adds system prompt"}</p>
-                <p className="ml-4 text-text-dim">{"↓  POST /v1/messages"}</p>
-                <p className="text-cyan">{"Anthropic API"}</p>
-                <p className="ml-4 text-text-dim">{"↓  Response / Stream"}</p>
-                <p className="text-amber">{"Your Server"}</p>
-                <p className="ml-4 text-text-dim">{"↓  Logs usage, handles errors"}</p>
-                <p className="text-green-primary">{"User Browser"}</p>
+            <GuideBlock title="architecture-diagram" variant="code">
+              <div className="space-y-1 font-mono text-xs text-ink-soft">
+                <p className="text-ink-muted">{"# Request flow"}</p>
+                <p className="text-clay">{"User Browser"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  POST /api/claude"}</p>
+                <p className="text-clay-dark">{"Your Server (Next.js API Route)"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  Validates request, checks auth"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  Adds system prompt"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  POST /v1/messages"}</p>
+                <p className="text-ink-soft">{"Anthropic API"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  Response / Stream"}</p>
+                <p className="text-clay-dark">{"Your Server"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  Logs usage, handles errors"}</p>
+                <p className="text-clay">{"User Browser"}</p>
               </div>
-            </TerminalWindow>
+            </GuideBlock>
           </div>
 
           <div className="mt-4">
-            <TerminalWindow title="api-route.ts" variant="code">
+            <GuideBlock title="api-route.ts" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-text-dim">{"// Next.js App Router API route"}</p>
-                <p className="text-cyan">{"import { NextRequest, NextResponse } from \"next/server\";"}</p>
-                <p className="text-cyan">{"import Anthropic from \"@anthropic-ai/sdk\";"}</p>
-                <p className="mt-3 text-text-secondary">
+                <p className="text-ink-muted">{"// Next.js App Router API route"}</p>
+                <p className="text-ink-soft">{"import { NextRequest, NextResponse } from \"next/server\";"}</p>
+                <p className="text-ink-soft">{"import Anthropic from \"@anthropic-ai/sdk\";"}</p>
+                <p className="mt-3 text-ink-soft">
                   {"const client = new Anthropic();"}
                 </p>
-                <p className="mt-3 text-text-secondary">
+                <p className="mt-3 text-ink-soft">
                   {"export async function POST(req: NextRequest) {"}
                 </p>
-                <p className="ml-4 text-text-secondary">{"const { message } = await req.json();"}</p>
-                <p className="ml-4 text-green-primary">
+                <p className="ml-4 text-ink-soft">{"const { message } = await req.json();"}</p>
+                <p className="ml-4 text-clay">
                   {"if (!message || message.length > 4000) {"}
                 </p>
-                <p className="ml-8 text-amber">
+                <p className="ml-8 text-clay-dark">
                   {"return NextResponse.json({ error: \"Invalid input\" }, { status: 400 });"}
                 </p>
-                <p className="ml-4 text-green-primary">{"}"}</p>
-                <p className="ml-4 text-text-secondary">{"const response = await client.messages.create({"}</p>
-                <p className="ml-8 text-green-primary">{"model: \"claude-sonnet-4-5\","}</p>
-                <p className="ml-8 text-green-primary">{"max_tokens: 1024,"}</p>
-                <p className="ml-8 text-green-primary">{"system: process.env.SYSTEM_PROMPT,"}</p>
-                <p className="ml-8 text-green-primary">{"messages: [{ role: \"user\", content: message }]"}</p>
-                <p className="ml-4 text-text-secondary">{"});"}</p>
-                <p className="ml-4 text-text-secondary">
+                <p className="ml-4 text-clay">{"}"}</p>
+                <p className="ml-4 text-ink-soft">{"const response = await client.messages.create({"}</p>
+                <p className="ml-8 text-clay">{"model: \"claude-sonnet-4-5\","}</p>
+                <p className="ml-8 text-clay">{"max_tokens: 1024,"}</p>
+                <p className="ml-8 text-clay">{"system: process.env.SYSTEM_PROMPT,"}</p>
+                <p className="ml-8 text-clay">{"messages: [{ role: \"user\", content: message }]"}</p>
+                <p className="ml-4 text-ink-soft">{"});"}</p>
+                <p className="ml-4 text-ink-soft">
                   {"return NextResponse.json({ reply: response.content[0].text });"}
                 </p>
-                <p className="text-text-secondary">{"}"}</p>
+                <p className="text-ink-soft">{"}"}</p>
               </div>
-            </TerminalWindow>
+            </GuideBlock>
           </div>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Error Handling */}
-      <ScrollReveal delay={150}>
+      <Reveal index={1}>
         <section id="error-handling" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="errorHandling"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="errors.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Error Handling</h2>
+          <GuideBlock title="errors.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 The Anthropic API can return several error types. Handle each specifically rather
                 than catching everything generically. The SDK exports typed error classes for
                 each case.
               </p>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
 
           <div className="mt-4">
-            <TerminalWindow title="error-handling.ts" variant="code">
+            <GuideBlock title="error-handling.ts" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-cyan">{"import Anthropic from \"@anthropic-ai/sdk\";"}</p>
-                <p className="mt-3 text-text-secondary">{"try {"}</p>
-                <p className="ml-4 text-text-secondary">{"const response = await client.messages.create(...);"}</p>
-                <p className="text-text-secondary">{"} catch (err) {"}</p>
-                <p className="ml-4 text-text-dim">{"// Rate limited — retry with backoff"}</p>
-                <p className="ml-4 text-amber">{"if (err instanceof Anthropic.RateLimitError) {"}</p>
-                <p className="ml-8 text-green-primary">{"await delay(calculateBackoff(attempt));"}</p>
-                <p className="ml-4 text-amber">{"}"}</p>
-                <p className="ml-4 text-text-dim">{"// Auth failed — check API key"}</p>
-                <p className="ml-4 text-amber">{"else if (err instanceof Anthropic.AuthenticationError) {"}</p>
-                <p className="ml-8 text-green-primary">{"logger.error(\"API key invalid or missing\");"}</p>
-                <p className="ml-4 text-amber">{"}"}</p>
-                <p className="ml-4 text-text-dim">{"// Context window exceeded"}</p>
-                <p className="ml-4 text-amber">{"else if (err instanceof Anthropic.BadRequestError) {"}</p>
-                <p className="ml-8 text-green-primary">{"await truncateMessages(messages);"}</p>
-                <p className="ml-4 text-amber">{"}"}</p>
-                <p className="ml-4 text-text-dim">{"// Transient server error — safe to retry"}</p>
-                <p className="ml-4 text-amber">{"else if (err instanceof Anthropic.InternalServerError) {"}</p>
-                <p className="ml-8 text-green-primary">{"await delay(5000); // wait longer"}</p>
-                <p className="ml-4 text-amber">{"}"}</p>
-                <p className="ml-4 text-text-dim">{"// Unknown — log and surface to user"}</p>
-                <p className="ml-4 text-amber">{"else throw err;"}</p>
-                <p className="text-text-secondary">{"}"}</p>
+                <p className="text-ink-soft">{"import Anthropic from \"@anthropic-ai/sdk\";"}</p>
+                <p className="mt-3 text-ink-soft">{"try {"}</p>
+                <p className="ml-4 text-ink-soft">{"const response = await client.messages.create(...);"}</p>
+                <p className="text-ink-soft">{"} catch (err) {"}</p>
+                <p className="ml-4 text-ink-muted">{"// Rate limited — retry with backoff"}</p>
+                <p className="ml-4 text-clay-dark">{"if (err instanceof Anthropic.RateLimitError) {"}</p>
+                <p className="ml-8 text-clay">{"await delay(calculateBackoff(attempt));"}</p>
+                <p className="ml-4 text-clay-dark">{"}"}</p>
+                <p className="ml-4 text-ink-muted">{"// Auth failed — check API key"}</p>
+                <p className="ml-4 text-clay-dark">{"else if (err instanceof Anthropic.AuthenticationError) {"}</p>
+                <p className="ml-8 text-clay">{"logger.error(\"API key invalid or missing\");"}</p>
+                <p className="ml-4 text-clay-dark">{"}"}</p>
+                <p className="ml-4 text-ink-muted">{"// Context window exceeded"}</p>
+                <p className="ml-4 text-clay-dark">{"else if (err instanceof Anthropic.BadRequestError) {"}</p>
+                <p className="ml-8 text-clay">{"await truncateMessages(messages);"}</p>
+                <p className="ml-4 text-clay-dark">{"}"}</p>
+                <p className="ml-4 text-ink-muted">{"// Transient server error — safe to retry"}</p>
+                <p className="ml-4 text-clay-dark">{"else if (err instanceof Anthropic.InternalServerError) {"}</p>
+                <p className="ml-8 text-clay">{"await delay(5000); // wait longer"}</p>
+                <p className="ml-4 text-clay-dark">{"}"}</p>
+                <p className="ml-4 text-ink-muted">{"// Unknown — log and surface to user"}</p>
+                <p className="ml-4 text-clay-dark">{"else throw err;"}</p>
+                <p className="text-ink-soft">{"}"}</p>
               </div>
-            </TerminalWindow>
+            </GuideBlock>
           </div>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Rate Limits */}
-      <ScrollReveal delay={200}>
+      <Reveal index={1}>
         <section id="rate-limits" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="rateLimits"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="rate-limits.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Rate Limits</h2>
+          <GuideBlock title="rate-limits.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 Rate limits apply per API key, not per user. If you have many concurrent users,
                 you will hit limits faster than you expect. Strategies to manage this:
               </p>
               <ul className="ml-4 space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Queue requests</span> — use a queue like
+                    <span className="text-ink">Queue requests</span> — use a queue like
                     BullMQ to serialize API calls and prevent burst spikes
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Cache aggressively</span> — identical
+                    <span className="text-ink">Cache aggressively</span> — identical
                     prompts get identical responses; cache them in Redis for 1–24 hours
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Use Haiku for high volume</span> — switch
+                    <span className="text-ink">Use Haiku for high volume</span> — switch
                     to claude-haiku-3-5 for classification, tagging, and other simple tasks
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Monitor token headers</span> — check
+                    <span className="text-ink">Monitor token headers</span> — check
                     x-ratelimit-remaining-tokens in responses to detect approaching limits early
                   </span>
                 </li>
               </ul>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Prompt Engineering */}
-      <ScrollReveal delay={250}>
+      <Reveal index={2}>
         <section id="prompt-engineering" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="prompts"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="prompts.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Prompt Design</h2>
+          <GuideBlock title="prompts.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 Your system prompt is the single highest-leverage variable in a production Claude
                 app. A well-crafted system prompt produces consistent, predictable output; a
@@ -294,50 +263,45 @@ export default function ProductionGuidePage() {
               <p>Key principles for production system prompts:</p>
               <ul className="ml-4 space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Be specific about format</span> — tell
+                    <span className="text-ink">Be specific about format</span> — tell
                     Claude exactly what output format you need (JSON, markdown, plain text)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Define the persona</span> — describe who
+                    <span className="text-ink">Define the persona</span> — describe who
                     Claude is in this context, its tone, and its limitations
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Handle edge cases explicitly</span> — what
+                    <span className="text-ink">Handle edge cases explicitly</span> — what
                     should Claude do if the user asks something out of scope?
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-green-primary" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Version your prompts</span> — treat system
+                    <span className="text-ink">Version your prompts</span> — treat system
                     prompts like code; track changes, test before deploying
                   </span>
                 </li>
               </ul>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Cost Control */}
-      <ScrollReveal delay={300}>
+      <Reveal index={2}>
         <section id="cost-control" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="costs"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="cost-optimization.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Cost Optimization</h2>
+          <GuideBlock title="cost-optimization.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 API costs scale with tokens (input + output). On a free side project this is
                 negligible, but at scale it becomes significant. These techniques reduce cost
@@ -345,205 +309,185 @@ export default function ProductionGuidePage() {
               </p>
               <ul className="ml-4 space-y-3">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-amber" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay-dark" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Right-size your model</span> — use
+                    <span className="text-ink">Right-size your model</span> — use
                     claude-haiku-3-5 for classification, extraction, and simple Q&A. Reserve
                     claude-sonnet-4-5 for tasks that need deeper reasoning.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-amber" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay-dark" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Limit max_tokens</span> — set it to the
+                    <span className="text-ink">Limit max_tokens</span> — set it to the
                     expected output length, not the maximum. A 200-token limit for a product
                     description costs far less than 4096.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-amber" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay-dark" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Truncate conversation history</span> —
+                    <span className="text-ink">Truncate conversation history</span> —
                     only pass the last N messages in multi-turn chats. Old context is usually
                     irrelevant and burns tokens.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-amber" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-clay-dark" aria-hidden="true">&gt;</span>
                   <span>
-                    <span className="text-text-primary">Use prompt caching</span> — for long,
+                    <span className="text-ink">Use prompt caching</span> — for long,
                     repeated system prompts, Anthropic&apos;s prompt caching feature can reduce
                     input token costs by up to 90%.
                   </span>
                 </li>
               </ul>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Security */}
-      <ScrollReveal delay={350}>
+      <Reveal index={3}>
         <section id="security" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="security"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="security.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Security</h2>
+          <GuideBlock title="security.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 A compromised API key means someone else burns your credits and potentially
                 your reputation. Treat it with the same care as a database password.
               </p>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
 
           <div className="mt-4">
-            <TerminalWindow title="security-checklist" variant="code">
+            <GuideBlock title="security-checklist" variant="code">
               <div className="space-y-1 font-mono text-sm">
-                <p className="text-text-dim">{"# API Key Security"}</p>
-                <p className="text-green-primary">{"✓ Store in environment variables only"}</p>
-                <p className="text-green-primary">{"✓ Never in source code or git history"}</p>
-                <p className="text-green-primary">{"✓ Use secrets manager in production (AWS Secrets, GCP Secret Manager)"}</p>
-                <p className="text-green-primary">{"✓ Rotate keys periodically"}</p>
-                <p className="text-green-primary">{"✓ Set up usage alerts in Anthropic Console"}</p>
-                <p className="mt-4 text-text-dim">{"# Prompt Injection Defense"}</p>
-                <p className="text-amber">{"✓ Validate and sanitize user input"}</p>
-                <p className="text-amber">{"✓ Never concatenate user input directly into system prompt"}</p>
-                <p className="text-amber">{"✓ Use separate message roles (system vs user)"}</p>
-                <p className="text-amber">{"✓ Rate-limit per user, not just per API key"}</p>
+                <p className="text-ink-muted">{"# API Key Security"}</p>
+                <p className="text-clay">{"✓ Store in environment variables only"}</p>
+                <p className="text-clay">{"✓ Never in source code or git history"}</p>
+                <p className="text-clay">{"✓ Use secrets manager in production (AWS Secrets, GCP Secret Manager)"}</p>
+                <p className="text-clay">{"✓ Rotate keys periodically"}</p>
+                <p className="text-clay">{"✓ Set up usage alerts in Anthropic Console"}</p>
+                <p className="mt-4 text-ink-muted">{"# Prompt Injection Defense"}</p>
+                <p className="text-clay-dark">{"✓ Validate and sanitize user input"}</p>
+                <p className="text-clay-dark">{"✓ Never concatenate user input directly into system prompt"}</p>
+                <p className="text-clay-dark">{"✓ Use separate message roles (system vs user)"}</p>
+                <p className="text-clay-dark">{"✓ Rate-limit per user, not just per API key"}</p>
               </div>
-            </TerminalWindow>
+            </GuideBlock>
           </div>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Monitoring */}
-      <ScrollReveal delay={400}>
+      <Reveal index={3}>
         <section id="monitoring" className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="monitoring"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="monitoring.md" variant="default">
-            <div className="space-y-3 text-text-secondary">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Monitoring</h2>
+          <GuideBlock title="monitoring.md" variant="default">
+            <div className="space-y-3 text-ink-soft">
               <p>
                 You cannot improve what you do not measure. Log these metrics for every API call:
               </p>
               <ul className="ml-4 space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-cyan" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-ink-soft" aria-hidden="true">&gt;</span>
                   <span>Input and output token counts (for cost tracking)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-cyan" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-ink-soft" aria-hidden="true">&gt;</span>
                   <span>Response latency (p50, p95, p99)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-cyan" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-ink-soft" aria-hidden="true">&gt;</span>
                   <span>stop_reason — flag any non-end_turn stops for investigation</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-cyan" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-ink-soft" aria-hidden="true">&gt;</span>
                   <span>Error rate by type (rate limit, auth, server error)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1 text-cyan" aria-hidden="true">&gt;</span>
+                  <span className="mt-1 text-ink-soft" aria-hidden="true">&gt;</span>
                   <span>User feedback signals if you surface thumbs up/down</span>
                 </li>
               </ul>
             </div>
-          </TerminalWindow>
+          </GuideBlock>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
 
       {/* Production Checklist */}
-      <ScrollReveal delay={500}>
+      <Reveal index={4}>
         <section className="py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="checklist"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
-          <TerminalWindow title="pre-launch-checklist" variant="command">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Launch Checklist</h2>
+          <GuideBlock title="pre-launch-checklist" variant="command">
             <ul className="space-y-3">
               {checklist.map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0 text-green-primary"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-clay"
                     aria-hidden="true"
                   />
-                  <span className="text-text-secondary">{item}</span>
+                  <span className="text-ink-soft">{item}</span>
                 </li>
               ))}
             </ul>
-          </TerminalWindow>
+          </GuideBlock>
         </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Next Steps */}
-      <ScrollReveal delay={550}>
-        <section className="border-t border-border-default py-12">
-          <PersonaHeading
-            page="productionGuide"
-            section="nextSteps"
-            as="h2"
-            className="mb-6 font-mono text-xl font-bold text-text-primary"
-          />
+      <Reveal index={5}>
+        <section className="border-t border-sand py-12">
+          <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Next Steps</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             <Link
               href="/resources/api-guide"
-              className="group border border-border-default bg-bg-card p-5 transition-all hover:border-green-primary/50"
+              className="group border border-sand bg-paper-card p-5 transition-all hover:border-clay"
             >
-              <p className="font-mono text-sm font-bold text-green-primary group-hover:underline">
+              <p className="font-mono text-sm font-bold text-clay group-hover:underline">
                 Claude API Guide →
               </p>
-              <p className="mt-2 text-sm text-text-secondary">
+              <p className="mt-2 text-sm text-ink-soft">
                 Authentication, models, streaming, and tool use — the complete API reference.
               </p>
             </Link>
             <Link
               href="/resources/workflows"
-              className="group border border-border-default bg-bg-card p-5 transition-all hover:border-green-primary/50"
+              className="group border border-sand bg-paper-card p-5 transition-all hover:border-clay"
             >
-              <p className="font-mono text-sm font-bold text-green-primary group-hover:underline">
+              <p className="font-mono text-sm font-bold text-clay group-hover:underline">
                 Advanced Workflows →
               </p>
-              <p className="mt-2 text-sm text-text-secondary">
+              <p className="mt-2 text-sm text-ink-soft">
                 Agentic patterns, plan mode, git worktrees, and more Claude Code techniques.
               </p>
             </Link>
             <Link
               href="/events"
-              className="group border border-border-default bg-bg-card p-5 transition-all hover:border-green-primary/50"
+              className="group border border-sand bg-paper-card p-5 transition-all hover:border-clay"
             >
-              <p className="font-mono text-sm font-bold text-green-primary group-hover:underline">
+              <p className="font-mono text-sm font-bold text-clay group-hover:underline">
                 Attend a Workshop →
               </p>
-              <p className="mt-2 text-sm text-text-secondary">
+              <p className="mt-2 text-sm text-ink-soft">
                 Build with Claude alongside other Kenyan developers at our in-person events.
               </p>
             </Link>
           </div>
-          <p className="mt-8 font-sans text-text-secondary">
+          <p className="mt-8 font-sans text-ink-soft">
             Stuck on something in production?{" "}
-            <Link href="/join" className="text-green-primary hover:underline">
+            <Link href="/join" className="text-clay hover:underline">
               Join our Discord
             </Link>{" "}
             — community members share production tips and debug issues together. Also check the{" "}
-            <Link href="/blog" className="text-green-primary hover:underline">
+            <Link href="/blog" className="text-clay hover:underline">
               community blog
             </Link>{" "}
             for real-world lessons from Kenyan developers shipping Claude apps.
           </p>
         </section>
-      </ScrollReveal>
+      </Reveal>
     </main>
   );
 }

@@ -11,11 +11,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  Search,
   Menu,
   X,
   ChevronDown,
@@ -36,24 +34,12 @@ const CITIES = ["Nairobi", "Mombasa", "Kisumu"] as const;
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const CommandPalette = dynamic(
-  () => import("@/components/terminal/CommandPalette").then((m) => ({ default: m.CommandPalette })),
-  { ssr: false },
-);
-
-// The palette's shortcut listener sits on `window`; a constructed event does
-// not bubble unless told to, so without `bubbles` the click never reaches it.
-function openCommandPalette() {
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
-}
-
 export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
   const pathname = usePathname();
   const { status } = useSession();
   const { whatsapp, discord } = useSocialLinks();
   const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMac, setIsMac] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [pastHero, setPastHero] = useState(false);
@@ -63,11 +49,6 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
   // focus trap only fires on a real close — not on first mount, where it would
   // steal focus to the hamburger on every page load.
   const sheetWasOpenRef = useRef(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMac(navigator.platform.toUpperCase().includes("MAC"));
-  }, []);
 
   // Shrink + firm up the bar once the visitor scrolls past the band above
   // this nav; otherwise the nav "firms up" before the band has even scrolled
@@ -205,19 +186,6 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
               ),
             )}
 
-            {/* Search */}
-            <button
-              type="button"
-              onClick={openCommandPalette}
-              className="ml-1 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-inter text-[13px] text-ink-muted transition-colors hover:text-ink"
-              aria-label="Open command palette"
-            >
-              <Search size={15} />
-              <kbd className="rounded border border-sand-2 px-1 text-[10px] leading-4">
-                {isMac ? "⌘" : "Ctrl+"}K
-              </kbd>
-            </button>
-
             <KaribuThemeToggle />
 
             {/* Auth-aware CTA */}
@@ -249,14 +217,6 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
 
           {/* Mobile controls */}
           <div className="flex items-center gap-1 lg:hidden">
-            <button
-              type="button"
-              onClick={openCommandPalette}
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-soft"
-              aria-label="Search"
-            >
-              <Search size={18} />
-            </button>
             <KaribuThemeToggle />
             <button
               ref={menuButtonRef}
@@ -436,8 +396,6 @@ export function KaribuNav({ eventsHeld }: { eventsHeld?: number }) {
           </Link>
         </nav>
       )}
-
-      <CommandPalette />
     </>
   );
 }

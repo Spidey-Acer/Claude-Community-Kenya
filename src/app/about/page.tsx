@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getTeamMembers, getEvents } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
-import type { CommunityStats } from "@/components/sections/HeroTerminal";
+import type { CommunityStats } from "@/components/sections/community-stats.types";
 import { KaribuAbout } from "@/components/karibu/KaribuAbout";
 
 function formatTimelineDate(iso: string): string {

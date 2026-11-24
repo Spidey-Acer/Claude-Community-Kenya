@@ -13,7 +13,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
-import type { CommunityStats } from "@/components/sections/HeroTerminal";
+import type { CommunityStats } from "@/components/sections/community-stats.types";
 import type { TeamMemberView } from "@/lib/data";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { PageBanner } from "@/components/karibu/PageBanner";
