@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkApiPermission } from "@/lib/rbac"
 import { uploadImage } from "@/lib/supabase"
 import { withCsrfProtection } from "@/lib/csrf"
+import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { validateUpload, hasPdfMagicBytes, UPLOAD_PDF_TYPE } from "@/lib/upload-validation"
 
 const ALLOWED_FOLDERS = new Set(["events", "blog", "team", "community", "guides"])
@@ -73,6 +74,16 @@ export async function POST(request: NextRequest) {
       .toLowerCase()
 
     const publicUrl = await uploadImage(buffer, safeName, file.type, folder)
+
+    await logAudit({
+      userId: check.user.id,
+      userName: check.user.name,
+      userEmail: check.user.email,
+      action: "CREATE",
+      entity: "Upload",
+      changes: { folder, url: publicUrl },
+      ...getRequestMetadata(request),
+    })
 
     return NextResponse.json({ success: true, url: publicUrl, size: file.size })
   } catch (error) {

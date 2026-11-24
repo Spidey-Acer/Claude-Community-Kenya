@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import Tokens from "csrf"
+import { isServiceTokenRequest } from "@/lib/service-token"
 
 const tokens = new Tokens()
 
@@ -41,6 +42,16 @@ export function csrfProtection(request: NextRequest): NextResponse | null {
 
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return null
   if (request.nextUrl.pathname.startsWith("/api/auth/")) return null
+
+  // CSRF defends ambient credentials (cookies a browser attaches on its own).
+  // A request that proves itself with a bearer secret carries nothing ambient.
+  // Scoped to /api/admin/*: every other route keeps the CSRF header requirement.
+  if (
+    request.nextUrl.pathname.startsWith("/api/admin/") &&
+    isServiceTokenRequest(request.headers.get("authorization"))
+  ) {
+    return null
+  }
 
   const token =
     request.headers.get("x-csrf-token") ||

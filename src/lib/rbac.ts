@@ -1,5 +1,7 @@
 import { auth } from "@/auth"
+import { headers } from "next/headers"
 import { NextResponse } from "next/server"
+import { hasBearerHeader, isServiceTokenRequest } from "@/lib/service-token"
 import type { NextRequest } from "next/server"
 
 export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR" | "MEMBER"
@@ -152,13 +154,68 @@ export function requirePermission(
   }
 }
 
+type ApiUser = { id: string; name: string; email: string; role: UserRole }
+
+/**
+ * Identity reported for a valid service token. ADMIN is the closest existing
+ * role for routes that branch on role; UserRole is persisted, so no new value.
+ */
+const SERVICE_IDENTITY: ApiUser = {
+  id: "mcp-service",
+  name: "Claude MCP",
+  email: "mcp@claudekenya.org",
+  role: "ADMIN",
+}
+
+/**
+ * Least privilege: the service token reaches content resources only, and does
+ * NOT inherit its reported role's permissions (ADMIN holds more than this).
+ */
+const servicePermissions: Partial<Record<AdminResource, Action[]>> = {
+  events: ["view", "create", "edit", "delete"],
+  blog: ["view", "create", "edit", "delete"],
+  photos: ["view", "create", "edit", "delete"],
+  community: ["view"],
+}
+
+export { isServiceTokenRequest }
+
 export async function checkApiPermission(
   resource: AdminResource,
   action: Action
 ): Promise<
-  | { authorized: true; user: { id: string; name: string; email: string; role: UserRole } }
+  | { authorized: true; user: ApiUser }
   | { authorized: false; response: NextResponse }
 > {
+  const authorization = (await headers()).get("authorization")
+
+  // A Bearer header commits the request to the service-token path. A wrong
+  // token is a 401 on its own: it must never be rescued by a cookie session.
+  if (hasBearerHeader(authorization)) {
+    if (!isServiceTokenRequest(authorization)) {
+      return {
+        authorized: false,
+        response: NextResponse.json(
+          { success: false, error: "Unauthorized" },
+          { status: 401 }
+        ),
+      }
+    }
+    if (!servicePermissions[resource]?.includes(action)) {
+      return {
+        authorized: false,
+        response: NextResponse.json(
+          {
+            success: false,
+            error: "Forbidden: service token is scoped to content resources",
+          },
+          { status: 403 }
+        ),
+      }
+    }
+    return { authorized: true, user: { ...SERVICE_IDENTITY } }
+  }
+
   const session = await auth()
 
   if (!session?.user) {
