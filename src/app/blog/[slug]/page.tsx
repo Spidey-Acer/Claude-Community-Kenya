@@ -86,7 +86,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-bg-primary px-4 py-16 sm:px-6 lg:px-8">
+    <>
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -105,6 +105,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         linkedinShareUrl={linkedinShareUrl}
         postUrl={postUrl}
       />
-    </main>
+    </>
   );
 }

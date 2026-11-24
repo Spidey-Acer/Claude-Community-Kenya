@@ -1,7 +1,13 @@
 "use client";
 
+/**
+ * CopyLinkButton: copies a post URL to the clipboard and confirms for two
+ * seconds. Styled with the page kit's outline button.
+ */
+
 import { useState } from "react";
 import { LinkIcon, Check } from "lucide-react";
+import { BTN_OUTLINE } from "@/components/karibu/kit";
 
 interface CopyLinkButtonProps {
   url: string;
@@ -18,23 +24,15 @@ export function CopyLinkButton({ url }: CopyLinkButtonProps) {
   }
 
   return (
-    <button
-      className={`inline-flex items-center gap-2 border px-4 py-2 font-mono text-xs transition-all duration-200 ${
-        copied
-          ? "border-green-primary/40 bg-green-primary/10 text-green-primary"
-          : "border-border-default text-text-secondary hover:border-border-hover hover:text-text-primary"
-      }`}
-      onClick={handleCopy}
-      aria-label="Copy link to clipboard"
-    >
+    <button type="button" className={BTN_OUTLINE} onClick={handleCopy} aria-label="Copy link to clipboard">
       {copied ? (
         <>
-          <Check className="h-3.5 w-3.5" />
+          <Check className="h-3.5 w-3.5" aria-hidden="true" />
           Copied!
         </>
       ) : (
         <>
-          <LinkIcon className="h-3.5 w-3.5" />
+          <LinkIcon className="h-3.5 w-3.5" aria-hidden="true" />
           Copy Link
         </>
       )}
