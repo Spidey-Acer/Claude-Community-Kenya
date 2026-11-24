@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TerminalWindow, CommandPrefix, ScrollReveal } from "@/components/terminal";
-import { Card } from "@/components/ui/Card";
-import { PersonaHeading } from "@/components/persona/PersonaHeading";
-import { PersonaText } from "@/components/persona/PersonaText";
+import { Reveal } from "@/components/karibu/motion/Reveal";
+import { Masthead, NewTabNote, WRAP } from "@/components/karibu/kit";
+import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
   title: "Getting Started with Claude | Claude Community Kenya",
@@ -78,55 +77,42 @@ const pricingTiers = [
 
 export default function GettingStartedPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       {/* Back link */}
       <Link
         href="/resources"
-        className="inline-flex items-center gap-2 font-mono text-sm text-text-dim transition-colors hover:text-green-primary"
+        className="inline-flex items-center gap-2 font-mono text-sm text-ink-muted transition-colors hover:text-clay"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Resources
       </Link>
 
       {/* Header */}
-      <ScrollReveal>
         <section className="py-16">
-          <PersonaHeading
-            page="gettingStarted"
-            section="hero"
-            as="h1"
-            className="font-mono text-3xl font-bold text-green-primary sm:text-4xl"
-          />
-          <PersonaText
-            page="gettingStarted"
-            section="hero"
-            field="subtitle"
-            className="mt-4 max-w-2xl text-lg text-text-secondary"
-          />
+          <Masthead eyebrow="Resources" title="Getting Started" lead="Your guide to getting started with Claude AI — from zero to productive." flush />
         </section>
-      </ScrollReveal>
 
       {/* What is Claude? */}
-      <ScrollReveal delay={100}>
-      <section className="py-20">
-        <TerminalWindow title="what-is-claude.md" variant="default">
-          <h2 className="font-mono text-xl font-bold text-amber">
+      <Reveal index={0}>
+      <section className="py-10 sm:py-12">
+        <GuideBlock title="what-is-claude.md" variant="default">
+          <h2 className="font-mono text-xl font-bold text-clay-dark">
             # What is Claude?
           </h2>
-          <div className="mt-4 space-y-3 text-text-secondary">
+          <div className="mt-4 space-y-3 text-ink-soft">
             <p>
               Claude is an AI assistant built by{" "}
-              <span className="text-cyan">Anthropic</span>, designed to be
+              <span className="text-ink-soft">Anthropic</span>, designed to be
               helpful, harmless, and honest. It represents a new approach to AI
               development that prioritizes safety and usefulness in equal measure.
             </p>
             <p>
               Claude excels at a wide range of tasks including{" "}
-              <span className="text-green-primary">coding</span>,{" "}
-              <span className="text-green-primary">analysis</span>,{" "}
-              <span className="text-green-primary">writing</span>,{" "}
-              <span className="text-green-primary">math</span>, and{" "}
-              <span className="text-green-primary">reasoning</span>. It can
+              <span className="text-clay">coding</span>,{" "}
+              <span className="text-clay">analysis</span>,{" "}
+              <span className="text-clay">writing</span>,{" "}
+              <span className="text-clay">math</span>, and{" "}
+              <span className="text-clay">reasoning</span>. It can
               understand and generate code in dozens of programming languages,
               analyze complex documents, write and edit content, and engage in
               nuanced conversations about virtually any topic.
@@ -138,120 +124,108 @@ export default function GettingStartedPage() {
               personal use.
             </p>
           </div>
-        </TerminalWindow>
+        </GuideBlock>
       </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Claude Products Overview */}
-      <ScrollReveal delay={200}>
-      <section className="py-20">
-        <PersonaHeading
-          page="gettingStarted"
-          section="products"
-          as="h2"
-          className="mb-8 font-mono text-xl font-bold text-text-primary"
-        />
+      <Reveal index={1}>
+      <section className="py-10 sm:py-12">
+        <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Claude Products</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {products.map((product) => (
-            <Card key={product.name} title={product.name} padding="md">
+            <div key={product.name} className="rounded-2xl border border-sand bg-paper-card p-6">
+              <h3 className="mb-3 font-newsreader text-[20px] font-medium text-ink">{product.name}</h3>
               <div className="mb-2">
-                <span className="font-mono text-xs text-amber">
+                <span className="font-mono text-xs text-clay-dark">
                   [{product.label}]
                 </span>
               </div>
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-ink-soft">
                 {product.description}
               </p>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* How to Get Started */}
-      <ScrollReveal delay={300}>
-      <section className="py-20">
-        <PersonaHeading
-          page="gettingStarted"
-          section="setup"
-          as="h2"
-          className="mb-8 font-mono text-xl font-bold text-text-primary"
-        />
-        <TerminalWindow title="setup.sh" variant="command">
+      <Reveal index={2}>
+      <section className="py-10 sm:py-12">
+        <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Quick Setup</h2>
+        <GuideBlock title="setup.sh" variant="command">
           <div className="space-y-4">
             {steps.map((step, index) => (
               <div key={index} className="group">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-border-default font-mono text-xs text-green-primary">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-sand font-mono text-xs text-clay">
                     {index + 1}
                   </span>
                   <div>
-                    <code className="text-green-primary">
+                    <code className="text-clay">
                       $ {step.command}
                     </code>
-                    <p className="mt-1 font-sans text-sm text-text-secondary">
+                    <p className="mt-1 font-sans text-sm text-ink-soft">
                       {step.description}
                     </p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="ml-3 mt-2 border-l border-border-default pl-6">
-                    <span className="font-mono text-xs text-text-dim">
+                  <div className="ml-3 mt-2 border-l border-sand pl-6">
+                    <span className="font-mono text-xs text-ink-muted">
                       [OK] Step {index + 1} complete
                     </span>
                   </div>
                 )}
               </div>
             ))}
-            <div className="mt-4 border-t border-border-default pt-4">
-              <span className="text-green-primary">
+            <div className="mt-4 border-t border-sand pt-4">
+              <span className="text-clay">
                 [SUCCESS]
               </span>{" "}
-              <span className="text-text-secondary">
+              <span className="text-ink-soft">
                 Setup complete. You&apos;re ready to build with Claude.
               </span>
             </div>
           </div>
-        </TerminalWindow>
+        </GuideBlock>
       </section>
-      </ScrollReveal>
+      </Reveal>
 
       {/* Pricing Overview */}
-      <ScrollReveal delay={400}>
-      <section className="py-20">
-        <PersonaHeading
-          page="gettingStarted"
-          section="pricing"
-          as="h2"
-          className="mb-8 font-mono text-xl font-bold text-text-primary"
-        />
+      <Reveal index={3}>
+      <section className="py-10 sm:py-12">
+        <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Pricing</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {pricingTiers.map((tier) => (
-            <Card key={tier.name} title={tier.name} showDots={false} padding="md">
+            <div key={tier.name} className="rounded-2xl border border-sand bg-paper-card p-6">
+              <h3 className="mb-3 font-newsreader text-[20px] font-medium text-ink">{tier.name}</h3>
               <div className="mb-3">
-                <span className="font-mono text-2xl font-bold text-green-primary">
+                <span className="font-mono text-2xl font-bold text-clay">
                   {tier.price}
                 </span>
               </div>
-              <p className="text-sm text-text-secondary">{tier.features}</p>
-            </Card>
+              <p className="text-sm text-ink-soft">{tier.features}</p>
+            </div>
           ))}
         </div>
-        <p className="mt-6 font-mono text-xs text-text-dim">
-          <CommandPrefix symbol="#" />
+        <p className="mt-6 font-mono text-xs text-ink-muted">
+
           Check{" "}
           <a
             href="https://anthropic.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyan hover:underline"
+            className="font-semibold text-clay transition-colors hover:text-clay-dark"
           >
             anthropic.com
+            <NewTabNote />
           </a>{" "}
           for latest pricing.
         </p>
       </section>
-      </ScrollReveal>
-    </main>
+      </Reveal>
+    </div>
   );
 }

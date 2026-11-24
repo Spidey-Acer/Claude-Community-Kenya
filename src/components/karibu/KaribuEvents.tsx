@@ -1,12 +1,11 @@
 "use client";
 
 /**
- * KaribuEvents — warm-light "Events" page for the Karibu identity.
- *
- * Ports events.dc.html: header + filter chips, a featured "Next up" card, a
- * month-banded list of upcoming events, and a past-events grid. All events
- * come from the DB (getEvents). Filter chips are derived from the real data —
- * no chip is shown for a city or type that has no events.
+ * KaribuEvents: the Events listing on the page kit. Masthead, filter chips, a
+ * featured "Next up" card, the upcoming list, and a past-events grid. All
+ * events come from the DB (getEvents). Filter chips are derived from the real
+ * data, so no chip is shown for a city or type that has no events. The initial
+ * filter honours `?city=` and `?type=` (the home page's "What we do" links).
  */
 
 import { useMemo, useState } from "react";
@@ -16,58 +15,48 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
-import { eventCover } from "@/components/karibu/photos";
-import { EventCoverPlaceholder } from "@/components/karibu/EventCoverPlaceholder";
-import { PageBanner } from "@/components/karibu/PageBanner";
 import { CtaBand } from "@/components/karibu/CtaBand";
-import { Reveal } from "@/components/karibu/motion/Reveal";
+import { resolveInitialFilter, type EventFilter } from "@/components/karibu/event-filter";
 import { isEventPast } from "@/lib/event-dates";
+import {
+  BTN_OUTLINE,
+  BTN_PRIMARY,
+  EmptyState,
+  EventCard,
+  Masthead,
+  NewTabNote,
+  Section,
+  TYPE_PLURAL,
+  WRAP,
+  formatDate,
+  parseEventDate,
+} from "@/components/karibu/kit";
 
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 const FLIP_EASE = [0.16, 1, 0.3, 1] as const;
-
-const TYPE_LABEL: Record<Event["type"], string> = {
-  meetup: "Meetup",
-  workshop: "Workshop",
-  "career-talk": "Career talk",
-  hackathon: "Hackathon",
-  conversations: "Conversations",
-};
-const TYPE_PLURAL: Record<Event["type"], string> = {
-  meetup: "Meetups",
-  workshop: "Workshops",
-  "career-talk": "Career talks",
-  hackathon: "Hackathons",
-  conversations: "Conversations",
-};
-
 const UPCOMING_STATUSES: Event["status"][] = ["upcoming", "registration-open"];
-
-function parseDate(d: string): Date | null {
-  const dt = new Date(`${d}T00:00:00`);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
-const fmt = (dt: Date, opts: Intl.DateTimeFormatOptions) =>
-  dt.toLocaleString("en-US", opts);
-
-type Filter = { key: string; label: string };
 
 /** Past events revealed per "Show more" press. */
 const PAST_PAGE_SIZE = 9;
 
 export function KaribuEvents({ events }: { events: Event[] }) {
   const searchParams = useSearchParams();
+  // Build chips from real data: All + present cities + present types.
+  const filters = useMemo<EventFilter[]>(() => {
+    const cities = [...new Set(events.map((e) => e.city).filter(Boolean))];
+    const types = [...new Set(events.map((e) => e.type))];
+    return [
+      { key: "all", label: "All" },
+      ...cities.map((c) => ({ key: `city:${c}`, label: c })),
+      ...types.map((t) => ({ key: `type:${t}`, label: TYPE_PLURAL[t] })),
+    ];
+  }, [events]);
+
   // Initial filter from ?city= or ?type= (e.g. the home page's "See
-  // engineering events" link) — read once, not kept in sync with the URL
-  // afterwards, since the chips are the source of truth once the visitor
-  // starts clicking them.
-  const [active, setActive] = useState(() => {
-    const city = searchParams.get("city");
-    const type = searchParams.get("type");
-    if (city) return `city:${city}`;
-    if (type) return `type:${type}`;
-    return "all";
-  });
+  // engineering events" link), kept only if it names a real chip. Read once,
+  // not kept in sync with the URL: the chips are the source of truth after.
+  const [active, setActive] = useState(() =>
+    resolveInitialFilter(searchParams.get("city"), searchParams.get("type"), filters),
+  );
   const [pastPages, setPastPages] = useState(1);
   const reduce = useReducedMotion();
   const { whatsapp } = useSocialLinks();
@@ -84,17 +73,6 @@ export function KaribuEvents({ events }: { events: Event[] }) {
     exit: reduce ? { opacity: 0 } : { opacity: 0, y: -8 },
     transition: { duration: 0.28, ease: FLIP_EASE },
   } as const;
-
-  // Build chips from real data: All + present cities + present types.
-  const filters = useMemo<Filter[]>(() => {
-    const cities = [...new Set(events.map((e) => e.city).filter(Boolean))];
-    const types = [...new Set(events.map((e) => e.type))];
-    return [
-      { key: "all", label: "All" },
-      ...cities.map((c) => ({ key: `city:${c}`, label: c })),
-      ...types.map((t) => ({ key: `type:${t}`, label: TYPE_PLURAL[t] })),
-    ];
-  }, [events]);
 
   const filtered = useMemo(() => {
     if (active === "all") return events;
@@ -135,17 +113,25 @@ export function KaribuEvents({ events }: { events: Event[] }) {
 
   return (
     <>
-      <PageBanner
-        image="/images/community/workshop-room.webp"
-        imageAlt="A full room at a CCK workshop"
-        crumbs={["Home", "Events"]}
+      <Masthead
+        eyebrow="Events"
         title="Where we meet."
-        subtitle="Free, in-person gatherings across Kenya. Everyone welcome. Bring a laptop and your curiosity."
+        lead="Free, in-person gatherings across Kenya. Everyone welcome. Bring a laptop and your curiosity."
+        media={
+          <Image
+            src="/images/community/workshop-room.webp"
+            alt="A full room at a CCK workshop"
+            fill
+            priority
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="object-cover"
+          />
+        }
       />
 
       {/* Filters */}
-      <section className={`${WRAP} flex flex-wrap items-center justify-between gap-4 pb-2 pt-10`} aria-label="Filter events">
-        <Reveal className="flex flex-wrap gap-2">
+      <section className={`${WRAP} flex flex-wrap items-center justify-between gap-4 pb-2`} aria-label="Filter events">
+        <div className="flex flex-wrap gap-2">
           {filters.map((f) => {
             const on = f.key === active;
             return (
@@ -157,9 +143,9 @@ export function KaribuEvents({ events }: { events: Event[] }) {
                   setPastPages(1);
                 }}
                 aria-pressed={on}
-                className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors ${
+                className={`min-h-11 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 ${
                   on
-                    ? "bg-ink text-paper-card"
+                    ? "bg-band-bg text-on-band"
                     : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
                 }`}
               >
@@ -167,82 +153,82 @@ export function KaribuEvents({ events }: { events: Event[] }) {
               </button>
             );
           })}
-        </Reveal>
-        <span className="font-inter text-[13.5px] text-ink-muted">
-          {events.length} events · {new Set(events.map((e) => e.city)).size} cities
-        </span>
+        </div>
       </section>
 
-      {/* Upcoming — always visible, with the designed empty state (Events.dc.html)
-       * when nothing is scheduled, which is the seed data's actual state today. */}
-      <section className={`${WRAP} pb-10 pt-8`} aria-label="Upcoming events">
-        <Reveal>
-          <div className="mb-5 flex items-baseline justify-between border-b border-sand pb-3">
-            <span className="font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              Upcoming
-            </span>
-            <span className="font-inter text-[13.5px] text-ink-muted">
-              {upcoming.length} scheduled
-            </span>
-          </div>
-          {upcoming.length === 0 ? (
-            <EmptyUpcoming whatsapp={whatsapp} latestPast={latestPast} />
-          ) : (
-            <>
-              <FeaturedCard event={featured} />
-              {rest.length > 0 && (
-                <div className="mt-8">
-                  <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-                    {bandLabel}
-                  </div>
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    {rest.map((ev) => (
-                      <motion.div key={ev.slug} {...flip}>
-                        <ListRow event={ev} />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+      {/* Upcoming: always visible, with the designed empty state when nothing is scheduled. */}
+      <Section id="upcoming" eyebrow="Upcoming" title="Coming up">
+        {upcoming.length === 0 ? (
+          <EmptyState
+            title={
+              <>
+                Nothing on the calendar <span className="italic text-clay">yet.</span>
+              </>
+            }
+            body={`The next one is being planned. Get a heads-up on WhatsApp the moment it's live${
+              latestPast ? `, or see what happened at ${latestPast.title}` : ""
+            }.`}
+            action={
+              <>
+                {whatsapp && (
+                  <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
+                    Get a heads-up
+                    <NewTabNote />
+                  </a>
+                )}
+                {latestPast && (
+                  <Link href={`/events/${latestPast.slug}`} className={BTN_OUTLINE}>
+                    Read the last recap
+                  </Link>
+                )}
+              </>
+            }
+          />
+        ) : (
+          <>
+            <EventCard event={featured} variant="feature" />
+            {rest.length > 0 && (
+              <div className="mt-8">
+                <div className="mb-2 border-b border-sand pb-3 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+                  {bandLabel}
                 </div>
-              )}
-            </>
-          )}
-        </Reveal>
-      </section>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {rest.map((ev) => (
+                    <motion.div key={ev.slug} {...flip}>
+                      <EventCard event={ev} variant="row" />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </>
+        )}
+      </Section>
 
       {/* Past */}
       {past.length > 0 && (
-        <section className={`${WRAP} pb-16 pt-2`} aria-label="Past events">
-          <Reveal>
-            <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-sand pb-3">
-              <div className="font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-                Past
-              </div>
-              <div className="font-inter text-xs text-ink-faint">
-                {past.length} {past.length === 1 ? "event" : "events"}
-              </div>
+        <Section
+          id="past"
+          eyebrow="Past"
+          title="Past events"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {shownPast.map((ev) => (
+                <motion.div key={ev.slug} {...flip}>
+                  <EventCard event={ev} variant="tile" />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          {hiddenPast > 0 && (
+            <div className="mt-8 flex justify-center">
+              <button type="button" onClick={() => setPastPages((n) => n + 1)} className={BTN_OUTLINE}>
+                Show {Math.min(hiddenPast, PAST_PAGE_SIZE)} more
+              </button>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {shownPast.map((ev) => (
-                  <motion.div key={ev.slug} {...flip}>
-                    <PastCard event={ev} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-            {hiddenPast > 0 && (
-              <div className="mt-8 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setPastPages((n) => n + 1)}
-                  className="rounded-full border border-sand-2 bg-paper-card px-7 py-3 font-inter text-[13.5px] font-semibold text-ink transition-colors hover:border-ink"
-                >
-                  Show {Math.min(hiddenPast, PAST_PAGE_SIZE)} more
-                </button>
-              </div>
-            )}
-          </Reveal>
-        </section>
+          )}
+        </Section>
       )}
 
       <section className={`${WRAP} pb-16`} aria-label="Join the community">
@@ -252,243 +238,14 @@ export function KaribuEvents({ events }: { events: Event[] }) {
   );
 }
 
-/* ─────────────────────────── Upcoming empty state ─────────────────────────── */
-
-/** Ports Events.dc.html's "Nothing on the calendar yet." card exactly. */
-function EmptyUpcoming({
-  whatsapp,
-  latestPast,
-}: {
-  whatsapp: string | null;
-  latestPast?: Event;
-}) {
-  return (
-    <div className="grid gap-8 rounded-2xl border border-sand bg-[linear-gradient(135deg,color-mix(in_oklab,var(--clay)_7%,var(--paper-card)),var(--paper-card))] p-9 sm:grid-cols-[200px_1fr] sm:items-center sm:p-11">
-      <svg
-        viewBox="0 0 200 160"
-        fill="none"
-        stroke="var(--clay)"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="mx-auto w-[150px] sm:w-full"
-        aria-hidden="true"
-      >
-        <rect x="30" y="28" width="140" height="112" rx="10" className="fill-paper-card" />
-        <path d="M30 56h140M62 18v20M138 18v20" />
-        <g stroke="var(--sand-2)">
-          <path d="M54 78h16M86 78h16M118 78h16M54 104h16M86 104h16" />
-        </g>
-        <circle cx="126" cy="104" r="14" fill="var(--clay)" stroke="var(--clay)" />
-        <path d="M120 104l4 4 8-8" stroke="var(--paper-card)" strokeWidth={2} />
-        <path d="M8 148c30-20 60-20 90 0" stroke="var(--sand-2)" strokeDasharray="3 5" />
-      </svg>
-      <div>
-        <h2 className="mb-2.5 font-newsreader text-[28px] leading-[1.1] tracking-[-0.015em] text-ink sm:text-[34px]">
-          Nothing on the calendar <span className="italic text-clay">yet.</span>
-        </h2>
-        <p className="mb-6 max-w-[520px] font-inter text-[15px] leading-[1.6] text-ink-soft sm:text-[16px]">
-          The next one is being planned. Get a heads-up on WhatsApp the moment
-          it&apos;s live{latestPast ? `, or see what happened at ${latestPast.title}` : ""}.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {whatsapp && (
-            <a
-              href={whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-[14.5px] font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Get a heads-up
-            </a>
-          )}
-          {latestPast && (
-            <Link
-              href={`/events/${latestPast.slug}`}
-              className="inline-flex items-center gap-2 rounded-full border border-sand-2 px-6 py-3 font-inter text-[14.5px] font-semibold text-ink transition-colors hover:border-ink"
-            >
-              Read the last recap
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────── Featured ─────────────────────────── */
-
-function FeaturedCard({ event }: { event: Event }) {
-  const dt = parseDate(event.date);
-  const dateLine = dt
-    ? `${fmt(dt, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${event.time ? ` · ${event.time}` : ""} · ${event.venue}, ${event.city}`
-    : `${event.date}${event.time ? ` · ${event.time}` : ""} · ${event.venue}`;
-  const free = event.type === "hackathon" || event.status === "registration-open";
-  const cover = eventCover(event.posterUrl);
-
-  return (
-    <Link
-      href={`/events/${event.slug}`}
-      className="group grid overflow-hidden rounded-2xl border border-sand bg-paper-card transition-colors hover:border-clay md:grid-cols-[minmax(0,300px)_1fr] lg:grid-cols-[380px_1fr]"
-    >
-      <div className="frame-base frame-plate border-b border-sand md:border-b-0 md:border-r">
-        {cover ? (
-          <Image
-            src={cover}
-            alt={event.title}
-            fill
-            priority
-            sizes="(min-width: 1024px) 380px, (min-width: 768px) 300px, 100vw"
-            className="object-contain"
-          />
-        ) : (
-          <EventCoverPlaceholder event={event} size="lg" />
-        )}
-      </div>
-      <div className="p-8 md:p-[34px]">
-        {/*
-          "Next up" used to sit on the poster as an absolute pill. Two reasons
-          it moved here: it covered part of a poster this card now shows whole,
-          and on a poster-less event it landed directly on top of the
-          placeholder's own eyebrow. It is a status flag, so it belongs with
-          the other status badges.
-        */}
-        <div className="mb-3.5 flex flex-wrap gap-2">
-          <span className="rounded-full bg-clay px-2.5 py-1 font-inter text-xs font-semibold uppercase tracking-[0.08em] text-paper-card">
-            Next up
-          </span>
-          <Badge tone="clay">{event.city}</Badge>
-          <Badge tone="sand">{TYPE_LABEL[event.type]}</Badge>
-        </div>
-        <div className="mb-2.5 font-inter text-[13.5px] text-ink-muted">{dateLine}</div>
-        <h2 className="mb-3.5 font-newsreader text-[28px] leading-[1.1] text-ink sm:text-[32px]">
-          {event.title}
-        </h2>
-        <p className="mb-5 font-inter text-[15px] leading-[1.55] text-ink-soft">
-          {event.description}
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-clay px-6 py-3 font-inter text-[14.5px] font-semibold text-paper-card">
-            {free ? "Register — free" : "View details"}
-          </span>
-          {typeof event.attendeeCount === "number" && (
-            <span className="font-inter text-[13px] text-ink-muted">
-              {event.attendeeCount} registered
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-/* ─────────────────────────── List row ─────────────────────────── */
-
-function ListRow({ event }: { event: Event }) {
-  const dt = parseDate(event.date);
-  return (
-    <Link
-      href={`/events/${event.slug}`}
-      className="grid grid-cols-[84px_1fr] items-center gap-5 border-b border-sand py-5 transition-opacity hover:opacity-80 sm:grid-cols-[120px_1fr_auto] sm:gap-[26px]"
-    >
-      <div className="text-center">
-        <div className="font-inter text-[11.5px] font-semibold uppercase tracking-[0.1em] text-clay">
-          {dt ? fmt(dt, { month: "short" }) : ""}
-        </div>
-        <div className="font-newsreader text-[34px] leading-none text-ink sm:text-[38px]">
-          {dt ? fmt(dt, { day: "2-digit" }) : "—"}
-        </div>
-        <div className="font-inter text-[11.5px] text-ink-muted">
-          {dt ? fmt(dt, { weekday: "short" }) : ""}
-          {event.time ? ` · ${event.time}` : ""}
-        </div>
-      </div>
-      <div>
-        <div className="mb-1.5 flex flex-wrap gap-2">
-          <Badge tone="clay" small>
-            {event.city}
-          </Badge>
-          <Badge tone="sand" small>
-            {TYPE_LABEL[event.type]}
-          </Badge>
-        </div>
-        <div className="font-newsreader text-[21px] leading-[1.15] text-ink sm:text-[23px]">
-          {event.title}
-        </div>
-      </div>
-      <span className="col-span-2 mt-1 justify-self-start whitespace-nowrap rounded-full border border-sand-2 px-5 py-2.5 font-inter text-[13.5px] font-semibold text-ink transition-colors hover:border-ink sm:col-span-1 sm:mt-0 sm:justify-self-auto">
-        Details →
-      </span>
-    </Link>
-  );
-}
-
-/* ─────────────────────────── Past card ─────────────────────────── */
-
-function PastCard({ event }: { event: Event }) {
-  const dt = parseDate(event.date);
-  const label = dt ? fmt(dt, { month: "short", year: "numeric" }) : event.date;
-  const cover = eventCover(event.posterUrl);
-  return (
-    <Link
-      href={`/events/${event.slug}`}
-      className="group block transition-transform duration-150 ease-[var(--ease-reversible)] hover:-translate-y-1 motion-reduce:transform-none"
-    >
-      <div className="frame-base frame-tile mb-2.5 rounded-xl border border-sand transition-colors duration-150 ease-[var(--ease-reversible)] group-hover:border-clay">
-        {cover ? (
-          <Image
-            src={cover}
-            alt={event.title}
-            fill
-            sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
-            className="object-cover"
-          />
-        ) : (
-          <EventCoverPlaceholder event={event} />
-        )}
-      </div>
-      <div className="font-inter text-xs text-ink-muted">
-        {[label, event.city, TYPE_LABEL[event.type]].filter(Boolean).join(" · ")}
-      </div>
-      <div className="font-newsreader text-[18px] text-ink">{event.title}</div>
-    </Link>
-  );
-}
-
-/* ─────────────────────────── Badge ─────────────────────────── */
-
-function Badge({
-  children,
-  tone,
-  small,
-}: {
-  children: React.ReactNode;
-  tone: "clay" | "sand";
-  small?: boolean;
-}) {
-  const base = small ? "px-2.5 py-1 text-[11.5px]" : "px-2.5 py-1 text-xs";
-  const toneCls =
-    tone === "clay"
-      ? "bg-clay/10 text-clay"
-      : "bg-paper-alt text-ink-muted";
-  return (
-    <span className={`rounded-full font-inter font-semibold ${base} ${toneCls}`}>
-      {children}
-    </span>
-  );
-}
-
-/* ─────────────────────────── helpers ─────────────────────────── */
-
 /** "Apr — May 2026" style band from a list of events; falls back to "Upcoming". */
 function monthRange(events: Event[]): string {
-  const dates = events.map((e) => parseDate(e.date)).filter((d): d is Date => d !== null);
+  const dates = events.map((e) => parseEventDate(e.date)).filter((d): d is Date => d !== null);
   if (dates.length === 0) return "Upcoming";
   dates.sort((a, b) => a.getTime() - b.getTime());
   const first = dates[0];
   const last = dates[dates.length - 1];
-  const y = last.getFullYear();
-  const m1 = fmt(first, { month: "long" });
-  const m2 = fmt(last, { month: "long" });
-  return m1 === m2 ? `${m1} ${y}` : `${m1} — ${m2} ${y}`;
+  const firstMonth = formatDate(first, { month: "long" });
+  const lastMonth = formatDate(last, { month: "long" });
+  return firstMonth === lastMonth ? `${firstMonth} ${last.getFullYear()}` : `${firstMonth} — ${lastMonth} ${last.getFullYear()}`;
 }

@@ -9,19 +9,19 @@ export interface Resource {
 }
 
 export const resources: Resource[] = [
-  // ─── Official Anthropic ───
+  // ─── From Anthropic ───
   {
     id: "claude-ai",
     title: "Claude.ai",
     url: "https://claude.ai",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description: "The main Claude AI interface — chat, analyze, and create.",
   },
   {
     id: "anthropic-docs",
     title: "Anthropic API Documentation",
     url: "https://docs.anthropic.com",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Complete documentation for Claude models, APIs, and developer tools.",
   },
@@ -29,7 +29,7 @@ export const resources: Resource[] = [
     id: "claude-code-docs",
     title: "Claude Code Documentation",
     url: "https://docs.anthropic.com/en/docs/claude-code",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Official guide for Claude Code — Anthropic's agentic coding tool for the terminal.",
   },
@@ -37,7 +37,7 @@ export const resources: Resource[] = [
     id: "api-reference",
     title: "API Reference",
     url: "https://docs.anthropic.com/en/api/getting-started",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Full API reference with endpoints, parameters, and example requests.",
   },
@@ -45,7 +45,7 @@ export const resources: Resource[] = [
     id: "anthropic-models",
     title: "Claude Models Overview",
     url: "https://docs.anthropic.com/en/docs/about-claude/models",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Compare Claude model capabilities, context windows, and pricing across the model family.",
   },
@@ -53,7 +53,7 @@ export const resources: Resource[] = [
     id: "anthropic-pricing",
     title: "Claude Pricing",
     url: "https://www.anthropic.com/pricing",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Pricing details for Claude Pro, Team, and API usage tiers.",
   },
@@ -61,7 +61,7 @@ export const resources: Resource[] = [
     id: "anthropic-news",
     title: "Anthropic News & Blog",
     url: "https://www.anthropic.com/news",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Latest announcements, product updates, and research from Anthropic.",
   },
@@ -69,7 +69,7 @@ export const resources: Resource[] = [
     id: "anthropic-cookbook",
     title: "Anthropic Cookbook",
     url: "https://github.com/anthropics/anthropic-cookbook",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Code examples and guides from basic API usage to advanced patterns like RAG and agents.",
   },
@@ -77,7 +77,7 @@ export const resources: Resource[] = [
     id: "anthropic-skills",
     title: "Anthropic Agent Skills",
     url: "https://github.com/anthropics/skills",
-    category: "Official Anthropic",
+    category: "From Anthropic",
     description:
       "Official skill templates for Claude — document creation, MCP servers, web testing, and more.",
   },

@@ -26,6 +26,7 @@ export function StickyMobileCTA() {
 
   useEffect(() => {
     const wasDismissed = localStorage.getItem(STORAGE_KEY) === "1";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
     setDismissed(wasDismissed);
 
     if (wasDismissed) return;

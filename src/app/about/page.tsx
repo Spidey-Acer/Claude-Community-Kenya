@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getTeamMembers, getEvents } from "@/lib/data";
-import { prisma } from "@/lib/prisma";
-import type { CommunityStats } from "@/components/sections/HeroTerminal";
+import { getTeamMembers, getEvents, getGalleryPhotos } from "@/lib/data";
 import { KaribuAbout } from "@/components/karibu/KaribuAbout";
 
 function formatTimelineDate(iso: string): string {
@@ -33,30 +31,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About | Claude Community Kenya",
     description:
-      "Kenya's independent, volunteer-run Claude developer community. Anthropic-supported meetups, workshops, and builders across Kenya.",
+      "Kenya's independent, volunteer-run Claude community. Meetups, workshops, and builders across Kenya.",
     url: "https://www.claudekenya.org/about",
     siteName: "Claude Community Kenya",
     type: "website",
   },
 };
 
-const DEFAULT_STATS: CommunityStats = {
-  discordMembers: 100,
-  whatsappMembers: 120,
-  linkedinMembers: 80,
-  totalMembers: 300,
-  eventsHeld: 2,
-  citiesActive: ["Nairobi", "Mombasa"],
-  resourceCount: 33,
-};
-
 export const revalidate = 3600;
 
 export default async function AboutPage() {
-  const [team, siteSettings, allEvents] = await Promise.all([
+  const [team, allEvents, photos] = await Promise.all([
     getTeamMembers().catch(() => []),
-    prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getEvents().catch(() => []),
+    getGalleryPhotos().catch(() => []),
   ]);
 
   // Timeline = past events, oldest first. Source of truth: admin-managed DB.
@@ -70,27 +58,10 @@ export default async function AboutPage() {
       hash: shortHash(e.slug),
     }));
 
-  const stats: CommunityStats = siteSettings
-    ? {
-        discordMembers: siteSettings.discordMembers,
-        whatsappMembers: siteSettings.whatsappMembers,
-        linkedinMembers: siteSettings.linkedinMembers,
-        totalMembers:
-          siteSettings.discordMembers +
-          siteSettings.whatsappMembers +
-          siteSettings.linkedinMembers,
-        eventsHeld: siteSettings.eventsHeld,
-        citiesActive: Array.isArray(siteSettings.citiesActive)
-          ? (siteSettings.citiesActive as string[])
-          : (JSON.parse(siteSettings.citiesActive as string) as string[]),
-        resourceCount: siteSettings.resourceCount,
-      }
-    : DEFAULT_STATS;
-
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "About" }]} />
-      <KaribuAbout stats={stats} team={team} timelineEntries={timelineEntries} />
+      <KaribuAbout team={team} timelineEntries={timelineEntries} photos={photos} />
     </>
   );
 }

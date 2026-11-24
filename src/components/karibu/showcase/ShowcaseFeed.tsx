@@ -3,13 +3,14 @@
 /**
  * ShowcaseFeed — the public `/showcase` listing, Karibu warm-light.
  *
- * Structural model is `KaribuCommunity`: URL-driven sort/filter state via
- * `useSearchParams` + `router.push`, a card grid, and a deliberate empty
+ * URL-driven sort/type/filter state via `useSearchParams` + `router.push`,
+ * one feed for every submission type, a card grid, and a deliberate empty
  * state. Two empty states here rather than one — "nothing posted yet" and
  * "nothing matches this filter" read very differently to a visitor and only
  * one of them should suggest posting.
  */
 
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Flame, Clock, TrendingUp, LifeBuoy, Plus, X, type LucideIcon } from "lucide-react"
@@ -19,14 +20,23 @@ import { NEED_LABELS, type NeedKey } from "@/lib/showcase/constants"
 import { ShowcaseCard } from "@/components/karibu/showcase/ShowcaseCard"
 import { Reveal } from "@/components/karibu/motion/Reveal"
 import { FeedPagination, FeedErrorPanel } from "@/components/karibu/FeedPagination"
-import { PageBanner } from "@/components/karibu/PageBanner"
+import { BTN_OUTLINE, BTN_PRIMARY, EmptyState, Masthead, WRAP } from "@/components/karibu/kit"
 import { CtaBand } from "@/components/karibu/CtaBand"
 import { cn } from "@/lib/utils"
 
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10"
-
 /** Below this count, sort/filter pills read as decorative rather than useful. */
 const MIN_ITEMS_FOR_SORT_PILLS = 8
+
+/** Type chips; `key` is the `?type=` URL value (see TYPE_PARAM). */
+const TYPE_CHIPS: Array<{ key: string | undefined; label: string }> = [
+  { key: undefined, label: "All" },
+  { key: "project", label: "Projects" },
+  { key: "demo", label: "Demos" },
+  { key: "tool", label: "Tools" },
+  { key: "prompt", label: "Prompts" },
+  { key: "workflow", label: "Workflows" },
+  { key: "mcp", label: "MCP servers" },
+]
 
 const SORTS: Array<{ key: ShowcaseSort; label: string; icon: LucideIcon }> = [
   { key: "hot", label: "Hot", icon: Flame },
@@ -39,6 +49,7 @@ interface ShowcaseFeedProps {
   items: ShowcasePostView[]
   total: number
   activeSort: ShowcaseSort
+  activeType?: string
   activeEvent?: string
   activeNeed?: string
   page?: number
@@ -49,6 +60,7 @@ export function ShowcaseFeed({
   items,
   total,
   activeSort,
+  activeType,
   activeEvent,
   activeNeed,
   page = 1,
@@ -56,7 +68,7 @@ export function ShowcaseFeed({
 }: ShowcaseFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const hasFilters = Boolean(activeEvent || activeNeed)
+  const hasFilters = Boolean(activeType || activeEvent || activeNeed)
 
   function update(key: string, value: string | undefined) {
     const params = new URLSearchParams(searchParams.toString())
@@ -76,27 +88,48 @@ export function ShowcaseFeed({
 
   return (
     <>
-      <PageBanner
-        image="/images/community/crowd-nairobi.webp"
-        imageAlt="A crowd at a CCK Nairobi event"
-        crumbs={["Home", "Showcase"]}
+      <Masthead
+        eyebrow="Showcase"
         title="What the community is building."
-        subtitle="Projects, demos and works in progress from members across the country. React, comment, and help each other ship."
+        lead="Projects, demos, tools, prompts and workflows from members across the country. React, comment, and help each other ship."
+        media={
+          <Image
+            src="/images/community/crowd-nairobi.webp"
+            alt="A crowd at a CCK Nairobi event"
+            fill
+            priority
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="object-cover"
+          />
+        }
       />
 
-      <section className={`${WRAP} pb-6 pt-10`} aria-label="Share">
+      <section className={`${WRAP} pb-6 pt-10`} aria-label="Filter and share">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <p className="font-inter text-[14px] text-ink-muted">
-              Sharing an MCP, prompt or workflow?{" "}
-              <Link href="/community" className="font-semibold text-clay underline-offset-2 hover:underline">
-                That lives in Tools &amp; Prompts
-              </Link>
-            </p>
-            <Link
-              href="/showcase/submit"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"
-            >
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by type">
+              {TYPE_CHIPS.map(({ key, label }) => {
+                const on = activeType === key
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => update("type", key)}
+                    className={cn(
+                      "inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
+                      on
+                        ? "bg-band-bg text-on-band"
+                        : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
+                    )}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <Link href="/showcase/submit" className={BTN_PRIMARY}>
               <Plus className="h-4 w-4" aria-hidden="true" /> Share what you built
             </Link>
           </div>
@@ -118,7 +151,7 @@ export function ShowcaseFeed({
                   aria-pressed={on}
                   onClick={() => update("sort", key === "hot" ? undefined : key)}
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
+                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
                     on
                       ? "bg-ink text-paper-card"
@@ -152,8 +185,10 @@ export function ShowcaseFeed({
         </p>
       </section>
 
-      <section className={`${WRAP} pb-16`}>
-        <h2 className="sr-only">Showcase posts</h2>
+      <section className={`${WRAP} pb-16`} aria-labelledby="showcase-posts-heading">
+        <h2 id="showcase-posts-heading" className="sr-only">
+          Showcase posts
+        </h2>
         {dbError ? (
           <FeedErrorPanel surface="showcase" />
         ) : total > 0 ? (
@@ -167,11 +202,7 @@ export function ShowcaseFeed({
             ) : (
               // An out-of-range ?page (stale bookmark, removed post) — keep
               // the pagination visible so the visitor can get back.
-              <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
-                <p className="font-newsreader text-[22px] text-ink">
-                  Nothing on this page.
-                </p>
-              </div>
+              <EmptyState title="Nothing on this page." body="That page number has no posts. Use the page controls to go back." />
             )}
             <FeedPagination
               page={page}
@@ -180,34 +211,25 @@ export function ShowcaseFeed({
             />
           </>
         ) : hasFilters ? (
-          <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
-            <p className="mb-4 font-newsreader text-[22px] text-ink">
-              Nothing matches this filter yet.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/showcase")}
-              className="inline-flex rounded-full border border-sand px-6 py-3 font-inter text-sm font-semibold text-ink-soft transition-colors hover:border-clay hover:text-clay"
-            >
-              Clear filters
-            </button>
-          </div>
+          <EmptyState
+            title="Nothing matches this filter yet."
+            body="Clear the filters to see everything that has been shared."
+            action={
+              <button type="button" onClick={() => router.push("/showcase")} className={BTN_OUTLINE}>
+                Clear filters
+              </button>
+            }
+          />
         ) : (
-          <div className="rounded-2xl border border-sand bg-paper-card p-10 text-center">
-            <p className="mb-4 font-newsreader text-[24px] text-ink">
-              Nothing here yet — be the first.
-            </p>
-            <p className="mx-auto mb-6 max-w-md font-inter text-[14.5px] leading-[1.6] text-ink-soft">
-              Built something with Claude — a demo, a launch, or a work in
-              progress? Post it and let the community react.
-            </p>
-            <Link
-              href="/showcase/submit"
-              className="inline-flex rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
-            >
-              Share something
-            </Link>
-          </div>
+          <EmptyState
+            title="Nothing here yet. Be the first."
+            body="Built something with Claude, such as a demo, a launch or a work in progress? Post it and let the community react."
+            action={
+              <Link href="/showcase/submit" className={BTN_PRIMARY}>
+                Share something
+              </Link>
+            }
+          />
         )}
       </section>
 
@@ -224,7 +246,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
       type="button"
       onClick={onClear}
       aria-label={`Remove filter — ${label}`}
-      className="inline-flex items-center gap-1.5 rounded-full border border-clay bg-clay/10 px-3 py-1.5 font-inter text-[12.5px] font-medium text-clay transition-colors hover:bg-clay/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-clay bg-paper-card px-3 py-1.5 font-inter text-[13px] font-semibold text-clay transition-colors hover:bg-paper-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
       {label}
       <X className="h-3 w-3" aria-hidden="true" />

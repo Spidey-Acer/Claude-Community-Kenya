@@ -44,7 +44,7 @@ export function CommunityResourceCard({ submission }: CommunityResourceCardProps
   if (isPro) {
     return (
       <Link
-        href={`/community/${submission.slug}`}
+        href={`/showcase/${submission.slug}`}
         className="group block"
         aria-label={`${submission.title} — ${typeConfig.label}`}
       >
@@ -122,7 +122,7 @@ export function CommunityResourceCard({ submission }: CommunityResourceCardProps
   // ─── Dev / Terminal Noir variant ──────────────────────────────────────
   return (
     <Link
-      href={`/community/${submission.slug}`}
+      href={`/showcase/${submission.slug}`}
       className="group block"
       aria-label={`${submission.title} — ${typeConfig.label}`}
     >

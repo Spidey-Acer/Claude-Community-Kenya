@@ -6,6 +6,7 @@ import { DigitalDocumentSchema } from "@/components/schema/DigitalDocumentSchema
 import { getGuideBySlug, getPublishedGuideSlugs } from "@/lib/data";
 import { GUIDE_AUDIENCE_LABELS, guideMetaLine, type GuideAudience } from "@/lib/guides";
 import { withDownload } from "@/lib/supabase";
+import { BTN_PRIMARY, Masthead } from "@/components/karibu/kit";
 import { SITE_CONFIG } from "@/lib/constants";
 
 export const revalidate = 600;
@@ -61,7 +62,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
   const downloadHref = withDownload(guide.fileUrl, `${guide.slug}.pdf`);
 
   return (
-    <main className="bg-paper py-14">
+    <div className="bg-paper py-14">
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -92,14 +93,12 @@ export default async function GuidePage({ params }: GuidePageProps) {
           <span className="text-ink">{guide.title}</span>
         </nav>
 
-        <h1 className="mb-3 font-newsreader text-[34px] font-normal leading-[1.1] tracking-[-0.015em] text-ink sm:text-[42px]">
-          {guide.title}
-        </h1>
-
-        <p className="mb-1 font-inter text-[14px] text-ink-muted">{audienceLabel}</p>
-        <p className="mb-6 font-inter text-[13px] text-ink-muted">
-          {guideMetaLine(guide.fileSize, guide.pageCount)}
-        </p>
+        <Masthead eyebrow="Guide" title={guide.title} flush>
+          <p className="mb-1 mt-4 font-inter text-[14px] text-ink-muted">{audienceLabel}</p>
+          <p className="mb-6 font-inter text-[13px] text-ink-muted">
+            {guideMetaLine(guide.fileSize, guide.pageCount)}
+          </p>
+        </Masthead>
 
         <p className="mb-7 max-w-[640px] font-inter text-[16px] leading-[1.6] text-ink-soft">
           {guide.summary}
@@ -108,7 +107,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         <a
           href={downloadHref}
           download
-          className="mb-10 inline-flex rounded-full bg-ink px-6 py-3 font-inter text-[14.5px] font-semibold text-paper transition-colors hover:bg-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50"
+          className={`mb-10 ${BTN_PRIMARY}`}
         >
           Download PDF
         </a>
@@ -128,6 +127,6 @@ export default async function GuidePage({ params }: GuidePageProps) {
           .
         </p>
       </div>
-    </main>
+    </div>
   );
 }

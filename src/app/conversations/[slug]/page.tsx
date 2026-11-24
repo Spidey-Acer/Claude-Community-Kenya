@@ -66,7 +66,7 @@ export default async function ConversationsEventPage({
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
-          { name: "Conversations", url: "/conversations" },
+          { name: "Reports", url: "/reports" },
           { name: page.event.title },
         ]}
       />

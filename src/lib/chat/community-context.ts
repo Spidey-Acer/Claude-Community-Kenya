@@ -127,7 +127,7 @@ ${resourceBlock}
 - Speaker Application: /speak
 - Volunteer: /volunteer
 - Submit Idea: /submit-idea
-- Submit Project: /submit-project
+- Submit Project: /showcase/submit
 - Events: /events
 - Resources: /resources
 - FAQ: /faq

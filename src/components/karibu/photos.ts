@@ -1,3 +1,5 @@
+import type { PhotoView } from "@/lib/data";
+
 /**
  * Shared real-photo helpers for the Karibu pages.
  *
@@ -66,4 +68,16 @@ export const FACES_PHOTOS: { src: string; alt: string }[] = [
  */
 export function eventCover(posterUrl: string | undefined | null): string | null {
   return posterUrl ?? null;
+}
+
+/**
+ * Photos for the /about "community life" strip: only photos that belong to no
+ * event, featured first (stable within each group), at most `max`.
+ */
+export function communityLifePhotos(photos: PhotoView[], max = 8): PhotoView[] {
+  const eventless = photos.filter((photo) => photo.event == null);
+  return [
+    ...eventless.filter((photo) => photo.featured),
+    ...eventless.filter((photo) => !photo.featured),
+  ].slice(0, max);
 }

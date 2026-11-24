@@ -57,10 +57,10 @@ export async function POST(
   try {
     const submission = await prisma.communitySubmission.findUnique({
       where: { slug },
-      select: { id: true, status: true, type: true },
+      select: { id: true, status: true },
     })
 
-    if (!submission || submission.status !== "APPROVED" || submission.type !== "SHOWCASE") {
+    if (!submission || submission.status !== "APPROVED") {
       return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 })
     }
 

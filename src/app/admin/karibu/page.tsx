@@ -143,6 +143,7 @@ export default async function KaribuAdminPage() {
   // ── Relative time helper ──────────────────────────────────────────────────
   function relativeTime(date: Date | null): string {
     if (!date) return "—"
+    // eslint-disable-next-line react-hooks/purity -- server component; "now" is request time
     const diff = Math.floor((Date.now() - date.getTime()) / 1000)
     if (diff < 60) return "just now"
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`

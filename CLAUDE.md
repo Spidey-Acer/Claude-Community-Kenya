@@ -57,76 +57,42 @@ wart, see Known Issues.
 
 ## Architecture
 
+Public site: 23 routes (the revamp map). Staff surfaces (admin, dashboard, judge,
+timer) and the API sit beside them.
+
 ```
 src/
-├── app/                          # 25+ public pages, 15 admin pages, 42 API routes
-│   ├── page.tsx                  # Home (renders KaribuHome: marquee ticker, hero, trust-bar
-│   │                             #   stats, personalized recommendations, what-we-do, two
-│   │                             #   tracks, events, projects, community-in-action, how-to-join,
-│   │                             #   supported-by)
-│   ├── about/                    # About with timeline
-│   ├── events/                   # Listing + [slug] detail + demo request forms
+├── app/
+│   ├── page.tsx                  # Home (KaribuHome)
+│   ├── season/[slug]/            # Season hub; /season redirects to the current season
+│   ├── events/                   # Listing + [slug] detail
+│   ├── resources/                # Learn door: getting-started, claude-code, api-guide,
+│   │                             #   production-guide, workflows, courses, guides/[slug] (DB)
 │   ├── blog/                     # Listing + [slug] detail (DB-backed)
-│   ├── projects/                 # Project showcase
-│   ├── community/                # Community Hub: MCP/Prompt/Workflow/Tool submissions
-│   │   ├── [slug]/               # Detail page with comments + upvotes
-│   │   └── submit/               # Submission form
-│   ├── resources/                # Resource hub with 7 sub-pages
-│   │   ├── getting-started/      # Beginner guide
-│   │   ├── claude-code/          # Claude Code tutorial
-│   │   ├── workflows/            # Workflow patterns
-│   │   ├── courses/              # Anthropic courses learning paths
-│   │   ├── api-guide/            # API usage guide
-│   │   ├── production-guide/     # Production best practices
-│   │   └── links/                # Curated links directory
-│   ├── join/                     # Terminal-themed application form
-│   ├── speak/                    # Speaker application
-│   ├── volunteer/                # Volunteer application
-│   ├── submit-idea/              # Idea submission
-│   ├── submit-project/           # Project submission
-│   ├── faq/                      # FAQ with accordions + floating Discord CTA
-│   ├── ambassador/               # Ambassador program
-│   ├── code-of-conduct/
-│   ├── admin/                    # Full CRUD admin panel (auth-protected)
-│   │   ├── applications/         # Join applications management
-│   │   ├── blog/                 # Blog CRUD (new, edit, list)
-│   │   ├── community/            # Community submissions moderation
-│   │   ├── contact/              # Contact messages
-│   │   ├── demos/                # Demo requests
-│   │   ├── events/               # Event CRUD (new, edit, list)
-│   │   ├── ideas/                # Idea submissions
-│   │   ├── speakers/             # Speaker applications
-│   │   ├── volunteers/           # Volunteer applications
-│   │   ├── settings/             # Site settings, stats, user management
-│   │   └── login/                # Admin login
-│   ├── api/                      # 42 API routes (admin + public)
-│   ├── robots.ts                 # SEO: robots.txt generation
-│   ├── sitemap.ts                # SEO: sitemap.xml generation
-│   ├── opengraph-image.tsx       # Dynamic OG image
-│   └── not-found.tsx             # 404
+│   ├── showcase/                 # One surface for every submission type; [slug], submit
+│   ├── reports/                  # Reports index; /impact-lab/[cohort], /impact-lab/results/[slug],
+│   │                             #   /conversations/[slug] hang off it
+│   ├── about/  join/  get-involved/  faq/  code-of-conduct/
+│   ├── account/  login/  signup/ # Auth pages (unlisted from nav)
+│   ├── admin/  dashboard/        # Terminal Noir staff surfaces
+│   ├── judge/  timer/            # Build Day displays (Terminal Noir, no site chrome)
+│   ├── api/                      # Admin + public API routes
+│   ├── sitemap.ts  robots.ts  opengraph-image.tsx  not-found.tsx
 │
 ├── components/
-│   ├── layout/                   # Navbar, Footer, MobileMenu, PageTransition, ConditionalLayout
-│   ├── sections/                 # HeroTerminal, HeroPro, StatsBar, StatsBarPro, EventCard,
-│   │                             # ProjectCard, BlogPostCard, TeamMemberCard, TestimonialsCarousel,
-│   │                             # CommunityResourceCard, HomeContent
-│   ├── terminal/                 # TerminalWindow, MatrixRain, CommandPalette, GlitchText,
-│   │                             # TypingAnimation, CRTGlow, ScrollReveal, LoadingBar,
-│   │                             # TerminalApplication (1356 lines — needs refactor)
-│   ├── persona/                  # PersonaToggle, PersonaHeading, PersonaText, PersonaSelectorModal,
-│   │                             # ParticleCanvas, ProWrappers
-│   ├── community/                # CommentForm, CommentList, CopyButton, UpvoteButton
-│   ├── admin/                    # AdminHeader, AdminSidebar, StatusBadge, ReviewForm, etc.
-│   ├── schema/                   # BreadcrumbSchema (structured data)
-│   └── ui/                       # Button, Card, Badge, CountUp, Accordion, Timeline, MediaFrame
+│   ├── karibu/                   # Every public page's components (nav, footer, motion/Reveal, GuideBlock, ...)
+│   ├── layout/                   # ConditionalLayout (chrome switch), legacy Navbar/Footer
+│   ├── sections/                 # Shared cards (ProjectCard, BlogPostCard, TeamMemberCard, ...)
+│   ├── community/  admin/  schema/  ui/
 │
-├── data/                         # Static TypeScript data (events, blog, projects, resources, team, faq, persona-content)
-├── lib/                          # Utilities: prisma, constants, utils, csrf, rate-limit, rbac,
-│                                 # audit-log, email, supabase, data-access, input-sanitization
-└── styles/
-    ├── glitch.css                # Glitch text animations
-    └── terminal-effects.css      # Terminal CRT/scanline effects
+├── data/                         # Static TypeScript data (events, blog, resources, faq)
+└── lib/                          # prisma, constants, redirects, data-access, csrf, rate-limit, rbac, email, ...
 ```
+
+Cut paths are permanent redirects, defined in `src/lib/redirects.ts` and wired in
+`next.config.ts`. A redirect is added only when its destination page exists.
+
+Tests: `src/**/__tests__/**/*.test.ts` (vitest; `.tsx` tests are not collected).
 
 ## Database (17 Prisma models)
 
@@ -180,9 +146,7 @@ npm run db:seed          # Seed database
 
 ## Known Issues
 
-- `TerminalApplication.tsx` is 1,356 lines — needs refactoring into sub-components
 - Team avatars reference `/images/team/*.jpg` — files may not exist
-- CommandPalette FAQ links may point to wrong routes
 - **Dead font utility:** `.persona-pro h1,h2,h3` (specificity 0,1,1) beats the
   `font-newsreader` utility (0,1,0), so ~66 heading usages of `font-newsreader`
   render Fraunces. The ~28 non-heading usages *do* apply — do not blanket-delete

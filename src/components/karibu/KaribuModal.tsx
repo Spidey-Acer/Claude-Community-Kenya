@@ -5,13 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { KaribuConversation } from "./KaribuConversation";
 import { KaribuSkipButton } from "./KaribuSkipButton";
+import { FOCUSABLE_SELECTOR, handleTrapKeyDown } from "./focus-trap";
 
 /**
  * Full-screen Karibu onboarding modal.
  *
  * Mounts ~800ms after page paint with a soft entry choreography
  * (background dim + radial glow + scale-up). Honors prefers-reduced-motion
- * by skipping all animation. Focus trap on first focusable element.
+ * by skipping all animation. Focus moves in on open, Tab and Shift+Tab cycle
+ * inside the dialog, Escape skips (KaribuSkipButton), and focus returns to
+ * whatever held it before the modal opened.
  *
  * The modal exits on either skip (POST /api/karibu/skip) or completion
  * (Claude tool call sets cck-audience cookie). In both cases the page
@@ -30,10 +33,9 @@ export function KaribuModal() {
 
   useEffect(() => {
     if (!open || !containerRef.current) return;
-    const first = containerRef.current.querySelector<HTMLElement>(
-      'button,[href],input,textarea,select,[tabindex]:not([tabindex="-1"])',
-    );
-    first?.focus();
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    containerRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
+    return () => opener?.focus();
   }, [open]);
 
   function handleSkip() {
@@ -90,6 +92,7 @@ export function KaribuModal() {
           )}
           <motion.div
             ref={containerRef}
+            onKeyDown={(event) => containerRef.current && handleTrapKeyDown(event, containerRef.current)}
             className="relative w-[88%] max-w-[680px] max-h-[85vh] overflow-hidden bg-bg-primary/95 border border-green-primary/20 rounded-2xl shadow-[0_30px_80px_rgba(0,255,65,0.1)] flex flex-col"
             initial={reduce ? { scale: 1, y: 0 } : { scale: 0.96, y: 20 }}
             animate={{ scale: 1, y: 0 }}

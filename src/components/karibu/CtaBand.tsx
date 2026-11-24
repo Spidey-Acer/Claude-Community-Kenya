@@ -7,6 +7,7 @@
  * --band-bg/--on-band tokens, never the theme-flipping --clay.
  */
 
+import { NewTabNote } from "@/components/karibu/kit";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 
 interface CtaBandProps {
@@ -52,6 +53,7 @@ export function CtaBand({
               className="inline-flex items-center justify-center gap-2 rounded-full bg-paper-card px-6 py-[15px] font-inter text-[15px] font-semibold text-ink transition-opacity hover:opacity-90"
             >
               Join on WhatsApp
+              <NewTabNote />
             </a>
           )}
           {discord && (
@@ -62,6 +64,7 @@ export function CtaBand({
               className="inline-flex items-center justify-center gap-2 rounded-full border border-on-band/50 px-6 py-[15px] font-inter text-[15px] font-semibold text-on-band transition-colors hover:border-on-band"
             >
               Join Discord
+              <NewTabNote />
             </a>
           )}
         </div>

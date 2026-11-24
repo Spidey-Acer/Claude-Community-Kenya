@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ReactNode } from "react";
 
 interface PageTransitionProps {
@@ -12,10 +12,18 @@ const variants = {
   enter: { opacity: 1, y: 0 },
 };
 
+// Reduced-motion variant: fades only, no vertical travel.
+const reducedVariants = {
+  hidden: { opacity: 0 },
+  enter: { opacity: 1 },
+};
+
 export function PageTransition({ children }: PageTransitionProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <motion.div
-      variants={variants}
+      variants={prefersReducedMotion ? reducedVariants : variants}
       initial="hidden"
       animate="enter"
       transition={{ duration: 0.3, ease: "easeInOut" }}

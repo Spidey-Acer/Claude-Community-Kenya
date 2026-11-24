@@ -22,6 +22,7 @@ function VerifyInner() {
     ranRef.current = true;
 
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot guarded by ranRef
       setStatus("error");
       setError("Missing verification token.");
       return;

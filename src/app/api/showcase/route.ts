@@ -14,6 +14,7 @@ import { toSlug } from "@/lib/utils"
 import {
   isNeedKey,
   isGiphyUrl,
+  SUBMISSION_TYPES,
   MAX_MEDIA_PER_POST,
   GIPHY_KEY_PREFIX,
 } from "@/lib/showcase/constants"
@@ -22,9 +23,12 @@ import { publicUrl } from "@/lib/gallery/r2"
 /**
  * POST /api/showcase — publish a showcase post.
  *
- * Verified members publish straight to APPROVED, matching the comment rule:
- * an email round-trip is the bar, and a queue nobody drains is the same as no
- * showcase at all. Reports are the backstop, not pre-moderation.
+ * Only a SHOWCASE (the old "demo") from a verified member publishes straight
+ * to APPROVED: an email round-trip is the bar, and reports are the backstop.
+ * Every other type (PROJECT, TOOL, PROMPT, WORKFLOW, MCP) lands PENDING, as it
+ * did on main through the community submit route, so a moderator reviews it
+ * before it is public. Status, slug, userId and featured are never read from
+ * the body; the schema strips unknown keys.
  */
 
 const mediaSchema = z.object({
@@ -38,6 +42,9 @@ const mediaSchema = z.object({
 })
 
 const bodySchema = z.object({
+  type: z.enum(SUBMISSION_TYPES).default("SHOWCASE"),
+  builder: z.string().max(80).optional().transform(v => (v ? zodSanitizeString(v) : undefined)),
+  stack: z.array(z.string().max(40).transform(zodSanitizeString)).max(12).default([]),
   title: z.string().min(5).max(150).transform(zodSanitizeString),
   shortDescription: z.string().min(20).max(300).transform(zodSanitizeString),
   fullDescription: z.string().min(50).max(5000).transform(zodSanitizeMultilineText(5000)),
@@ -188,11 +195,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const isProject = data.type === "PROJECT"
+
   try {
     await prisma.communitySubmission.create({
       data: {
         userId,
-        type: "SHOWCASE",
+        type: data.type,
         title: data.title,
         slug,
         shortDescription: data.shortDescription,
@@ -204,9 +213,13 @@ export async function POST(request: NextRequest) {
         media,
         eventId: data.eventId,
         needs: data.needs,
-        builtWith: data.builtWith ?? undefined,
-        submitterName: `${user.firstName} ${user.lastName}`.trim(),
-        status: "APPROVED",
+        builtWith: isProject
+          ? { models: [], skills: data.stack, mcps: [] }
+          : (data.builtWith ?? undefined),
+        submitterName: isProject && data.builder
+          ? data.builder
+          : `${user.firstName} ${user.lastName}`.trim(),
+        status: data.type === "SHOWCASE" ? "APPROVED" : "PENDING",
         lastActivityAt: new Date(),
       },
     })

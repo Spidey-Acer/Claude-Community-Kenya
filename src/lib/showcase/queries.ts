@@ -3,7 +3,7 @@ import { Prisma } from "@/generated/prisma/client"
 import { FEED_PAGE_SIZE } from "@/lib/constants"
 import { HOT_SCORE_SQL, type ShowcaseSort } from "@/lib/showcase/ranking"
 import type { MediaDescriptor } from "@/lib/showcase/media"
-import type { NeedKey } from "@/lib/showcase/constants"
+import { SUBMISSION_TYPES, type NeedKey, type SubmissionType } from "@/lib/showcase/constants"
 
 export interface BuiltWith {
   models: string[]
@@ -15,11 +15,13 @@ export interface BuiltWith {
 export interface ShowcasePostView {
   id: string
   slug: string
+  type: SubmissionType
   title: string
   shortDescription: string
   fullDescription: string
   url: string | null
   repoUrl: string | null
+  installInstructions: string | null
   tags: string[]
   authorName: string | null
   coverImageUrl: string | null
@@ -70,11 +72,13 @@ function mapRow(row: Row): ShowcasePostView {
   return {
     id: row.id,
     slug: row.slug,
+    type: row.type,
     title: row.title,
     shortDescription: row.shortDescription,
     fullDescription: row.fullDescription,
     url: row.url,
     repoUrl: row.repoUrl,
+    installInstructions: row.installInstructions,
     tags: asArray<string>(row.tags),
     authorName: row.submitterName,
     coverImageUrl: resolveCoverImage(row),
@@ -93,6 +97,8 @@ function mapRow(row: Row): ShowcasePostView {
 
 export async function getShowcasePosts(opts?: {
   sort?: ShowcaseSort
+  /** One submission type; absent means every type on the showcase. */
+  type?: SubmissionType
   eventId?: string
   need?: string
   page?: number
@@ -103,8 +109,10 @@ export async function getShowcasePosts(opts?: {
   const skip = (page - 1) * limit
   const sort = opts?.sort ?? "hot"
 
+  const types: readonly SubmissionType[] = opts?.type ? [opts.type] : SUBMISSION_TYPES
+
   const where: Prisma.CommunitySubmissionWhereInput = {
-    type: "SHOWCASE",
+    type: { in: [...types] },
     status: "APPROVED",
     ...(opts?.eventId ? { eventId: opts.eventId } : {}),
     ...(opts?.need ? { needs: { array_contains: [opts.need] } } : {}),
@@ -137,7 +145,7 @@ export async function getShowcasePosts(opts?: {
 
     const ranked = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT id FROM community_submissions
-      WHERE type = 'SHOWCASE' AND status = 'APPROVED' ${eventFilter} ${needFilter}
+      WHERE type::text IN (${Prisma.join(types)}) AND status = 'APPROVED' ${eventFilter} ${needFilter}
       ORDER BY ${HOT_SCORE_SQL} DESC
       LIMIT ${limit} OFFSET ${skip}
     `)
@@ -174,6 +182,24 @@ export async function getShowcasePosts(opts?: {
 }
 
 /**
+ * Featured work for the Home page: approved rows flagged `featured`, newest
+ * first. No type filter, so a featured prompt or MCP shows as readily as a
+ * project.
+ */
+export async function listFeaturedSubmissions(limit: number): Promise<ShowcasePostView[]> {
+  const rows = await prisma.communitySubmission.findMany({
+    where: { status: "APPROVED", featured: true },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      event: { select: { title: true, slug: true } },
+      _count: { select: { comments: { where: { status: "APPROVED" as const } } } },
+    },
+  })
+  return rows.map(mapRow)
+}
+
+/**
  * The emoji this member has already reacted with on a post.
  *
  * Kept separate from `getShowcasePostBySlug` rather than folded into it: the
@@ -197,6 +223,6 @@ export async function getShowcasePostBySlug(slug: string): Promise<ShowcasePostV
       _count: { select: { comments: { where: { status: "APPROVED" } } } },
     },
   })
-  if (!row || row.status !== "APPROVED" || row.type !== "SHOWCASE") return null
+  if (!row || row.status !== "APPROVED") return null
   return mapRow(row)
 }

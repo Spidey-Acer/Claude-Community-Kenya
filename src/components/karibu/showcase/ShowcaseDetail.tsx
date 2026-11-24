@@ -8,6 +8,10 @@ import { BuiltWithPanel } from "@/components/karibu/showcase/BuiltWithPanel"
 import { NeedsChips } from "@/components/karibu/showcase/NeedsChips"
 import { ReactionRow } from "@/components/karibu/showcase/ReactionRow"
 import { ReportButton } from "@/components/karibu/showcase/ReportButton"
+import { CopyButton } from "@/components/community/CopyButton"
+import { TYPE_LABELS } from "@/lib/showcase/constants"
+import { formatDate } from "@/lib/utils"
+import { BADGE_SAND, BTN_OUTLINE, BTN_PRIMARY, META, Masthead } from "@/components/karibu/kit"
 import { CommentForm } from "@/components/community/CommentForm"
 import { CommentList } from "@/components/community/CommentList"
 
@@ -45,42 +49,35 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
     <div className="mx-auto max-w-[820px] px-6 pb-20 pt-12 md:px-10">
       <Link
         href="/showcase"
-        className="mb-8 inline-flex items-center gap-2 font-inter text-[13px] text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+        className="mb-4 inline-flex min-h-11 items-center gap-2 font-inter text-[13px] text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Back to Showcase
       </Link>
 
-      <header className="mb-8">
-        {post.eventName && (
-          <p className="mb-2 font-inter text-[12px] font-semibold uppercase tracking-[0.1em] text-clay">
-            {post.eventSlug ? (
-              <Link href={`/events/${post.eventSlug}`} className="hover:underline">
+      <Masthead eyebrow={TYPE_LABELS[post.type]} title={<span className="break-words">{post.title}</span>} lead={post.shortDescription} flush>
+        <div className={`mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 ${META}`}>
+          {post.eventName &&
+            (post.eventSlug ? (
+              <Link
+                href={`/events/${post.eventSlug}`}
+                className="inline-flex min-h-11 items-center font-semibold text-clay transition-colors hover:text-clay-dark"
+              >
                 From {post.eventName}
               </Link>
             ) : (
-              `From ${post.eventName}`
-            )}
-          </p>
-        )}
-        <h1 className="mb-3 break-words font-newsreader text-[36px] leading-[1.08] tracking-[-0.01em] text-ink sm:text-[44px]">
-          {post.title}
-        </h1>
-        <p className="mb-4 font-inter text-[17px] leading-[1.6] text-ink-soft">{post.shortDescription}</p>
-        <div className="flex flex-wrap items-center gap-4 font-inter text-[13px] text-ink-muted">
+              <span className="font-semibold text-clay">From {post.eventName}</span>
+            ))}
           {post.authorName && <span>by {post.authorName}</span>}
           <span>
-            {new Date(post.createdAt).toLocaleDateString("en-KE", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              timeZone: "Africa/Nairobi",
-            })}
+            {formatDate(post.createdAt)}
           </span>
         </div>
-      </header>
+      </Masthead>
 
-      <MediaGallery media={post.media} />
+      <div className="mt-8">
+        <MediaGallery media={post.media} />
+      </div>
 
       {(post.url || post.repoUrl) && (
         <div className="mt-6 flex flex-wrap gap-3">
@@ -89,7 +86,7 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
               href={post.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-2.5 font-inter text-[14px] font-semibold text-paper-card transition-colors hover:bg-clay-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+              className={BTN_PRIMARY}
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
               Visit project
@@ -101,7 +98,7 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
               href={post.repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-sand px-5 py-2.5 font-inter text-[14px] font-semibold text-ink-soft transition-colors hover:border-clay hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+              className={BTN_OUTLINE}
             >
               <Github className="h-4 w-4" aria-hidden="true" />
               View source
@@ -119,10 +116,22 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
         ))}
       </div>
 
+      {post.installInstructions && (
+        <section className="mt-10">
+          <h2 className="mb-4 font-newsreader text-[24px] text-ink">Installation</h2>
+          <div className="relative rounded-2xl border border-sand bg-paper-card p-5">
+            <pre className="overflow-x-auto whitespace-pre-wrap pr-10 font-mono text-[13px] leading-relaxed text-ink-soft">
+              {post.installInstructions}
+            </pre>
+            <CopyButton text={post.installInstructions} />
+          </div>
+        </section>
+      )}
+
       {post.tags.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">
           {post.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-paper-alt px-2.5 py-1 font-inter text-[12px] text-ink-muted">
+            <span key={tag} className={BADGE_SAND}>
               {tag}
             </span>
           ))}

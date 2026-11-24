@@ -77,6 +77,7 @@ enum CommunityResourceType {
   TOOL
   // Added last on purpose: existing stored values keep their ordinal.
   SHOWCASE
+  PROJECT
 }
 
 enum ReportTarget {
@@ -679,6 +680,7 @@ model CommunitySubmission {
   submitterName       String?
   submitterContact    String?
   status              CommunityStatus       @default(PENDING)
+  featured            Boolean               @default(false)
   reviewedBy          String?
   reviewNotes         String?               @db.Text
   reviewedAt          DateTime?

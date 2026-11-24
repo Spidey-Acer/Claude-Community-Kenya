@@ -43,7 +43,7 @@ const RequestSchema = z.object({
   messages: z.array(MessageSchema).max(MAX_MESSAGES, "Conversation too long."),
 });
 
-/** Allowed origins — mirrors the pattern from /api/chat */
+/** Origins allowed to call the Karibu API routes. */
 const ALLOWED_ORIGINS = new Set([
   "https://www.claudekenya.org",
   "https://claudekenya.org",

@@ -231,12 +231,11 @@ export default async function RootLayout({
   // from the latest and next events; see band-copy.ts for the three states.
   const [tickerSettings, bandData] = await Promise.all([
     prisma.siteSettings
-      .findUnique({ where: { id: "default" }, select: { citiesActive: true, eventsHeld: true } })
+      .findUnique({ where: { id: "default" }, select: { citiesActive: true } })
       .catch(() => null),
     getBandData(),
   ]);
   const citiesActive = parseCities(tickerSettings?.citiesActive);
-  const eventsHeld = tickerSettings?.eventsHeld ?? 0;
   const bandCopy = buildBandCopy({ ...bandData, citiesActive });
 
   const audienceState: AudienceState = hasCompletedKaribu && session
@@ -290,7 +289,6 @@ export default async function RootLayout({
           showKaribu={showKaribu}
           socialLinks={socialLinks}
           bandCopy={bandCopy}
-          eventsHeld={eventsHeld}
         >
           {children}
         </ConditionalLayout>

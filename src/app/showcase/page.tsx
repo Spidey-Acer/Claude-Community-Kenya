@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { getShowcasePosts } from "@/lib/showcase/queries"
 import { isShowcaseSort } from "@/lib/showcase/ranking"
+import { TYPE_PARAM } from "@/lib/showcase/constants"
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema"
 import { ShowcaseFeed } from "@/components/karibu/showcase/ShowcaseFeed"
 
@@ -9,7 +10,7 @@ export const revalidate = 300
 export const metadata: Metadata = {
   title: "Showcase | Claude Community Kenya",
   description:
-    "What the Claude Community Kenya is building — projects, demos and works in progress from members across the country.",
+    "What the Claude Community Kenya is building — projects, demos, tools, prompts and workflows from members across the country.",
   alternates: { canonical: "https://www.claudekenya.org/showcase" },
   openGraph: {
     title: "Showcase | Claude Community Kenya",
@@ -28,6 +29,8 @@ export default async function ShowcasePage({
   const params = await searchParams
   const rawSort = typeof params.sort === "string" ? params.sort : "hot"
   const sort = isShowcaseSort(rawSort) ? rawSort : "hot"
+  const typeKey = typeof params.type === "string" && params.type in TYPE_PARAM ? params.type : undefined
+  const type = typeKey ? TYPE_PARAM[typeKey] : undefined
   const eventId = typeof params.event === "string" ? params.event : undefined
   const need = typeof params.need === "string" ? params.need : undefined
   const rawPage = typeof params.page === "string" ? parseInt(params.page, 10) : 1
@@ -39,7 +42,7 @@ export default async function ShowcasePage({
   let total = 0
   let dbError = false
   try {
-    ;({ items, total } = await getShowcasePosts({ sort, eventId, need, page }))
+    ;({ items, total } = await getShowcasePosts({ sort, type, eventId, need, page }))
   } catch (error) {
     console.error("[SHOWCASE] Failed to load posts feed:", error)
     dbError = true
@@ -52,6 +55,7 @@ export default async function ShowcasePage({
         items={items}
         total={total}
         activeSort={sort}
+        activeType={typeKey}
         activeEvent={eventId}
         activeNeed={need}
         page={page}

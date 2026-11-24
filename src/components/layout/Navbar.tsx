@@ -4,19 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, Search, LayoutDashboard } from "lucide-react";
+import { Menu, X, LayoutDashboard } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import { MobileMenu } from "./MobileMenu";
 import { NavDropdown } from "./NavDropdown";
 import { useSkin } from "@/contexts/SkinContext";
-
-const CommandPalette = dynamic(
-  () => import("@/components/terminal/CommandPalette").then((mod) => ({ default: mod.CommandPalette })),
-  { ssr: false }
-);
 
 export function Navbar() {
   const { skin } = useSkin();
@@ -24,14 +18,8 @@ export function Navbar() {
   const isPro = skin === "pro";
   const isAuthed = status === "authenticated";
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMac, setIsMac] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMac(navigator.platform.toUpperCase().includes("MAC"));
-  }, []);
 
   useEffect(() => {
     function handleScroll() {
@@ -156,18 +144,6 @@ export function Navbar() {
               );
             })}
 
-            {/* Search trigger */}
-            <button
-              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }))}
-              className="ml-2 flex items-center gap-1.5 px-2 py-1.5 font-mono text-xs text-text-dim transition-colors hover:text-text-secondary"
-              aria-label="Open command palette"
-            >
-              <Search size={14} />
-              <kbd className="rounded border border-border-default px-1 text-[10px]">
-                {isMac ? "⌘" : "Ctrl+"}K
-              </kbd>
-            </button>
-
             {/* Auth-aware CTA */}
             {isAuthed ? (
               <Link
@@ -230,7 +206,6 @@ export function Navbar() {
       />
 
       {/* Command Palette (global) */}
-      <CommandPalette />
 
       {/* Spacer for fixed navbar */}
       <div className="h-16" />

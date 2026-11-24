@@ -54,6 +54,7 @@ export function TrackGuide({
   );
   useEffect(() => {
     if (loading || !ownTrackKey) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seeds once when the profile fetch settles
     setOpenKeys((prev) => new Set(prev).add(ownTrackKey));
   }, [loading, ownTrackKey]);
 

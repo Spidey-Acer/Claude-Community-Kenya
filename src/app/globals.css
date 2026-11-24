@@ -91,7 +91,8 @@
   --footer-text: #E9E0D2;
   --footer-text-soft: #C7BEB0;
   --footer-text-muted: #A79E90;
-  --footer-text-faint: #8A7F6E;
+  /* #8A7F6E measured 4.13:1 on --footer-bg; lightened to 4.84:1, still below --footer-text-muted. */
+  --footer-text-faint: #958B7C;
   --footer-border: #3B352D;
   --footer-accent: #E6906F;
   --footer-accent-bg: #A84E2D;
@@ -399,6 +400,18 @@ body {
   overflow-x: hidden;
 }
 
+/* ─── iOS zoom-on-focus fix ───────────────────────────────────────────────
+ * Safari on iOS zooms the viewport when a focused form control computes to
+ * under 16px. On small screens every input, select and textarea is 16px, so
+ * no form on the site triggers it. Desktop sizes are unchanged. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* ─── Typography ───
  *
  * Terminal Noir's heading defaults. These are unlayered, so they beat the
@@ -675,7 +688,7 @@ body::before {
  * with the ember pseudo-elements, this cascades into repeated layout recalc.
  *
  * CSS CANNOT override the flame's inline `style` animation — that is handled
- * in HeroPro.tsx via the `isMobile` guard (matchMedia). This block covers
+ * in the hero component via the `isMobile` guard (matchMedia). This block covers
  * the pseudo-elements and enforces containment on the container itself.
  *
  * On mobile: fully static. No glow, no sway, no sparks. Desktop unchanged.
@@ -831,7 +844,17 @@ body::before {
 .karibu :focus-visible {
   outline: 2px solid var(--clay);
   outline-offset: 3px;
-  border-radius: 2px;
+}
+
+/* Karibu skip link: ink on paper-card with a clay outline, not the Terminal
+ * Noir green. Admin pages keep the base .skip-nav above. */
+.karibu .skip-nav {
+  background: var(--paper-card);
+  color: var(--ink);
+  border: 2px solid var(--clay);
+  border-radius: 0 0 0.5rem 0;
+  font-family: var(--font-inter-stack);
+  font-weight: 600;
 }
 
 @keyframes karibu-spin {
