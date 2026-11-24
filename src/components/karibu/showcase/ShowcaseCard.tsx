@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Heart, MessageCircle, Sparkles } from "lucide-react"
 import type { ShowcasePostView } from "@/lib/showcase/queries"
-import { NEED_LABELS } from "@/lib/showcase/constants"
+import { NEED_LABELS, TYPE_LABELS } from "@/lib/showcase/constants"
 
 interface ShowcaseCardProps {
   post: ShowcasePostView
@@ -53,6 +53,9 @@ export function ShowcaseCard({ post }: ShowcaseCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col p-5">
+        <p className="mb-1.5 font-inter text-[11.5px] font-medium uppercase tracking-[0.08em] text-ink-muted">
+          {TYPE_LABELS[post.type]}
+        </p>
         {post.eventName && (
           <p className="mb-1.5 font-inter text-[11.5px] font-medium uppercase tracking-[0.08em] text-clay">
             From {post.eventName}

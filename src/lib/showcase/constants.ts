@@ -5,6 +5,39 @@
  * a filter can never drift from one the API will accept.
  */
 
+/**
+ * Submission types shown on the showcase. Plain strings rather than the Prisma
+ * enum so client components can import this file (see REPORT_REASONS below);
+ * the test beside this file keeps them identical to schema.prisma.
+ */
+export const SUBMISSION_TYPES = ["MCP", "PROMPT", "WORKFLOW", "TOOL", "SHOWCASE", "PROJECT"] as const
+
+export type SubmissionType = (typeof SUBMISSION_TYPES)[number]
+
+/** Badge label for each type on cards and the detail page. */
+export const TYPE_LABELS: Record<SubmissionType, string> = {
+  MCP: "MCP server",
+  PROMPT: "Prompt",
+  WORKFLOW: "Workflow",
+  TOOL: "Tool",
+  SHOWCASE: "Demo",
+  PROJECT: "Project",
+}
+
+/** `?type=` URL values on /showcase. `demo` is the old SHOWCASE type. */
+export const TYPE_PARAM: Record<string, SubmissionType> = {
+  project: "PROJECT",
+  demo: "SHOWCASE",
+  tool: "TOOL",
+  prompt: "PROMPT",
+  workflow: "WORKFLOW",
+  mcp: "MCP",
+}
+
+export function isSubmissionType(value: string): value is SubmissionType {
+  return (SUBMISSION_TYPES as readonly string[]).includes(value)
+}
+
 export const NEEDS_OPTIONS = [
   "testers",
   "co-founder",

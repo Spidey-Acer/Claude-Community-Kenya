@@ -3,8 +3,8 @@
 /**
  * ShowcaseFeed — the public `/showcase` listing, Karibu warm-light.
  *
- * Structural model is `KaribuCommunity`: URL-driven sort/filter state via
- * `useSearchParams` + `router.push`, a card grid, and a deliberate empty
+ * URL-driven sort/type/filter state via `useSearchParams` + `router.push`,
+ * one feed for every submission type, a card grid, and a deliberate empty
  * state. Two empty states here rather than one — "nothing posted yet" and
  * "nothing matches this filter" read very differently to a visitor and only
  * one of them should suggest posting.
@@ -28,6 +28,17 @@ const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10"
 /** Below this count, sort/filter pills read as decorative rather than useful. */
 const MIN_ITEMS_FOR_SORT_PILLS = 8
 
+/** Type chips; `key` is the `?type=` URL value (see TYPE_PARAM). */
+const TYPE_CHIPS: Array<{ key: string | undefined; label: string }> = [
+  { key: undefined, label: "All" },
+  { key: "project", label: "Projects" },
+  { key: "demo", label: "Demos" },
+  { key: "tool", label: "Tools" },
+  { key: "prompt", label: "Prompts" },
+  { key: "workflow", label: "Workflows" },
+  { key: "mcp", label: "MCP servers" },
+]
+
 const SORTS: Array<{ key: ShowcaseSort; label: string; icon: LucideIcon }> = [
   { key: "hot", label: "Hot", icon: Flame },
   { key: "recent", label: "Recent", icon: Clock },
@@ -39,6 +50,7 @@ interface ShowcaseFeedProps {
   items: ShowcasePostView[]
   total: number
   activeSort: ShowcaseSort
+  activeType?: string
   activeEvent?: string
   activeNeed?: string
   page?: number
@@ -49,6 +61,7 @@ export function ShowcaseFeed({
   items,
   total,
   activeSort,
+  activeType,
   activeEvent,
   activeNeed,
   page = 1,
@@ -56,7 +69,7 @@ export function ShowcaseFeed({
 }: ShowcaseFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const hasFilters = Boolean(activeEvent || activeNeed)
+  const hasFilters = Boolean(activeType || activeEvent || activeNeed)
 
   function update(key: string, value: string | undefined) {
     const params = new URLSearchParams(searchParams.toString())
@@ -81,18 +94,34 @@ export function ShowcaseFeed({
         imageAlt="A crowd at a CCK Nairobi event"
         crumbs={["Home", "Showcase"]}
         title="What the community is building."
-        subtitle="Projects, demos and works in progress from members across the country. React, comment, and help each other ship."
+        subtitle="Projects, demos, tools, prompts and workflows from members across the country. React, comment, and help each other ship."
       />
 
       <section className={`${WRAP} pb-6 pt-10`} aria-label="Share">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <p className="font-inter text-[14px] text-ink-muted">
-              Sharing an MCP, prompt or workflow?{" "}
-              <Link href="/showcase" className="font-semibold text-clay underline-offset-2 hover:underline">
-                That lives in Tools &amp; Prompts
-              </Link>
-            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by type">
+              {TYPE_CHIPS.map(({ key, label }) => {
+                const on = activeType === key
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => update("type", key)}
+                    className={cn(
+                      "inline-flex shrink-0 items-center rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2",
+                      on
+                        ? "bg-clay text-paper-card"
+                        : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink",
+                    )}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
             <Link
               href="/showcase/submit"
               className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-3 font-inter text-sm font-semibold text-paper-card transition-[background-color,transform] duration-150 ease-[var(--ease-reversible)] hover:scale-[1.03] hover:bg-clay-dark"

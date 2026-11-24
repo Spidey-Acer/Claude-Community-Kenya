@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getCommunitySubmissions, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
+import { getEvents, getBlogPosts, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
 import { getShowcasePosts } from "@/lib/showcase/queries";
 
 const BASE_URL = "https://www.claudekenya.org";
@@ -8,15 +8,12 @@ const BASE_URL = "https://www.claudekenya.org";
 const SITEMAP_MAX_ITEMS = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, communityData, teamSlugs, showcaseData, guides] = await Promise.all([
+  const [events, blogPosts, teamSlugs, showcaseData, guides] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
-    // Same trap as the showcase line below: the query defaults to one feed
-    // page (FEED_PAGE_SIZE), which would silently cap the sitemap at 20.
-    getCommunitySubmissions({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [] })),
     getTeamMemberSlugs().catch(() => [] as string[]),
-    // Explicit limit: the default page size is 20, which would silently cap
-    // the sitemap at the first 20 posts however many exist.
+    // Every approved submission type lives under /showcase. Explicit limit:
+    // the default page size is 20, which would silently cap the sitemap.
     getShowcasePosts({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [], total: 0 })),
     getPublishedGuides().catch(() => []),
   ]);
@@ -65,12 +62,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const communityRoutes: MetadataRoute.Sitemap = communityData.items.map((item) => ({
-    url: `${BASE_URL}/community/${item.slug}`,
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
-
   const showcaseRoutes: MetadataRoute.Sitemap = showcaseData.items.map((post) => ({
     url: `${BASE_URL}/showcase/${post.slug}`,
     lastModified: post.lastActivityAt,
@@ -91,5 +82,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...communityRoutes, ...showcaseRoutes, ...teamRoutes, ...guideRoutes];
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...showcaseRoutes, ...teamRoutes, ...guideRoutes];
 }

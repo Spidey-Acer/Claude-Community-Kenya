@@ -8,6 +8,8 @@ import { BuiltWithPanel } from "@/components/karibu/showcase/BuiltWithPanel"
 import { NeedsChips } from "@/components/karibu/showcase/NeedsChips"
 import { ReactionRow } from "@/components/karibu/showcase/ReactionRow"
 import { ReportButton } from "@/components/karibu/showcase/ReportButton"
+import { CopyButton } from "@/components/community/CopyButton"
+import { TYPE_LABELS } from "@/lib/showcase/constants"
 import { CommentForm } from "@/components/community/CommentForm"
 import { CommentList } from "@/components/community/CommentList"
 
@@ -63,6 +65,9 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
             )}
           </p>
         )}
+        <span className="mb-3 inline-block rounded-full border border-clay/30 bg-clay/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold uppercase tracking-[0.06em] text-clay">
+          {TYPE_LABELS[post.type]}
+        </span>
         <h1 className="mb-3 break-words font-newsreader text-[36px] leading-[1.08] tracking-[-0.01em] text-ink sm:text-[44px]">
           {post.title}
         </h1>
@@ -118,6 +123,18 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
           </p>
         ))}
       </div>
+
+      {post.installInstructions && (
+        <section className="mt-10">
+          <h2 className="mb-4 font-newsreader text-[24px] text-ink">Installation</h2>
+          <div className="relative rounded-2xl border border-sand bg-paper-card p-5">
+            <pre className="overflow-x-auto whitespace-pre-wrap pr-10 font-mono text-[13px] leading-relaxed text-ink-soft">
+              {post.installInstructions}
+            </pre>
+            <CopyButton text={post.installInstructions} />
+          </div>
+        </section>
+      )}
 
       {post.tags.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">

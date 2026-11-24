@@ -110,12 +110,11 @@ export async function POST(
     }
 
     // An auto-approved comment must actually appear when the client
-    // refreshes: /community/[slug] is ISR-cached (revalidate = 1800), so
-    // without this the new comment stays invisible for up to 30 minutes.
+    // refreshes: /showcase/[slug] is ISR-cached, so without this the new
+    // comment stays invisible until the cache expires. Every type now lives
+    // under /showcase.
     if (status === "APPROVED") {
-      revalidatePath(
-        submission.type === "SHOWCASE" ? `/showcase/${slug}` : `/community/${slug}`
-      )
+      revalidatePath(`/showcase/${slug}`)
     }
 
     return NextResponse.json(
