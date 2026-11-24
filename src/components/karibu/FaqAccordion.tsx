@@ -67,6 +67,7 @@ function FaqRow({
 
   return (
     <div className={wrapper}>
+      <h3>
       <button
         type="button"
         onClick={onToggle}
@@ -91,13 +92,12 @@ function FaqRow({
           aria-hidden="true"
         />
       </button>
+      </h3>
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
             key="content"
             id={`faq-answer-${item.id}`}
-            role="region"
-            aria-labelledby={`faq-question-${item.id}`}
             initial={reduce ? { height: "auto" } : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={reduce ? { height: "auto" } : { height: 0, opacity: 0 }}

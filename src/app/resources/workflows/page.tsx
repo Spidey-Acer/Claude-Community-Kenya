@@ -35,11 +35,9 @@ export default function WorkflowsPage() {
       </Link>
 
       {/* Header */}
-      <Reveal>
         <section className="py-16">
           <Masthead eyebrow="Resources" title="Advanced Workflows" lead="Advanced strategies for getting more done with Claude." flush />
         </section>
-      </Reveal>
 
       {/* Agentic Development Patterns */}
       <Reveal index={0}>

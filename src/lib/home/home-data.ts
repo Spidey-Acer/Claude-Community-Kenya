@@ -7,7 +7,7 @@
  * without a database.
  */
 
-import { currentSeason, type Season } from "@/data/seasons"
+import { currentSeason, isSeasonLive, type Season } from "@/data/seasons"
 import { getNextEvent } from "@/lib/data"
 import { getSeasonData, type SeasonRecap } from "@/lib/seasons/queries"
 import { listFeaturedSubmissions, type ShowcasePostView } from "@/lib/showcase/queries"
@@ -34,6 +34,8 @@ export interface LatestReport {
 export interface HomeData {
   nextEvent: Event | null
   season: Season
+  /** False once the season has ended; Home then says "Last season". */
+  seasonLive: boolean
   seasonDates: Event[]
   featured: ShowcasePostView[]
   latestReport: LatestReport | null
@@ -104,6 +106,7 @@ export async function loadHomeData(): Promise<HomeData> {
   return {
     nextEvent,
     season,
+    seasonLive: isSeasonLive(season),
     seasonDates: nextSeasonDates(seasonEvents, todayInNairobi(), HOME_SEASON_DATES),
     featured,
     latestReport: pickLatestReport(recaps, reports),

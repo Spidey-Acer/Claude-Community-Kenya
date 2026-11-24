@@ -5,7 +5,7 @@ vi.mock("@/lib/impact-lab/event-store", () => ({ linkedCohortForPublicEvent: vi.
 vi.mock("@/lib/impact-lab/public-recap-store", () => ({ listPublishedRecapCohorts: vi.fn() }))
 vi.mock("@/lib/conversations/queries", () => ({ listPublishedConversationsReports: vi.fn() }))
 
-import { currentSeason, findSeason, inSeason, SEASONS } from "@/data/seasons"
+import { currentSeason, findSeason, inSeason, isSeasonLive, SEASONS } from "@/data/seasons"
 import { getSeasonData } from "../queries"
 import { getBlogPosts, getEvents, getGalleryPhotos } from "@/lib/data"
 import { linkedCohortForPublicEvent } from "@/lib/impact-lab/event-store"
@@ -32,6 +32,12 @@ describe("season config", () => {
   it("eventSlugs override wins", () => {
     expect(inSeason({ ...s, eventSlugs: ["x"] }, new Date("2026-01-01"), "x")).toBe(true)
     expect(inSeason({ ...s, eventSlugs: ["x"] }, new Date("2026-11-01"), "y")).toBe(false)
+  })
+  it("isSeasonLive is true inside the range and false once the season has ended", () => {
+    expect(isSeasonLive(season, new Date("2026-11-24T00:00:00Z"))).toBe(true)
+    expect(isSeasonLive(season, new Date("2026-12-05T23:00:00Z"))).toBe(true)
+    expect(isSeasonLive(season, new Date("2026-12-06T00:00:00Z"))).toBe(false)
+    expect(isSeasonLive(season, new Date("2026-10-15T00:00:00Z"))).toBe(false)
   })
   it("currentSeason falls back to the latest when none is live", () => {
     expect(currentSeason(new Date("2027-03-01")).slug).toBe("kenya-ships-2026")

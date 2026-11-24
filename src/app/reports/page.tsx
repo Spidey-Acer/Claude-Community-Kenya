@@ -66,7 +66,7 @@ export default async function ReportsIndexPage() {
       </section>
 
       <section className={`${WRAP} pb-14`}>
-        <div className="mb-10">
+        <div id="impact-labs" className="mb-10 scroll-mt-24">
           <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
             Impact Lab
           </h2>
@@ -91,7 +91,7 @@ export default async function ReportsIndexPage() {
           )}
         </div>
 
-        <div>
+        <div id="conversations" className="scroll-mt-24">
           <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
             Claude Conversations
           </h2>

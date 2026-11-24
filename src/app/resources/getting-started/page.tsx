@@ -89,11 +89,9 @@ export default function GettingStartedPage() {
       </Link>
 
       {/* Header */}
-      <Reveal>
         <section className="py-16">
           <Masthead eyebrow="Resources" title="Getting Started" lead="Your guide to getting started with Claude AI — from zero to productive." flush />
         </section>
-      </Reveal>
 
       {/* What is Claude? */}
       <Reveal index={0}>

@@ -62,7 +62,6 @@ export default function ApiGuidePage() {
       </Link>
 
       {/* Header */}
-      <Reveal>
         <section className="py-16">
           <Masthead eyebrow="Resources" title="API Reference" lead="A complete reference for integrating Claude into your applications." flush />
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
@@ -77,7 +76,6 @@ export default function ApiGuidePage() {
             ))}
           </nav>
         </section>
-      </Reveal>
 
       {/* Overview */}
       <Reveal index={0}>

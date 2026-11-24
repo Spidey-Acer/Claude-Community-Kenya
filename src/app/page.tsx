@@ -3,6 +3,7 @@ import { KaribuHome } from "@/components/karibu/KaribuHome";
 import { loadHomeData } from "@/lib/home/home-data";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://www.claudekenya.org" },
   title: "Claude Community Kenya — Build with Claude AI",
   description:
     "Kenya's independent, volunteer-run Claude developer community. Join meetups, workshops, and build with Claude AI.",

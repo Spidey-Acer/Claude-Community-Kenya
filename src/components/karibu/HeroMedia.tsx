@@ -90,7 +90,7 @@ export function HeroMedia({
   }, [videoSources]);
 
   return (
-    <div className={`relative overflow-hidden bg-ink ${className ?? ""}`}>
+    <div className={`relative overflow-hidden bg-scrim ${className ?? ""}`}>
       <Image src={posterSrc} alt={posterAlt} fill priority sizes="100vw" className="object-cover" />
       {videoSources?.length ? (
         <video

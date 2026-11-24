@@ -62,6 +62,11 @@ export function currentSeason(today: Date = new Date()): Season {
   return SEASONS.reduce((latest, season) => (season.end > latest.end ? season : latest))
 }
 
+/** True when `today` falls within the season, so the season is running now. */
+export function isSeasonLive(season: Season, today: Date = new Date()): boolean {
+  return withinRange(season, today)
+}
+
 /** The season with this slug, or undefined for an unknown slug. */
 export function findSeason(slug: string): Season | undefined {
   return SEASONS.find((season) => season.slug === slug)

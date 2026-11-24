@@ -57,7 +57,6 @@ export default function ProductionGuidePage() {
       </Link>
 
       {/* Header */}
-      <Reveal>
         <section className="py-16">
           <Masthead eyebrow="Resources" title="Production Guide" lead="Everything you need to run Claude-powered applications that are reliable, cost-efficient, and ready for real users." flush />
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
@@ -81,7 +80,6 @@ export default function ProductionGuidePage() {
             ))}
           </nav>
         </section>
-      </Reveal>
 
       {/* Architecture */}
       <Reveal index={0}>

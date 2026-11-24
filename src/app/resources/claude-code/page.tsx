@@ -35,11 +35,9 @@ export default function ClaudeCodePage() {
       </Link>
 
       {/* Header */}
-      <Reveal>
         <section className="py-16">
           <Masthead eyebrow="Resources" title="Claude Code Guide" lead={"A guide to Anthropic's AI-powered coding assistant."} flush />
         </section>
-      </Reveal>
 
       {/* What is Claude Code? */}
       <Reveal index={0}>
