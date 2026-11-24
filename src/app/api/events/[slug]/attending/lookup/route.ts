@@ -8,7 +8,8 @@
  * approved) returns the same bytes. The email is hashed and discarded; the
  * route logs nothing about it.
  *
- * Abuse limits, each spent atomically by ONE consume call before any guest
+ * A request that is not application/json (415) or carries a foreign Origin
+ * header (403) is refused before any budget is spent. Abuse limits, each spent atomically by ONE consume call before any guest
  * lookup, on every request hit or miss: 20 per hour per client (IPv4 address or IPv6 /64) and 600 per hour per
  * event slug (so unknown and non-upcoming events are charged too). If either is
  * spent the answer is the same 429 whatever the email is, and no lookup runs.
@@ -18,6 +19,7 @@
  */
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { SITE_CONFIG } from "@/lib/constants"
 import { prisma } from "@/lib/prisma"
 import { getRedisClient, rateLimit } from "@/lib/rate-limit"
 import { startOfTodayEAT } from "@/lib/event-dates"
@@ -38,6 +40,26 @@ const NO_STORE = { "Cache-Control": "no-store" }
 
 function respond(body: object, status = 200, extraHeaders: Record<string, string> = {}) {
   return NextResponse.json(body, { status, headers: { ...NO_STORE, ...extraHeaders } })
+}
+
+/** Origins a browser may legitimately call from: this deployment's own, and the canonical site. */
+function allowedOrigins(request: NextRequest): string[] {
+  return [request.nextUrl.origin, new URL(SITE_CONFIG.url).origin]
+}
+
+/**
+ * Rejects a request that is not JSON (415) or that a browser sent from a foreign
+ * origin (403). No Origin header (curl, server-side callers) is judged on
+ * Content-Type alone. Runs before any budget is spent.
+ */
+function rejectBadShape(request: NextRequest): NextResponse | null {
+  const contentType = (request.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase()
+  if (contentType !== "application/json") return respond({ error: "Unsupported media type" }, 415)
+  const origin = request.headers.get("origin")
+  if (origin !== null && !allowedOrigins(request).includes(origin)) {
+    return respond({ error: "Forbidden" }, 403)
+  }
+  return null
 }
 
 /** Client IP the way rate-limit.ts reads it: the platform-set header first. */
@@ -85,6 +107,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (process.env.NODE_ENV === "production" && !getRedisClient()) {
     return respond({ error: "Unavailable" }, 503)
   }
+
+  const badShape = rejectBadShape(request)
+  if (badShape) return badShape
 
   const { slug } = await params
   if (!(await consume(request, IP_LIMIT, `attending:${ipBucketKey(clientIp(request))}`))) return limitSpentResponse()

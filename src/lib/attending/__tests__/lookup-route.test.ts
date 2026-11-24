@@ -254,6 +254,48 @@ describe("lookup limits and fail-closed rules", () => {
   })
 })
 
+describe("lookup request shape", () => {
+  function shaped(headers: Record<string, string>, body = JSON.stringify({ email: "ada@example.com" })) {
+    const req = new NextRequest("http://localhost/api/events/open/attending/lookup", {
+      method: "POST",
+      headers: { "x-vercel-forwarded-for": "192.0.2.50", ...headers },
+      body,
+    })
+    return POST(req, { params: Promise.resolve({ slug: "open" }) })
+  }
+
+  it("text/plain gets 415, spends nothing and runs no lookup", async () => {
+    const response = await shaped({ "content-type": "text/plain" })
+    expect(response.status).toBe(415)
+    expect(rateLimit).not.toHaveBeenCalled()
+    expect(prisma.event.findUnique).not.toHaveBeenCalled()
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+  })
+
+  it("a foreign Origin gets 403, spends nothing and runs no lookup", async () => {
+    const response = await shaped({ "content-type": "application/json", origin: "https://evil.example" })
+    expect(response.status).toBe(403)
+    expect(rateLimit).not.toHaveBeenCalled()
+    expect(prisma.event.findUnique).not.toHaveBeenCalled()
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
+  })
+
+  it("same-origin JSON works, with or without charset, and the site origin is accepted", async () => {
+    for (const headers of [
+      { "content-type": "application/json; charset=utf-8", origin: "http://localhost" },
+      { "content-type": "application/json", origin: "https://www.claudekenya.org" },
+    ]) {
+      const response = await shaped(headers)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ found: true })
+    }
+  })
+
+  it("JSON with no Origin header (curl) is judged on Content-Type alone", async () => {
+    expect((await shaped({ "content-type": "application/json" })).status).toBe(200)
+  })
+})
+
 describe("lookup IP bucketing", () => {
   it("keys IPv6 clients by /64 so one prefix shares one budget", async () => {
     await lookup("b1", { email: "x@example.com" }, "2001:db8:1:2::1")
