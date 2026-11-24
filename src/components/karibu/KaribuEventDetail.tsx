@@ -28,6 +28,8 @@ import {
   EventCard,
   H1,
   LEAD,
+  LINK,
+  NewTabNote,
   SUBHEAD,
   TYPE_LABEL,
   WRAP,
@@ -180,9 +182,10 @@ export function KaribuEventDetail({
                       href={demo.demoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold text-clay hover:underline"
+                      className={LINK}
                     >
-                      Live demo →
+                      Live demo
+                      <NewTabNote />
                     </a>
                   )}
                 </div>
@@ -215,7 +218,7 @@ export function KaribuEventDetail({
             href={recapHref}
             className={BTN_PRIMARY}
           >
-            See the results →
+            See the results
           </Link>
         </div>
       )}
@@ -261,8 +264,8 @@ export function KaribuEventDetail({
     <>
       {/* Back link */}
       <div className={`${WRAP} pt-6`}>
-        <Link href="/events" className="font-inter text-sm font-medium text-ink-muted hover:text-ink">
-          ← All events
+        <Link href="/events" className={LINK}>
+          All events
         </Link>
       </div>
 
@@ -280,7 +283,7 @@ export function KaribuEventDetail({
         aria-label="Event"
       >
         {/* Header text — badges, title, lead description */}
-        <Reveal className="min-w-0 lg:col-start-1 lg:row-start-1">
+        <div data-hero-rise="" className="min-w-0 lg:col-start-1 lg:row-start-1">
           <div className="mb-4 flex flex-wrap gap-2">
             <span className={BADGE_CLAY}>{event.city}</span>
             <span className={BADGE_SAND}>{TYPE_LABEL[event.type]}</span>
@@ -292,7 +295,7 @@ export function KaribuEventDetail({
           <p className={LEAD}>
             {event.description}
           </p>
-        </Reveal>
+        </div>
 
         {/*
           The poster used to be a full-width band under the title, at a
@@ -313,7 +316,7 @@ export function KaribuEventDetail({
           what you look at and what you act on. Source order gives
           text-then-poster-then-card-then-body when it collapses.
         */}
-        <Reveal className="lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        <div data-hero-rise="" className="lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2">
           <div className="w-full max-w-[420px] lg:max-w-none">
             <div className="frame-base frame-plate rounded-2xl border border-sand-2">
               {cover ? (
@@ -363,9 +366,10 @@ export function KaribuEventDetail({
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mb-2.5 block rounded-full bg-panel-dark px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-on-panel-dark transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+                  className="mb-2.5 block rounded-full bg-band-bg px-5 py-3.5 text-center font-inter text-[15px] font-semibold text-on-band transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
                 >
                   Sold out — get notified
+                  <NewTabNote />
                 </a>
               )
             ) : (
@@ -377,6 +381,7 @@ export function KaribuEventDetail({
                   className={`mb-2.5 w-full ${BTN_PRIMARY}`}
                 >
                   Register — free
+                  <NewTabNote />
                 </a>
               )
             )}
@@ -388,10 +393,11 @@ export function KaribuEventDetail({
                 className="block rounded-full border border-sand-2 px-5 py-3 text-center font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
               >
                 Ask a question
+                <NewTabNote />
               </a>
             )}
           </div>
-        </Reveal>
+        </div>
 
         {/* Body: About onward, continuing straight below the header text.
             Once winners, projects and judges are published this column runs
@@ -516,7 +522,7 @@ function ShareLink({
     );
   }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls}>
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in a new tab)`} className={cls}>
       {children}
     </a>
   );

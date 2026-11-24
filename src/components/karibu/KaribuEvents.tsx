@@ -16,6 +16,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Event } from "@/lib/types";
 import { useSocialLinks } from "@/contexts/SocialLinksContext";
 import { CtaBand } from "@/components/karibu/CtaBand";
+import { resolveInitialFilter, type EventFilter } from "@/components/karibu/event-filter";
 import { isEventPast } from "@/lib/event-dates";
 import {
   BTN_OUTLINE,
@@ -23,6 +24,7 @@ import {
   EmptyState,
   EventCard,
   Masthead,
+  NewTabNote,
   Section,
   TYPE_PLURAL,
   WRAP,
@@ -33,24 +35,28 @@ import {
 const FLIP_EASE = [0.16, 1, 0.3, 1] as const;
 const UPCOMING_STATUSES: Event["status"][] = ["upcoming", "registration-open"];
 
-type Filter = { key: string; label: string };
-
 /** Past events revealed per "Show more" press. */
 const PAST_PAGE_SIZE = 9;
 
 export function KaribuEvents({ events }: { events: Event[] }) {
   const searchParams = useSearchParams();
+  // Build chips from real data: All + present cities + present types.
+  const filters = useMemo<EventFilter[]>(() => {
+    const cities = [...new Set(events.map((e) => e.city).filter(Boolean))];
+    const types = [...new Set(events.map((e) => e.type))];
+    return [
+      { key: "all", label: "All" },
+      ...cities.map((c) => ({ key: `city:${c}`, label: c })),
+      ...types.map((t) => ({ key: `type:${t}`, label: TYPE_PLURAL[t] })),
+    ];
+  }, [events]);
+
   // Initial filter from ?city= or ?type= (e.g. the home page's "See
-  // engineering events" link) — read once, not kept in sync with the URL
-  // afterwards, since the chips are the source of truth once the visitor
-  // starts clicking them.
-  const [active, setActive] = useState(() => {
-    const city = searchParams.get("city");
-    const type = searchParams.get("type");
-    if (city) return `city:${city}`;
-    if (type) return `type:${type}`;
-    return "all";
-  });
+  // engineering events" link), kept only if it names a real chip. Read once,
+  // not kept in sync with the URL: the chips are the source of truth after.
+  const [active, setActive] = useState(() =>
+    resolveInitialFilter(searchParams.get("city"), searchParams.get("type"), filters),
+  );
   const [pastPages, setPastPages] = useState(1);
   const reduce = useReducedMotion();
   const { whatsapp } = useSocialLinks();
@@ -67,17 +73,6 @@ export function KaribuEvents({ events }: { events: Event[] }) {
     exit: reduce ? { opacity: 0 } : { opacity: 0, y: -8 },
     transition: { duration: 0.28, ease: FLIP_EASE },
   } as const;
-
-  // Build chips from real data: All + present cities + present types.
-  const filters = useMemo<Filter[]>(() => {
-    const cities = [...new Set(events.map((e) => e.city).filter(Boolean))];
-    const types = [...new Set(events.map((e) => e.type))];
-    return [
-      { key: "all", label: "All" },
-      ...cities.map((c) => ({ key: `city:${c}`, label: c })),
-      ...types.map((t) => ({ key: `type:${t}`, label: TYPE_PLURAL[t] })),
-    ];
-  }, [events]);
 
   const filtered = useMemo(() => {
     if (active === "all") return events;
@@ -148,9 +143,9 @@ export function KaribuEvents({ events }: { events: Event[] }) {
                   setPastPages(1);
                 }}
                 aria-pressed={on}
-                className={`rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 ${
+                className={`min-h-11 rounded-full px-4 py-2 font-inter text-[13.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 ${
                   on
-                    ? "bg-panel-dark text-on-panel-dark"
+                    ? "bg-band-bg text-on-band"
                     : "border border-sand-2 bg-paper-card font-medium text-ink-soft hover:border-ink"
                 }`}
               >
@@ -159,13 +154,10 @@ export function KaribuEvents({ events }: { events: Event[] }) {
             );
           })}
         </div>
-        <span className="font-inter text-[13.5px] text-ink-muted">
-          {events.length} events · {new Set(events.map((e) => e.city)).size} cities
-        </span>
       </section>
 
       {/* Upcoming: always visible, with the designed empty state when nothing is scheduled. */}
-      <Section id="upcoming" eyebrow="Upcoming" title={`${upcoming.length} scheduled`}>
+      <Section id="upcoming" eyebrow="Upcoming" title="Coming up">
         {upcoming.length === 0 ? (
           <EmptyState
             title={
@@ -181,6 +173,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
                 {whatsapp && (
                   <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
                     Get a heads-up
+                    <NewTabNote />
                   </a>
                 )}
                 {latestPast && (
@@ -217,7 +210,7 @@ export function KaribuEvents({ events }: { events: Event[] }) {
         <Section
           id="past"
           eyebrow="Past"
-          title={`${past.length} ${past.length === 1 ? "event" : "events"}`}
+          title="Past events"
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout" initial={false}>
