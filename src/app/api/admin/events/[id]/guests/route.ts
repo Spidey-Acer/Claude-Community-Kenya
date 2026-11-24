@@ -101,7 +101,14 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     throw error
   }
 
-  const result = await writeGuests(id, parsed.data.mode, guests)
+  let result: Awaited<ReturnType<typeof writeGuests>>
+  try {
+    result = await writeGuests(id, parsed.data.mode, guests)
+  } catch (error) {
+    // One transaction: nothing was written. Error name only, never row data.
+    console.error("attending guest write failed:", error instanceof Error ? error.name : "unknown")
+    return fail("Could not save the guest list", 500)
+  }
   await logAudit({
     userId: guarded.admin.id,
     userName: guarded.admin.name,

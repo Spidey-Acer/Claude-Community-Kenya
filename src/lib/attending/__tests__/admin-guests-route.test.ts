@@ -163,6 +163,30 @@ describe("guest upload writes", () => {
     expect(prisma.eventGuest.deleteMany).not.toHaveBeenCalled()
   })
 
+  it("replace is one $transaction holding both deleteMany and createMany", async () => {
+    const deleteOp = { count: 3 }
+    const createOp = { count: 1 }
+    vi.mocked(prisma.eventGuest.deleteMany).mockReturnValue(deleteOp as never)
+    vi.mocked(prisma.eventGuest.createMany).mockReturnValue(createOp as never)
+    await POST(request("POST", { ...validBody, mode: "replace" }), context)
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+    const operations = vi.mocked(prisma.$transaction).mock.calls[0][0] as unknown as unknown[]
+    expect(Array.isArray(operations)).toBe(true)
+    expect(operations.slice(0, 2)).toEqual([deleteOp, createOp])
+    expect(operations[0]).toBe(deleteOp)
+    expect(operations[1]).toBe(createOp)
+  })
+
+  it("a rejected transaction returns an error, reports no counts and writes no audit entry", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    vi.mocked(prisma.$transaction).mockRejectedValue(new Error("connection lost"))
+    const response = await POST(request("POST", { ...validBody, mode: "replace" }), context)
+    const payload = await response.json()
+    expect(response.status).toBe(500)
+    expect(payload).toEqual({ success: false, error: "Could not save the guest list" })
+    expect(logAudit).not.toHaveBeenCalled()
+  })
+
   it("a re-upload with a changed status updates the existing row", async () => {
     vi.mocked(prisma.eventGuest.createMany).mockResolvedValue({ count: 0 } as never)
     const body = { mode: "merge", guests: [{ email: RAW_EMAIL, status: "declined" }] }
