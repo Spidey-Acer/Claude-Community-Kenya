@@ -5,7 +5,7 @@
  *
  * A type select at the top switches the form: a PROJECT is a write-up with a
  * builder, a stack and links (no media; it waits in the moderation queue),
- * while every other type is a media post. Needs chips are for demos only.
+ * and only a SHOWCASE carries the media uploader and needs chips.
  *
  * Same submission contract as the rest of the site's Karibu forms (CSRF
  * token fetched on mount, field-level errors read from the API's `details`
@@ -273,6 +273,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
   }
 
   const isProject = type === "PROJECT"
+  const isShowcase = type === "SHOWCASE"
   const typeOptions = SUBMISSION_TYPES.map((value) => ({ value, label: TYPE_LABELS[value] }))
   const imageMedia = media.filter((m) => m.kind === "image")
   const eventOptions = [
@@ -301,8 +302,8 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
             url: projectUrl.trim() || undefined,
             repoUrl: repoUrl.trim() || undefined,
             tags: tags.items,
-            coverImageUrl: isProject ? undefined : effectiveCoverImageUrl,
-            media: isProject ? [] : media,
+            coverImageUrl: isShowcase ? effectiveCoverImageUrl : undefined,
+            media: isShowcase ? media : [],
             eventId: isProject ? undefined : eventId || undefined,
             needs: type === "SHOWCASE" ? needs : [],
             builtWith: hasBuiltWith && !isProject
@@ -418,7 +419,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     className={`${inputCls(fieldErrors.fullDescription)} resize-none`}
                   />
                   {fieldErrors.fullDescription && <FieldError msg={fieldErrors.fullDescription} />}
-                  {!isProject && (
+                  {isShowcase && (
                     <div className="mt-2">
                       <p className="mb-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                         Add a GIF
@@ -434,7 +435,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
               </div>
             </div>
 
-            {!isProject && (
+            {isShowcase && (
               <div className="rounded-2xl border border-sand bg-paper-card p-6">
                 <h2 className="mb-4 font-newsreader text-[22px] text-ink">Media</h2>
                 <MediaUploader value={media} onChange={setMedia} csrfToken={csrfToken} disabled={isPending} />

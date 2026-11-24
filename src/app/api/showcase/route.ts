@@ -67,16 +67,6 @@ const bodySchema = z.object({
       tokensPerRun: z.number().int().positive().max(100_000_000).optional(),
     })
     .optional(),
-}).superRefine((value, context) => {
-  // A PROJECT is a write-up with links and needs no showcase media. Every
-  // other type is a media post and must carry at least one item.
-  if (value.type !== "PROJECT" && value.media.length === 0) {
-    context.addIssue({
-      code: "custom",
-      path: ["media"],
-      message: "Add at least one image, GIF or demo clip",
-    })
-  }
 })
 
 export async function POST(request: NextRequest) {

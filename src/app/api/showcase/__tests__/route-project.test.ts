@@ -1,6 +1,6 @@
 // API-level tests for POST /api/showcase, focused on the PROJECT type:
 // a PROJECT needs no media but still needs a verified member session, and
-// every other type still needs media. prisma, csrf, rate-limit and the
+// no type requires media on the server (only the composer's uploader varies). prisma, csrf, rate-limit and the
 // session helper are mocked; no database is touched.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
@@ -88,11 +88,10 @@ describe("POST /api/showcase, PROJECT type", () => {
     expect(create).not.toHaveBeenCalled()
   })
 
-  it("still rejects a non-PROJECT type with no media", async () => {
+  it("still accepts a SHOWCASE with an empty media array for a verified member", async () => {
     const res = await POST(request({ ...PROJECT_BODY, type: "SHOWCASE" }))
-    expect(res.status).toBe(400)
-    expect((await res.json()).details.media).toBeTruthy()
-    expect(create).not.toHaveBeenCalled()
+    expect(res.status).toBe(201)
+    expect(create).toHaveBeenCalledTimes(1)
   })
 
   it("still enforces CSRF", async () => {
