@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { Masthead } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -125,8 +126,7 @@ export default function CoursesPage() {
 
       {/* Header */}
       <section className="py-16">
-        <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">Learning Paths</h1>
-        <p className="mt-4 max-w-2xl text-lg text-ink-soft">Free structured courses from Anthropic. Complete them in order for the best learning experience — or jump to the topic you need.</p>
+        <Masthead eyebrow="Resources" title="Learning Paths" lead="Free structured courses from Anthropic. Complete them in order for the best learning experience — or jump to the topic you need." flush />
         <div className="mt-6 border border-sand bg-paper-card p-4">
           <p className="font-mono text-sm text-clay-dark">REQUIREMENTS:</p>
           <ul className="mt-2 space-y-1 text-sm text-ink-soft">

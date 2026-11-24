@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { Masthead } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -36,8 +37,7 @@ export default function WorkflowsPage() {
       {/* Header */}
       <Reveal>
         <section className="py-16">
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">Advanced Workflows</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-soft">Advanced strategies for getting more done with Claude.</p>
+          <Masthead eyebrow="Resources" title="Advanced Workflows" lead="Advanced strategies for getting more done with Claude." flush />
         </section>
       </Reveal>
 

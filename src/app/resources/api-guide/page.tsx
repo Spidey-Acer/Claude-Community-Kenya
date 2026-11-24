@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { Masthead } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
@@ -63,8 +64,7 @@ export default function ApiGuidePage() {
       {/* Header */}
       <Reveal>
         <section className="py-16">
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">API Reference</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-soft">A complete reference for integrating Claude into your applications.</p>
+          <Masthead eyebrow="Resources" title="API Reference" lead="A complete reference for integrating Claude into your applications." flush />
           <nav className="mt-6 flex flex-wrap gap-3 font-mono text-xs" aria-label="Page sections">
             {["Overview", "Authentication", "Models", "Basic Request", "Streaming", "Tool Use", "Rate Limits", "SDK"].map((s) => (
               <a

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { PageBanner } from "@/components/karibu/PageBanner";
+import Image from "next/image";
+import { EmptyState, Masthead, Section } from "@/components/karibu/kit";
 import { GuideCard } from "@/components/karibu/GuideCard";
 import { KaribuLearnGrid, type LearnCard } from "@/components/karibu/KaribuLearn";
 import { ResourceLinks } from "@/components/karibu/ResourceLinks";
@@ -7,8 +8,6 @@ import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getPublishedGuides } from "@/lib/data";
 
 export const revalidate = 600;
-
-const WRAP = "mx-auto max-w-[1180px] px-6 md:px-10";
 
 export const metadata: Metadata = {
   title: "Resources | Claude Community Kenya",
@@ -89,28 +88,30 @@ export default async function ResourcesPage() {
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "Resources" }]} />
 
-      <PageBanner
-        image="/images/community/laptops.webp"
-        imageAlt="Members building on their laptops at a CCK meetup"
-        crumbs={["Home", "Resources"]}
+      <Masthead
+        eyebrow="Resources"
         title="Learn Claude, from your first prompt to production."
-        subtitle="Notes, guides and courses from the community, free to download and share."
+        lead="Notes, guides and courses from the community, free to download and share."
+        media={
+          <Image
+            src="/images/community/laptops.webp"
+            alt="Members building on their laptops at a CCK meetup"
+            fill
+            priority
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="object-cover"
+          />
+        }
       />
 
-      <section className={`${WRAP} py-14`} aria-label="Guides and notes">
-        <div className="mb-8 max-w-[640px]">
-          <h2 className="mb-2 font-newsreader text-[28px] font-normal leading-[1.1] tracking-[-0.01em] text-ink">
-            Guides and notes
-          </h2>
-          <p className="font-inter text-[15px] leading-[1.55] text-ink-soft">
-            Written up by the community, from a first afternoon with Claude to running it in production.
-          </p>
-        </div>
-
+      <Section
+        id="guides"
+        eyebrow="Guides"
+        title="Guides and notes"
+        lead="Written up by the community, from a first afternoon with Claude to running it in production."
+      >
         {guides.length === 0 ? (
-          <p className="font-inter text-[14.5px] text-ink-muted">
-            Guides land here as we publish them.
-          </p>
+          <EmptyState title="Nothing here yet." body="Guides land here as we publish them." />
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {guides.map((guide) => (
@@ -118,7 +119,7 @@ export default async function ResourcesPage() {
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       <section aria-label="Start here">
         <KaribuLearnGrid cards={resourceCards} />

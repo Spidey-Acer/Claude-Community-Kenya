@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { GuideView } from "@/lib/data";
 import { GUIDE_AUDIENCE_LABELS, guideMetaLine, type GuideAudience } from "@/lib/guides";
 import { withDownload } from "@/lib/supabase";
+import { BTN_PRIMARY } from "@/components/karibu/kit";
 
 /**
  * One guide in the /resources "Guides and notes" grid — cover (or a title
@@ -14,7 +15,7 @@ export function GuideCard({ guide }: { guide: GuideView }) {
   const audienceLabel = GUIDE_AUDIENCE_LABELS[guide.audience as GuideAudience] ?? guide.audience;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-paper-card">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-sand bg-paper-card">
       {guide.coverUrl ? (
         <div className="relative h-40 w-full">
           <Image
@@ -50,7 +51,7 @@ export function GuideCard({ guide }: { guide: GuideView }) {
           <a
             href={downloadHref}
             download
-            className="inline-flex rounded-full bg-ink px-5 py-2 font-inter text-[13.5px] font-semibold text-paper transition-colors hover:bg-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/50"
+            className={BTN_PRIMARY}
           >
             Download
           </a>

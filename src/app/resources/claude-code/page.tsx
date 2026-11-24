@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { Masthead } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -36,8 +37,7 @@ export default function ClaudeCodePage() {
       {/* Header */}
       <Reveal>
         <section className="py-16">
-          <h1 className="mb-4 max-w-[820px] font-newsreader text-[38px] font-normal leading-[1.06] tracking-[-0.02em] text-ink sm:text-[48px]">Claude Code Guide</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-soft">{"A guide to Anthropic's AI-powered coding assistant."}</p>
+          <Masthead eyebrow="Resources" title="Claude Code Guide" lead={"A guide to Anthropic's AI-powered coding assistant."} flush />
         </section>
       </Reveal>
 
