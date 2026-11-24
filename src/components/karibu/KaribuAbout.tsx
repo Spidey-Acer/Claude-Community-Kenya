@@ -6,7 +6,7 @@
  * The site shows no member, attendee or city counts, so none appear here.
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
@@ -17,7 +17,7 @@ import { CtaBand } from "@/components/karibu/CtaBand";
 import { FramedPhoto } from "@/components/karibu/FramedPhoto";
 import { SupporterWall } from "@/components/karibu/SupporterWall";
 import { SUPPORTERS } from "@/components/karibu/supporters";
-import { Masthead, PANEL_DARK, Section, WRAP } from "@/components/karibu/kit";
+import { EYEBROW, Masthead, NewTabNote, Section, SUBHEAD, WRAP } from "@/components/karibu/kit";
 
 interface TimelineEntry {
   date: string;
@@ -97,27 +97,11 @@ export function KaribuAbout({
         </div>
       </Section>
 
-      <Section eyebrow="The Anthropic connection" title="Independent, and in service of the community">
-        <div className={`grid items-center gap-6 p-8 sm:grid-cols-[90px_1fr] sm:p-10 ${PANEL_DARK}`}>
-          <div className="flex h-[90px] w-[90px] items-center justify-center rounded-[14px] bg-paper-alt">
-            <Image src="/images/cck-logo.webp" alt="CCK" width={70} height={70} className="h-[70px] w-[70px] rounded-full" />
-          </div>
-          <p className="max-w-[660px] font-newsreader text-[21px] leading-[1.4] text-on-panel-dark sm:text-[23px]">
-            CCK is an independent, volunteer-run community, led by Kenya&apos;s{" "}
-            <span className="italic text-clay-light">Claude Community Ambassador</span> and
-            supported through Anthropic&apos;s Claude Community Ambassadors program —
-            kept firmly in service of the community, never a sales channel.
-          </p>
-        </div>
-      </Section>
-
       {activeTeam.length > 0 && (
         <Section id="team" eyebrow="The people" title="Who you will meet">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {activeTeam.map((m, i) => (
-              <div key={m.slug ?? `${m.name}-${i}`} className={i % 2 === 1 ? "lg:translate-y-8" : ""}>
-                <TeamCard member={m} />
-              </div>
+              <TeamCard key={m.slug ?? `${m.name}-${i}`} member={m} />
             ))}
           </div>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">
@@ -151,6 +135,22 @@ export function KaribuAbout({
           <Timeline entries={timelineEntries} />
         </Section>
       )}
+
+      <section className={`${WRAP} py-10`} aria-labelledby="anthropic-connection-heading">
+        <Reveal>
+          <div className="rounded-2xl border border-sand bg-paper-card p-6">
+            <p className={EYEBROW}>The Anthropic connection</p>
+            <h2 id="anthropic-connection-heading" className={`${SUBHEAD} mt-2`}>
+              Independent, and in service of the community
+            </h2>
+            <p className="mt-3 max-w-[660px] font-inter text-[15.5px] leading-[1.6] text-ink-soft">
+              CCK is an independent, volunteer-run community, led by Kenya&apos;s Claude Community Ambassador and
+              supported through Anthropic&apos;s Claude Community Ambassadors program —
+              kept firmly in service of the community, never a sales channel.
+            </p>
+          </div>
+        </Reveal>
+      </section>
 
       <section className={`${WRAP} py-10`} aria-label="Supported by">
         <Reveal>
@@ -221,16 +221,18 @@ function TeamCard({ member }: { member: TeamMemberView }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const [avatarFailed, setAvatarFailed] = useState(false);
   return (
-    <div className="group">
-      <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-sand">
-        {member.avatar ? (
+    <div>
+      <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-sand">
+        {member.avatar && !avatarFailed ? (
           <Image
             src={member.avatar}
             alt={member.name}
             width={220}
             height={220}
-            className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-reversible)] group-hover:scale-105"
+            onError={() => setAvatarFailed(true)}
+            className="h-full w-full object-cover"
           />
         ) : (
           <span className="font-newsreader text-[34px] text-ink-muted">{initials}</span>
@@ -238,7 +240,7 @@ function TeamCard({ member }: { member: TeamMemberView }) {
       </div>
       <div className="font-inter text-[14.5px] font-semibold text-ink">{member.name}</div>
       <div className="font-inter text-[12.5px] text-ink-muted">{member.role}</div>
-      <div className="mt-2 flex items-center gap-2.5 text-ink-muted">
+      <div className="mt-1 flex items-center text-ink-muted">
         {member.github && (
           <SocialLink href={member.github} label={`${member.name} on GitHub`}>
             <Github className="h-3.5 w-3.5" />
@@ -266,8 +268,15 @@ function TeamCard({ member }: { member: TeamMemberView }) {
 
 function SocialLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="transition-colors hover:text-clay">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="inline-flex h-11 w-11 items-center justify-center transition-colors hover:text-clay"
+    >
       {children}
+      <NewTabNote />
     </a>
   );
 }

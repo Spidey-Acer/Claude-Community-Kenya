@@ -7,6 +7,7 @@
  */
 
 import Image from "next/image";
+import { NewTabNote } from "./kit";
 
 export interface Supporter {
   name: string;
@@ -31,10 +32,7 @@ export function SupporterWall({ supporters, caption, className }: SupporterWallP
       <div className="mb-7 text-center font-inter text-xs font-semibold uppercase tracking-[0.22em] text-ink-muted">
         Supported by
       </div>
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: `repeat(${Math.min(supporters.length, 5)}, minmax(0, 1fr))` }}
-      >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {supporters.map((s) => (
           <Cell key={s.name} supporter={s} />
         ))}
@@ -68,6 +66,7 @@ function Cell({ supporter }: { supporter: Supporter }) {
   return supporter.href ? (
     <a href={supporter.href} target="_blank" rel="noopener noreferrer" className={cellClass}>
       {inner}
+      <NewTabNote />
     </a>
   ) : (
     <div className={cellClass}>{inner}</div>
