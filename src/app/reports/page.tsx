@@ -27,6 +27,9 @@ const KNOWN_PDF_FALLBACK = {
   reportUrl: "/reports/claude-conversations-nairobi-2026-08-29.pdf",
 }
 
+const CONVERSATIONS_INTRO =
+  "Claude Conversations is where Kenyans decide what the community builds next: a room, a question, and a result we publish."
+
 export const metadata: Metadata = {
   title: "Reports | Claude Community Kenya",
   description: "Published write-ups and results from Claude Community Kenya events.",
@@ -63,11 +66,11 @@ export default async function ReportsIndexPage() {
       </section>
 
       <section className={`${WRAP} pb-14`}>
-        {recapCohorts.length > 0 && (
-          <div className="mb-10">
-            <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              Impact Lab results
-            </h2>
+        <div className="mb-10">
+          <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+            Impact Lab
+          </h2>
+          {recapCohorts.length > 0 ? (
             <ul className="flex flex-col gap-3">
               {recapCohorts.map((r) => (
                 <li key={r.cohort} className="rounded-xl border border-sand bg-paper-card p-5">
@@ -83,35 +86,32 @@ export default async function ReportsIndexPage() {
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+          ) : (
+            <p className="font-inter text-[15px] text-ink-soft">Nothing published yet.</p>
+          )}
+        </div>
 
-        {conversations.length > 0 && (
-          <div>
-            <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              Claude Conversations
-            </h2>
-            <ul className="flex flex-col gap-3">
-              {conversations.map((r) => (
-                <li key={r.reportUrl} className="rounded-xl border border-sand bg-paper-card p-5">
-                  <a
-                    href={r.reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-newsreader text-[18px] text-ink hover:text-clay"
-                  >
-                    {r.eventTitle} →
-                  </a>
-                  <p className="mt-1 font-inter text-[12.5px] text-ink-muted">{formatDate(r.eventDate)}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {recapCohorts.length === 0 && conversations.length === 0 && (
-          <p className="font-inter text-[15px] text-ink-soft">Nothing published yet.</p>
-        )}
+        <div>
+          <h2 className="mb-4 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+            Claude Conversations
+          </h2>
+          <p className="mb-4 font-inter text-[15px] leading-[1.6] text-ink-soft">{CONVERSATIONS_INTRO}</p>
+          <ul className="flex flex-col gap-3">
+            {conversations.map((r) => (
+              <li key={r.reportUrl} className="rounded-xl border border-sand bg-paper-card p-5">
+                <a
+                  href={r.reportUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-newsreader text-[18px] text-ink hover:text-clay"
+                >
+                  {r.eventTitle} →
+                </a>
+                <p className="mt-1 font-inter text-[12.5px] text-ink-muted">{formatDate(r.eventDate)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     </>
   )

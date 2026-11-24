@@ -85,7 +85,7 @@ export default async function ImpactLabRecapPage({ params }: Params) {
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
-          { name: "Impact Lab", url: "/impact-lab" },
+          { name: "Reports", url: "/reports" },
           { name: recap.event.name },
         ]}
       />

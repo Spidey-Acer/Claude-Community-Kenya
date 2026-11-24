@@ -22,6 +22,12 @@ describe("public redirects", () => {
     ["/volunteer/", "/get-involved?role=volunteer"],
     ["/submit-idea", "/get-involved?role=idea"],
     ["/submit-idea/", "/get-involved?role=idea"],
+    ["/team", "/about#team"],
+    ["/team/", "/about#team"],
+    ["/team/peter-kibet", "/about#team"],
+    ["/team/peter-kibet/", "/about#team"],
+    ["/resources/links", "/resources#links"],
+    ["/resources/links/", "/resources#links"],
     ["/chat", "/"],
     ["/merch", "/"],
     ["/community/", "/showcase"],
@@ -42,9 +48,14 @@ describe("public redirects", () => {
     expect(resolveRedirect(pathname)).toBe("/get-involved?role=speak")
   })
 
+  it("a query string does not stop /team redirecting", () => {
+    const { pathname } = new URL("/team/?ref=nav", "https://example.test")
+    expect(resolveRedirect(pathname)).toBe("/about#team")
+  })
+
   it("leaves kept routes alone", () => {
     for (const p of ["/events/x", "/blog/y", "/showcase/z", "/conversations/abc", "/impact-lab/cohort-1", "/resources/claude-code",
-      "/projects", "/team", "/resources/links"]) {
+      "/projects"]) {
       expect(resolveRedirect(p)).toBeNull()
     }
   })

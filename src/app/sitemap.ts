@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getEvents, getBlogPosts, getTeamMemberSlugs, getPublishedGuides } from "@/lib/data";
+import { getEvents, getBlogPosts, getPublishedGuides } from "@/lib/data";
 import { getShowcasePosts } from "@/lib/showcase/queries";
 
 const BASE_URL = "https://www.claudekenya.org";
@@ -8,10 +8,9 @@ const BASE_URL = "https://www.claudekenya.org";
 const SITEMAP_MAX_ITEMS = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [events, blogPosts, teamSlugs, showcaseData, guides] = await Promise.all([
+  const [events, blogPosts, showcaseData, guides] = await Promise.all([
     getEvents().catch(() => []),
     getBlogPosts().catch(() => []),
-    getTeamMemberSlugs().catch(() => [] as string[]),
     // Every approved submission type lives under /showcase. Explicit limit:
     // the default page size is 20, which would silently cap the sitemap.
     getShowcasePosts({ limit: SITEMAP_MAX_ITEMS }).catch(() => ({ items: [], total: 0 })),
@@ -32,13 +31,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/resources/claude-code`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/resources/workflows`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/resources/courses`, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${BASE_URL}/resources/links`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/resources/api-guide`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/resources/production-guide`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/faq`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/get-involved`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/showcase/submit`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/team`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/code-of-conduct`, changeFrequency: "yearly", priority: 0.4 },
     // NOTE: /login, /forgot-password, /reset-password, /verify-email,
     // /account/* deliberately omitted — auth/account pages should not be
@@ -66,12 +63,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const teamRoutes: MetadataRoute.Sitemap = teamSlugs.map((slug) => ({
-    url: `${BASE_URL}/team/${slug}`,
-    changeFrequency: "monthly" as const,
-    priority: 0.5,
-  }));
-
   const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
     url: `${BASE_URL}/resources/guides/${guide.slug}`,
     lastModified: guide.publishedAt,
@@ -79,5 +70,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...showcaseRoutes, ...teamRoutes, ...guideRoutes];
+  return [...staticRoutes, ...eventRoutes, ...blogRoutes, ...showcaseRoutes, ...guideRoutes];
 }

@@ -9,12 +9,12 @@
  */
 
 import { useRef } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, Twitter, Globe } from "lucide-react";
 import type { CommunityStats } from "@/components/sections/community-stats.types";
-import type { TeamMemberView } from "@/lib/data";
+import type { PhotoView, TeamMemberView } from "@/lib/data";
+import { communityLifePhotos } from "@/components/karibu/photos";
 import { Reveal } from "@/components/karibu/motion/Reveal";
 import { PageBanner } from "@/components/karibu/PageBanner";
 import { CtaBand } from "@/components/karibu/CtaBand";
@@ -43,12 +43,15 @@ export function KaribuAbout({
   stats,
   team,
   timelineEntries,
+  photos,
 }: {
   stats: CommunityStats;
   team: TeamMemberView[];
   timelineEntries: TimelineEntry[];
+  photos: PhotoView[];
 }) {
   const activeTeam = team.filter((m) => m.active !== false);
+  const lifePhotos = communityLifePhotos(photos);
 
   return (
     <>
@@ -136,14 +139,14 @@ export function KaribuAbout({
 
       {/* The people (real team) — staggered grid, per-person social row */}
       {activeTeam.length > 0 && (
-        <section className={`${WRAP} py-10`} aria-label="Our team">
+        <section id="team" className={`${WRAP} scroll-mt-24 py-10`} aria-label="Our team">
           <Reveal>
             <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
               The people
             </div>
           </Reveal>
           <Reveal className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {activeTeam.slice(0, 8).map((m, i) => (
+            {activeTeam.map((m, i) => (
               <div key={m.slug ?? `${m.name}-${i}`} className={i % 2 === 1 ? "lg:translate-y-8" : ""}>
                 <TeamCard member={m} />
               </div>
@@ -151,11 +154,33 @@ export function KaribuAbout({
           </Reveal>
           <p className="mt-4 font-inter text-[13px] text-ink-muted">
             + dozens of volunteers who set up chairs, answer questions, and keep
-            the rooms warm.{" "}
-            <Link href="/team" className="font-semibold text-clay hover:underline">
-              Meet the full team →
-            </Link>
+            the rooms warm.
           </p>
+        </section>
+      )}
+
+      {/* Community life: event-less photos, featured first */}
+      {lifePhotos.length > 0 && (
+        <section className={`${WRAP} py-10`} aria-label="Community life">
+          <Reveal>
+            <div className="mb-6 border-t border-sand pt-6 font-inter text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+              Community life
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {lifePhotos.map((photo) => (
+              <div key={photo.id} className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-paper-alt">
+                <Image
+                  src={photo.thumbnailUrl ?? photo.url}
+                  alt={photo.alt ?? ""}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  unoptimized={photo.fromR2}
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

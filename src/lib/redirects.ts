@@ -30,6 +30,9 @@ export const PUBLIC_REDIRECTS: ReadonlyArray<PublicRedirect> = [
   { source: "/speak", destination: "/get-involved?role=speak", permanent: true },
   { source: "/volunteer", destination: "/get-involved?role=volunteer", permanent: true },
   { source: "/submit-idea", destination: "/get-involved?role=idea", permanent: true },
+  { source: "/team", destination: "/about#team", permanent: true },
+  { source: "/team/:slug", destination: "/about#team", permanent: true },
+  { source: "/resources/links", destination: "/resources#links", permanent: true },
   { source: "/chat", destination: "/", permanent: true },
   { source: "/merch", destination: "/", permanent: true },
 ];

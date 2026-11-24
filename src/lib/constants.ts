@@ -49,7 +49,7 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     children: [
       { label: "Showcase", href: "/showcase", description: "What members are building right now — share yours." },
       { label: "Projects", href: "/projects", description: "Selected work from across the community." },
-      { label: "Team", href: "/team", description: "Organisers, ambassadors, and contributors." },
+      { label: "Team", href: "/about#team", description: "Organisers, ambassadors, and contributors." },
     ],
   },
 ] as const;
@@ -86,7 +86,7 @@ export const FOOTER_SECTIONS = [
     title: "Community",
     links: [
       { label: "About Us", href: "/about" },
-      { label: "Team", href: "/team" },
+      { label: "Team", href: "/about#team" },
       { label: "Join", href: "/join" },
       { label: "Discord", href: SOCIAL_LINKS.discord },
       { label: "WhatsApp", href: SOCIAL_LINKS.whatsapp },
@@ -99,7 +99,7 @@ export const FOOTER_SECTIONS = [
       { label: "Getting Started", href: "/resources/getting-started" },
       { label: "Claude Code", href: "/resources/claude-code" },
       { label: "Courses", href: "/resources/courses" },
-      { label: "Useful Links", href: "/resources/links" },
+      { label: "Useful Links", href: "/resources#links" },
     ],
   },
   {

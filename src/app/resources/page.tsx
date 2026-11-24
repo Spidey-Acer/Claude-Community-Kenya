@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageBanner } from "@/components/karibu/PageBanner";
 import { GuideCard } from "@/components/karibu/GuideCard";
 import { KaribuLearnGrid, type LearnCard } from "@/components/karibu/KaribuLearn";
+import { ResourceLinks } from "@/components/karibu/ResourceLinks";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { getPublishedGuides } from "@/lib/data";
 
@@ -71,7 +72,7 @@ const resourceCards: readonly LearnCard[] = [
   },
   {
     title: "Curated Links",
-    href: "/resources/links",
+    href: "/resources#links",
     icon: "link",
     description:
       "A comprehensive directory of resources, tools, and communities.",
@@ -122,6 +123,8 @@ export default async function ResourcesPage() {
       <section aria-label="Start here">
         <KaribuLearnGrid cards={resourceCards} />
       </section>
+
+      <ResourceLinks />
     </>
   );
 }

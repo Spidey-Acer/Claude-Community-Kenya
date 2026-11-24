@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
-import { getTeamMembers, getEvents } from "@/lib/data";
+import { getTeamMembers, getEvents, getGalleryPhotos } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import type { CommunityStats } from "@/components/sections/community-stats.types";
 import { KaribuAbout } from "@/components/karibu/KaribuAbout";
@@ -53,10 +53,11 @@ const DEFAULT_STATS: CommunityStats = {
 export const revalidate = 3600;
 
 export default async function AboutPage() {
-  const [team, siteSettings, allEvents] = await Promise.all([
+  const [team, siteSettings, allEvents, photos] = await Promise.all([
     getTeamMembers().catch(() => []),
     prisma.siteSettings.findUnique({ where: { id: "default" } }).catch(() => null),
     getEvents().catch(() => []),
+    getGalleryPhotos().catch(() => []),
   ]);
 
   // Timeline = past events, oldest first. Source of truth: admin-managed DB.
@@ -90,7 +91,7 @@ export default async function AboutPage() {
   return (
     <>
       <BreadcrumbSchema items={[{ name: "Home", url: "/" }, { name: "About" }]} />
-      <KaribuAbout stats={stats} team={team} timelineEntries={timelineEntries} />
+      <KaribuAbout stats={stats} team={team} timelineEntries={timelineEntries} photos={photos} />
     </>
   );
 }
