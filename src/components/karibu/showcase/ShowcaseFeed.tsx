@@ -246,7 +246,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
       type="button"
       onClick={onClear}
       aria-label={`Remove filter — ${label}`}
-      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-clay bg-clay/10 px-3 py-1.5 font-inter text-[13px] font-medium text-clay transition-colors hover:bg-clay/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-clay bg-paper-card px-3 py-1.5 font-inter text-[13px] font-semibold text-clay transition-colors hover:bg-paper-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2"
     >
       {label}
       <X className="h-3 w-3" aria-hidden="true" />

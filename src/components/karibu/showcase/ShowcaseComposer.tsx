@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Send, Loader2, Plus, X, AlertTriangle, CheckCircle2, LogIn, Mail } from "lucide-react"
 import { Reveal } from "@/components/karibu/motion/Reveal"
-import { BTN_PRIMARY, Field, Masthead, type FieldControlProps } from "@/components/karibu/kit"
+import { BTN_PRIMARY, Field, INPUT, INPUT_INVALID, Masthead, type FieldControlProps } from "@/components/karibu/kit"
 import { KaribuSelect } from "@/components/karibu/KaribuSelect"
 import { MediaUploader } from "@/components/karibu/showcase/MediaUploader"
 import { EmojiPicker } from "@/components/karibu/showcase/EmojiPicker"
@@ -35,10 +35,7 @@ import type { MediaDescriptor } from "@/lib/showcase/media"
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10"
 
-const inputCls = (invalid?: boolean) =>
-  `w-full rounded-lg border ${
-    invalid ? "border-error/60" : "border-sand-2"
-  } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`
+const CONTROL = `${INPUT} ${INPUT_INVALID}`
 
 export interface ComposerEventOption {
   id: string
@@ -342,7 +339,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
 
   return (
     <>
-      <div className={WRAP}>
+      <div className={`${WRAP} pb-6 pt-16`}>
         <Masthead
           flush
           eyebrow="Showcase"
@@ -379,7 +376,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                       onChange={(e) => setBuilder(e.target.value)}
                       maxLength={80}
                       placeholder="Who built it? Defaults to your name"
-                      className={inputCls(Boolean(fieldErrors.builder))}
+                      className={CONTROL}
                     />
                     )}
                   </Field>
@@ -395,7 +392,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     minLength={5}
                     maxLength={150}
                     placeholder="e.g. A Claude-powered farm dashboard"
-                    className={inputCls(Boolean(fieldErrors.title))}
+                    className={CONTROL}
                   />
                   )}
                 </Field>
@@ -410,7 +407,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     minLength={20}
                     maxLength={300}
                     placeholder="One or two sentences for the card view."
-                    className={`${inputCls(Boolean(fieldErrors.shortDescription))} resize-none`}
+                    className={`${CONTROL} resize-none`}
                   />
                   )}
                 </Field>
@@ -429,7 +426,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                           minLength={50}
                           maxLength={5000}
                           placeholder="What does it do, how did you build it, what would you use it for?"
-                          className={`${inputCls(Boolean(fieldErrors.fullDescription))} resize-none`}
+                          className={`${CONTROL} resize-none`}
                         />
                         <div className="mt-2 flex items-center gap-1.5">
                           <EmojiPicker onSelect={insertEmoji} />
@@ -500,7 +497,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     value={projectUrl}
                     onChange={(e) => setProjectUrl(e.target.value)}
                     placeholder="https://..."
-                    className={inputCls(Boolean(fieldErrors.url))}
+                    className={CONTROL}
                   />
                   )}
                 </Field>
@@ -512,7 +509,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/..."
-                    className={inputCls(Boolean(fieldErrors.repoUrl))}
+                    className={CONTROL}
                   />
                   )}
                 </Field>
@@ -565,7 +562,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                       aria-pressed={needs.includes(key)}
                       className={`min-h-11 rounded-full border px-3.5 py-1.5 font-inter text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 ${
                         needs.includes(key)
-                          ? "border-clay bg-clay/10 text-clay"
+                          ? "border-clay bg-paper-card font-semibold text-clay"
                           : "border-sand-2 text-ink-soft hover:border-clay/50"
                       }`}
                     >
@@ -605,7 +602,7 @@ function ComposerForm({ events }: { events: ComposerEventOption[] }) {
                       value={tokensPerRun}
                       onChange={(e) => setTokensPerRun(e.target.value)}
                       placeholder="e.g. 250000"
-                      className={inputCls()}
+                      className={CONTROL}
                     />
                     )}
                   </Field>
@@ -682,7 +679,7 @@ function TagInputField({
               <button
                 type="button"
                 onClick={() => list.remove(item)}
-                className="inline-flex h-6 w-6 items-center justify-center text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                className="-my-2.5 -mr-2 inline-flex h-11 w-11 items-center justify-center text-ink-muted transition-colors hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                 aria-label={`Remove ${item}`}
               >
                 <X className="h-3 w-3" aria-hidden="true" />
@@ -700,7 +697,7 @@ function TagInputField({
           onKeyDown={list.onKeyDown}
           maxLength={maxLength}
           placeholder={placeholder}
-          className={inputCls(control["aria-invalid"])}
+          className={CONTROL}
         />
         <button
           type="button"

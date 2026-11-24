@@ -10,6 +10,7 @@ import { ReactionRow } from "@/components/karibu/showcase/ReactionRow"
 import { ReportButton } from "@/components/karibu/showcase/ReportButton"
 import { CopyButton } from "@/components/community/CopyButton"
 import { TYPE_LABELS } from "@/lib/showcase/constants"
+import { formatDate } from "@/lib/utils"
 import { BADGE_SAND, BTN_OUTLINE, BTN_PRIMARY, META, Masthead } from "@/components/karibu/kit"
 import { CommentForm } from "@/components/community/CommentForm"
 import { CommentList } from "@/components/community/CommentList"
@@ -69,12 +70,7 @@ export async function ShowcaseDetail({ post, comments, commentsFailed }: Showcas
             ))}
           {post.authorName && <span>by {post.authorName}</span>}
           <span>
-            {new Date(post.createdAt).toLocaleDateString("en-KE", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              timeZone: "Africa/Nairobi",
-            })}
+            {formatDate(post.createdAt)}
           </span>
         </div>
       </Masthead>
