@@ -29,6 +29,9 @@ export const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 rounded-full bg-band-bg px-6 py-3 font-inter text-[14.5px] font-semibold text-on-band transition-colors hover:bg-band-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2";
 export const BTN_OUTLINE =
   "inline-flex items-center justify-center gap-2 rounded-full border border-sand-2 px-6 py-3 font-inter text-[14.5px] font-semibold text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2";
+/** Text input / select / textarea. 16px base so iOS does not zoom on focus. */
+export const INPUT =
+  "w-full rounded-lg border border-sand-2 bg-paper px-3 py-2.5 font-inter text-base text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20";
 /** Dark slab that stays dark in both themes (never `bg-ink`; see CLAUDE.md). */
 export const PANEL_DARK = "rounded-[18px] bg-panel-dark text-on-panel-dark";
 export const CARD =
