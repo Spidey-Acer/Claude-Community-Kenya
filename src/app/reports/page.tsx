@@ -36,21 +36,34 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_CONFIG.url}/reports` },
 }
 
-/** Runs a read that may fail (database down); logs and falls back so the page still renders. */
-async function readOrEmpty<T>(label: string, read: () => Promise<T[]>): Promise<T[]> {
+const LOAD_FAILED_MESSAGE = "We could not load the reports just now. Please try again shortly."
+
+interface ReadResult<T> {
+  items: T[]
+  failed: boolean
+}
+
+/**
+ * Runs a read that may fail (database down); logs and returns `failed: true`
+ * so the page still renders and can say so, instead of passing off an outage
+ * as "nothing published yet".
+ */
+async function readOrFail<T>(label: string, read: () => Promise<T[]>): Promise<ReadResult<T>> {
   try {
-    return await read()
+    return { items: await read(), failed: false }
   } catch (error) {
     console.error(`[reports] could not load ${label}`, error)
-    return []
+    return { items: [], failed: true }
   }
 }
 
 export default async function ReportsIndexPage() {
-  const [conversationsReports, recapCohorts] = await Promise.all([
-    readOrEmpty("conversations reports", listPublishedConversationsReports),
-    readOrEmpty("impact lab recaps", listPublishedRecapCohorts),
+  const [conversationsRead, recapsRead] = await Promise.all([
+    readOrFail("conversations reports", listPublishedConversationsReports),
+    readOrFail("impact lab recaps", listPublishedRecapCohorts),
   ])
+  const conversationsReports = conversationsRead.items
+  const recapCohorts = recapsRead.items
 
   const hasKnownPdf = conversationsReports.some((r) => r.reportUrl === KNOWN_PDF_FALLBACK.reportUrl)
   const conversations = hasKnownPdf ? conversationsReports : [...conversationsReports, KNOWN_PDF_FALLBACK]
@@ -80,6 +93,8 @@ export default async function ReportsIndexPage() {
                 </li>
               ))}
             </ul>
+          ) : recapsRead.failed ? (
+            <EmptyState title="Recaps are unavailable." body={LOAD_FAILED_MESSAGE} />
           ) : (
             <EmptyState title="Nothing published yet." body="Recaps appear here once an Impact Lab cohort publishes its results." />
           )}
@@ -88,6 +103,11 @@ export default async function ReportsIndexPage() {
 
       <div id="conversations" className="scroll-mt-24">
         <Section eyebrow="Claude Conversations" title="Conversations reports" lead={CONVERSATIONS_INTRO}>
+          {conversationsRead.failed && (
+            <p role="status" className="mb-5 font-inter text-[15px] text-error">
+              {LOAD_FAILED_MESSAGE}
+            </p>
+          )}
           <ul className={GRID}>
             {conversations.map((r) => (
               <li key={r.reportUrl}>

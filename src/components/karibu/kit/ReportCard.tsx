@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { CARD, META } from "./tokens";
 import { NewTabNote } from "./NewTabNote";
+import { formatDate } from "@/lib/utils";
 
 interface ReportCardProps {
   kind: "recap" | "conversation";
@@ -24,11 +25,12 @@ const KIND_LABEL: Record<ReportCardProps["kind"], string> = {
 function displayDate(iso: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
-  return parsed.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Nairobi" });
+  return formatDate(iso);
 }
 
 export function ReportCard({ kind, href, title, date, summary }: ReportCardProps) {
-  const external = /^https?:\/\//.test(href);
+  // A PDF is a file, not a page: it opens in a new tab through a plain anchor, not client navigation.
+  const external = /^https?:\/\//.test(href) || /\.pdf(\?|#|$)/i.test(href);
   const body = (
     <div className="flex flex-1 flex-col p-6">
       <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[0.1em] text-clay">{KIND_LABEL[kind]}</p>
