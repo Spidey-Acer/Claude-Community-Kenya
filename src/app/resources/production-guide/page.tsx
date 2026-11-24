@@ -108,7 +108,7 @@ export default function ProductionGuidePage() {
               <div className="space-y-1 font-mono text-xs text-ink-soft">
                 <p className="text-ink-muted">{"# Request flow"}</p>
                 <p className="text-clay">{"User Browser"}</p>
-                <p className="ml-4 text-ink-muted">{"↓  POST /api/claude"}</p>
+                <p className="ml-4 text-ink-muted">{"↓  POST /api/assistant"}</p>
                 <p className="text-clay-dark">{"Your Server (Next.js API Route)"}</p>
                 <p className="ml-4 text-ink-muted">{"↓  Validates request, checks auth"}</p>
                 <p className="ml-4 text-ink-muted">{"↓  Adds system prompt"}</p>

@@ -675,7 +675,7 @@ body::before {
  * with the ember pseudo-elements, this cascades into repeated layout recalc.
  *
  * CSS CANNOT override the flame's inline `style` animation — that is handled
- * in HeroPro.tsx via the `isMobile` guard (matchMedia). This block covers
+ * in the hero component via the `isMobile` guard (matchMedia). This block covers
  * the pseudo-elements and enforces containment on the container itself.
  *
  * On mobile: fully static. No glow, no sway, no sparks. Desktop unchanged.

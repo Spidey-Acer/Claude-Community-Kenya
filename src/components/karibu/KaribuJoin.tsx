@@ -4,8 +4,7 @@
  * KaribuJoin — warm-light "Join" page for the Karibu identity.
  *
  * Ports join.dc.html: a no-application, WhatsApp-first join flow with a 3-step
- * guide and per-city links. The old JoinSwitcher/ProJoinContent files remain
- * (dormant) — nothing deleted.
+ * guide and per-city links. The old join switcher files were removed.
  */
 
 import Link from "next/link";
