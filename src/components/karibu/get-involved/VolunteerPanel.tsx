@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { BTN_OUTLINE, BTN_PRIMARY, Masthead } from "@/components/karibu/kit";
 import { KaribuSelect } from "@/components/karibu/KaribuSelect";
 import {
   VOLUNTEER_ROLES,
@@ -23,7 +24,6 @@ import {
 } from "@/lib/volunteer-roles";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 const GROUP_LABEL = "mb-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted";
 
 const CITY_OPTIONS = VOLUNTEER_CITIES.map((c) => ({ value: c, label: c }));
@@ -186,7 +186,7 @@ export function VolunteerPanel() {
           <div className="flex justify-center gap-3">
             <Link
               href="/"
-              className="inline-flex rounded-full border border-sand-2 px-5 py-2 font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
+              className={BTN_OUTLINE}
             >
               Home
             </Link>
@@ -194,7 +194,7 @@ export function VolunteerPanel() {
               href="https://discord.gg/CkD9QWjsHm"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex rounded-full bg-clay px-5 py-2 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              className={BTN_PRIMARY}
             >
               Join Discord
             </a>
@@ -208,16 +208,16 @@ export function VolunteerPanel() {
     <>
       {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Volunteer header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Volunteer</div>
-          <h1 className="mb-4 max-w-[700px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Give a few hours. <span className="italic text-clay">Grow the community.</span>
-          </h1>
-          <p className="max-w-[560px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            We run on people who show up — helping with events, content, and
-            community care. Pick a role that fits your time and skills.
-          </p>
-        </Reveal>
+        <Masthead
+          flush
+          eyebrow="Volunteer"
+          title={
+            <>
+              Give a few hours. <span className="italic text-clay">Grow the community.</span>
+            </>
+          }
+          lead="We run on people who show up: helping with events, content, and community care. Pick a role that fits your time and skills."
+        />
       </section>
 
       {/* Form */}
@@ -479,7 +479,7 @@ export function VolunteerPanel() {
             <button
               type="submit"
               disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${BTN_PRIMARY} w-full disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>

@@ -41,7 +41,7 @@ export function KaribuGetInvolved({ initialRole }: { initialRole: Role }) {
               aria-selected={role === optionRole}
               onClick={() => selectRole(optionRole)}
               className={`rounded-full px-4 py-2 font-inter text-sm font-semibold transition-colors ${
-                role === optionRole ? "bg-clay text-paper-card" : "text-ink hover:text-clay"
+                role === optionRole ? "bg-band-bg text-on-band" : "text-ink hover:text-clay"
               }`}
             >
               {label}

@@ -12,9 +12,9 @@ import { useState, useEffect, useTransition } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/karibu/motion/Reveal";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, Masthead } from "@/components/karibu/kit";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 const STAGES = [
   { value: "IDEA", label: "Idea / Concept", desc: "Still in the brainstorming phase" },
@@ -130,13 +130,13 @@ export function IdeaPanel() {
           <div className="flex justify-center gap-3">
             <Link
               href="/projects"
-              className="inline-flex rounded-full bg-clay px-5 py-2 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              className={BTN_PRIMARY}
             >
               View projects
             </Link>
             <Link
               href="/"
-              className="inline-flex rounded-full border border-sand-2 px-5 py-2 font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
+              className={BTN_OUTLINE}
             >
               Back to home
             </Link>
@@ -148,19 +148,17 @@ export function IdeaPanel() {
 
   return (
     <>
-      {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Submit an idea header">
-        <Reveal>
-          <div className={`${KICKER} mb-4`}>Submit an idea</div>
-          <h1 className="mb-4 max-w-[720px] font-newsreader text-[44px] font-normal leading-[1.03] tracking-[-0.02em] text-ink sm:text-[56px]">
-            Building something? <span className="italic text-clay">Find your collaborators.</span>
-          </h1>
-          <p className="max-w-[600px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-            Share your project or startup idea with Kenya&apos;s AI developer
-            community. Find co-founders, developers, designers, mentors, or
-            early backers.
-          </p>
-        </Reveal>
+        <Masthead
+          flush
+          eyebrow="Submit an idea"
+          title={
+            <>
+              Building something? <span className="italic text-clay">Find your collaborators.</span>
+            </>
+          }
+          lead="Share your project or startup idea with Kenya's AI developer community. Find co-founders, developers, designers, mentors, or early backers."
+        />
       </section>
 
       {/* Form */}
@@ -172,30 +170,34 @@ export function IdeaPanel() {
               <h2 className="mb-5 font-newsreader text-[20px] text-ink">Project details</h2>
               <div className="space-y-4">
                 <Field label="Project name *" error={fieldErrors.title}>
-                  <input
-                    name="title"
-                    type="text"
-                    required
-                    className={inputCls(fieldErrors.title)}
-                    placeholder="Your project or startup name"
-                  />
+                  {(fieldProps) => (
+                    <input {...fieldProps}
+                      name="title"
+                      type="text"
+                      required
+                      className={inputCls(fieldErrors.title)}
+                      placeholder="Your project or startup name"
+                    />
+                  )}
                 </Field>
 
                 <Field label="Description * (min 50 chars)" error={fieldErrors.description}>
-                  <textarea
-                    name="description"
-                    required
-                    rows={4}
-                    className={`${inputCls(fieldErrors.description)} resize-none`}
-                    placeholder="What does your project do? What problem does it solve? Who is it for?"
-                  />
+                  {(fieldProps) => (
+                    <textarea {...fieldProps}
+                      name="description"
+                      required
+                      rows={4}
+                      className={`${inputCls(fieldErrors.description)} resize-none`}
+                      placeholder="What does your project do? What problem does it solve? Who is it for?"
+                    />
+                  )}
                 </Field>
 
                 <div>
-                  <label className="mb-2 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                  <p id="idea-stage-label" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
                     Project stage *
-                  </label>
-                  <div className="space-y-2">
+                  </p>
+                  <div role="radiogroup" aria-labelledby="idea-stage-label" className="space-y-2">
                     {STAGES.map(({ value, label, desc }) => (
                       <label
                         key={value}
@@ -212,24 +214,32 @@ export function IdeaPanel() {
                 </div>
 
                 <Field label="Target timeline (optional)">
-                  <input
-                    name="timeline"
-                    type="text"
-                    className={inputCls()}
-                    placeholder="e.g. Launch in 3 months, seeking funding in Q2 2026"
-                  />
+                  {(fieldProps) => (
+                    <input {...fieldProps}
+                      name="timeline"
+                      type="text"
+                      className={inputCls()}
+                      placeholder="e.g. Launch in 3 months, seeking funding in Q2 2026"
+                    />
+                  )}
                 </Field>
               </div>
             </div>
 
             {/* What you're seeking */}
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
-              <h2 className="mb-4 font-newsreader text-[20px] text-ink">What are you looking for? *</h2>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <h2 id="idea-seeking-label" className="mb-4 font-newsreader text-[20px] text-ink">What are you looking for? *</h2>
+              <div
+                role="group"
+                aria-labelledby="idea-seeking-label"
+                aria-describedby={fieldErrors.seekingRoles ? "idea-seeking-error" : undefined}
+                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+              >
                 {SEEKING_ROLES.map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
+                    aria-pressed={selectedRoles.includes(value)}
                     onClick={() => toggleRole(value)}
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 font-inter text-xs transition-colors ${
                       selectedRoles.includes(value)
@@ -246,7 +256,11 @@ export function IdeaPanel() {
                   </button>
                 ))}
               </div>
-              {fieldErrors.seekingRoles && <FieldError msg={fieldErrors.seekingRoles} />}
+              {fieldErrors.seekingRoles && (
+                <p id="idea-seeking-error" role="alert" className="mt-1 font-inter text-xs text-error">
+                  {fieldErrors.seekingRoles}
+                </p>
+              )}
             </div>
 
             {/* Tech stack */}
@@ -254,6 +268,7 @@ export function IdeaPanel() {
               <h2 className="mb-4 font-newsreader text-[20px] text-ink">Tech stack (optional)</h2>
               <input
                 type="text"
+                aria-label="Add a technology"
                 value={techInput}
                 onChange={(e) => setTechInput(e.target.value)}
                 onKeyDown={addTech}
@@ -270,6 +285,7 @@ export function IdeaPanel() {
                       {tech}
                       <button
                         type="button"
+                        aria-label={`Remove ${tech}`}
                         onClick={() => removeTech(tech)}
                         className="text-ink-muted transition-colors hover:text-clay"
                       >
@@ -286,20 +302,30 @@ export function IdeaPanel() {
               <h2 className="mb-4 font-newsreader text-[20px] text-ink">Contact info</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Name *" error={fieldErrors.contactName}>
-                  <input name="contactName" type="text" required className={inputCls(fieldErrors.contactName)} placeholder="Your name" />
+                  {(fieldProps) => (
+                    <input {...fieldProps} name="contactName" type="text" required className={inputCls(fieldErrors.contactName)} placeholder="Your name" />
+                  )}
                 </Field>
                 <Field label="Email *" error={fieldErrors.contactEmail}>
-                  <input name="contactEmail" type="email" required className={inputCls(fieldErrors.contactEmail)} placeholder="you@example.com" />
+                  {(fieldProps) => (
+                    <input {...fieldProps} name="contactEmail" type="email" required className={inputCls(fieldErrors.contactEmail)} placeholder="you@example.com" />
+                  )}
                 </Field>
                 <Field label="LinkedIn (optional)">
-                  <input name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                  {(fieldProps) => (
+                    <input {...fieldProps} name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                  )}
                 </Field>
                 <Field label="GitHub (optional)">
-                  <input name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                  {(fieldProps) => (
+                    <input {...fieldProps} name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                  )}
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="Website (optional)">
-                    <input name="website" type="url" className={inputCls()} placeholder="https://..." />
+                    {(fieldProps) => (
+                      <input {...fieldProps} name="website" type="url" className={inputCls()} placeholder="https://..." />
+                    )}
                   </Field>
                 </div>
               </div>
@@ -315,7 +341,7 @@ export function IdeaPanel() {
             <button
               type="submit"
               disabled={isPending || !csrfToken}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${BTN_PRIMARY} w-full disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {isPending ? (
                 <>
@@ -335,28 +361,4 @@ export function IdeaPanel() {
       </section>
     </>
   );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-        {label}
-      </label>
-      {children}
-      {error && <FieldError msg={error} />}
-    </div>
-  );
-}
-
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }

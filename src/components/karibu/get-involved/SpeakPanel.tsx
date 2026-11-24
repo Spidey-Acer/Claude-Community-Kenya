@@ -8,12 +8,12 @@
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition, cloneElement, isValidElement, type ReactElement } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, Masthead } from "@/components/karibu/kit";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
-const KICKER = "font-inter text-xs font-semibold uppercase tracking-[0.22em] text-clay";
 
 const CATEGORIES = [
   { value: "FINTECH", label: "Fintech & Finance Tech", desc: "M-Pesa integrations, open banking, payment systems" },
@@ -102,13 +102,13 @@ export function SpeakPanel() {
           <div className="flex justify-center gap-3">
             <Link
               href="/events"
-              className="inline-flex rounded-full bg-clay px-5 py-2.5 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark"
+              className={BTN_PRIMARY}
             >
               View events
             </Link>
             <Link
               href="/"
-              className="inline-flex rounded-full border border-sand-2 px-5 py-2.5 font-inter text-sm font-semibold text-ink transition-colors hover:border-ink"
+              className={BTN_OUTLINE}
             >
               Back to home
             </Link>
@@ -120,26 +120,26 @@ export function SpeakPanel() {
 
   return (
     <>
-      {/* Header */}
       <section className={`${WRAP} pb-6 pt-16`} aria-label="Speak header">
-        <div className={`${KICKER} mb-4`}>Speak</div>
-        <h1 className="mb-4 max-w-[720px] font-newsreader text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[48px]">
-          Share your knowledge with{" "}
-          <span className="italic text-clay">Kenya&apos;s AI community.</span>
-        </h1>
-        <p className="max-w-[560px] font-inter text-[17px] leading-[1.6] text-ink-soft">
-          CCK events bring together Kenya&apos;s best developers. If you have
-          insights on AI, Claude Code, engineering, fintech, or building in
-          Kenya — we want to hear from you.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
-          {HIGHLIGHTS.map((item) => (
-            <div key={item} className="flex items-center gap-1.5 font-inter text-[13px] text-ink-muted">
-              <ChevronRight className="h-3.5 w-3.5 text-clay" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
+        <Masthead
+          flush
+          eyebrow="Speak"
+          title={
+            <>
+              Share your knowledge with <span className="italic text-clay">Kenya&apos;s AI community.</span>
+            </>
+          }
+          lead="CCK events bring together Kenya's best developers. If you have insights on AI, Claude Code, engineering, fintech, or building in Kenya, we want to hear from you."
+        >
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+            {HIGHLIGHTS.map((item) => (
+              <div key={item} className="flex items-center gap-1.5 font-inter text-[13px] text-ink-muted">
+                <ChevronRight className="h-3.5 w-3.5 text-clay" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </Masthead>
       </section>
 
       {/* Form */}
@@ -150,22 +150,34 @@ export function SpeakPanel() {
             <h2 className="mb-5 font-newsreader text-[20px] text-ink">About you</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name *" error={fieldErrors.name}>
-                <input name="name" type="text" autoComplete="name" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="name" type="text" autoComplete="name" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+                )}
               </Field>
               <Field label="Email *" error={fieldErrors.email}>
-                <input name="email" type="email" autoComplete="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="email" type="email" autoComplete="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+                )}
               </Field>
               <Field label="Phone (optional)">
-                <input name="phone" type="tel" autoComplete="tel" className={inputCls()} placeholder="+254 ..." />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="phone" type="tel" autoComplete="tel" className={inputCls()} placeholder="+254 ..." />
+                )}
               </Field>
               <Field label="LinkedIn (optional)">
-                <input name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                )}
               </Field>
               <Field label="GitHub (optional)">
-                <input name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                )}
               </Field>
               <Field label="Portfolio / website (optional)">
-                <input name="portfolio" type="url" className={inputCls()} placeholder="https://..." />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="portfolio" type="url" className={inputCls()} placeholder="https://..." />
+                )}
               </Field>
             </div>
           </div>
@@ -175,14 +187,21 @@ export function SpeakPanel() {
             <h2 className="mb-5 font-newsreader text-[20px] text-ink">Your talk</h2>
             <div className="space-y-4">
               <Field label="Talk title *" error={fieldErrors.topic}>
-                <input name="topic" type="text" required className={inputCls(fieldErrors.topic)} placeholder="e.g. Building a production RAG pipeline with Claude" />
+                {(fieldProps) => (
+                  <input {...fieldProps} name="topic" type="text" required className={inputCls(fieldErrors.topic)} placeholder="e.g. Building a production RAG pipeline with Claude" />
+                )}
               </Field>
 
               <div>
-                <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                <p id="speak-category-label" className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   Category *
-                </label>
-                <div className="grid grid-cols-1 gap-2">
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="speak-category-label"
+                  aria-describedby={fieldErrors.category ? "speak-category-error" : undefined}
+                  className="grid grid-cols-1 gap-2"
+                >
                   {CATEGORIES.map(({ value, label, desc }) => (
                     <label
                       key={value}
@@ -196,35 +215,42 @@ export function SpeakPanel() {
                     </label>
                   ))}
                 </div>
-                {fieldErrors.category && <FieldError msg={fieldErrors.category} />}
+                {fieldErrors.category && (
+                  <p id="speak-category-error" role="alert" className="mt-1 font-inter text-xs text-error">
+                    {fieldErrors.category}
+                  </p>
+                )}
               </div>
 
               <Field label="Abstract * (min 100 chars)" error={fieldErrors.abstract}>
-                <textarea
-                  name="abstract"
-                  required
-                  rows={4}
-                  className={`${inputCls(fieldErrors.abstract)} resize-none`}
-                  placeholder="Brief summary of your talk — what attendees will learn, what you'll cover..."
-                />
+                {(fieldProps) => (
+                  <textarea {...fieldProps}
+                    name="abstract"
+                    required
+                    rows={4}
+                    className={`${inputCls(fieldErrors.abstract)} resize-none`}
+                    placeholder="Brief summary of your talk — what attendees will learn, what you'll cover..."
+                  />
+                )}
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                    Preferred city
-                  </label>
-                  <select name="preferredCity" className={inputCls()}>
-                    <option value="">Any city</option>
-                    {CITIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Field label="Preferred city">
+                  {(fieldProps) => (
+                    <select {...fieldProps} name="preferredCity" className={inputCls()}>
+                      <option value="">Any city</option>
+                      {CITIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
                 <Field label="Preferred event type">
-                  <input name="preferredEvent" type="text" className={inputCls()} placeholder="e.g. Meetup, Workshop, Hackathon" />
+                  {(fieldProps) => (
+                    <input {...fieldProps} name="preferredEvent" type="text" className={inputCls()} placeholder="e.g. Meetup, Workshop, Hackathon" />
+                  )}
                 </Field>
               </div>
             </div>
@@ -232,15 +258,18 @@ export function SpeakPanel() {
 
           {/* Bio */}
           <div className="rounded-2xl border border-sand bg-paper-card p-6">
-            <h2 className="mb-4 font-newsreader text-[20px] text-ink">Speaker bio *</h2>
-            <textarea
-              name="bio"
-              required
-              rows={4}
-              className={`${inputCls(fieldErrors.bio)} resize-none`}
-              placeholder="Tell us about yourself — your background, what you build, what you're passionate about..."
-            />
-            {fieldErrors.bio && <FieldError msg={fieldErrors.bio} />}
+            <Field label="Speaker bio *" error={fieldErrors.bio}>
+              {(fieldProps) => (
+                <textarea
+                  {...fieldProps}
+                  name="bio"
+                  required
+                  rows={4}
+                  className={`${inputCls(fieldErrors.bio)} resize-none`}
+                  placeholder="Tell us about yourself — your background, what you build, what you're passionate about..."
+                />
+              )}
+            </Field>
           </div>
 
           {error && (
@@ -253,7 +282,7 @@ export function SpeakPanel() {
           <button
             type="submit"
             disabled={isPending || !csrfToken}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-clay px-6 py-3 font-inter text-sm font-semibold text-paper-card transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${BTN_PRIMARY} w-full disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {isPending ? (
               <>
@@ -275,38 +304,4 @@ export function SpeakPanel() {
       </section>
     </>
   );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  const id = `f-${label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")}`;
-  const control = isValidElement(children)
-    ? cloneElement(children as ReactElement<{ id?: string }>, { id })
-    : children;
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block font-inter text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
-      >
-        {label}
-      </label>
-      {control}
-      {error && <FieldError msg={error} />}
-    </div>
-  );
-}
-
-function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 font-inter text-[11px] text-error">{msg}</p>;
 }
