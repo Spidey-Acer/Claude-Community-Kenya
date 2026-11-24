@@ -1,18 +1,20 @@
 "use client";
 
 /**
- * IdeaPanel — "Submit an idea" panel on /get-involved.
+ * IdeaPanel — "Pitch an idea" panel on /get-involved.
  *
  * Same submission contract as the Terminal Noir SubmitIdeaPage (CSRF token,
  * POST /api/ideas/submit, field-level errors, all fields preserved) — only
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { BTN_OUTLINE, BTN_PRIMARY, Field, Masthead } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, INPUT, INPUT_INVALID, Masthead } from "@/components/karibu/kit";
+import { CsrfRetry } from "@/components/karibu/get-involved/CsrfRetry";
+import { useCsrfToken } from "@/components/karibu/get-involved/useCsrfToken";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
 
@@ -30,27 +32,18 @@ const SEEKING_ROLES = [
   { value: "FUNDER", label: "Investor / Funder" },
 ];
 
-const inputCls = (hasError?: string) =>
-  `w-full rounded-lg border ${
-    hasError ? "border-error/60" : "border-sand-2"
-  } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
+const CONTROL = `${INPUT} ${INPUT_INVALID}`;
+const GROUP_LABEL = "mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted";
 
 export function IdeaPanel() {
   const [isPending, startTransition] = useTransition();
-  const [csrfToken, setCsrfToken] = useState("");
+  const { token: csrfToken, failed: csrfFailed, retry: retryCsrf } = useCsrfToken();
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [techStack, setTechStack] = useState<string[]>([]);
   const [techInput, setTechInput] = useState("");
-
-  useEffect(() => {
-    fetch("/api/csrf-token")
-      .then((r) => r.json())
-      .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
-  }, []);
 
   function toggleRole(role: string) {
     setSelectedRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
@@ -76,6 +69,7 @@ export function IdeaPanel() {
 
     if (selectedRoles.length === 0) {
       setFieldErrors({ seekingRoles: "Select at least one role you're seeking" });
+      setError("Please fix the errors below");
       return;
     }
 
@@ -125,14 +119,14 @@ export function IdeaPanel() {
           <p className="mx-auto mb-6 max-w-md px-4 font-inter text-sm text-ink-soft">
             Your project idea has been received. We&apos;ll review it and may
             feature it in the community if approved. Approved ideas will be
-            showcased on our Projects page.
+            showcased in the Showcase.
           </p>
           <div className="flex justify-center gap-3">
             <Link
-              href="/projects"
+              href="/showcase?type=project"
               className={BTN_PRIMARY}
             >
-              View projects
+              View projects in the Showcase
             </Link>
             <Link
               href="/"
@@ -148,10 +142,10 @@ export function IdeaPanel() {
 
   return (
     <>
-      <section className={`${WRAP} pb-6 pt-16`} aria-label="Submit an idea header">
+      <section className={`${WRAP} pb-6 pt-16`} aria-label="Pitch an idea header">
         <Masthead
           flush
-          eyebrow="Submit an idea"
+          eyebrow="Pitch an idea"
           title={
             <>
               Building something? <span className="italic text-clay">Find your collaborators.</span>
@@ -169,33 +163,33 @@ export function IdeaPanel() {
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-5 font-newsreader text-[20px] text-ink">Project details</h2>
               <div className="space-y-4">
-                <Field label="Project name *" error={fieldErrors.title}>
+                <Field label="Project name" error={fieldErrors.title}>
                   {(fieldProps) => (
                     <input {...fieldProps}
                       name="title"
                       type="text"
                       required
-                      className={inputCls(fieldErrors.title)}
+                      className={CONTROL}
                       placeholder="Your project or startup name"
                     />
                   )}
                 </Field>
 
-                <Field label="Description * (min 50 chars)" error={fieldErrors.description}>
+                <Field label="Description" hint="At least 50 characters." error={fieldErrors.description}>
                   {(fieldProps) => (
                     <textarea {...fieldProps}
                       name="description"
                       required
                       rows={4}
-                      className={`${inputCls(fieldErrors.description)} resize-none`}
+                      className={`${CONTROL} resize-none`}
                       placeholder="What does your project do? What problem does it solve? Who is it for?"
                     />
                   )}
                 </Field>
 
                 <div>
-                  <p id="idea-stage-label" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                    Project stage *
+                  <p id="idea-stage-label" className={GROUP_LABEL}>
+                    Project stage
                   </p>
                   <div role="radiogroup" aria-labelledby="idea-stage-label" className="space-y-2">
                     {STAGES.map(({ value, label, desc }) => (
@@ -218,7 +212,7 @@ export function IdeaPanel() {
                     <input {...fieldProps}
                       name="timeline"
                       type="text"
-                      className={inputCls()}
+                      className={CONTROL}
                       placeholder="e.g. Launch in 3 months, seeking funding in Q2 2026"
                     />
                   )}
@@ -228,7 +222,7 @@ export function IdeaPanel() {
 
             {/* What you're seeking */}
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
-              <h2 id="idea-seeking-label" className="mb-4 font-newsreader text-[20px] text-ink">What are you looking for? *</h2>
+              <h2 id="idea-seeking-label" className="mb-4 font-newsreader text-[20px] text-ink">What are you looking for?</h2>
               <div
                 role="group"
                 aria-labelledby="idea-seeking-label"
@@ -241,13 +235,14 @@ export function IdeaPanel() {
                     type="button"
                     aria-pressed={selectedRoles.includes(value)}
                     onClick={() => toggleRole(value)}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 font-inter text-xs transition-colors ${
+                    className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2.5 font-inter text-xs transition-colors ${
                       selectedRoles.includes(value)
-                        ? "border-clay bg-clay/10 text-clay"
+                        ? "border-clay bg-paper-card font-semibold text-clay"
                         : "border-sand-2 text-ink-soft hover:border-clay/50"
                     }`}
                   >
                     <span
+                      aria-hidden="true"
                       className={`h-2 w-2 rounded-full border ${
                         selectedRoles.includes(value) ? "border-clay bg-clay" : "border-ink-muted"
                       }`}
@@ -272,7 +267,7 @@ export function IdeaPanel() {
                 value={techInput}
                 onChange={(e) => setTechInput(e.target.value)}
                 onKeyDown={addTech}
-                className={inputCls()}
+                className={CONTROL}
                 placeholder="Type a technology and press Enter (e.g. React, Python, Claude API)"
               />
               {techStack.length > 0 && (
@@ -287,7 +282,7 @@ export function IdeaPanel() {
                         type="button"
                         aria-label={`Remove ${tech}`}
                         onClick={() => removeTech(tech)}
-                        className="text-ink-muted transition-colors hover:text-clay"
+                        className="-my-3 -mr-2.5 inline-flex h-11 w-11 items-center justify-center text-ink-muted transition-colors hover:text-clay"
                       >
                         ×
                       </button>
@@ -301,30 +296,30 @@ export function IdeaPanel() {
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <h2 className="mb-4 font-newsreader text-[20px] text-ink">Contact info</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Name *" error={fieldErrors.contactName}>
+                <Field label="Name" error={fieldErrors.contactName}>
                   {(fieldProps) => (
-                    <input {...fieldProps} name="contactName" type="text" required className={inputCls(fieldErrors.contactName)} placeholder="Your name" />
+                    <input {...fieldProps} name="contactName" type="text" required className={CONTROL} placeholder="Your name" />
                   )}
                 </Field>
-                <Field label="Email *" error={fieldErrors.contactEmail}>
+                <Field label="Email" error={fieldErrors.contactEmail}>
                   {(fieldProps) => (
-                    <input {...fieldProps} name="contactEmail" type="email" required className={inputCls(fieldErrors.contactEmail)} placeholder="you@example.com" />
+                    <input {...fieldProps} name="contactEmail" type="email" required className={CONTROL} placeholder="you@example.com" />
                   )}
                 </Field>
                 <Field label="LinkedIn (optional)">
                   {(fieldProps) => (
-                    <input {...fieldProps} name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                    <input {...fieldProps} name="linkedIn" type="url" className={CONTROL} placeholder="https://linkedin.com/in/..." />
                   )}
                 </Field>
                 <Field label="GitHub (optional)">
                   {(fieldProps) => (
-                    <input {...fieldProps} name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                    <input {...fieldProps} name="github" type="url" className={CONTROL} placeholder="https://github.com/..." />
                   )}
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="Website (optional)">
                     {(fieldProps) => (
-                      <input {...fieldProps} name="website" type="url" className={inputCls()} placeholder="https://..." />
+                      <input {...fieldProps} name="website" type="url" className={CONTROL} placeholder="https://..." />
                     )}
                   </Field>
                 </div>
@@ -332,11 +327,13 @@ export function IdeaPanel() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 {error}
               </div>
             )}
+
+            {csrfFailed && <CsrfRetry onRetry={retryCsrf} />}
 
             <button
               type="submit"

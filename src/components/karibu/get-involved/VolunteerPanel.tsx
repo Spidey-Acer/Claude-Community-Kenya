@@ -15,7 +15,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { BTN_OUTLINE, BTN_PRIMARY, Masthead } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, INPUT, INPUT_INVALID, Masthead, NewTabNote } from "@/components/karibu/kit";
 import { KaribuSelect } from "@/components/karibu/KaribuSelect";
 import {
   VOLUNTEER_ROLES,
@@ -28,35 +28,7 @@ const GROUP_LABEL = "mb-1.5 font-inter text-[11px] font-semibold uppercase track
 
 const CITY_OPTIONS = VOLUNTEER_CITIES.map((c) => ({ value: c, label: c }));
 
-const inputCls = (hasError?: string) =>
-  `w-full rounded-lg border ${
-    hasError ? "border-error/60" : "border-sand-2"
-  } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
-
-function Field({
-  id,
-  label,
-  error,
-  helper,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  helper?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className={GROUP_LABEL}>
-        {label}
-      </label>
-      {helper && <p className="mb-1.5 font-inter text-[12px] text-ink-soft">{helper}</p>}
-      {children}
-      {error && <FieldError id={`${id}-error`} msg={error} />}
-    </div>
-  );
-}
+const CONTROL = `${INPUT} ${INPUT_INVALID}`;
 
 function FieldError({ id, msg }: { id?: string; msg: string }) {
   return (
@@ -70,7 +42,7 @@ function CharCount({ value, max }: { value: string; max: number }) {
   const nearLimit = value.length > max * 0.9;
   return (
     <div className="mt-1 flex justify-end">
-      <span className={`font-inter text-[11px] ${nearLimit ? "text-amber-600" : "text-ink-muted"}`}>
+      <span className={`font-inter text-[11px] ${nearLimit ? "text-error" : "text-ink-muted"}`}>
         {value.length} / {max}
       </span>
     </div>
@@ -197,6 +169,7 @@ export function VolunteerPanel() {
               className={BTN_PRIMARY}
             >
               Join Discord
+              <NewTabNote />
             </a>
           </div>
         </div>
@@ -226,49 +199,49 @@ export function VolunteerPanel() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="rounded-2xl border border-sand bg-paper-card p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field id="name" label="Name *" error={fieldErrors.name}>
-                  <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    aria-required="true"
-                    aria-invalid={!!fieldErrors.name}
-                    aria-describedby={fieldErrors.name ? "name-error" : undefined}
-                    minLength={2}
-                    maxLength={100}
-                    placeholder="Your full name"
-                    className={inputCls(fieldErrors.name)}
-                  />
+                <Field label="Name" error={fieldErrors.name}>
+                  {(fieldProps) => (
+                    <input
+                      {...fieldProps}
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      minLength={2}
+                      maxLength={100}
+                      placeholder="Your full name"
+                      className={CONTROL}
+                    />
+                  )}
                 </Field>
-                <Field id="email" label="Email *" error={fieldErrors.email}>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    aria-required="true"
-                    aria-invalid={!!fieldErrors.email}
-                    aria-describedby={fieldErrors.email ? "email-error" : undefined}
-                    placeholder="you@example.com"
-                    className={inputCls(fieldErrors.email)}
-                  />
+                <Field label="Email" error={fieldErrors.email}>
+                  {(fieldProps) => (
+                    <input
+                      {...fieldProps}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="you@example.com"
+                      className={CONTROL}
+                    />
+                  )}
                 </Field>
               </div>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field id="phone" label="Phone (optional)">
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    maxLength={20}
-                    placeholder="+254 7XX XXX XXX"
-                    className={inputCls()}
-                  />
+                <Field label="Phone (optional)">
+                  {(fieldProps) => (
+                    <input
+                      {...fieldProps}
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      maxLength={20}
+                      placeholder="+254 7XX XXX XXX"
+                      className={CONTROL}
+                    />
+                  )}
                 </Field>
                 <KaribuSelect
                   id="city"
@@ -284,7 +257,7 @@ export function VolunteerPanel() {
               {/* Role picker */}
               <div className="mt-5">
                 <div id="role-group-label" className={GROUP_LABEL}>
-                  Volunteer role *
+                  Volunteer role
                 </div>
                 <div
                   role="radiogroup"
@@ -299,7 +272,7 @@ export function VolunteerPanel() {
                     return (
                       <label
                         key={r.value}
-                        className={`relative flex cursor-pointer flex-col gap-1 rounded-xl border p-4 pl-5 transition-colors motion-reduce:transition-none ${
+                        className={`relative flex cursor-pointer flex-col gap-1 rounded-xl border p-4 pl-5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay has-[:focus-visible]:ring-offset-2 motion-reduce:transition-none ${
                           checked ? "border-clay bg-clay/5" : "border-sand-2 hover:border-clay/50"
                         }`}
                       >
@@ -313,11 +286,9 @@ export function VolunteerPanel() {
                         />
                         <span
                           aria-hidden="true"
-                          className="absolute left-2 top-[1.35rem] h-1.5 w-1.5 rounded-full"
-                          style={{
-                            backgroundColor: checked ? r.color : "transparent",
-                            boxShadow: checked ? "none" : `inset 0 0 0 1.5px ${r.color}66`,
-                          }}
+                          className={`absolute left-2 top-[1.35rem] h-1.5 w-1.5 rounded-full ${
+                            checked ? "bg-clay" : "border border-clay/40"
+                          }`}
                         />
                         <span className="font-inter text-sm font-semibold text-ink">{r.label}</span>
                         <span className="font-inter text-[12px] leading-[1.5] text-ink-soft">
@@ -333,7 +304,7 @@ export function VolunteerPanel() {
               {/* Availability */}
               <div className="mt-5">
                 <div id="availability-group-label" className={GROUP_LABEL}>
-                  Availability *
+                  Availability
                 </div>
                 <div
                   role="group"
@@ -349,9 +320,9 @@ export function VolunteerPanel() {
                         type="button"
                         aria-pressed={selected}
                         onClick={() => toggleAvailability(opt)}
-                        className={`rounded-full border px-3.5 py-1.5 font-inter text-[13px] font-medium transition-colors motion-reduce:transition-none ${
+                        className={`min-h-11 rounded-full border px-3.5 py-1.5 font-inter text-[13px] font-medium transition-colors motion-reduce:transition-none ${
                           selected
-                            ? "border-clay bg-clay/10 text-clay"
+                            ? "border-clay bg-paper-card font-semibold text-clay"
                             : "border-sand-2 text-ink-soft hover:border-clay/50"
                         }`}
                       >
@@ -367,101 +338,109 @@ export function VolunteerPanel() {
 
               <div className="mt-5">
                 <Field
-                  id="experience"
-                  label="Relevant experience * (min 20 chars)"
-                  helper="What have you done that prepares you for this role?"
+                  label="Relevant experience"
+                  hint="At least 20 characters. What have you done that prepares you for this role?"
                   error={fieldErrors.experience}
                 >
-                  <textarea
-                    id="experience"
-                    value={experience}
-                    onChange={(e) => setExperience(e.target.value)}
-                    required
-                    aria-required="true"
-                    aria-invalid={!!fieldErrors.experience}
-                    aria-describedby={fieldErrors.experience ? "experience-error" : undefined}
-                    minLength={20}
-                    maxLength={2000}
-                    rows={4}
-                    placeholder="Tell us what you've done that's relevant..."
-                    className={`${inputCls(fieldErrors.experience)} resize-none`}
-                  />
-                  <CharCount value={experience} max={2000} />
+                  {(fieldProps) => (
+                    <>
+                      <textarea
+                        {...fieldProps}
+                        value={experience}
+                        onChange={(e) => setExperience(e.target.value)}
+                        required
+                        minLength={20}
+                        maxLength={2000}
+                        rows={4}
+                        placeholder="Tell us what you've done that's relevant..."
+                        className={`${CONTROL} resize-none`}
+                      />
+                      <CharCount value={experience} max={2000} />
+                    </>
+                  )}
                 </Field>
               </div>
 
               <div className="mt-4">
                 <Field
-                  id="motivation"
-                  label="Why volunteer? * (min 20 chars)"
-                  helper="What do you want to get out of it, and why CCK?"
+                  label="Why volunteer?"
+                  hint="At least 20 characters. What do you want to get out of it, and why CCK?"
                   error={fieldErrors.motivation}
                 >
-                  <textarea
-                    id="motivation"
-                    value={motivation}
-                    onChange={(e) => setMotivation(e.target.value)}
-                    required
-                    aria-required="true"
-                    aria-invalid={!!fieldErrors.motivation}
-                    aria-describedby={fieldErrors.motivation ? "motivation-error" : undefined}
-                    minLength={20}
-                    maxLength={2000}
-                    rows={3}
-                    placeholder="What excites you about contributing to Claude Community Kenya?"
-                    className={`${inputCls(fieldErrors.motivation)} resize-none`}
-                  />
-                  <CharCount value={motivation} max={2000} />
+                  {(fieldProps) => (
+                    <>
+                      <textarea
+                        {...fieldProps}
+                        value={motivation}
+                        onChange={(e) => setMotivation(e.target.value)}
+                        required
+                        minLength={20}
+                        maxLength={2000}
+                        rows={3}
+                        placeholder="What excites you about contributing to Claude Community Kenya?"
+                        className={`${CONTROL} resize-none`}
+                      />
+                      <CharCount value={motivation} max={2000} />
+                    </>
+                  )}
                 </Field>
               </div>
 
               <div className="mt-5">
                 <div className={`${GROUP_LABEL} mb-3`}>Links (optional)</div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field id="linkedIn" label="LinkedIn">
+                  <Field label="LinkedIn">
+                  {(fieldProps) => (
                     <input
-                      id="linkedIn"
+                      {...fieldProps}
                       type="text"
                       inputMode="url"
                       value={linkedIn}
                       onChange={(e) => setLinkedIn(e.target.value)}
                       placeholder="linkedin.com/in/yourname"
-                      className={inputCls()}
+                      className={CONTROL}
                     />
-                  </Field>
-                  <Field id="github" label="GitHub">
+                  )}
+                </Field>
+                  <Field label="GitHub">
+                  {(fieldProps) => (
                     <input
-                      id="github"
+                      {...fieldProps}
                       type="text"
                       inputMode="url"
                       value={github}
                       onChange={(e) => setGithub(e.target.value)}
                       placeholder="github.com/yourname"
-                      className={inputCls()}
+                      className={CONTROL}
                     />
-                  </Field>
-                  <Field id="twitter" label="Twitter / X">
+                  )}
+                </Field>
+                  <Field label="Twitter / X">
+                  {(fieldProps) => (
                     <input
-                      id="twitter"
+                      {...fieldProps}
                       type="text"
                       inputMode="url"
                       value={twitter}
                       onChange={(e) => setTwitter(e.target.value)}
                       placeholder="x.com/yourname"
-                      className={inputCls()}
+                      className={CONTROL}
                     />
-                  </Field>
-                  <Field id="portfolio" label="Portfolio">
+                  )}
+                </Field>
+                  <Field label="Portfolio">
+                  {(fieldProps) => (
                     <input
-                      id="portfolio"
+                      {...fieldProps}
                       type="text"
                       inputMode="url"
                       value={portfolio}
                       onChange={(e) => setPortfolio(e.target.value)}
                       placeholder="yoursite.com"
-                      className={inputCls()}
+                      className={CONTROL}
                     />
-                  </Field>
+                  )}
+                </Field>
                 </div>
               </div>
             </div>

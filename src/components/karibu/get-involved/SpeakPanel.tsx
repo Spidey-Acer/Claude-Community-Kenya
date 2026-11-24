@@ -8,10 +8,12 @@
  * the styling differs.
  */
 
-import { useState, useEffect, useTransition } from "react";
-import { Send, CheckCircle, AlertTriangle, Loader2, ChevronRight } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { BTN_OUTLINE, BTN_PRIMARY, Field, Masthead } from "@/components/karibu/kit";
+import { BTN_OUTLINE, BTN_PRIMARY, Field, INPUT, INPUT_INVALID, Masthead } from "@/components/karibu/kit";
+import { CsrfRetry } from "@/components/karibu/get-involved/CsrfRetry";
+import { useCsrfToken } from "@/components/karibu/get-involved/useCsrfToken";
 
 const WRAP = "mx-auto max-w-[880px] px-6 md:px-10";
 
@@ -27,24 +29,15 @@ const CITIES = ["Nairobi", "Mombasa", "Either"];
 
 const HIGHLIGHTS = ["30–45 min slots", "Live demos welcome", "Nairobi & Mombasa events"];
 
-const inputCls = (hasError?: string) =>
-  `w-full rounded-lg border ${
-    hasError ? "border-error/60" : "border-sand-2"
-  } bg-paper px-3 py-2.5 font-inter text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/20`;
+const CONTROL = `${INPUT} ${INPUT_INVALID}`;
+const GROUP_LABEL = "mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted";
 
 export function SpeakPanel() {
   const [isPending, startTransition] = useTransition();
-  const [csrfToken, setCsrfToken] = useState("");
+  const { token: csrfToken, failed: csrfFailed, retry: retryCsrf } = useCsrfToken();
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    fetch("/api/csrf-token")
-      .then((r) => r.json())
-      .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
-  }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -133,9 +126,8 @@ export function SpeakPanel() {
         >
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
             {HIGHLIGHTS.map((item) => (
-              <div key={item} className="flex items-center gap-1.5 font-inter text-[13px] text-ink-muted">
-                <ChevronRight className="h-3.5 w-3.5 text-clay" />
-                <span>{item}</span>
+              <div key={item} className="font-inter text-[13px] text-ink-muted">
+                {item}
               </div>
             ))}
           </div>
@@ -149,34 +141,34 @@ export function SpeakPanel() {
           <div className="rounded-2xl border border-sand bg-paper-card p-6">
             <h2 className="mb-5 font-newsreader text-[20px] text-ink">About you</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name *" error={fieldErrors.name}>
+              <Field label="Full name" error={fieldErrors.name}>
                 {(fieldProps) => (
-                  <input {...fieldProps} name="name" type="text" autoComplete="name" required className={inputCls(fieldErrors.name)} placeholder="Your full name" />
+                  <input {...fieldProps} name="name" type="text" autoComplete="name" required className={CONTROL} placeholder="Your full name" />
                 )}
               </Field>
-              <Field label="Email *" error={fieldErrors.email}>
+              <Field label="Email" error={fieldErrors.email}>
                 {(fieldProps) => (
-                  <input {...fieldProps} name="email" type="email" autoComplete="email" required className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
+                  <input {...fieldProps} name="email" type="email" autoComplete="email" required className={CONTROL} placeholder="you@example.com" />
                 )}
               </Field>
               <Field label="Phone (optional)">
                 {(fieldProps) => (
-                  <input {...fieldProps} name="phone" type="tel" autoComplete="tel" className={inputCls()} placeholder="+254 ..." />
+                  <input {...fieldProps} name="phone" type="tel" autoComplete="tel" className={CONTROL} placeholder="+254 ..." />
                 )}
               </Field>
               <Field label="LinkedIn (optional)">
                 {(fieldProps) => (
-                  <input {...fieldProps} name="linkedIn" type="url" className={inputCls()} placeholder="https://linkedin.com/in/..." />
+                  <input {...fieldProps} name="linkedIn" type="url" className={CONTROL} placeholder="https://linkedin.com/in/..." />
                 )}
               </Field>
               <Field label="GitHub (optional)">
                 {(fieldProps) => (
-                  <input {...fieldProps} name="github" type="url" className={inputCls()} placeholder="https://github.com/..." />
+                  <input {...fieldProps} name="github" type="url" className={CONTROL} placeholder="https://github.com/..." />
                 )}
               </Field>
               <Field label="Portfolio / website (optional)">
                 {(fieldProps) => (
-                  <input {...fieldProps} name="portfolio" type="url" className={inputCls()} placeholder="https://..." />
+                  <input {...fieldProps} name="portfolio" type="url" className={CONTROL} placeholder="https://..." />
                 )}
               </Field>
             </div>
@@ -186,15 +178,15 @@ export function SpeakPanel() {
           <div className="rounded-2xl border border-sand bg-paper-card p-6">
             <h2 className="mb-5 font-newsreader text-[20px] text-ink">Your talk</h2>
             <div className="space-y-4">
-              <Field label="Talk title *" error={fieldErrors.topic}>
+              <Field label="Talk title" error={fieldErrors.topic}>
                 {(fieldProps) => (
-                  <input {...fieldProps} name="topic" type="text" required className={inputCls(fieldErrors.topic)} placeholder="e.g. Building a production RAG pipeline with Claude" />
+                  <input {...fieldProps} name="topic" type="text" required className={CONTROL} placeholder="e.g. Building a production RAG pipeline with Claude" />
                 )}
               </Field>
 
               <div>
-                <p id="speak-category-label" className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                  Category *
+                <p id="speak-category-label" className={GROUP_LABEL}>
+                  Category
                 </p>
                 <div
                   role="radiogroup"
@@ -222,22 +214,22 @@ export function SpeakPanel() {
                 )}
               </div>
 
-              <Field label="Abstract * (min 100 chars)" error={fieldErrors.abstract}>
+              <Field label="Abstract" hint="At least 100 characters." error={fieldErrors.abstract}>
                 {(fieldProps) => (
                   <textarea {...fieldProps}
                     name="abstract"
                     required
                     rows={4}
-                    className={`${inputCls(fieldErrors.abstract)} resize-none`}
+                    className={`${CONTROL} resize-none`}
                     placeholder="Brief summary of your talk — what attendees will learn, what you'll cover..."
                   />
                 )}
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Preferred city">
+                <Field label="Preferred city (optional)">
                   {(fieldProps) => (
-                    <select {...fieldProps} name="preferredCity" className={inputCls()}>
+                    <select {...fieldProps} name="preferredCity" className={CONTROL}>
                       <option value="">Any city</option>
                       {CITIES.map((c) => (
                         <option key={c} value={c}>
@@ -247,9 +239,9 @@ export function SpeakPanel() {
                     </select>
                   )}
                 </Field>
-                <Field label="Preferred event type">
+                <Field label="Preferred event type (optional)">
                   {(fieldProps) => (
-                    <input {...fieldProps} name="preferredEvent" type="text" className={inputCls()} placeholder="e.g. Meetup, Workshop, Hackathon" />
+                    <input {...fieldProps} name="preferredEvent" type="text" className={CONTROL} placeholder="e.g. Meetup, Workshop, Hackathon" />
                   )}
                 </Field>
               </div>
@@ -258,14 +250,14 @@ export function SpeakPanel() {
 
           {/* Bio */}
           <div className="rounded-2xl border border-sand bg-paper-card p-6">
-            <Field label="Speaker bio *" error={fieldErrors.bio}>
+            <Field label="Speaker bio" error={fieldErrors.bio}>
               {(fieldProps) => (
                 <textarea
                   {...fieldProps}
                   name="bio"
                   required
                   rows={4}
-                  className={`${inputCls(fieldErrors.bio)} resize-none`}
+                  className={`${CONTROL} resize-none`}
                   placeholder="Tell us about yourself — your background, what you build, what you're passionate about..."
                 />
               )}
@@ -273,11 +265,13 @@ export function SpeakPanel() {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-error/30 bg-error/10 p-4 font-inter text-sm text-error">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               {error}
             </div>
           )}
+
+          {csrfFailed && <CsrfRetry onRetry={retryCsrf} />}
 
           <button
             type="submit"
@@ -296,7 +290,7 @@ export function SpeakPanel() {
           </button>
           <p className="text-center font-inter text-[11px] text-ink-muted">
             By submitting, you agree to the{" "}
-            <Link href="/code-of-conduct" className="underline hover:text-ink">
+            <Link href="/code-of-conduct" className="font-semibold text-clay hover:text-clay-dark">
               CCK Code of Conduct
             </Link>
           </p>

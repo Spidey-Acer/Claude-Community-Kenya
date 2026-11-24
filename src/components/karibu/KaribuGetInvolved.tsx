@@ -3,7 +3,7 @@
 /**
  * KaribuGetInvolved — one page for the speaker, volunteer and idea forms.
  *
- * A three-way segmented control picks the panel; only the active panel is
+ * A three-way group of toggle buttons picks the panel; only the active panel is
  * mounted so form field ids never collide. Each panel keeps the submission
  * contract of the form it came from (CSRF token, its own API route and
  * validation); this component only switches between them.
@@ -18,7 +18,7 @@ import { IdeaPanel } from "@/components/karibu/get-involved/IdeaPanel";
 const OPTIONS: ReadonlyArray<{ role: Role; label: string }> = [
   { role: "speak", label: "Speak" },
   { role: "volunteer", label: "Volunteer" },
-  { role: "idea", label: "Submit an idea" },
+  { role: "idea", label: "Pitch an idea" },
 ];
 
 export function KaribuGetInvolved({ initialRole }: { initialRole: Role }) {
@@ -32,15 +32,14 @@ export function KaribuGetInvolved({ initialRole }: { initialRole: Role }) {
   return (
     <>
       <div className="mx-auto max-w-[880px] px-6 pt-10 md:px-10">
-        <div role="tablist" aria-label="Ways to get involved" className="inline-flex rounded-full border border-sand-2 bg-paper-card p-1">
+        <div role="group" aria-label="Ways to get involved" className="inline-flex rounded-full border border-sand-2 bg-paper-card p-1">
           {OPTIONS.map(({ role: optionRole, label }) => (
             <button
               key={optionRole}
               type="button"
-              role="tab"
-              aria-selected={role === optionRole}
+              aria-pressed={role === optionRole}
               onClick={() => selectRole(optionRole)}
-              className={`rounded-full px-4 py-2 font-inter text-sm font-semibold transition-colors ${
+              className={`min-h-11 rounded-full px-4 py-2 font-inter text-sm font-semibold transition-colors ${
                 role === optionRole ? "bg-band-bg text-on-band" : "text-ink hover:text-clay"
               }`}
             >
@@ -49,7 +48,7 @@ export function KaribuGetInvolved({ initialRole }: { initialRole: Role }) {
           ))}
         </div>
       </div>
-      <div role="tabpanel">
+      <div>
         {role === "speak" && <SpeakPanel />}
         {role === "volunteer" && <VolunteerPanel />}
         {role === "idea" && <IdeaPanel />}
