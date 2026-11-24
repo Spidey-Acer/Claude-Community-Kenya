@@ -59,7 +59,7 @@ function lookup(slug: string, body: unknown, ip = nextIp()) {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, "warn").mockImplementation(() => undefined)
-  vi.stubEnv("ATTENDING_HMAC_KEY", "test-key")
+  vi.stubEnv("ATTENDING_HMAC_KEY", "test-key-0123456789-0123456789-abcd")
   redisState.present = true
   guests = new Map()
   const add = (eventId: string, email: string, status: string) =>
@@ -239,6 +239,12 @@ describe("lookup limits and fail-closed rules", () => {
     expect((await lookup("open", { email: "ada@example.com" })).status).toBe(503)
     expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
     expect(rateLimit).not.toHaveBeenCalled()
+  })
+
+  it("fails closed with 503 when the HMAC key is under 32 characters", async () => {
+    vi.stubEnv("ATTENDING_HMAC_KEY", "k".repeat(31))
+    expect((await lookup("open", { email: "ada@example.com" })).status).toBe(503)
+    expect(prisma.eventGuest.findUnique).not.toHaveBeenCalled()
   })
 
   it("fails closed with 503 when the HMAC key is missing", async () => {

@@ -4,7 +4,7 @@ import { hmacEmail, MissingHmacKeyError } from "../hmac-email"
 describe("hmacEmail", () => {
   const original = process.env.ATTENDING_HMAC_KEY
   beforeEach(() => {
-    process.env.ATTENDING_HMAC_KEY = "test-key-one"
+    process.env.ATTENDING_HMAC_KEY = "test-key-one-0123456789-0123456789-ab"
   })
   afterEach(() => {
     if (original === undefined) delete process.env.ATTENDING_HMAC_KEY
@@ -27,8 +27,20 @@ describe("hmacEmail", () => {
 
   it("changes with the key", () => {
     const before = hmacEmail("ada@example.com")
-    process.env.ATTENDING_HMAC_KEY = "test-key-two"
+    process.env.ATTENDING_HMAC_KEY = "test-key-two-0123456789-0123456789-ab"
     expect(hmacEmail("ada@example.com")).not.toBe(before)
+  })
+
+  it("fails closed when the key is 31 characters, and accepts exactly 32", () => {
+    process.env.ATTENDING_HMAC_KEY = "k".repeat(31)
+    expect(() => hmacEmail("ada@example.com")).toThrow(MissingHmacKeyError)
+    process.env.ATTENDING_HMAC_KEY = "k".repeat(32)
+    expect(hmacEmail("ada@example.com")).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it("counts the trimmed key, so padding cannot make a short key pass", () => {
+    process.env.ATTENDING_HMAC_KEY = `  ${"k".repeat(31)}  `
+    expect(() => hmacEmail("ada@example.com")).toThrow(MissingHmacKeyError)
   })
 
   it("fails closed when the key is missing or blank", () => {

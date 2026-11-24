@@ -52,7 +52,7 @@ const validBody = { mode: "merge", guests: [{ email: RAW_EMAIL, status: "approve
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.ATTENDING_HMAC_KEY = "test-key"
+  process.env.ATTENDING_HMAC_KEY = "test-key-0123456789-0123456789-abcd"
   signIn("ADMIN")
   vi.mocked(prisma.event.findUnique).mockResolvedValue({ id: EVENT_ID } as never)
   vi.mocked(prisma.eventGuest.deleteMany).mockResolvedValue({ count: 3 } as never)
@@ -120,6 +120,13 @@ describe("guest upload validation", () => {
 describe("guest upload writes", () => {
   it("fails closed with 503 when the HMAC key is missing", async () => {
     delete process.env.ATTENDING_HMAC_KEY
+    const response = await POST(request("POST", validBody), context)
+    expect(response.status).toBe(503)
+    expect(prisma.eventGuest.createMany).not.toHaveBeenCalled()
+  })
+
+  it("fails closed with 503 when the HMAC key is under 32 characters", async () => {
+    process.env.ATTENDING_HMAC_KEY = "k".repeat(31)
     const response = await POST(request("POST", validBody), context)
     expect(response.status).toBe(503)
     expect(prisma.eventGuest.createMany).not.toHaveBeenCalled()
