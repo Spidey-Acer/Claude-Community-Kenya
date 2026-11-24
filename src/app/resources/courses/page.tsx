@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead } from "@/components/karibu/kit";
+import { Masthead, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -114,7 +114,7 @@ const courses = [
 
 export default function CoursesPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       {/* Back link */}
       <Link
         href="/resources"
@@ -247,6 +247,6 @@ export default function CoursesPage() {
           </a>
         </section>
       </Reveal>
-    </main>
+    </div>
   );
 }

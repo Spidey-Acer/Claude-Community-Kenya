@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead } from "@/components/karibu/kit";
+import { Masthead, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function WorkflowsPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       {/* Back link */}
       <Link
         href="/resources"
@@ -41,7 +41,7 @@ export default function WorkflowsPage() {
 
       {/* Agentic Development Patterns */}
       <Reveal index={0}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Agentic Development</h2>
         <GuideBlock title="agentic-patterns.md" variant="default">
           <h3 className="font-mono text-lg font-bold text-clay-dark">
@@ -114,7 +114,7 @@ export default function WorkflowsPage() {
 
       {/* Plan Mode */}
       <Reveal index={1}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Plan Mode</h2>
         <GuideBlock title="plan-mode-example" variant="code">
           <div className="space-y-1">
@@ -164,7 +164,7 @@ export default function WorkflowsPage() {
 
       {/* Git Worktree Strategy */}
       <Reveal index={2}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Parallel Workflows</h2>
         <GuideBlock title="git-worktree-strategy" variant="default">
           <div className="space-y-3 text-ink-soft">
@@ -225,6 +225,6 @@ export default function WorkflowsPage() {
       </section>
       </Reveal>
 
-    </main>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead } from "@/components/karibu/kit";
+import { Masthead, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function ClaudeCodePage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       {/* Back link */}
       <Link
         href="/resources"
@@ -41,7 +41,7 @@ export default function ClaudeCodePage() {
 
       {/* What is Claude Code? */}
       <Reveal index={0}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <GuideBlock title="about-claude-code.md" variant="default">
           <h2 className="font-mono text-xl font-bold text-clay-dark">
             # What is Claude Code?
@@ -69,7 +69,7 @@ export default function ClaudeCodePage() {
 
       {/* Installation Guide */}
       <Reveal index={1}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Installation</h2>
         <GuideBlock title="installation" variant="code">
           <div className="space-y-1">
@@ -91,7 +91,7 @@ export default function ClaudeCodePage() {
 
       {/* Essential Commands */}
       <Reveal index={2}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Key Commands</h2>
         <GuideBlock title="essential-commands" variant="code">
           <div className="space-y-1">
@@ -134,7 +134,7 @@ export default function ClaudeCodePage() {
 
       {/* Setting Up CLAUDE.md */}
       <Reveal index={3}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Project Configuration</h2>
         <GuideBlock title="claude-md-guide" variant="default">
           <div className="space-y-3 text-ink-soft">
@@ -173,7 +173,7 @@ export default function ClaudeCodePage() {
 
       {/* Multi-Instance Development */}
       <Reveal index={4}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Multi-Instance Workflows</h2>
         <GuideBlock title="multi-instance-dev" variant="default">
           <div className="space-y-3 text-ink-soft">
@@ -227,7 +227,7 @@ export default function ClaudeCodePage() {
 
       {/* Resources */}
       <Reveal index={5}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Learn More</h2>
         <div className="space-y-3 border border-sand bg-paper-card p-6">
           <h3 className="font-mono text-sm font-bold text-ink">
@@ -288,6 +288,6 @@ export default function ClaudeCodePage() {
         </div>
       </section>
       </Reveal>
-    </main>
+    </div>
   );
 }

@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead } from "@/components/karibu/kit";
+import { Masthead, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
-import { Card } from "@/components/ui/Card";
 
 export const metadata: Metadata = {
   title: "Getting Started with Claude | Claude Community Kenya",
@@ -78,7 +77,7 @@ const pricingTiers = [
 
 export default function GettingStartedPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       {/* Back link */}
       <Link
         href="/resources"
@@ -95,7 +94,7 @@ export default function GettingStartedPage() {
 
       {/* What is Claude? */}
       <Reveal index={0}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <GuideBlock title="what-is-claude.md" variant="default">
           <h2 className="font-mono text-xl font-bold text-clay-dark">
             # What is Claude?
@@ -131,11 +130,12 @@ export default function GettingStartedPage() {
 
       {/* Claude Products Overview */}
       <Reveal index={1}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Claude Products</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {products.map((product) => (
-            <Card key={product.name} title={product.name} padding="md">
+            <div key={product.name} className="rounded-2xl border border-sand bg-paper-card p-6">
+              <h3 className="mb-3 font-newsreader text-[20px] font-medium text-ink">{product.name}</h3>
               <div className="mb-2">
                 <span className="font-mono text-xs text-clay-dark">
                   [{product.label}]
@@ -144,7 +144,7 @@ export default function GettingStartedPage() {
               <p className="text-sm text-ink-soft">
                 {product.description}
               </p>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
@@ -152,7 +152,7 @@ export default function GettingStartedPage() {
 
       {/* How to Get Started */}
       <Reveal index={2}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Quick Setup</h2>
         <GuideBlock title="setup.sh" variant="command">
           <div className="space-y-4">
@@ -195,18 +195,19 @@ export default function GettingStartedPage() {
 
       {/* Pricing Overview */}
       <Reveal index={3}>
-      <section className="py-20">
+      <section className="py-10 sm:py-12">
         <h2 className="mb-6 font-newsreader text-[26px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">Pricing</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {pricingTiers.map((tier) => (
-            <Card key={tier.name} title={tier.name} showDots={false} padding="md">
+            <div key={tier.name} className="rounded-2xl border border-sand bg-paper-card p-6">
+              <h3 className="mb-3 font-newsreader text-[20px] font-medium text-ink">{tier.name}</h3>
               <div className="mb-3">
                 <span className="font-mono text-2xl font-bold text-clay">
                   {tier.price}
                 </span>
               </div>
               <p className="text-sm text-ink-soft">{tier.features}</p>
-            </Card>
+            </div>
           ))}
         </div>
         <p className="mt-6 font-mono text-xs text-ink-muted">
@@ -224,6 +225,6 @@ export default function GettingStartedPage() {
         </p>
       </section>
       </Reveal>
-    </main>
+    </div>
   );
 }

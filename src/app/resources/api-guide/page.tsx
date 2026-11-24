@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Reveal } from "@/components/karibu/motion/Reveal";
-import { Masthead } from "@/components/karibu/kit";
+import { Masthead, WRAP } from "@/components/karibu/kit";
 import { GuideBlock } from "@/components/karibu/GuideBlock";
 import { BreadcrumbSchema } from "@/components/schema/BreadcrumbSchema";
 import { SITE_CONFIG } from "@/lib/constants";
@@ -44,7 +44,7 @@ const models = [
 
 export default function ApiGuidePage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className={`${WRAP} py-10 sm:py-12`}>
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -506,6 +506,6 @@ export default function ApiGuidePage() {
           </p>
         </section>
       </Reveal>
-    </main>
+    </div>
   );
 }

@@ -62,7 +62,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
   const downloadHref = withDownload(guide.fileUrl, `${guide.slug}.pdf`);
 
   return (
-    <main className="bg-paper py-14">
+    <div className="bg-paper py-14">
       <BreadcrumbSchema
         items={[
           { name: "Home", url: "/" },
@@ -127,6 +127,6 @@ export default async function GuidePage({ params }: GuidePageProps) {
           .
         </p>
       </div>
-    </main>
+    </div>
   );
 }
