@@ -24,9 +24,17 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     Credentials({
       async authorize(credentials) {
         try {
+          // Normalise the email exactly as signup and forgot-password store it
+          // (sanitizeEmail: lowercase, no whitespace). Without this, a phone
+          // keyboard's "John@gmail.com" never matched the stored
+          // "john@gmail.com": new accounts bounced straight to /login and a
+          // password reset could not help (incident 2026-11-28).
           const parsedCredentials = z
             .object({
-              email: z.string().email(),
+              email: z.preprocess(
+                (v) => (typeof v === "string" ? v.toLowerCase().replace(/\s/g, "") : v),
+                z.string().email()
+              ),
               password: z.string().min(6),
             })
             .safeParse(credentials)
@@ -39,7 +47,14 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           const { email, password } = parsedCredentials.data
 
           const prisma = await getPrisma()
-          const user = await prisma.user.findUnique({ where: { email } })
+          // Exact match first (every account created through signup is stored
+          // lowercase); case-insensitive fallback for older accounts created
+          // by admin or seed with mixed case.
+          const user =
+            (await prisma.user.findUnique({ where: { email } })) ??
+            (await prisma.user.findFirst({
+              where: { email: { equals: email, mode: "insensitive" } },
+            }))
 
           if (!user || !user.active) return null
 
