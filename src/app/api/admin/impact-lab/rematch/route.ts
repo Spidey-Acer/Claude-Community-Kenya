@@ -6,7 +6,13 @@ import { withCsrfProtection } from "@/lib/csrf"
 import { rateLimit, RateLimits } from "@/lib/rate-limit"
 import { logAudit, getRequestMetadata } from "@/lib/audit-log"
 import { computeRematch, type MatchResult } from "@/lib/matching"
-import { resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import {
+  computePlaceUnassigned,
+  selectPlacementCandidates,
+} from "@/lib/matching/place-unassigned"
+import type { MatchSettings, Team } from "@/lib/matching"
+import { getEventByCohort, resolveAdminCohort } from "@/lib/impact-lab/event-store"
+import { toMatchParticipant } from "@/lib/impact-lab/mappers"
 import { toRematchParticipant } from "@/lib/impact-lab/mappers"
 import { resolveSettings } from "@/lib/impact-lab/settings"
 import { extractFrozenTeams } from "@/lib/impact-lab/member"
@@ -18,6 +24,12 @@ const rematchSchema = z.object({
   // republish. Getting this backwards at a live event (silently writing on
   // every preview) is the failure mode that matters here.
   write: z.boolean().optional(),
+  // "no-shows" (default) is the original behaviour, unchanged. "place-unassigned"
+  // seats people on no team without touching anyone already on one.
+  mode: z.enum(["no-shows", "place-unassigned"]).optional(),
+  // place-unassigned only (ignored otherwise): lowers the team-size cap for
+  // this placement below the run's own maxTeamSize, never raises it.
+  maxTeamSize: z.number().int().min(2).max(10).optional(),
 })
 
 /**
@@ -114,6 +126,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  if (validation.data.mode === "place-unassigned") {
+    return handlePlaceUnassigned({
+      request,
+      userId: check.user.id,
+      userName: check.user.name,
+      userEmail: check.user.email,
+      run: { id: run.id },
+      cohort,
+      write,
+      frozenTeams,
+      settings,
+      maxTeamSizeOverride: validation.data.maxTeamSize,
+    })
+  }
+
   const memberIds = [...new Set(frozenTeams.flatMap((t) => t.memberIds))]
   const participants = await prisma.impactLabParticipant.findMany({
     where: { id: { in: memberIds } },
@@ -192,6 +219,145 @@ export async function POST(request: NextRequest) {
       newTeamCount: outcome.summary.newTeamIds.length,
       droppedNoShowCount: outcome.summary.droppedNoShowIds.length,
       movedCount: outcome.summary.moves.length,
+    },
+    ...getRequestMetadata(request),
+  })
+
+  return NextResponse.json({ success: true, data: responseData })
+}
+
+// ─── place-unassigned mode ───────────────────────────────────────────────
+
+interface PlaceUnassignedArgs {
+  request: NextRequest
+  userId: string
+  userName: string | undefined
+  userEmail: string | undefined
+  run: { id: string }
+  cohort: string
+  write: boolean
+  frozenTeams: Team[]
+  settings: MatchSettings
+  maxTeamSizeOverride: number | undefined
+}
+
+/** Sorted, comma-joined member ids of every team — a cheap "did rosters change?" fingerprint. */
+function rosterFingerprint(teams: Team[]): string {
+  return teams
+    .map((t) => `${t.id}:${[...t.memberIds].sort().join(",")}`)
+    .sort()
+    .join("|")
+}
+
+function averageTeamScore(teams: Team[]): number {
+  if (teams.length === 0) return 0
+  const sum = teams.reduce((total, t) => total + t.score.total, 0)
+  return Math.round((sum / teams.length) * 100) / 100
+}
+
+/**
+ * Seat people who are on no team (src/lib/matching/place-unassigned.ts owns
+ * the rules). Existing teams are never changed except by appending newcomers;
+ * maxTeamSize is never exceeded. Writes the SAME run under the run lock and
+ * preserves every other key of `result`.
+ */
+async function handlePlaceUnassigned(args: PlaceUnassignedArgs): Promise<NextResponse> {
+  const { request, run, cohort, write, frozenTeams, maxTeamSizeOverride } = args
+  const event = await getEventByCohort(cohort)
+  const maxTeamSize = Math.min(args.settings.maxTeamSize, maxTeamSizeOverride ?? Infinity)
+  const settings: MatchSettings = {
+    ...args.settings,
+    maxTeamSize,
+    tracks: event?.tracks ?? args.settings.tracks,
+  }
+
+  const everyone = await prisma.impactLabParticipant.findMany({ where: { cohort } })
+  const onTeamIds = new Set(frozenTeams.flatMap((t) => t.memberIds))
+  const candidates = selectPlacementCandidates(everyone, onTeamIds).map(toMatchParticipant)
+  const teamMembers = everyone.filter((p) => onTeamIds.has(p.id)).map(toMatchParticipant)
+
+  const outcome = computePlaceUnassigned(frozenTeams, teamMembers, candidates, settings)
+
+  // People who opted out of matching and are on no team stay unassigned.
+  const placedIds = new Set(outcome.moves.map((m) => m.participantId))
+  const optedOutIds = everyone
+    .filter((p) => !onTeamIds.has(p.id) && !p.consentToMatch && !placedIds.has(p.id))
+    .map((p) => p.id)
+  const unassignedIds = [...new Set([...outcome.stillUnassignedIds, ...optedOutIds])].sort()
+
+  const newTeamIds = new Set(outcome.newTeamIds)
+  const responseData = {
+    runId: run.id,
+    cohort,
+    dryRun: !write,
+    mode: "place-unassigned" as const,
+    maxTeamSize,
+    moves: outcome.moves.map((m) => ({
+      participantId: m.participantId,
+      fullName: m.fullName,
+      toTeamId: m.toTeamId,
+      teamName: m.toTeamName,
+    })),
+    newTeams: outcome.teams
+      .filter((t) => newTeamIds.has(t.id))
+      .map((t) => ({ id: t.id, name: t.name, size: t.memberIds.length })),
+    stillUnassigned: unassignedIds.length,
+    warnings: outcome.warnings,
+  }
+
+  if (!write) {
+    return NextResponse.json({ success: true, data: responseData })
+  }
+
+  const stale = await withRunLock(run.id, async (tx) => {
+    const fresh = await readLockedRun(tx, run.id)
+    const freshTeams = fresh ? extractFrozenTeams(fresh.result) : null
+    // The plan above was computed from an earlier read. If rosters changed
+    // since (a join request approved, a roster edit), applying it could seat
+    // someone twice or overfill a team — refuse and let the organiser re-preview.
+    if (!fresh || !freshTeams || rosterFingerprint(freshTeams) !== rosterFingerprint(frozenTeams)) {
+      return true
+    }
+    await tx.impactLabMatchRun.update({
+      where: { id: run.id },
+      data: {
+        result: JSON.parse(
+          JSON.stringify({
+            ...(fresh.result as object),
+            teams: outcome.teams,
+            unassignedIds,
+            warnings: outcome.warnings,
+            averageScore: averageTeamScore(outcome.teams),
+          })
+        ),
+      },
+    })
+    return false
+  })
+  if (stale) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Teams changed while this was being computed. Preview again, then apply.",
+        code: "STALE_ROSTERS",
+      },
+      { status: 409 }
+    )
+  }
+
+  await logAudit({
+    userId: args.userId,
+    userName: args.userName,
+    userEmail: args.userEmail,
+    action: "UPDATE",
+    entity: "ImpactLabMatchRun",
+    entityId: run.id,
+    changes: {
+      placeUnassigned: true,
+      maxTeamSize,
+      placedCount: outcome.moves.length,
+      newTeamCount: outcome.newTeamIds.length,
+      stillUnassignedCount: unassignedIds.length,
     },
     ...getRequestMetadata(request),
   })
