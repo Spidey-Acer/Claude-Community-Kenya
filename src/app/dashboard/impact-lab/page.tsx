@@ -41,8 +41,15 @@ export default async function ImpactLabPage({
   const email = session.user.email.toLowerCase();
   const { cohort: requestedCohort } = await searchParams;
   const memberEvents = await resolveMemberEvents(email);
-  const picked = pickMemberEvent(memberEvents, validCohort(requestedCohort));
   const openEvent = await openRegistrationEvent();
+  // With no event named in the URL, the event open right now leads. A
+  // returning member who has not yet joined it lands on its registration
+  // (its own tracks), not on their previous event with a banner; their older
+  // events stay one click away in the switcher below.
+  const picked = pickMemberEvent(
+    memberEvents,
+    validCohort(requestedCohort) ?? openEvent?.cohort ?? null
+  ) ?? (openEvent ? null : pickMemberEvent(memberEvents, null));
   // No event of the member's own: fall back to whatever is currently open
   // for self-registration, so the page still names something and the
   // registration invitation can appear — same fallback the dashboard card
@@ -131,7 +138,7 @@ export default async function ImpactLabPage({
             concurrent ones) picks which to view here — plain links, not
             client state, so the choice survives a reload and is shareable.
             Fewer than two memberships: nothing to switch between. */}
-        {memberEvents.length > 1 && (
+        {(memberEvents.length > 1 || (memberEvents.length > 0 && !picked)) && (
           <nav aria-label="Choose event" className="mb-6 flex flex-wrap gap-2">
             {memberEvents.map((e) => (
               <Link
@@ -179,7 +186,9 @@ export default async function ImpactLabPage({
             cohort={activeEvent?.cohort}
             tracks={activeEvent?.tracks ?? []}
             inviteEvent={
-              inviteEvent ? { cohort: inviteEvent.cohort, name: inviteEvent.name } : null
+              inviteEvent
+                ? { cohort: inviteEvent.cohort, name: inviteEvent.name, tracks: inviteEvent.tracks }
+                : null
             }
             conversationsReport={conversationsReport}
             eventInfo={eventInfo}

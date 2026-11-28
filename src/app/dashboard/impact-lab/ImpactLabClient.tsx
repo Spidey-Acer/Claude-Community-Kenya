@@ -71,6 +71,9 @@ type Phase =
 interface InviteEvent {
   cohort: string;
   name: string;
+  /** The invited event's own tracks: registering into it must offer these,
+   *  never the tracks of the event the page is currently showing. */
+  tracks?: MatchProfileTrack[];
 }
 
 /**
@@ -265,8 +268,8 @@ export function ImpactLabClient({
       <div className="max-w-3xl">
       <MatchProfileForm
         isNew
-        cohort={cohort}
-        tracks={tracks}
+        cohort={typeof registering === "object" ? registering.cohort : cohort}
+        tracks={typeof registering === "object" ? (inviteEvent?.tracks ?? []) : tracks}
         profile={{
           fullName: "",
           email: sessionEmail,

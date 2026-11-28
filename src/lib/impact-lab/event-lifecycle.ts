@@ -74,8 +74,12 @@ export function pickMemberEvent<T extends MemberEventRef>(
 ): T | null {
   const visible = orderMemberEvents(events)
   if (requested) {
-    const match = visible.find((e) => e.cohort === requested)
-    if (match) return match
+    // An explicitly named event the caller does not belong to resolves to
+    // nothing, not to their newest other event. Falling back silently served
+    // a returning member their OLD event's profile and tracks under the new
+    // event's page (28 Nov 2026: Build Day tracks shown during the Health
+    // Lab). Callers already treat null as "not registered here".
+    return visible.find((e) => e.cohort === requested) ?? null
   }
   return visible[0] ?? null
 }
