@@ -202,11 +202,16 @@ export const RateLimits = {
   // Per-IP, and venue WiFi / Kenyan carrier CGNAT put a whole room behind one
   // IP: 5/15min locked a workshop out of sign-in (incident 2026-09-02). 60/15min
   // still caps a brute-force at 4/min per IP; bcrypt does the rest.
-  LOGIN: { maxRequests: 60, windowInSeconds: 900 },
+  // 60/15min then locked a live room out of sign-in too (incident 2026-11-28),
+  // so 600/15min: ~4 attempts per person for 140 people. Changing the numbers
+  // also changes the Redis prefix, so a deploy starts every IP on a fresh count.
+  LOGIN: { maxRequests: 600, windowInSeconds: 900 },
   // Per-IP, room-sized for the same CGNAT reason as LOGIN: 3/hr per IP let
   // three people in a 140-person room reset a password (incident 2026-09-02).
   // Abuse is bounded per target email by PASSWORD_RESET_EMAIL instead.
-  PASSWORD_RESET: { maxRequests: 60, windowInSeconds: 3600 },
+  // Raised 60 → 300 on 2026-11-28: resend-verification shares this preset and
+  // a room signing up at once retries it when the first email is slow.
+  PASSWORD_RESET: { maxRequests: 300, windowInSeconds: 3600 },
   PASSWORD_RESET_EMAIL: { maxRequests: 3, windowInSeconds: 3600 },
   API_GENERAL: { maxRequests: 100, windowInSeconds: 3600 },
   ADMIN: { maxRequests: 30, windowInSeconds: 60 },
@@ -214,7 +219,9 @@ export const RateLimits = {
   AUTH: { maxRequests: 5, windowInSeconds: 60 },
   // Signup + email verification: room-sized per-IP cap for the same CGNAT
   // reason as LOGIN. Email verification is the abuse gate on the user table.
-  SIGNUP: { maxRequests: 100, windowInSeconds: 3600 },
+  // /api/signup and /api/verify-email share this one counter, so 100/hr was
+  // spent by ~40 people in a room (incident 2026-11-28); 1000/hr fits ~140.
+  SIGNUP: { maxRequests: 1000, windowInSeconds: 3600 },
   FORM: { maxRequests: 10, windowInSeconds: 60 },
   // Signed-in member actions during a live event (team search, roster, profile,
   // submission): per-IP, and the room shares one IP, so size it for the room.
