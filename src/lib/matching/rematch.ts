@@ -97,13 +97,13 @@ export interface RematchOutcome {
 
 // ─── Small helpers ───────────────────────────────────────────────────────
 
-function sortIds(ids: string[]): string[] {
+export function sortIds(ids: string[]): string[] {
   return [...ids].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 }
 
 /** Strip `checkedIn` back off — the leftover sub-engine run (step 4) speaks
  * plain `MatchParticipant`, same as every other caller of the engine. */
-function toMatchParticipant(rp: RematchParticipant): MatchParticipant {
+export function toMatchParticipant(rp: RematchParticipant): MatchParticipant {
   const {
     id, fullName, email, experienceLevel, primaryRole, secondaryRoles,
     technicalSkills, interests, availability, preferredTeammates,
@@ -116,14 +116,14 @@ function toMatchParticipant(rp: RematchParticipant): MatchParticipant {
   }
 }
 
-interface WorkingTeam {
+export interface WorkingTeam {
   id: string
   name: string
   locked: boolean
   memberIds: string[]
 }
 
-function membersOf(
+export function membersOf(
   team: WorkingTeam,
   byId: Map<string, NormalizedParticipant>
 ): NormalizedParticipant[] {
@@ -135,7 +135,7 @@ function membersOf(
  * collapsed). Guarantees a freshly formed or solo team can never collide
  * with a published team id, regardless of how many are minted.
  */
-function makeTeamIdAllocator(reserved: Set<string>): () => string {
+export function makeTeamIdAllocator(reserved: Set<string>): () => string {
   let n = 1
   return () => {
     let id = `team-${n}`
@@ -149,7 +149,7 @@ function makeTeamIdAllocator(reserved: Set<string>): () => string {
   }
 }
 
-interface PlacementContext {
+export interface PlacementContext {
   byId: Map<string, NormalizedParticipant>
   scoring: ScoringContext
 }
@@ -160,7 +160,7 @@ interface PlacementContext {
  * lexicographically lower id — the same tie-break order algorithm.ts uses,
  * so a rematch on identical input is exactly reproducible.
  */
-function pickBestTeam(
+export function pickBestTeam(
   candidateId: string,
   candidates: WorkingTeam[],
   ctx: PlacementContext

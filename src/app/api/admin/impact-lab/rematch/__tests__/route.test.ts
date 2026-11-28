@@ -44,7 +44,7 @@ const mockTx = {
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     impactLabMatchRun: { findFirst: vi.fn() },
-    impactLabParticipant: { findMany: vi.fn(async () => []) },
+    impactLabParticipant: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(mockTx)),
   },
 }))
@@ -70,6 +70,7 @@ vi.mock("@/lib/audit-log", () => ({
 
 vi.mock("@/lib/impact-lab/event-store", () => ({
   resolveAdminCohort: vi.fn(async () => "impact-lab-02"),
+  getEventByCohort: vi.fn(async () => ({ tracks: [] })),
 }))
 
 // member.ts value-imports "@/auth" (next-auth) purely for checkMemberAccess,
@@ -197,6 +198,121 @@ describe("POST /api/admin/impact-lab/rematch", () => {
 
     expect(res.status).toBe(409)
     expect(json.code).toBe("JUDGING_CLOSED")
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+})
+
+describe("POST /api/admin/impact-lab/rematch (default mode)", () => {
+  it("an explicit mode of no-shows runs the original rematch", async () => {
+    givenRun({ teams: [team("team-1", ["p1", "p2"])], unassignedIds: [] })
+    await POST(request({ mode: "no-shows" }))
+    expect(computeRematch).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ─── place-unassigned mode ───────────────────────────────────────────────
+// The engine is real here (only computeRematch is mocked). team-1 holds three
+// people; one consenting and one opted-out person are on no team.
+
+function participantRow(id: string, consentToMatch: boolean) {
+  return {
+    id,
+    cohort: "impact-lab-02",
+    fullName: id,
+    email: `${id}@example.com`,
+    experienceLevel: "INTERMEDIATE",
+    primaryRole: "builder",
+    secondaryRoles: [],
+    technicalSkills: [],
+    interests: [],
+    availability: [],
+    preferredTeammates: [],
+    blockedTeammates: [],
+    consentToMatch,
+    checkedInAt: null,
+  }
+}
+
+const PLACE_RESULT = {
+  teams: [team("team-1", ["p1", "p2", "p3"])],
+  unassignedIds: ["new1", "optout"],
+  joinRequests: [{ id: "jr-1", status: "open" }],
+  onStage: { teamId: "team-1" },
+}
+
+function givenPlacementRoster() {
+  givenRun(PLACE_RESULT)
+  vi.mocked(prisma.impactLabParticipant.findMany).mockResolvedValue([
+    participantRow("p1", true),
+    participantRow("p2", true),
+    participantRow("p3", true),
+    participantRow("new1", true),
+    participantRow("optout", false),
+  ] as never)
+  mockTx.impactLabMatchRun.findUnique.mockResolvedValue({ result: PLACE_RESULT, settings: {} })
+}
+
+describe("POST /api/admin/impact-lab/rematch (mode: place-unassigned)", () => {
+  it("dry run previews placements and writes nothing", async () => {
+    givenPlacementRoster()
+
+    const res = await POST(request({ mode: "place-unassigned", maxTeamSize: 5 }))
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.data.dryRun).toBe(true)
+    expect(json.data.mode).toBe("place-unassigned")
+    expect(json.data.maxTeamSize).toBe(5)
+    expect(json.data.moves).toEqual([
+      { participantId: "new1", fullName: "new1", toTeamId: "team-1", teamName: "Team team-1" },
+    ])
+    expect(json.data.stillUnassigned).toBe(1)
+    expect(JSON.stringify(json)).not.toContain("@example.com")
+    expect(computeRematch).not.toHaveBeenCalled()
+    expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
+  })
+
+  it("write: true updates the same run id and preserves every other result key", async () => {
+    givenPlacementRoster()
+
+    const res = await POST(request({ mode: "place-unassigned", write: true }))
+    expect(res.status).toBe(200)
+
+    expect(mockTx.impactLabMatchRun.update).toHaveBeenCalledTimes(1)
+    const args = mockTx.impactLabMatchRun.update.mock.calls[0][0] as unknown as {
+      where: { id: string }
+      data: { result: WrittenResult & { unassignedIds: string[] } }
+    }
+    expect(args.where.id).toBe("run-1")
+    const written = args.data.result
+    expect((written.teams[0] as { memberIds: string[] }).memberIds).toEqual([
+      "p1",
+      "p2",
+      "p3",
+      "new1",
+    ])
+    expect(written.unassignedIds).toEqual(["optout"])
+    expect(written.joinRequests).toEqual([{ id: "jr-1", status: "open" }])
+    expect(written.onStage).toEqual({ teamId: "team-1" })
+  })
+
+  it("a lower maxTeamSize override stops a team from taking newcomers", async () => {
+    givenPlacementRoster()
+    const res = await POST(request({ mode: "place-unassigned", maxTeamSize: 3 }))
+    const json = await res.json()
+    expect(json.data.maxTeamSize).toBe(3)
+    expect(json.data.moves).toEqual([])
+  })
+
+  it("refuses with 409 and writes nothing when rosters changed under the lock", async () => {
+    givenPlacementRoster()
+    mockTx.impactLabMatchRun.findUnique.mockResolvedValue({
+      result: { ...PLACE_RESULT, teams: [team("team-1", ["p1", "p2", "p3", "new1"])] },
+      settings: {},
+    })
+
+    const res = await POST(request({ mode: "place-unassigned", write: true }))
+    expect(res.status).toBe(409)
     expect(mockTx.impactLabMatchRun.update).not.toHaveBeenCalled()
   })
 })
